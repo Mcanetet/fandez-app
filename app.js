@@ -106,7 +106,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
-app.use(express.json({ limit: appMode.isProductionMode() ? '2mb' : '25mb' }));
+app.use(express.json({ limit: appMode.isProductionMode() ? '12mb' : '25mb' }));
 
 const sessionSecret = process.env.SESSION_SECRET || (appMode.isProductionMode() ? null : 'zilo-dev-secret-change-me');
 if (!sessionSecret) {

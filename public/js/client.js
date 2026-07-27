@@ -177,21 +177,74 @@
   const brandPhotoBlock = document.getElementById('brandPhotoBlock');
   const brandNotVisibleCheck = document.getElementById('brandNotVisible');
 
-  function wirePhotoPreview(input, preview) {
-    if (!input || !preview) return;
-    input.addEventListener('change', () => {
-      const file = input.files?.[0];
-      if (!file) return;
+  // En iOS/Android, al abrir el 2.º input a veces se limpia files[] del 1.º
+  // aunque el preview siga visible. Guardamos dataURL al elegir la foto.
+  let cachedProblemPhoto = null;
+  let cachedBrandPhoto = null;
+  let submitInFlight = false;
+
+  function compressImageFile(file, { maxSide = 1600, quality = 0.82 } = {}) {
+    return new Promise((resolve) => {
+      if (!file) return resolve(null);
+      const type = String(file.type || '');
+      // Algunos móviles no informan MIME; igual intentamos leer.
+      if (type && !type.startsWith('image/')) return resolve(null);
       const reader = new FileReader();
+      reader.onerror = () => resolve(null);
       reader.onload = () => {
-        preview.querySelector('img').src = reader.result;
-        preview.classList.remove('hidden');
+        const img = new Image();
+        img.onerror = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+        img.onload = () => {
+          try {
+            let { width, height } = img;
+            const scale = Math.min(1, maxSide / Math.max(width, height));
+            width = Math.max(1, Math.round(width * scale));
+            height = Math.max(1, Math.round(height * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(reader.result);
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          } catch (_) {
+            resolve(typeof reader.result === 'string' ? reader.result : null);
+          }
+        };
+        img.src = reader.result;
       };
       reader.readAsDataURL(file);
     });
   }
-  wirePhotoPreview(clientPhotoInput, clientPhotoPreview);
-  wirePhotoPreview(clientBrandPhotoInput, clientBrandPhotoPreview);
+
+  function wirePhotoPreview(input, preview, onReady) {
+    if (!input || !preview) return;
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      if (!file) {
+        onReady?.(null);
+        return;
+      }
+      if (file.size > 12 * 1024 * 1024) {
+        FundezNotify.show(t('client.js.photo_too_large'), 'warning');
+        input.value = '';
+        onReady?.(null);
+        return;
+      }
+      const dataUrl = await compressImageFile(file);
+      if (!dataUrl) {
+        FundezNotify.show(t('client.js.need_photo'), 'warning');
+        onReady?.(null);
+        return;
+      }
+      const img = preview.querySelector('img');
+      if (img) img.src = dataUrl;
+      preview.classList.remove('hidden');
+      onReady?.(dataUrl);
+    });
+  }
+  wirePhotoPreview(clientPhotoInput, clientPhotoPreview, (url) => { cachedProblemPhoto = url; });
+  wirePhotoPreview(clientBrandPhotoInput, clientBrandPhotoPreview, (url) => { cachedBrandPhoto = url; });
 
   function syncBrandPhotoRequirement() {
     const skipBrand = Boolean(brandNotVisibleCheck?.checked);
@@ -204,6 +257,7 @@
       clientBrandPhotoInput.required = !skipBrand;
       if (skipBrand) {
         clientBrandPhotoInput.value = '';
+        cachedBrandPhoto = null;
         clientBrandPhotoPreview?.classList.add('hidden');
       }
     }
@@ -227,19 +281,15 @@
   document.getElementById('photoHelpOk')?.addEventListener('click', closePhotoHelp);
   document.getElementById('photoHelpBackdrop')?.addEventListener('click', closePhotoHelp);
 
-  function fileInputToBase64(input) {
-    return new Promise((resolve) => {
-      const file = input?.files?.[0];
-      if (!file) return resolve(null);
-      if (file.size > 6 * 1024 * 1024) {
-        FundezNotify.show(t('client.js.photo_too_large'), 'warning');
-        return resolve(null);
-      }
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(file);
-    });
+  async function resolvePhotoDataUrl(input, cached) {
+    if (cached && String(cached).startsWith('data:image')) return cached;
+    const file = input?.files?.[0];
+    if (!file) return null;
+    if (file.size > 12 * 1024 * 1024) {
+      FundezNotify.show(t('client.js.photo_too_large'), 'warning');
+      return null;
+    }
+    return compressImageFile(file);
   }
 
   function setCoverageState(coverage) {
@@ -1167,6 +1217,8 @@
   }
 
   async function submitRequest() {
+    if (submitInFlight) return;
+
     const address = addressInput.value.trim();
     if (!address) {
       addressInput.focus();
@@ -1208,12 +1260,15 @@
       document.getElementById('notes')?.focus();
       return;
     }
-    if (clientPhotoInput && !clientPhotoInput.files?.length) {
+
+    const brandNotVisible = Boolean(brandNotVisibleCheck?.checked);
+    const hasProblemPhoto = Boolean(cachedProblemPhoto || clientPhotoInput?.files?.length);
+    if (!hasProblemPhoto) {
       FundezNotify.show(t('client.js.need_photo'), 'warning');
       return;
     }
-    const brandNotVisible = Boolean(brandNotVisibleCheck?.checked);
-    if (!brandNotVisible && clientBrandPhotoInput && !clientBrandPhotoInput.files?.length) {
+    const hasBrandPhoto = Boolean(cachedBrandPhoto || clientBrandPhotoInput?.files?.length);
+    if (!brandNotVisible && !hasBrandPhoto) {
       FundezNotify.show(t('client.js.need_brand_photo'), 'warning');
       return;
     }
@@ -1221,12 +1276,12 @@
     const continueLabel = t('client.js.continue_payment');
     const stickyBtn = document.getElementById('btnRequestSticky');
     const setBusy = (busy) => {
+      submitInFlight = busy;
       btnRequest.disabled = busy;
       btnRequest.textContent = busy ? t('client.js.processing') : continueLabel;
       if (stickyBtn) {
         stickyBtn.disabled = busy;
-        if (busy) stickyBtn.textContent = t('client.js.processing');
-        else stickyBtn.textContent = continueLabel;
+        stickyBtn.textContent = busy ? t('client.js.processing') : continueLabel;
       }
     };
 
@@ -1240,19 +1295,23 @@
         return;
       }
 
-      const clientPhoto = clientPhotoInput ? await fileInputToBase64(clientPhotoInput) : null;
+      const clientPhoto = await resolvePhotoDataUrl(clientPhotoInput, cachedProblemPhoto);
       if (!clientPhoto) {
         setBusy(false);
         FundezNotify.show(t('client.js.need_photo'), 'warning');
         return;
       }
-      const clientBrandPhoto = (!brandNotVisible && clientBrandPhotoInput)
-        ? await fileInputToBase64(clientBrandPhotoInput)
-        : null;
-      if (!brandNotVisible && !clientBrandPhoto) {
-        setBusy(false);
-        FundezNotify.show(t('client.js.need_brand_photo'), 'warning');
-        return;
+      cachedProblemPhoto = clientPhoto;
+
+      let clientBrandPhoto = null;
+      if (!brandNotVisible) {
+        clientBrandPhoto = await resolvePhotoDataUrl(clientBrandPhotoInput, cachedBrandPhoto);
+        if (!clientBrandPhoto) {
+          setBusy(false);
+          FundezNotify.show(t('client.js.need_brand_photo'), 'warning');
+          return;
+        }
+        cachedBrandPhoto = clientBrandPhoto;
       }
 
       const clock = deviceLocalClock();
@@ -1277,8 +1336,10 @@
         })
       });
 
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || t('client.js.process_error'));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || t('client.js.process_error'));
+      }
 
       window.location.href = `/pagos/checkout?ref=${data.request.id}`;
     } catch (err) {

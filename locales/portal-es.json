@@ -200,7 +200,7 @@
   "tecnico.trabajo.completed": "¡Visita completada!",
   "client.js.address_required": "Ingresa una dirección",
   "client.js.beneficiary_required": "Ingresa el nombre del beneficiario",
-  "client.js.photo_too_large": "La foto no puede superar 6 MB",
+  "client.js.photo_too_large": "La foto no puede superar 12 MB. Prueba recortarla o bajar la calidad.",
   "client.js.geocoding": "Buscando ubicación...",
   "client.js.geocode_fail": "No se pudo geocodificar",
   "client.js.location_found": "Ubicación encontrada",

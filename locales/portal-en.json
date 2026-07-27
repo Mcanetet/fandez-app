@@ -200,7 +200,7 @@
   "tecnico.trabajo.completed": "Visit completed!",
   "client.js.address_required": "Enter an address",
   "client.js.beneficiary_required": "Enter the beneficiary name",
-  "client.js.photo_too_large": "Photo cannot exceed 6 MB",
+  "client.js.photo_too_large": "Photo cannot exceed 12 MB. Try cropping or lowering quality.",
   "client.js.geocoding": "Finding location...",
   "client.js.geocode_fail": "Could not geocode address",
   "client.js.location_found": "Location found",
