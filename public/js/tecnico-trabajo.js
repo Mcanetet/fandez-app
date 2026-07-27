@@ -189,10 +189,12 @@
     const description = document.getElementById('matDesc').value.trim();
     const amount = document.getElementById('matAmount').value;
     if (!description || !amount) return notify('Completa descripción y precio', 'warning');
+    const receiptInput = document.getElementById('matReceipt');
+    if (!receiptInput?.files?.[0]) return notify('Sube la boleta o factura del material', 'warning');
     btn.disabled = true;
+    btn.textContent = 'Revisando boleta…';
     try {
       let receipt = null;
-      const receiptInput = document.getElementById('matReceipt');
       if (receiptInput?.files?.[0]) receipt = await fileToBase64(receiptInput);
       const res = await fetch(`/tecnico/trabajo/${requestId}/material`, {
         method: 'POST',
@@ -201,10 +203,16 @@
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Error');
-      notify('Material agregado', 'success');
+      const reviewMsg = data.review?.status === 'approved'
+        ? 'Material agregado · boleta aprobada por IA'
+        : (data.review?.status === 'pending_manual'
+          ? 'Material agregado · boleta pendiente de revisión'
+          : 'Material agregado');
+      notify(reviewMsg, 'success');
       location.reload();
     } catch (err) {
       btn.disabled = false;
+      btn.textContent = '+ Agregar material';
       notify(err.message || 'Error', 'error');
     }
   });
@@ -258,15 +266,16 @@
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
     set('setCharged', fmt(s.grandTotal));
-    set('setAppLabel', `Comisión Fundez ${Math.round((s.laborCommissionRate || 0) * 100)}%`);
-    set('setApp', `−${fmt(s.laborCommission)}`);
-    if (s.materialsCommission) {
-      set('setMaterials', `−${fmt(s.materialsCommission)}`);
-    } else {
-      document.getElementById('setMaterialsRow')?.classList.add('hidden');
-    }
-    set('setCardLabel', `Cargo tarjeta ${s.merchantCardFeePercent || 0}%`);
+    set('setCardLabel', `Tarjeta y administración ${s.merchantCardFeePercent || 0}%`);
     set('setCard', `−${fmt(s.cardFee)}`);
+    set('setAppLabel', `Fee aplicación ${Math.round((s.laborCommissionRate || 0) * 100)}%`);
+    set('setApp', `−${fmt(s.laborCommission)}`);
+    if (s.materialsTotal) {
+      set('setMaterialsKeep', fmt(s.materialsTotal));
+    } else {
+      document.getElementById('setMaterialsKeepRow')?.classList.add('hidden');
+    }
+    document.getElementById('setMaterialsRow')?.classList.add('hidden');
     set('setIvaLabel', `IVA ${Math.round((s.ivaRate || 0) * 100)}% sobre comisión/cargos`);
     set('setIva', `−${fmt(s.ivaOnFees)}`);
     set('setPayout', fmt(s.providerPayout));

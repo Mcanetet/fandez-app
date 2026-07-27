@@ -210,8 +210,10 @@
       </div>
     </div>
 
-    <div id="loaderOverlay" class="hidden fixed inset-0 z-[200] bg-zilo-bg/96 backdrop-blur-lg flex items-center justify-center overflow-y-auto py-8">
-      <div class="text-center px-5 max-w-sm w-full" id="searchExperience" data-timeout-ms="600000">
+    <div id="loaderOverlay" class="hidden fixed inset-0 z-[200] search-overlay flex items-center justify-center overflow-y-auto py-8">
+      <div class="search-overlay-glow" aria-hidden="true"></div>
+      <div class="search-overlay-grid" aria-hidden="true"></div>
+      <div class="relative text-center px-5 max-w-sm w-full" id="searchExperience" data-timeout-ms="600000">
         <div class="relative w-36 h-36 mx-auto mb-5">
           <svg class="search-ring absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
             <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="6" class="text-zilo-border/80"></circle>
@@ -219,7 +221,7 @@
               class="text-zilo-accent search-ring-progress" stroke-linecap="round"
               stroke-dasharray="326.73" stroke-dashoffset="326.73"></circle>
           </svg>
-          <div class="absolute inset-3 rounded-full border border-zilo-accent/20 bg-white/80 flex flex-col items-center justify-center shadow-zilo">
+          <div class="absolute inset-3 rounded-full border border-zilo-accent/20 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center shadow-zilo">
             <div class="relative w-14 h-14 mb-1">
               <div class="absolute inset-0 border-2 rounded-full animate-radar zilo-radar"></div>
               <div class="absolute inset-0 border-2 rounded-full animate-radar zilo-radar" style="animation-delay:0.7s"></div>
@@ -247,7 +249,7 @@
         </div>
 
         <div class="space-y-2 text-left mb-4" id="searchSteps">
-          <div id="step1" class="step-item is-active px-3.5 py-2.5 rounded-xl text-sm flex items-center gap-2.5 border border-transparent">
+          <div id="step1" class="step-item is-active px-3.5 py-2.5 rounded-xl text-sm flex items-center gap-2.5 border border-transparent bg-white/70 backdrop-blur-sm">
             <span class="search-step-dot shrink-0"></span>
             <span class="flex-1"><%= t('client.service.loader_locating') %></span>
           </div>
@@ -265,17 +267,39 @@
           </div>
         </div>
 
-        <div id="searchTipCard" class="p-3 rounded-2xl bg-white border border-zilo-border text-left mb-4 min-h-[3.5rem]">
+        <div id="searchTipCard" class="p-3 rounded-2xl bg-white/90 backdrop-blur-sm border border-zilo-border text-left mb-4 min-h-[3.5rem]">
           <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-muted mb-1"><%= t('client.service.search_tip_label') %></p>
           <p id="searchTipText" class="text-xs text-zilo-text leading-relaxed"><%= t('client.service.search_tip_1') %></p>
         </div>
 
         <p class="text-[11px] text-zilo-muted mb-3"><%= t('client.service.searching_hint') %></p>
-        <button type="button" data-open-aland class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition">
-          <%= t('client.service.talk_aland') %>
-        </button>
+        <div class="flex flex-col gap-2 mb-2">
+          <button type="button" id="btnCancelSearch" class="w-full py-3 px-3 rounded-xl border border-red-200 bg-white/90 text-red-700 text-sm font-semibold hover:bg-red-50 transition">
+            <%= t('client.service.cancel_search') %>
+          </button>
+          <button type="button" data-open-aland class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition">
+            <%= t('client.service.talk_aland') %>
+          </button>
+        </div>
       </div>
     </div>
+
+    <section id="scheduledPanel" class="hidden mt-5 p-5 rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-indigo-50 animate-slide-up shadow-zilo">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="w-11 h-11 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <div class="min-w-0 text-left">
+          <p class="zilo-label text-sky-700 mb-0.5"><%= t('client.service.scheduled_label') %></p>
+          <strong class="text-base block mb-1"><%= t('client.service.scheduled_title') %></strong>
+          <p id="scheduledSub" class="text-sm text-zilo-muted leading-relaxed"><%= t('client.service.scheduled_sub') %></p>
+          <p id="scheduledWhen" class="text-sm font-semibold text-zilo-accent mt-2"></p>
+        </div>
+      </div>
+      <button type="button" id="btnCancelScheduled" class="w-full py-3 px-3 rounded-xl border border-red-200 bg-white text-red-700 text-sm font-semibold">
+        <%= t('client.service.cancel_scheduled') %>
+      </button>
+    </section>
 
     <section id="noProviderChoicePanel" class="hidden mt-5 p-5 rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-50 to-white animate-slide-up shadow-zilo">
       <div class="flex items-start gap-3 mb-3">

@@ -207,9 +207,17 @@
       <div id="materialsList" class="space-y-2 mb-3">
         <% if (request.siteReport && request.siteReport.materials && request.siteReport.materials.length) { %>
           <% request.siteReport.materials.forEach(m => { %>
-            <div class="flex justify-between items-center p-3 rounded-xl bg-zilo-bg/80 border border-zilo-border text-sm">
-              <span><%= m.description %></span>
-              <strong class="text-zilo-accent"><%= formatCLP(m.amount) %></strong>
+            <div class="p-3 rounded-xl bg-zilo-bg/80 border border-zilo-border text-sm">
+              <div class="flex justify-between items-center gap-2">
+                <span><%= m.description %></span>
+                <strong class="text-zilo-accent shrink-0"><%= formatCLP(m.amount) %></strong>
+              </div>
+              <% if (m.reviewStatus) { %>
+                <p class="text-[10px] mt-1 <%= m.reviewStatus === 'approved' ? 'text-emerald-600' : (m.reviewStatus === 'rejected' ? 'text-red-600' : 'text-amber-600') %>">
+                  <%= m.reviewStatus === 'approved' ? 'IA: aprobada' : (m.reviewStatus === 'rejected' ? 'IA: rechazada' : 'IA: revisión pendiente') %>
+                  <% if (m.reviewReason) { %> · <%= m.reviewReason %><% } %>
+                </p>
+              <% } %>
             </div>
           <% }); %>
         <% } %>
@@ -217,7 +225,9 @@
       <div class="space-y-2 border-t border-zilo-border pt-3">
         <input type="text" id="matDesc" class="zilo-input w-full !py-2 text-sm" placeholder="Descripción del material">
         <input type="number" id="matAmount" class="zilo-input w-full !py-2 text-sm" placeholder="Precio CLP" min="100">
+        <label class="text-xs text-zilo-muted block">Boleta / factura *</label>
         <input type="file" id="matReceipt" accept="image/*,application/pdf" class="block w-full text-xs text-zilo-muted file:mr-2 file:py-1.5 file:px-2 file:rounded file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent">
+        <p class="text-[11px] text-zilo-muted">La IA revisa la foto: que sea legible, el monto cuadre y el material corresponda al trabajo.</p>
         <button type="button" id="btnAddMaterial" class="w-full py-2 rounded-xl zilo-btn-ghost !text-sm">+ Agregar material</button>
       </div>
     </section>
@@ -264,16 +274,20 @@
           <strong id="setCharged">—</strong>
         </div>
         <div class="flex justify-between text-zilo-muted">
-          <span id="setAppLabel">Comisión Fundez</span>
-          <span id="setApp">—</span>
-        </div>
-        <div class="flex justify-between text-zilo-muted" id="setMaterialsRow">
-          <span>Comisión materiales</span>
-          <span id="setMaterials">—</span>
+          <span id="setCardLabel">Tarjeta y administración 5%</span>
+          <span id="setCard">—</span>
         </div>
         <div class="flex justify-between text-zilo-muted">
-          <span id="setCardLabel">Cargo tarjeta</span>
-          <span id="setCard">—</span>
+          <span id="setAppLabel">Fee aplicación 20%</span>
+          <span id="setApp">—</span>
+        </div>
+        <div class="flex justify-between text-zilo-success" id="setMaterialsKeepRow">
+          <span>Materiales (100% tuyos)</span>
+          <span id="setMaterialsKeep">—</span>
+        </div>
+        <div class="flex justify-between text-zilo-muted hidden" id="setMaterialsRow">
+          <span>Comisión materiales</span>
+          <span id="setMaterials">—</span>
         </div>
         <div class="flex justify-between text-zilo-muted">
           <span id="setIvaLabel">IVA sobre comisión/cargos</span>
@@ -283,7 +297,7 @@
           <span class="font-medium">Tu neto</span>
           <strong class="text-zilo-success" id="setPayout">—</strong>
         </div>
-        <p class="text-[11px] text-zilo-muted/80 mt-1">El IVA aplica solo sobre lo de Fundez, no sobre tu neto.</p>
+        <p class="text-[11px] text-zilo-muted/80 mt-1">Del cobro de mano de obra: 5% tarjeta/admin y 20% fee app son de Fundez; el resto es tuyo. Los materiales no entran en ese porcentaje.</p>
       </div>
       <a href="<%= typeof returnUrl !== 'undefined' ? returnUrl : '/tecnico' %>" class="mt-4 block w-full text-center py-3 rounded-xl zilo-btn-primary">Volver al panel</a>
     </section>

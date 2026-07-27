@@ -29,12 +29,6 @@
           <span class="text-zilo-muted">Servicio adicional</span>
           <span><%= formatCLP(charge.baseAmount) %></span>
         </div>
-        <% if (charge.paymentSurchargeAmount) { %>
-        <div class="flex justify-between">
-          <span class="text-zilo-muted">Recargo tarjeta (+<%= charge.paymentSurchargePercent %>%)</span>
-          <span class="text-orange-600">+<%= formatCLP(charge.paymentSurchargeAmount) %></span>
-        </div>
-        <% } %>
         <div class="flex justify-between pt-3 border-t border-zilo-border">
           <strong>Total a pagar</strong>
           <strong class="text-zilo-accent text-lg"><%= formatCLP(charge.amountDue) %></strong>

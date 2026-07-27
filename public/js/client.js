@@ -13,6 +13,7 @@
   const trackingId = page.dataset.tracking;
   const btnRequest = document.getElementById('btnRequest');
   const loaderOverlay = document.getElementById('loaderOverlay');
+  const scheduledPanel = document.getElementById('scheduledPanel');
   const providerCard = document.getElementById('providerCard');
   const requestForm = document.getElementById('requestForm');
   const addressInput = document.getElementById('address');
@@ -52,7 +53,6 @@
 
     if (trackingId) {
       requestForm.classList.add('hidden');
-      loaderOverlay.classList.remove('hidden');
       startTracking(trackingId);
     }
   });
@@ -454,6 +454,84 @@
   function hideNoProviderChoice() {
     document.getElementById('noProviderChoicePanel')?.classList.add('hidden');
   }
+
+  function formatScheduledWhen(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime())) return '';
+    return d.toLocaleString('es-CL', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  function showScheduledPanel(request) {
+    if (!scheduledPanel || !request) return;
+    stopSearchExperience();
+    loaderOverlay?.classList.add('hidden');
+    requestForm?.classList.add('hidden');
+    providerCard?.classList.add('hidden');
+    hideNoProviderChoice();
+    const whenEl = document.getElementById('scheduledWhen');
+    if (whenEl) {
+      const label = formatScheduledWhen(request.scheduledSearchAt);
+      whenEl.textContent = label
+        ? t('client.service.scheduled_when', { when: label })
+        : (request.urgencyTierLabel || '');
+    }
+    const sub = document.getElementById('scheduledSub');
+    if (sub && request.urgencyTierLabel) {
+      sub.textContent = t('client.service.scheduled_sub_tier', { tier: request.urgencyTierLabel });
+    }
+    scheduledPanel.dataset.requestId = request.id;
+    scheduledPanel.classList.remove('hidden');
+  }
+
+  function hideScheduledPanel() {
+    scheduledPanel?.classList.add('hidden');
+  }
+
+  async function cancelSearchOrSchedule(requestId) {
+    if (!requestId) return;
+    const ok = window.confirm(t('client.service.cancel_search_confirm'));
+    if (!ok) return;
+    try {
+      const response = await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/cancelar-busqueda`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        credentials: 'same-origin',
+        body: '{}'
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || t('client.service.cancel_search_error'));
+      stopSearchExperience();
+      loaderOverlay?.classList.add('hidden');
+      hideScheduledPanel();
+      if (window.FundezAlerts) {
+        FundezAlerts.notify({
+          type: 'success',
+          title: t('client.service.cancel_search_ok_title'),
+          body: t('client.service.cancel_search_ok_body'),
+          toast: 'success'
+        });
+      } else {
+        FundezNotify.show(t('client.service.cancel_search_ok_body'), 'success');
+      }
+      setTimeout(() => { window.location.href = '/cliente'; }, 1000);
+    } catch (err) {
+      FundezNotify.show(err.message || t('client.service.cancel_search_error'), 'error');
+    }
+  }
+
+  document.getElementById('btnCancelSearch')?.addEventListener('click', () => {
+    cancelSearchOrSchedule(currentRequestId || page.dataset.tracking);
+  });
+  document.getElementById('btnCancelScheduled')?.addEventListener('click', () => {
+    cancelSearchOrSchedule(scheduledPanel?.dataset.requestId || currentRequestId || page.dataset.tracking);
+  });
 
   async function submitNoProviderChoice(choice, requestId) {
     const panel = document.getElementById('noProviderChoicePanel');
@@ -940,9 +1018,28 @@
     fetch(`/cliente/solicitud/${requestId}`)
       .then(r => r.json())
       .then(data => {
+        if (data.request?.status === 'scheduled') {
+          showScheduledPanel(data.request);
+          setTimeout(() => pollForProvider(requestId, attempts + 1, startedAt), SEARCH_POLL_MS);
+          return;
+        }
+        if (data.request?.status === 'cancelled') {
+          stopSearchExperience();
+          loaderOverlay?.classList.add('hidden');
+          hideScheduledPanel();
+          return;
+        }
+        if (data.request?.status === 'searching') {
+          hideScheduledPanel();
+          if (loaderOverlay?.classList.contains('hidden')) {
+            loaderOverlay.classList.remove('hidden');
+            startSearchExperience(data.request);
+          }
+        }
         if (data.request) syncSearchStartFromRequest(data.request);
         if (data.provider) {
           hideNoProviderChoice();
+          hideScheduledPanel();
           showProvider(data.provider, data.request);
           return;
         }
@@ -963,7 +1060,27 @@
   function startTracking(requestId) {
     currentRequestId = requestId;
     if (window.FundezAlerts) FundezAlerts.ensurePermission();
-    startSearchExperience();
+    // Estado inicial: se define al primer poll / socket.
+    fetch(`/cliente/solicitud/${requestId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.request?.status === 'scheduled') {
+          showScheduledPanel(data.request);
+        } else if (data.provider) {
+          showProvider(data.provider, data.request);
+        } else if (data.request?.noProviderDecisionStatus === 'pending') {
+          showNoProviderChoice(data.request);
+        } else {
+          hideScheduledPanel();
+          loaderOverlay?.classList.remove('hidden');
+          startSearchExperience(data.request);
+        }
+      })
+      .catch(() => {
+        loaderOverlay?.classList.remove('hidden');
+        startSearchExperience();
+      });
+
     const joinRoom = () => socket.emit('register_client', requestId);
     joinRoom();
     if (!socket.__fundezClientReconnectBound) {
@@ -975,9 +1092,26 @@
 
     socket.off(`request_update_${requestId}`);
     socket.on(`request_update_${requestId}`, (payload) => {
+      if (payload.cancelled || payload.request?.status === 'cancelled') {
+        stopSearchExperience();
+        loaderOverlay?.classList.add('hidden');
+        hideScheduledPanel();
+        return;
+      }
+      if (payload.request?.status === 'scheduled') {
+        showScheduledPanel(payload.request);
+        return;
+      }
+      if (payload.request?.status === 'searching') {
+        const wasHidden = loaderOverlay?.classList.contains('hidden');
+        hideScheduledPanel();
+        loaderOverlay?.classList.remove('hidden');
+        if (wasHidden || !searchTimerInterval) startSearchExperience(payload.request);
+      }
       if (payload.provider) {
         stopSearchExperience();
         hideNoProviderChoice();
+        hideScheduledPanel();
         showProvider(payload.provider, payload.request);
       } else if (payload.request) {
         syncSearchStartFromRequest(payload.request);
@@ -1056,47 +1190,67 @@
       };
     }
 
-    btnRequest.disabled = true;
-    btnRequest.textContent = t('client.js.processing');
+    const activityId = document.getElementById('activityId')?.value || '';
+    const customName = document.getElementById('customActivityName')?.value.trim() || '';
+    const notes = document.getElementById('notes')?.value.trim() || '';
+    if (document.getElementById('activityId') && !activityId) {
+      FundezNotify.show(t('client.js.need_subservice'), 'warning');
+      document.getElementById('activityId')?.focus();
+      return;
+    }
+    if (activityId === 'otro' && customName.length < 4) {
+      FundezNotify.show('En Otro, describe el servicio que necesitas', 'warning');
+      document.getElementById('customActivityName')?.focus();
+      return;
+    }
+    if (!notes) {
+      FundezNotify.show(t('client.js.need_notes'), 'warning');
+      document.getElementById('notes')?.focus();
+      return;
+    }
+    if (clientPhotoInput && !clientPhotoInput.files?.length) {
+      FundezNotify.show(t('client.js.need_photo'), 'warning');
+      return;
+    }
+    const brandNotVisible = Boolean(brandNotVisibleCheck?.checked);
+    if (!brandNotVisible && clientBrandPhotoInput && !clientBrandPhotoInput.files?.length) {
+      FundezNotify.show(t('client.js.need_brand_photo'), 'warning');
+      return;
+    }
+
+    const continueLabel = t('client.js.continue_payment');
     const stickyBtn = document.getElementById('btnRequestSticky');
-    if (stickyBtn) stickyBtn.disabled = true;
+    const setBusy = (busy) => {
+      btnRequest.disabled = busy;
+      btnRequest.textContent = busy ? t('client.js.processing') : continueLabel;
+      if (stickyBtn) {
+        stickyBtn.disabled = busy;
+        if (busy) stickyBtn.textContent = t('client.js.processing');
+        else stickyBtn.textContent = continueLabel;
+      }
+    };
+
+    setBusy(true);
 
     try {
       if (!latInput.value) await geocodeAddress();
       if (addressCovered === false) {
-        btnRequest.disabled = true;
-        if (stickyBtn) stickyBtn.disabled = true;
-        btnRequest.textContent = t('client.js.continue_payment');
+        setBusy(false);
         FundezNotify.show(t('client.js.coverage_blocked'), 'warning');
         return;
       }
 
-      const activityId = document.getElementById('activityId')?.value || '';
-      const customName = document.getElementById('customActivityName')?.value.trim() || '';
-      const notes = document.getElementById('notes')?.value.trim() || '';
-      if (document.getElementById('activityId') && !activityId) {
-        FundezNotify.show(t('client.js.need_subservice'), 'warning');
-        return;
-      }
-      if (activityId === 'otro' && customName.length < 4) {
-        FundezNotify.show('En Otro, describe el servicio que necesitas', 'warning');
-        document.getElementById('customActivityName')?.focus();
-        return;
-      }
-      if (!notes) {
-        FundezNotify.show(t('client.js.need_notes'), 'warning');
-        return;
-      }
       const clientPhoto = clientPhotoInput ? await fileInputToBase64(clientPhotoInput) : null;
       if (!clientPhoto) {
+        setBusy(false);
         FundezNotify.show(t('client.js.need_photo'), 'warning');
         return;
       }
-      const brandNotVisible = Boolean(brandNotVisibleCheck?.checked);
       const clientBrandPhoto = (!brandNotVisible && clientBrandPhotoInput)
         ? await fileInputToBase64(clientBrandPhotoInput)
         : null;
       if (!brandNotVisible && !clientBrandPhoto) {
+        setBusy(false);
         FundezNotify.show(t('client.js.need_brand_photo'), 'warning');
         return;
       }
@@ -1128,9 +1282,7 @@
 
       window.location.href = `/pagos/checkout?ref=${data.request.id}`;
     } catch (err) {
-      btnRequest.disabled = false;
-      btnRequest.textContent = t('client.js.continue_payment');
-      if (stickyBtn) stickyBtn.disabled = false;
+      setBusy(false);
       FundezNotify.show(err.message || t('client.js.process_error'), 'error');
     }
   }

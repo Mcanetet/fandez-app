@@ -192,9 +192,9 @@
                     <summary class="text-[10px] text-zilo-muted cursor-pointer"><%= t('provider.settlement') %></summary>
                     <div class="text-[10px] text-zilo-muted mt-1 space-y-0.5">
                       <p><%= t('provider.settlement_charged') %>: <%= formatCLP(fin.grandTotal) %></p>
-                      <p><%= t('provider.settlement_app') %> <%= Math.round((fin.laborCommissionRate || 0) * 100) %>%: −<%= formatCLP(fin.laborCommission) %></p>
-                      <% if (fin.materialsCommission) { %><p><%= t('provider.settlement_materials') %>: −<%= formatCLP(fin.materialsCommission) %></p><% } %>
                       <p><%= t('provider.settlement_card') %> <%= fin.merchantCardFeePercent || 0 %>%: −<%= formatCLP(fin.cardFee || 0) %></p>
+                      <p><%= t('provider.settlement_app') %> <%= Math.round((fin.laborCommissionRate || 0) * 100) %>%: −<%= formatCLP(fin.laborCommission) %></p>
+                      <% if (fin.materialsTotal) { %><p class="text-zilo-success"><%= t('provider.settlement_materials_keep') %>: <%= formatCLP(fin.materialsTotal) %></p><% } %>
                       <p><%= t('provider.settlement_iva') %> <%= Math.round((fin.ivaRate || 0) * 100) %>%: −<%= formatCLP(fin.ivaOnFees || 0) %></p>
                       <p class="text-[9px] text-zilo-muted/80"><%= t('provider.settlement_iva_hint') %></p>
                       <p class="text-zilo-success font-medium"><%= t('provider.js.your_payout') %>: <%= formatCLP(fin.providerPayout) %></p>

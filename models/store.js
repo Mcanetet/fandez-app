@@ -212,7 +212,17 @@ async function init() {
   SERVICES = data.services;
   MODULES = data.modules;
   await ensureMissingModules();
-  PRICING_CONFIG = data.pricing || normalizePricing(DEFAULT_PRICING);
+  const rawMerchantFee = parseInt(data.pricing?.merchantCardFeePercent, 10);
+  const rawCardSurcharge = parseInt(data.pricing?.cardSurchargePercent, 10);
+  PRICING_CONFIG = normalizePricing(data.pricing || DEFAULT_PRICING);
+  if (rawMerchantFee === 4 || !Number.isFinite(rawMerchantFee) || rawCardSurcharge > 0) {
+    PRICING_CONFIG = {
+      ...PRICING_CONFIG,
+      merchantCardFeePercent: 5,
+      cardSurchargePercent: 0
+    };
+    repository.persist(() => repository.savePricingConfig(PRICING_CONFIG), 'pricing');
+  }
   USERS = data.users;
   requests = data.requests;
   homeLogbook = data.homeLogbook;
@@ -460,9 +470,10 @@ function applyPaymentMethodToRequest(request, paymentMethod) {
   const visitSubtotal = request.visitTotal ?? request.basePrice ?? pricing.visitPrice;
   const surcharge = calculatePaymentSurcharge(pricing, visitSubtotal, paymentMethod);
   request.paymentMethod = surcharge.method;
-  request.paymentSurchargePercent = surcharge.percent;
-  request.paymentSurchargeAmount = surcharge.amount;
-  request.basePrice = surcharge.subtotal;
+  request.paymentSurchargePercent = 0;
+  request.paymentSurchargeAmount = 0;
+  // basePrice = precio visita (sin recargo al cliente)
+  request.basePrice = visitSubtotal;
   return request;
 }
 
@@ -719,7 +730,10 @@ function getCheckoutSummary(userId, requestId) {
 
   const pricing = getPricingConfig();
   const visitSubtotal = request.visitTotal ?? request.visitBasePrice ?? request.basePrice;
-  const basePrice = request.basePrice ?? visitSubtotal;
+  // Cobro al cliente = visita (ya con urgencia), sin recargo de tarjeta.
+  const basePrice = visitSubtotal;
+  const discounts = (request.discountCredits || 0) + (request.discountPoints || 0) + (request.discountPromo || 0);
+  const amountDue = Math.max(0, basePrice - discounts);
   return {
     visitSubtotal,
     basePrice,
@@ -727,9 +741,10 @@ function getCheckoutSummary(userId, requestId) {
     urgencyAdjustmentAmount: request.urgencyAdjustmentAmount || 0,
     urgencyTierLabel: request.urgencyTierLabel || null,
     paymentMethod: request.paymentMethod || 'card',
-    paymentSurchargePercent: request.paymentSurchargePercent || 0,
-    paymentSurchargeAmount: request.paymentSurchargeAmount || 0,
-    cardSurchargePercent: pricing.cardSurchargePercent,
+    // El cliente nunca ve ni paga recargo de tarjeta; el 5% se descuenta al socio.
+    paymentSurchargePercent: 0,
+    paymentSurchargeAmount: 0,
+    cardSurchargePercent: 0,
     cardEnabled: pricing.cardEnabled,
     transferEnabled: pricing.transferEnabled,
     bankTransfer: pricing.bankTransfer,
@@ -743,7 +758,7 @@ function getCheckoutSummary(userId, requestId) {
     discountPoints: request.discountPoints || 0,
     discountPromo: request.discountPromo || 0,
     pointsUsed: request.pointsUsed || 0,
-    amountDue: request.amountDue ?? basePrice,
+    amountDue,
     promoCode: request.promoCode,
     canUseWelcome: canUseWelcomePromo(user),
     welcomeDiscountPercent: Math.round(WELCOME_DISCOUNT * 100)
@@ -1064,17 +1079,96 @@ function markAdditionalPaymentApproved(requestId, paymentId) {
   return request;
 }
 
+/** ¿La urgencia debe buscar técnico ya, o más adelante? */
+function resolveSearchStartAt(request, fromDate = new Date()) {
+  const tier = String(request?.urgencyTier || '').toLowerCase();
+  const immediate = new Set(['immediate', 'today', 'critical', 'medium', '']);
+  if (immediate.has(tier)) return new Date(fromDate);
+
+  // Empezar a buscar unas horas antes de la ventana acordada.
+  let hoursUntilSearch = 0;
+  if (tier === 'tomorrow' || tier === 'scheduled') hoursUntilSearch = 20;
+  else if (tier === 'two_days') hoursUntilSearch = 44;
+  else return new Date(fromDate);
+
+  return new Date(fromDate.getTime() + hoursUntilSearch * 3600 * 1000);
+}
+
+function beginSearchingRequest(request, { persist = true } = {}) {
+  if (!request) return null;
+  const nowIso = new Date().toISOString();
+  request.status = 'searching';
+  request.searchingAt = nowIso;
+  if (!request.scheduledSearchAt) request.scheduledSearchAt = nowIso;
+  if (persist) {
+    repository.persist(() => repository.saveRequest(request), `solicitud ${request.id}`);
+  }
+  afterEvent((ev) => ev.onServiceSearching(request));
+  return request;
+}
+
 function activateRequest(requestId) {
   const request = requests.find(r => r.id === requestId);
   if (!request) return null;
   if (request.status === 'searching') return request;
+  if (request.status === 'scheduled') return request;
   if (['assigned', 'in_progress', 'completed', 'cancelled'].includes(request.status)) return null;
   if (request.paymentStatus !== 'approved') return null;
-  request.status = 'searching';
-  request.searchingAt = request.searchingAt || new Date().toISOString();
-  repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
-  afterEvent((ev) => ev.onServiceSearching(request));
-  return request;
+
+  const now = new Date();
+  const searchAt = resolveSearchStartAt(request, now);
+  request.scheduledSearchAt = searchAt.toISOString();
+
+  // Más de ~2 minutos en el futuro → queda programado (no sale al muro aún).
+  if (searchAt.getTime() > now.getTime() + 120000) {
+    request.status = 'scheduled';
+    request.searchingAt = null;
+    repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
+    return request;
+  }
+
+  return beginSearchingRequest(request);
+}
+
+function promoteDueScheduledSearches(now = Date.now()) {
+  const due = requests.filter((request) => {
+    if (request.status !== 'scheduled' || request.paymentStatus !== 'approved' || request.providerId) {
+      return false;
+    }
+    const at = Date.parse(request.scheduledSearchAt || '');
+    return Number.isFinite(at) && at <= now;
+  });
+
+  const promoted = [];
+  for (const request of due) {
+    beginSearchingRequest(request);
+    promoted.push(request);
+  }
+  return promoted;
+}
+
+function cancelClientSearch(requestId, clientId) {
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (request.clientId !== clientId) return { error: 'No autorizado.' };
+  if (!['searching', 'scheduled'].includes(request.status)) {
+    return { error: 'Solo puedes cancelar mientras está programada o buscando técnico.' };
+  }
+  if (request.providerId) {
+    return { error: 'Ya hay un técnico asignado. Cancela desde el seguimiento del servicio.' };
+  }
+
+  const wasScheduled = request.status === 'scheduled';
+  const now = new Date().toISOString();
+  request.status = 'cancelled';
+  request.cancelledAt = now;
+  request.cancelReason = wasScheduled ? 'client_cancelled_scheduled' : 'client_cancelled_search';
+  request.refundStatus = 'requested';
+  request.refundRequestedAt = now;
+  request.refundScheduledDate = nextBusinessDayIso(new Date());
+  repository.persist(() => repository.saveRequest(request), `cancelar búsqueda ${requestId}`);
+  afterEvent((ev) => ev.onRefundRequested?.(request));
+  return { success: true, request };
 }
 
 function formatCLP(amount) {
@@ -3221,7 +3315,7 @@ function respondActivityChange(requestId, clientId, approved) {
   return { success: true, request, approved, activityChange: change, additionalCharge };
 }
 
-function addSiteMaterial(requestId, technicianId, { description, amount, receiptUrl }) {
+function addSiteMaterial(requestId, technicianId, { description, amount, receiptUrl, review } = {}) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (!['comprando', 'reparando', 'presupuesto_aprobado'].includes(request.techStatus)) {
@@ -3232,18 +3326,40 @@ function addSiteMaterial(requestId, technicianId, { description, amount, receipt
   if (!parsed || parsed < 100) return { error: 'Monto de material inválido.' };
   description = (description || '').trim();
   if (!description) return { error: 'Describe el material.' };
+  if (!receiptUrl) return { error: 'Sube la boleta o factura del material.' };
+
+  const reviewResult = review || {
+    status: 'pending_manual',
+    approved: null,
+    confidence: null,
+    reason: 'Pendiente de revisión.',
+    reviewedAt: new Date().toISOString()
+  };
+
+  if (reviewResult.status === 'rejected' || reviewResult.approved === false) {
+    return {
+      error: reviewResult.reason || 'La boleta no fue aprobada. Sube una foto más clara o corrige el monto.',
+      review: reviewResult
+    };
+  }
 
   const sr = ensureSiteReport(request);
-  sr.materials.push({
+  const material = {
     id: `mat-${Date.now()}`,
     description,
     amount: parsed,
     receiptUrl: receiptUrl || null,
+    reviewStatus: reviewResult.status,
+    reviewApproved: reviewResult.approved,
+    reviewConfidence: reviewResult.confidence,
+    reviewReason: reviewResult.reason,
+    reviewedAt: reviewResult.reviewedAt,
     addedAt: new Date().toISOString()
-  });
+  };
+  sr.materials.push(material);
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
-  afterEvent((ev) => ev.onMaterialAdded?.(request, sr.materials[sr.materials.length - 1]));
-  return { success: true, request, material: sr.materials[sr.materials.length - 1] };
+  afterEvent((ev) => ev.onMaterialAdded?.(request, material));
+  return { success: true, request, material };
 }
 
 function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attentionChecklist } = {}) {
@@ -3441,6 +3557,7 @@ const REQUEST_STATUS_LABELS = {
   pending_payment: 'status.request.pending_payment',
   pending: 'status.request.pending',
   pending_transfer: 'status.request.pending_transfer',
+  scheduled: 'status.request.scheduled',
   searching: 'status.request.searching',
   assigned: 'status.request.assigned',
   in_progress: 'status.request.in_progress',
@@ -3483,7 +3600,7 @@ function enrichRequestForClient(request, locale = 'es') {
 
 function getActiveRequestsForClient(clientId, locale = 'es') {
   return requests
-    .filter(r => r.clientId === clientId && ['searching', 'assigned', 'in_progress'].includes(r.status))
+    .filter(r => r.clientId === clientId && ['scheduled', 'searching', 'assigned', 'in_progress'].includes(r.status))
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 5)
     .map(r => enrichRequestForClient(r, locale));
@@ -4012,7 +4129,7 @@ function getFinancialReport() {
     pendingTransferAmount: pendingXfer.reduce((s, r) => s + (r.amountDue || 0), 0),
     approvedCount: approved.length,
     completedCount: approved.filter((r) => r.status === 'completed').length,
-    activeCount: approved.filter((r) => ['searching', 'assigned', 'in_progress'].includes(r.status)).length
+    activeCount: approved.filter((r) => ['scheduled', 'searching', 'assigned', 'in_progress'].includes(r.status)).length
   };
 
   const byPaymentMethod = {};
@@ -4148,7 +4265,17 @@ async function reloadFromDatabase() {
   SERVICES = data.services;
   MODULES = data.modules;
   await ensureMissingModules();
-  PRICING_CONFIG = data.pricing || normalizePricing(DEFAULT_PRICING);
+  const rawMerchantFee = parseInt(data.pricing?.merchantCardFeePercent, 10);
+  const rawCardSurcharge = parseInt(data.pricing?.cardSurchargePercent, 10);
+  PRICING_CONFIG = normalizePricing(data.pricing || DEFAULT_PRICING);
+  if (rawMerchantFee === 4 || !Number.isFinite(rawMerchantFee) || rawCardSurcharge > 0) {
+    PRICING_CONFIG = {
+      ...PRICING_CONFIG,
+      merchantCardFeePercent: 5,
+      cardSurchargePercent: 0
+    };
+    repository.persist(() => repository.savePricingConfig(PRICING_CONFIG), 'pricing');
+  }
   USERS = data.users;
   requests = data.requests;
   homeLogbook = data.homeLogbook;
@@ -4261,6 +4388,8 @@ module.exports = {
   markPaymentApproved,
   markAdditionalPaymentApproved,
   activateRequest,
+  promoteDueScheduledSearches,
+  cancelClientSearch,
   assignProvider,
   getEligibleProvidersForRequest,
   getAdminDispatchQueue,

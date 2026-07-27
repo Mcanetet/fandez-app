@@ -213,7 +213,7 @@ router.post('/trabajo/:requestId/cambio-servicio', requireRole('tecnico'), (req,
   res.json({ success: true, request: serializeJob(result.request), activityChange: result.activityChange });
 });
 
-router.post('/trabajo/:requestId/material', requireRole('tecnico'), (req, res) => {
+router.post('/trabajo/:requestId/material', requireRole('tecnico'), async (req, res) => {
   let receiptUrl = null;
   if (req.body.receipt) {
     try {
@@ -222,14 +222,44 @@ router.post('/trabajo/:requestId/material', requireRole('tecnico'), (req, res) =
       return res.status(400).json({ success: false, error: 'No se pudo guardar la boleta' });
     }
   }
+
+  const requestPreview = store.getRequestForTechnician(req.params.requestId, req.session.user.id);
+  let review = null;
+  try {
+    const { reviewMaterialReceipt } = require('../lib/materials/receiptReview');
+    review = await reviewMaterialReceipt({
+      description: req.body.description,
+      amount: req.body.amount,
+      receiptUrl,
+      serviceName: requestPreview?.serviceName,
+      activityName: requestPreview?.activityName
+    });
+  } catch (err) {
+    review = {
+      status: 'pending_manual',
+      approved: null,
+      confidence: null,
+      reason: err.message || 'No se pudo revisar la boleta',
+      reviewedAt: new Date().toISOString()
+    };
+  }
+
   const result = store.addSiteMaterial(req.params.requestId, req.session.user.id, {
     description: req.body.description,
     amount: req.body.amount,
-    receiptUrl
+    receiptUrl,
+    review
   });
-  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  if (result.error) {
+    return res.status(400).json({ success: false, error: result.error, review: result.review || review });
+  }
   req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });
-  res.json({ success: true, material: result.material, materials: result.request.siteReport.materials });
+  res.json({
+    success: true,
+    material: result.material,
+    materials: result.request.siteReport.materials,
+    review
+  });
 });
 
 router.post('/trabajo/:requestId/completar', requireRole('tecnico'), (req, res) => {

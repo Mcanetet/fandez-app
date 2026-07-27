@@ -462,6 +462,30 @@ router.get('/solicitud/:id', requireRole('client'), (req, res) => {
   res.json({ request: store.enrichRequestForClient(request, req.locale || 'es'), provider });
 });
 
+router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (req, res) => {
+  const result = store.cancelClientSearch(req.params.id, req.session.user.id);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+
+  const updated = result.request;
+  notifications.notify({
+    event: 'service.refund_requested',
+    to: company.supportEmail,
+    subject: `Cancelación de búsqueda — ${updated.serviceName}`,
+    text: `El cliente ${updated.clientName} canceló la ${updated.cancelReason === 'client_cancelled_scheduled' ? 'visita programada' : 'búsqueda'} de la solicitud ${updated.id}. Devolución programada: ${updated.refundScheduledDate}. Monto: ${store.formatCLP(updated.visitPricePaid || updated.amountDue || 0)}.`,
+    requestId: updated.id,
+    userId: updated.clientId,
+    meta: { refundScheduledDate: updated.refundScheduledDate, reason: updated.cancelReason }
+  }).catch(() => {});
+
+  const io = req.app.get('io');
+  const payload = { request: store.enrichRequestForClient(updated, req.locale || 'es'), cancelled: true };
+  if (io) {
+    io.to(`request_${updated.id}`).emit(`request_update_${updated.id}`, payload);
+  }
+
+  res.json({ success: true, request: payload.request });
+});
+
 router.post('/presupuesto/:id/responder', requireRole('client'), (req, res) => {
   const approved = req.body.approved === true || req.body.approved === 'true';
   const result = store.respondSiteBudget(req.params.id, req.session.user.id, approved);

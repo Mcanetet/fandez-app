@@ -637,6 +637,41 @@
 .step-item.is-busy .search-step-dot {
   box-shadow: 0 0 0 4px rgba(217,119,6,0.15);
 }
+/* Overlay búsqueda de técnico */
+.search-overlay {
+  background:
+    radial-gradient(120% 80% at 10% -10%, rgba(37, 99, 235, 0.18), transparent 55%),
+    radial-gradient(90% 70% at 100% 0%, rgba(14, 165, 233, 0.14), transparent 50%),
+    radial-gradient(80% 60% at 50% 110%, rgba(99, 102, 241, 0.12), transparent 55%),
+    linear-gradient(180deg, #EEF4FF 0%, #F6F7F9 42%, #F8FAFC 100%);
+  backdrop-filter: blur(10px);
+}
+.search-overlay-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: 12% 8% auto;
+  height: 42%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.16), transparent 70%);
+  filter: blur(18px);
+  animation: searchGlow 4.5s ease-in-out infinite alternate;
+}
+.search-overlay-grid {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 99, 235, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at 50% 30%, #000 20%, transparent 75%);
+}
+@keyframes searchGlow {
+  from { transform: translateY(0) scale(1); opacity: 0.7; }
+  to { transform: translateY(12px) scale(1.06); opacity: 1; }
+}
+
 .search-ring-progress {
   transition: stroke-dashoffset 0.6s ease;
 }

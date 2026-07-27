@@ -63,7 +63,7 @@
         <input type="radio" name="paymentMethod" value="card" <%= (summary.paymentMethod || 'card') === 'card' ? 'checked' : '' %> class="mt-0.5 accent-[#2563EB]">
         <div class="flex-1">
           <strong class="text-sm block">Tarjeta débito / crédito</strong>
-          <span class="text-xs text-orange-600">+<%= summary.cardSurchargePercent %>% recargo</span>
+          <span class="text-xs text-zilo-muted">Pago seguro · sin recargo adicional en el total</span>
           <% if (enabledCardGateways.length === 1) { %>
             <p class="text-[10px] text-zilo-muted mt-0.5">Procesado por <%= enabledCardGateways[0].label %></p>
           <% } %>
@@ -138,10 +138,6 @@
         <div class="flex justify-between checkout-line pb-2 <%= summary.urgencyAdjustmentAmount ? '' : 'hidden' %>" id="lineUrgencyRow">
           <span class="text-zilo-muted" id="lineUrgencyLabel"><%= summary.urgencyTierLabel || 'Ajuste urgencia' %></span>
           <span id="lineUrgency"><%= summary.urgencyAdjustmentAmount ? ((summary.urgencyAdjustmentAmount > 0 ? '+' : '') + formatCLP(summary.urgencyAdjustmentAmount)) : '—' %></span>
-        </div>
-        <div class="flex justify-between checkout-line pb-2 hidden" id="lineCardRow">
-          <span class="text-zilo-muted" id="lineCardLabel">Recargo tarjeta</span>
-          <span id="lineCard" class="text-orange-600">—</span>
         </div>
         <div class="flex justify-between checkout-line pb-2 border-b border-zilo-border">
           <span class="text-zilo-muted font-medium">Subtotal visita</span>
@@ -311,15 +307,6 @@
     const s = data.summary;
     document.getElementById('lineVisitBase').textContent = fmt(s.visitBasePrice || s.visitSubtotal);
     document.getElementById('lineBase').textContent = fmt(s.basePrice);
-
-    const cardRow = document.getElementById('lineCardRow');
-    if (s.paymentSurchargeAmount > 0) {
-      cardRow.classList.remove('hidden');
-      document.getElementById('lineCard').textContent = '+' + fmt(s.paymentSurchargeAmount);
-      document.getElementById('lineCardLabel').textContent = `Recargo tarjeta (+${s.paymentSurchargePercent}%)`;
-    } else {
-      cardRow.classList.add('hidden');
-    }
 
     if (s.servicePriceBase) document.getElementById('lineService').textContent = fmt(s.servicePriceBase);
     const urgRow = document.getElementById('lineUrgencyRow');

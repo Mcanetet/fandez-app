@@ -64,9 +64,9 @@
             <p class="text-[10px] text-gray-400 mt-1">El material se entrega íntegro al socio y no aumenta comisiones ni cargos.</p>
           </div>
           <div>
-            <label class="text-xs text-gray-500">Fee tarjeta al liquidar socio (%)</label>
-            <input type="number" name="merchantCardFeePercent" value="<%= pricing.merchantCardFeePercent != null ? pricing.merchantCardFeePercent : 4 %>" min="0" max="100" step="1" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Default 4%. Se aplica si el cliente pagó con tarjeta (o estimado). Distinto del recargo al cliente.</p>
+            <label class="text-xs text-gray-500">Fee tarjeta/admin al liquidar socio (%)</label>
+            <input type="number" name="merchantCardFeePercent" value="<%= pricing.merchantCardFeePercent != null ? pricing.merchantCardFeePercent : 5 %>" min="0" max="100" step="1" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Default 5%. Se descuenta del total de mano de obra al socio (no se suma al cliente).</p>
           </div>
           <div>
             <label class="text-xs text-gray-500">IVA sobre comisiones (%)</label>
@@ -80,9 +80,9 @@
         <h2 class="text-sm font-semibold mb-4">Pagos</h2>
         <div class="grid grid-cols-1 gap-3 mb-4">
           <div>
-            <label class="text-xs text-gray-500">Recargo tarjeta débito/crédito (%)</label>
+            <label class="text-xs text-gray-500">Recargo tarjeta al cliente (%)</label>
             <input type="number" name="cardSurchargePercent" value="<%= pricing.cardSurchargePercent %>" min="0" max="100" step="1" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Se aplica sobre la visita (después de urgencia). Transferencia sin recargo.</p>
+            <p class="text-[10px] text-gray-400 mt-1">Obsoleto en checkout: el cliente ya no paga recargo. Déjalo en 0. El 5% se aplica solo en liquidación al socio.</p>
           </div>
           <div class="flex flex-wrap gap-4">
             <label class="flex items-center gap-2 text-sm cursor-pointer">
