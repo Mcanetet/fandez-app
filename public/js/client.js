@@ -300,38 +300,139 @@
 
   const SEARCH_TIMEOUT_MS = 10 * 60 * 1000;
   const SEARCH_POLL_MS = 2000;
-  const loaderSteps = [
-    { id: 'step1', text: t('client.js.loader_step1_text'), sub: t('client.js.loader_step1_sub') },
-    { id: 'step2', text: t('client.js.loader_step2_text'), sub: t('client.js.loader_step2_sub') },
-    { id: 'step3', text: t('client.js.loader_step3_text'), sub: t('client.js.loader_step3_sub') }
+  const SEARCH_RING_CIRCUMFERENCE = 2 * Math.PI * 52;
+  const SEARCH_PHASES = [
+    { untilMs: 2 * 60 * 1000, step: 'step1', phase: 'near', title: 'client.js.search_title_near', sub: 'client.js.search_sub_near', label: 'client.js.search_phase_near' },
+    { untilMs: 5 * 60 * 1000, step: 'step2', phase: 'expand', title: 'client.js.search_title_expand', sub: 'client.js.search_sub_expand', label: 'client.js.search_phase_expand' },
+    { untilMs: 8 * 60 * 1000, step: 'step3', phase: 'notify', title: 'client.js.search_title_notify', sub: 'client.js.search_sub_notify', label: 'client.js.search_phase_notify' },
+    { untilMs: SEARCH_TIMEOUT_MS, step: 'step3', phase: 'final', title: 'client.js.search_title_final', sub: 'client.js.search_sub_final', label: 'client.js.search_phase_final' },
+    { untilMs: Infinity, step: 'step4', phase: 'busy', title: 'client.js.search_title_busy', sub: 'client.js.search_sub_busy', label: 'client.js.search_phase_busy' }
+  ];
+  const SEARCH_TIPS = [
+    'client.js.search_tip_1',
+    'client.js.search_tip_2',
+    'client.js.search_tip_3',
+    'client.js.search_tip_4',
+    'client.js.search_tip_5'
   ];
 
-  function setStepActive(stepId) {
-    document.querySelectorAll('.step-item').forEach(el => {
-      el.className = 'step-item px-4 py-2.5 rounded-xl zilo-card-premium text-sm text-zilo-muted flex items-center gap-2';
-    });
-    const el = document.getElementById(stepId);
-    if (el) el.className = 'step-item is-active px-4 py-2.5 rounded-xl text-sm flex items-center gap-2';
+  let searchTimerInterval = null;
+  let searchTipInterval = null;
+  let searchStartedAt = null;
+  let searchCurrentPhase = null;
+  let searchTipIndex = 0;
+
+  function formatSearchClock(ms) {
+    const totalSec = Math.max(0, Math.floor(ms / 1000));
+    const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+    const ss = String(totalSec % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
   }
 
-  function animateLoader() {
-    let step = 0;
-    setStepActive(loaderSteps[0].id);
-    document.getElementById('loaderText').textContent = loaderSteps[0].text;
-    document.getElementById('loaderSub').textContent = loaderSteps[0].sub;
-    return setInterval(() => {
-      // Solo avanza entre pasos de "buscando" (sin fingir "encontrado")
-      step = (step + 1) % loaderSteps.length;
-      setStepActive(loaderSteps[step].id);
-      document.getElementById('loaderText').textContent = loaderSteps[step].text;
-      document.getElementById('loaderSub').textContent = loaderSteps[step].sub;
-    }, 4000);
+  function resolveSearchPhase(elapsedMs) {
+    return SEARCH_PHASES.find((phase) => elapsedMs < phase.untilMs) || SEARCH_PHASES[SEARCH_PHASES.length - 1];
+  }
+
+  function setSearchSteps(activeStepId, { busy = false } = {}) {
+    const order = ['step1', 'step2', 'step3', 'step4'];
+    const activeIdx = order.indexOf(activeStepId);
+    order.forEach((id, idx) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('is-active', 'is-done', 'is-busy');
+      el.classList.add('step-item', 'px-3.5', 'py-2.5', 'rounded-xl', 'text-sm', 'flex', 'items-center', 'gap-2.5');
+      if (idx < activeIdx) {
+        el.classList.add('is-done', 'zilo-card-premium', 'text-zilo-muted');
+      } else if (idx === activeIdx) {
+        if (busy) el.classList.add('is-busy', 'border');
+        else el.classList.add('is-active');
+      } else {
+        el.classList.add('zilo-card-premium', 'text-zilo-muted');
+      }
+    });
+  }
+
+  function updateSearchProgress(elapsedMs) {
+    const capped = Math.min(elapsedMs, SEARCH_TIMEOUT_MS);
+    const ratio = Math.min(1, capped / SEARCH_TIMEOUT_MS);
+    const timerEl = document.getElementById('searchTimer');
+    const barEl = document.getElementById('searchProgressBar');
+    const labelEl = document.getElementById('searchProgressLabel');
+    const ringEl = document.getElementById('searchRingProgress');
+    if (timerEl) timerEl.textContent = formatSearchClock(elapsedMs);
+    if (barEl) barEl.style.width = `${Math.round(ratio * 100)}%`;
+    if (labelEl) {
+      const mins = Math.min(10, Math.floor(elapsedMs / 60000));
+      labelEl.textContent = t('client.js.search_progress', { elapsed: String(mins) });
+    }
+    if (ringEl) {
+      ringEl.style.strokeDasharray = String(SEARCH_RING_CIRCUMFERENCE);
+      ringEl.style.strokeDashoffset = String(SEARCH_RING_CIRCUMFERENCE * (1 - ratio));
+    }
+  }
+
+  function applySearchPhase(elapsedMs) {
+    const phase = resolveSearchPhase(elapsedMs);
+    if (searchCurrentPhase === phase.phase) {
+      updateSearchProgress(elapsedMs);
+      return phase;
+    }
+    searchCurrentPhase = phase.phase;
+    setSearchSteps(phase.step, { busy: phase.phase === 'busy' });
+    const titleEl = document.getElementById('loaderText');
+    const subEl = document.getElementById('loaderSub');
+    const labelEl = document.getElementById('searchPhaseLabel');
+    if (titleEl) titleEl.textContent = t(phase.title);
+    if (subEl) subEl.textContent = t(phase.sub);
+    if (labelEl) labelEl.textContent = t(phase.label);
+    updateSearchProgress(elapsedMs);
+    return phase;
+  }
+
+  function rotateSearchTip() {
+    const tipEl = document.getElementById('searchTipText');
+    if (!tipEl || !SEARCH_TIPS.length) return;
+    searchTipIndex = (searchTipIndex + 1) % SEARCH_TIPS.length;
+    tipEl.textContent = t(SEARCH_TIPS[searchTipIndex]);
+  }
+
+  function stopSearchExperience() {
+    if (searchTimerInterval) {
+      clearInterval(searchTimerInterval);
+      searchTimerInterval = null;
+    }
+    if (searchTipInterval) {
+      clearInterval(searchTipInterval);
+      searchTipInterval = null;
+    }
+    searchCurrentPhase = null;
+  }
+
+  function syncSearchStartFromRequest(request) {
+    const raw = request?.searchingAt || request?.paidAt || request?.createdAt;
+    const parsed = raw ? Date.parse(raw) : NaN;
+    if (Number.isFinite(parsed)) searchStartedAt = parsed;
+  }
+
+  function startSearchExperience(request) {
+    stopSearchExperience();
+    syncSearchStartFromRequest(request);
+    if (!searchStartedAt) searchStartedAt = Date.now();
+    searchTipIndex = 0;
+    const tipEl = document.getElementById('searchTipText');
+    if (tipEl) tipEl.textContent = t(SEARCH_TIPS[0]);
+    applySearchPhase(Date.now() - searchStartedAt);
+    searchTimerInterval = setInterval(() => {
+      applySearchPhase(Date.now() - searchStartedAt);
+    }, 1000);
+    searchTipInterval = setInterval(rotateSearchTip, 7000);
   }
 
   function showNoProviderChoice(request) {
     if (!request?.id) return;
     const panel = document.getElementById('noProviderChoicePanel');
     if (!panel) return;
+    stopSearchExperience();
     loaderOverlay?.classList.add('hidden');
     requestForm?.classList.add('hidden');
     providerCard?.classList.add('hidden');
@@ -820,10 +921,7 @@
     providerCard.classList.remove('hidden');
     requestForm.classList.add('hidden');
     hideNoProviderChoice();
-    if (trackingLoaderInterval) {
-      clearInterval(trackingLoaderInterval);
-      trackingLoaderInterval = null;
-    }
+    stopSearchExperience();
     const providerReqId = request?.id || currentRequestId;
     if (window.FundezAlerts && lastProviderAlertId !== providerReqId) {
       lastProviderAlertId = providerReqId;
@@ -839,16 +937,10 @@
   }
 
   function pollForProvider(requestId, attempts = 0, startedAt = Date.now()) {
-    if (Date.now() - startedAt > SEARCH_TIMEOUT_MS + 15000) {
-      // El watcher backend ya debió emitir la elección; si no, dejamos el loader
-      // y esperamos el socket (no volvemos al formulario).
-      const sub = document.getElementById('loaderSub');
-      if (sub) sub.textContent = t('client.js.loader_still_searching');
-    }
-
     fetch(`/cliente/solicitud/${requestId}`)
       .then(r => r.json())
       .then(data => {
+        if (data.request) syncSearchStartFromRequest(data.request);
         if (data.provider) {
           hideNoProviderChoice();
           showProvider(data.provider, data.request);
@@ -858,6 +950,9 @@
           showNoProviderChoice(data.request);
           return;
         }
+        if (Date.now() - (searchStartedAt || startedAt) > SEARCH_TIMEOUT_MS) {
+          applySearchPhase(Date.now() - (searchStartedAt || startedAt));
+        }
         setTimeout(() => pollForProvider(requestId, attempts + 1, startedAt), SEARCH_POLL_MS);
       })
       .catch(() => {
@@ -865,13 +960,10 @@
       });
   }
 
-  let trackingLoaderInterval = null;
-
   function startTracking(requestId) {
     currentRequestId = requestId;
     if (window.FundezAlerts) FundezAlerts.ensurePermission();
-    if (trackingLoaderInterval) clearInterval(trackingLoaderInterval);
-    trackingLoaderInterval = animateLoader();
+    startSearchExperience();
     const joinRoom = () => socket.emit('register_client', requestId);
     joinRoom();
     if (!socket.__fundezClientReconnectBound) {
@@ -884,17 +976,17 @@
     socket.off(`request_update_${requestId}`);
     socket.on(`request_update_${requestId}`, (payload) => {
       if (payload.provider) {
-        if (trackingLoaderInterval) clearInterval(trackingLoaderInterval);
+        stopSearchExperience();
         hideNoProviderChoice();
         showProvider(payload.provider, payload.request);
       } else if (payload.request) {
+        syncSearchStartFromRequest(payload.request);
         if (payload.chatMessage) {
           const panel = document.getElementById('jobChatPanel');
           panel?.classList.remove('hidden');
           appendJobChatMessage(payload.chatMessage);
         }
         if (payload.request.noProviderDecisionStatus === 'pending') {
-          if (trackingLoaderInterval) clearInterval(trackingLoaderInterval);
           showNoProviderChoice(payload.request);
           return;
         }
@@ -1059,7 +1151,6 @@
   socket.on('no_provider_choice_required', (payload) => {
     const req = payload?.request;
     if (req && (!currentRequestId || req.id === currentRequestId)) {
-      if (trackingLoaderInterval) clearInterval(trackingLoaderInterval);
       showNoProviderChoice(req);
     }
   });

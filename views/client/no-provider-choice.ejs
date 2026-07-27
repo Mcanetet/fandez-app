@@ -18,29 +18,29 @@
         </p>
       <% } else { %>
         <p class="text-sm text-zilo-muted leading-relaxed">
-          Seguiremos intentando encontrar un socio para <strong><%= request.serviceName %></strong> y te avisaremos apenas alguien tome la solicitud.
+          Seguiremos buscando un técnico para <strong><%= request.serviceName %></strong> y te avisaremos apenas alguien tome la solicitud.
         </p>
       <% } %>
       <a href="/cliente" class="mt-6 block w-full text-center py-3 rounded-xl bg-zilo-accent text-white text-sm font-semibold">Ir a la app</a>
     <% } else { %>
       <p class="zilo-label text-violet-700 mb-1">Mensaje de Aland IA</p>
-      <h1 class="text-xl font-semibold mb-3">Aún no encontramos un socio</h1>
+      <h1 class="text-xl font-semibold mb-3">Los técnicos cercanos están ocupados</h1>
       <p class="text-sm text-zilo-muted leading-relaxed mb-5">
         Han pasado más de 10 minutos y todavía nadie ha tomado tu solicitud de
-        <strong><%= request.serviceName %></strong>. Elige qué deseas hacer:
+        <strong><%= request.serviceName %></strong>. No te dejamos solo: elige cómo quieres seguir.
       </p>
 
       <form method="POST" action="/cliente/solicitud/<%= request.id %>/sin-socio" class="space-y-3">
         <input type="hidden" name="token" value="<%= token %>">
         <button type="submit" name="choice" value="continue"
-          class="w-full text-left p-4 rounded-2xl border <%= selectedChoice === 'continue' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white' %> hover:border-blue-400 transition">
-          <strong class="text-sm block text-blue-700">Seguir intentando</strong>
-          <span class="text-xs text-zilo-muted">La solicitud seguirá visible para los socios disponibles.</span>
+          class="w-full text-left p-4 rounded-2xl border <%= selectedChoice === 'continue' ? 'border-blue-500 bg-blue-50' : 'border-zilo-accent/30 bg-zilo-accent/5' %> hover:border-zilo-accent transition">
+          <strong class="text-sm block text-zilo-accent">Avísame cuando haya uno libre</strong>
+          <span class="text-xs text-zilo-muted">Seguimos buscando y te notificamos en la app y por correo apenas alguien acepte.</span>
         </button>
         <button type="submit" name="choice" value="refund"
-          class="w-full text-left p-4 rounded-2xl border <%= selectedChoice === 'refund' ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white' %> hover:border-red-400 transition">
+          class="w-full text-left p-4 rounded-2xl border <%= selectedChoice === 'refund' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white' %> hover:border-red-300 transition">
           <strong class="text-sm block text-red-700">Solicitar devolución</strong>
-          <span class="text-xs text-zilo-muted">Quedará programada para el siguiente día hábil y se procesará al mismo medio de pago.</span>
+          <span class="text-xs text-zilo-muted">Programamos el abono para el siguiente día hábil.</span>
         </button>
       </form>
     <% } %>
