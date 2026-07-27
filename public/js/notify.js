@@ -1,21 +1,57 @@
 window.FundezNotify = {
   container: null,
+  DURATION: {
+    info: 3400,
+    success: 3200,
+    warning: 4200,
+    error: 4800
+  },
+  ICONS: {
+    success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>',
+    warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>',
+    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>'
+  },
 
   init() {
     if (!this.container) {
       this.container = document.createElement('div');
       this.container.id = 'toast-container';
+      this.container.setAttribute('aria-live', 'polite');
+      this.container.setAttribute('aria-relevant', 'additions');
       document.body.appendChild(this.container);
     }
   },
 
   show(message, type = 'info') {
     this.init();
+    const kind = ['success', 'info', 'warning', 'error'].includes(type) ? type : 'info';
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
+    toast.className = `toast toast-${kind}`;
+    toast.setAttribute('role', kind === 'error' || kind === 'warning' ? 'alert' : 'status');
+
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.innerHTML = this.ICONS[kind];
+
+    const body = document.createElement('div');
+    body.className = 'toast-body';
+    body.textContent = String(message || '');
+
+    toast.appendChild(icon);
+    toast.appendChild(body);
     this.container.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+
+    const ms = this.DURATION[kind] || 3400;
+    const removeAt = setTimeout(() => {
+      toast.classList.add('toast-leaving');
+      setTimeout(() => toast.remove(), 320);
+    }, ms);
+
+    toast.addEventListener('click', () => {
+      clearTimeout(removeAt);
+      toast.remove();
+    }, { once: true });
   }
 };
 
