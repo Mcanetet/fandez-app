@@ -373,6 +373,29 @@
   let searchStartedAt = null;
   let searchCurrentPhase = null;
   let searchTipIndex = 0;
+  let searchTimeoutTriggered = false;
+
+  async function triggerSearchTimeout(requestId) {
+    if (searchTimeoutTriggered || !requestId) return;
+    searchTimeoutTriggered = true;
+    try {
+      const response = await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/timeout-busqueda`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        credentials: 'same-origin',
+        body: '{}'
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.request) {
+        showNoProviderChoice(data.request);
+        return;
+      }
+    } catch (_) { /* fallback local */ }
+    showNoProviderChoice({
+      id: requestId,
+      serviceName: page.dataset.serviceName || ''
+    });
+  }
 
   function formatSearchClock(ms) {
     const totalSec = Math.max(0, Math.floor(ms / 1000));
@@ -392,15 +415,9 @@
       const el = document.getElementById(id);
       if (!el) return;
       el.classList.remove('is-active', 'is-done', 'is-busy');
-      el.classList.add('step-item', 'px-3.5', 'py-2.5', 'rounded-xl', 'text-sm', 'flex', 'items-center', 'gap-2.5');
-      if (idx < activeIdx) {
-        el.classList.add('is-done', 'zilo-card-premium', 'text-zilo-muted');
-      } else if (idx === activeIdx) {
-        if (busy) el.classList.add('is-busy', 'border');
-        else el.classList.add('is-active');
-      } else {
-        el.classList.add('zilo-card-premium', 'text-zilo-muted');
-      }
+      el.classList.add('search-timeline-item');
+      if (idx < activeIdx) el.classList.add('is-done');
+      else if (idx === activeIdx) el.classList.add(busy ? 'is-busy' : 'is-active');
     });
   }
 
@@ -411,10 +428,10 @@
     const barEl = document.getElementById('searchProgressBar');
     const labelEl = document.getElementById('searchProgressLabel');
     const ringEl = document.getElementById('searchRingProgress');
-    if (timerEl) timerEl.textContent = formatSearchClock(elapsedMs);
+    if (timerEl) timerEl.textContent = formatSearchClock(capped);
     if (barEl) barEl.style.width = `${Math.round(ratio * 100)}%`;
     if (labelEl) {
-      const mins = Math.min(10, Math.floor(elapsedMs / 60000));
+      const mins = Math.min(10, Math.floor(capped / 60000));
       labelEl.textContent = t('client.js.search_progress', { elapsed: String(mins) });
     }
     if (ringEl) {
@@ -468,6 +485,7 @@
 
   function startSearchExperience(request) {
     stopSearchExperience();
+    searchTimeoutTriggered = false;
     syncSearchStartFromRequest(request);
     if (!searchStartedAt) searchStartedAt = Date.now();
     searchTipIndex = 0;
@@ -475,7 +493,11 @@
     if (tipEl) tipEl.textContent = t(SEARCH_TIPS[0]);
     applySearchPhase(Date.now() - searchStartedAt);
     searchTimerInterval = setInterval(() => {
-      applySearchPhase(Date.now() - searchStartedAt);
+      const elapsed = Date.now() - searchStartedAt;
+      applySearchPhase(elapsed);
+      if (elapsed >= SEARCH_TIMEOUT_MS && currentRequestId) {
+        triggerSearchTimeout(currentRequestId);
+      }
     }, 1000);
     searchTipInterval = setInterval(rotateSearchTip, 7000);
   }
@@ -550,6 +572,10 @@
     if (!requestId) return;
     const ok = window.confirm(t('client.service.cancel_search_confirm'));
     if (!ok) return;
+    const btn = document.getElementById('btnCancelSearch');
+    const btnScheduled = document.getElementById('btnCancelScheduled');
+    if (btn) btn.disabled = true;
+    if (btnScheduled) btnScheduled.disabled = true;
     try {
       const response = await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/cancelar-busqueda`, {
         method: 'POST',
@@ -557,8 +583,14 @@
         credentials: 'same-origin',
         body: '{}'
       });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || t('client.service.cancel_search_error'));
+      const raw = await response.text();
+      let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch (_) {
+        throw new Error(t('client.service.cancel_search_error'));
+      }
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || t('client.service.cancel_search_error'));
+      }
       stopSearchExperience();
       loaderOverlay?.classList.add('hidden');
       hideScheduledPanel();
@@ -574,6 +606,8 @@
       }
       setTimeout(() => { window.location.href = '/cliente'; }, 1000);
     } catch (err) {
+      if (btn) btn.disabled = false;
+      if (btnScheduled) btnScheduled.disabled = false;
       FundezNotify.show(err.message || t('client.service.cancel_search_error'), 'error');
     }
   }
@@ -1099,8 +1133,9 @@
           showNoProviderChoice(data.request);
           return;
         }
-        if (Date.now() - (searchStartedAt || startedAt) > SEARCH_TIMEOUT_MS) {
-          applySearchPhase(Date.now() - (searchStartedAt || startedAt));
+        if (Date.now() - (searchStartedAt || startedAt) >= SEARCH_TIMEOUT_MS) {
+          triggerSearchTimeout(requestId);
+          return;
         }
         setTimeout(() => pollForProvider(requestId, attempts + 1, startedAt), SEARCH_POLL_MS);
       })

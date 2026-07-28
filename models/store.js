@@ -3547,6 +3547,27 @@ function respondNoProviderChoice(requestId, { clientId, tokenHash, choice } = {}
   return { success: true, choice: normalizedChoice, request };
 }
 
+function ensureNoProviderChoiceForClient(requestId, clientId, { minWaitMinutes = 9 } = {}) {
+  const request = requests.find((item) => item.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (request.clientId !== clientId) return { error: 'No autorizado.' };
+  if (request.providerId) return { error: 'Ya hay un técnico asignado.' };
+  if (request.status !== 'searching') {
+    return { error: 'Esta solicitud ya no está en búsqueda.' };
+  }
+  if (request.noProviderDecisionStatus === 'pending') {
+    return { success: true, request, already: true };
+  }
+  const startedAt = Date.parse(request.searchingAt || request.paidAt || request.createdAt || '');
+  const minMs = Math.max(1, Number(minWaitMinutes) || 9) * 60 * 1000;
+  if (!Number.isFinite(startedAt) || Date.now() - startedAt < minMs) {
+    return { error: 'Aún estamos buscando un técnico. Espera un momento más.' };
+  }
+  const updated = markNoProviderNotice(requestId, {});
+  if (!updated) return { error: 'No se pudo abrir la decisión sin socio.' };
+  return { success: true, request: updated };
+}
+
 function getPendingNoProviderRequestForClient(clientId) {
   return requests
     .filter((request) => request.clientId === clientId && request.noProviderDecisionStatus === 'pending')
@@ -4414,6 +4435,7 @@ module.exports = {
   markNoProviderNotice,
   respondNoProviderChoice,
   getPendingNoProviderRequestForClient,
+  ensureNoProviderChoiceForClient,
   getActiveRequestsForClient,
   getLastCompletedRequest,
   getClientTrustStats,

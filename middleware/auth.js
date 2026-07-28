@@ -2,8 +2,15 @@ const store = require('../models/store');
 const { adminUrl } = require('../lib/appMode');
 const { resolveAdminAccess, hasFullSystemAccess } = require('../lib/adminPermissions');
 
+function wantsJson(req) {
+  const accept = String(req.get('Accept') || '');
+  const xhr = String(req.get('X-Requested-With') || '').toLowerCase() === 'xmlhttprequest';
+  return xhr || accept.includes('application/json') || req.path.includes('/api/');
+}
+
 function requireAuth(req, res, next) {
   if (!req.session.user) {
+    if (wantsJson(req)) return res.status(401).json({ success: false, error: 'Sesión expirada. Vuelve a iniciar sesión.' });
     return res.redirect('/login');
   }
   next();
@@ -12,12 +19,14 @@ function requireAuth(req, res, next) {
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.session.user) {
+      if (wantsJson(req)) return res.status(401).json({ success: false, error: 'Sesión expirada. Vuelve a iniciar sesión.' });
       if (roles.includes('admin')) {
         return res.redirect(adminUrl('/login'));
       }
       return res.redirect('/login');
     }
     if (!roles.includes(req.session.user.role)) {
+      if (wantsJson(req)) return res.status(403).json({ success: false, error: 'No tienes permisos para esta acción.' });
       return res.status(403).render('error', {
         title: 'Acceso denegado',
         message: 'No tienes permisos para acceder a esta sección.',
@@ -40,6 +49,7 @@ function requireRole(...roles) {
             expiresAt: Date.now() + 5 * 60 * 1000
           };
           delete req.session.user;
+          if (wantsJson(req)) return res.status(401).json({ success: false, error: 'Se requiere verificación MFA.' });
           return res.redirect(adminUrl('/mfa'));
         }
       } catch (_) { /* store no listo */ }
@@ -49,10 +59,14 @@ function requireRole(...roles) {
 }
 
 function requireVerifiedEmail(req, res, next) {
-  if (!req.session?.user) return res.redirect('/login');
+  if (!req.session?.user) {
+    if (wantsJson(req)) return res.status(401).json({ success: false, error: 'Sesión expirada. Vuelve a iniciar sesión.' });
+    return res.redirect('/login');
+  }
   const user = store.getUserById(req.session.user.id);
   if (!user || store.isEmailVerified(user)) return next();
   if (user.role === 'admin') return next();
+  if (wantsJson(req)) return res.status(403).json({ success: false, error: 'Debes verificar tu email para continuar.' });
   return res.redirect('/verificar-email');
 }
 

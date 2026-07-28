@@ -2,6 +2,7 @@
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="servicePage"
   data-service-id="<%= service.id %>"
+  data-service-name="<%= service.name %>"
   data-visit-price="<%= service.visitPrice %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
   data-whatsapp="<%= company.whatsapp %>">
@@ -210,75 +211,85 @@
       </div>
     </div>
 
-    <div id="loaderOverlay" class="hidden fixed inset-0 z-[200] search-overlay flex items-center justify-center overflow-y-auto py-8">
-      <div class="search-overlay-glow" aria-hidden="true"></div>
+    <div id="loaderOverlay" class="hidden fixed inset-0 z-[200] search-overlay flex items-center justify-center overflow-y-auto py-6">
+      <div class="search-overlay-orb search-overlay-orb-a" aria-hidden="true"></div>
+      <div class="search-overlay-orb search-overlay-orb-b" aria-hidden="true"></div>
       <div class="search-overlay-grid" aria-hidden="true"></div>
       <div class="relative text-center px-5 max-w-sm w-full" id="searchExperience" data-timeout-ms="600000">
-        <div class="relative w-36 h-36 mx-auto mb-5">
-          <svg class="search-ring absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
-            <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="6" class="text-zilo-border/80"></circle>
-            <circle id="searchRingProgress" cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="6"
-              class="text-zilo-accent search-ring-progress" stroke-linecap="round"
-              stroke-dasharray="326.73" stroke-dashoffset="326.73"></circle>
-          </svg>
-          <div class="absolute inset-3 rounded-full border border-zilo-accent/20 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center shadow-zilo">
-            <div class="relative w-14 h-14 mb-1">
-              <div class="absolute inset-0 border-2 rounded-full animate-radar zilo-radar"></div>
-              <div class="absolute inset-0 border-2 rounded-full animate-radar zilo-radar" style="animation-delay:0.7s"></div>
-              <div class="absolute inset-0 flex items-center justify-center">
-                <div class="w-2.5 h-2.5 rounded-full animate-pulse zilo-radar-dot"></div>
+        <div class="search-hero-card mb-5">
+          <div class="relative w-40 h-40 mx-auto">
+            <svg class="search-ring absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="5" class="text-white/40"></circle>
+              <circle id="searchRingProgress" cx="60" cy="60" r="52" fill="none" stroke="url(#searchRingGrad)" stroke-width="5"
+                class="search-ring-progress" stroke-linecap="round"
+                stroke-dasharray="326.73" stroke-dashoffset="326.73"></circle>
+              <defs>
+                <linearGradient id="searchRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#38BDF8"/>
+                  <stop offset="55%" stop-color="#2563EB"/>
+                  <stop offset="100%" stop-color="#1D4ED8"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="absolute inset-4 rounded-full search-hero-core flex flex-col items-center justify-center">
+              <div class="relative w-12 h-12 mb-1">
+                <div class="absolute inset-0 border-2 rounded-full animate-radar zilo-radar"></div>
+                <div class="absolute inset-0 border-2 rounded-full animate-radar zilo-radar" style="animation-delay:0.7s"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="w-2.5 h-2.5 rounded-full animate-pulse zilo-radar-dot"></div>
+                </div>
               </div>
+              <p id="searchTimer" class="font-mono text-2xl font-bold tracking-tight text-zilo-text tabular-nums leading-none">00:00</p>
+              <p class="text-[10px] text-zilo-muted uppercase tracking-[0.14em] mt-1"><%= t('client.service.search_elapsed') %></p>
             </div>
-            <p id="searchTimer" class="font-mono text-xl font-bold tracking-wider text-zilo-text tabular-nums">00:00</p>
-            <p class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= t('client.service.search_elapsed') %></p>
           </div>
         </div>
 
-        <p id="searchPhaseLabel" class="text-[10px] font-semibold uppercase tracking-wider text-zilo-accent mb-1"><%= t('client.service.search_phase_near') %></p>
-        <h3 id="loaderText" class="zilo-display text-xl mb-2 leading-snug"><%= t('client.service.searching') %></h3>
-        <p id="loaderSub" class="text-sm text-zilo-muted mb-4 leading-relaxed"><%= t('client.service.searching_sub') %></p>
+        <p id="searchPhaseLabel" class="search-phase-pill mb-3"><%= t('client.service.search_phase_near') %></p>
+        <h3 id="loaderText" class="zilo-display text-[1.35rem] mb-2 leading-snug tracking-tight"><%= t('client.service.searching') %></h3>
+        <p id="loaderSub" class="text-sm text-zilo-muted mb-5 leading-relaxed px-1"><%= t('client.service.searching_sub') %></p>
 
-        <div class="mb-4">
+        <div class="mb-5 px-1">
           <div class="flex justify-between text-[10px] text-zilo-muted mb-1.5">
             <span><%= t('client.service.search_progress_start') %></span>
-            <span id="searchProgressLabel">0 / 10 min</span>
+            <span id="searchProgressLabel" class="font-medium text-zilo-accent">0 / 10 min</span>
           </div>
-          <div class="h-1.5 rounded-full bg-zilo-border/70 overflow-hidden">
-            <div id="searchProgressBar" class="h-full rounded-full bg-zilo-accent transition-all duration-500" style="width:0%"></div>
-          </div>
-        </div>
-
-        <div class="space-y-2 text-left mb-4" id="searchSteps">
-          <div id="step1" class="step-item is-active px-3.5 py-2.5 rounded-xl text-sm flex items-center gap-2.5 border border-transparent bg-white/70 backdrop-blur-sm">
-            <span class="search-step-dot shrink-0"></span>
-            <span class="flex-1"><%= t('client.service.loader_locating') %></span>
-          </div>
-          <div id="step2" class="step-item px-3.5 py-2.5 rounded-xl zilo-card-premium text-sm text-zilo-muted flex items-center gap-2.5">
-            <span class="search-step-dot shrink-0"></span>
-            <span class="flex-1"><%= t('client.service.loader_filtering') %></span>
-          </div>
-          <div id="step3" class="step-item px-3.5 py-2.5 rounded-xl zilo-card-premium text-sm text-zilo-muted flex items-center gap-2.5">
-            <span class="search-step-dot shrink-0"></span>
-            <span class="flex-1"><%= t('client.service.loader_waiting') %></span>
-          </div>
-          <div id="step4" class="step-item px-3.5 py-2.5 rounded-xl zilo-card-premium text-sm text-zilo-muted flex items-center gap-2.5">
-            <span class="search-step-dot shrink-0"></span>
-            <span class="flex-1"><%= t('client.service.loader_busy') %></span>
+          <div class="h-2 rounded-full bg-white/70 border border-zilo-border/60 overflow-hidden shadow-inner">
+            <div id="searchProgressBar" class="h-full rounded-full search-progress-fill transition-all duration-500" style="width:0%"></div>
           </div>
         </div>
 
-        <div id="searchTipCard" class="p-3 rounded-2xl bg-white/90 backdrop-blur-sm border border-zilo-border text-left mb-4 min-h-[3.5rem]">
-          <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-muted mb-1"><%= t('client.service.search_tip_label') %></p>
+        <div class="search-timeline mb-5 text-left" id="searchSteps">
+          <div id="step1" class="search-timeline-item is-active">
+            <span class="search-timeline-marker" aria-hidden="true"></span>
+            <span class="search-timeline-copy"><%= t('client.service.loader_locating') %></span>
+          </div>
+          <div id="step2" class="search-timeline-item">
+            <span class="search-timeline-marker" aria-hidden="true"></span>
+            <span class="search-timeline-copy"><%= t('client.service.loader_filtering') %></span>
+          </div>
+          <div id="step3" class="search-timeline-item">
+            <span class="search-timeline-marker" aria-hidden="true"></span>
+            <span class="search-timeline-copy"><%= t('client.service.loader_waiting') %></span>
+          </div>
+          <div id="step4" class="search-timeline-item">
+            <span class="search-timeline-marker" aria-hidden="true"></span>
+            <span class="search-timeline-copy"><%= t('client.service.loader_busy') %></span>
+          </div>
+        </div>
+
+        <div id="searchTipCard" class="search-tip-card text-left mb-5 min-h-[3.25rem]">
+          <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-zilo-muted mb-1"><%= t('client.service.search_tip_label') %></p>
           <p id="searchTipText" class="text-xs text-zilo-text leading-relaxed"><%= t('client.service.search_tip_1') %></p>
         </div>
 
-        <p class="text-[11px] text-zilo-muted mb-3"><%= t('client.service.searching_hint') %></p>
-        <div class="flex flex-col gap-2 mb-2">
-          <button type="button" id="btnCancelSearch" class="w-full py-3 px-3 rounded-xl border border-red-200 bg-white/90 text-red-700 text-sm font-semibold hover:bg-red-50 transition">
+        <p class="text-[11px] text-zilo-muted mb-4 px-2"><%= t('client.service.searching_hint') %></p>
+        <div class="flex flex-col gap-2.5 pb-2">
+          <button type="button" id="btnCancelSearch" class="search-cancel-btn">
             <%= t('client.service.cancel_search') %>
           </button>
-          <button type="button" data-open-aland class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition">
-            <%= t('client.service.talk_aland') %>
+          <button type="button" data-open-aland class="search-aland-btn">
+            <span><%= t('client.service.talk_aland') %></span>
           </button>
         </div>
       </div>
