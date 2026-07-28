@@ -26,15 +26,15 @@
       <p class="zilo-label text-aland-strong mb-1">Mensaje de Aland IA</p>
       <h1 class="text-xl font-semibold mb-3">Los técnicos cercanos están ocupados</h1>
       <p class="text-sm text-zilo-muted leading-relaxed mb-5">
-        Han pasado más de 10 minutos y todavía nadie ha tomado tu solicitud de
-        <strong><%= request.serviceName %></strong>. No te dejamos solo: elige cómo quieres seguir.
+        Han pasado más de 15 minutos y todavía nadie ha tomado tu solicitud de
+        <strong><%= request.serviceName %></strong>. ¿Quieres que sigamos buscando?
       </p>
 
       <form method="POST" action="/cliente/solicitud/<%= request.id %>/sin-socio" class="space-y-3">
         <input type="hidden" name="token" value="<%= token %>">
         <button type="submit" name="choice" value="continue"
-          class="w-full text-left p-4 rounded-2xl border <%= selectedChoice === 'continue' ? 'border-blue-500 bg-blue-50' : 'border-zilo-accent/30 bg-zilo-accent/5' %> hover:border-zilo-accent transition">
-          <strong class="text-sm block text-zilo-accent">Avísame cuando haya uno libre</strong>
+          class="w-full text-left p-4 rounded-2xl border <%= selectedChoice === 'continue' ? 'border-zilo-accent bg-zilo-accent/10' : 'border-zilo-accent/30 bg-zilo-accent/5' %> hover:border-zilo-accent transition">
+          <strong class="text-sm block text-zilo-accent">Sí, seguir buscando</strong>
           <span class="text-xs text-zilo-muted">Seguimos buscando y te notificamos en la app y por correo apenas alguien acepte.</span>
         </button>
         <button type="submit" name="choice" value="refund"

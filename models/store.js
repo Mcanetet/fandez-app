@@ -3478,8 +3478,8 @@ function getRequestsByClient(clientId) {
   return requests.filter(r => r.clientId === clientId);
 }
 
-function getUnassignedRequestsAwaitingNotice(timeoutMinutes = 10, now = Date.now()) {
-  const timeoutMs = Math.max(1, Number(timeoutMinutes) || 10) * 60 * 1000;
+function getUnassignedRequestsAwaitingNotice(timeoutMinutes = 15, now = Date.now()) {
+  const timeoutMs = Math.max(1, Number(timeoutMinutes) || 15) * 60 * 1000;
   return requests.filter((request) => {
     if (request.status !== 'searching' || request.paymentStatus !== 'approved' || request.providerId) return false;
     if (request.noProviderNotifiedAt) return false;
@@ -3547,7 +3547,7 @@ function respondNoProviderChoice(requestId, { clientId, tokenHash, choice } = {}
   return { success: true, choice: normalizedChoice, request };
 }
 
-function ensureNoProviderChoiceForClient(requestId, clientId, { minWaitMinutes = 9 } = {}) {
+function ensureNoProviderChoiceForClient(requestId, clientId, { minWaitMinutes = 14 } = {}) {
   const request = requests.find((item) => item.id === requestId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (request.clientId !== clientId) return { error: 'No autorizado.' };
@@ -3559,7 +3559,7 @@ function ensureNoProviderChoiceForClient(requestId, clientId, { minWaitMinutes =
     return { success: true, request, already: true };
   }
   const startedAt = Date.parse(request.searchingAt || request.paidAt || request.createdAt || '');
-  const minMs = Math.max(1, Number(minWaitMinutes) || 9) * 60 * 1000;
+  const minMs = Math.max(1, Number(minWaitMinutes) || 14) * 60 * 1000;
   if (!Number.isFinite(startedAt) || Date.now() - startedAt < minMs) {
     return { error: 'Aún estamos buscando un técnico. Espera un momento más.' };
   }

@@ -494,7 +494,7 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
 router.post('/solicitud/:id/timeout-busqueda', requireRole('client'), async (req, res) => {
   try {
     const result = store.ensureNoProviderChoiceForClient(req.params.id, req.session.user.id, {
-      minWaitMinutes: Math.max(8, (parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '10', 10) || 10) - 1)
+      minWaitMinutes: Math.max(12, (parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15) - 1)
     });
     if (result.error) return res.status(400).json({ success: false, error: result.error });
     const payload = { request: store.enrichRequestForClient(result.request, req.locale || 'es') };

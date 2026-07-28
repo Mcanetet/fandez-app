@@ -311,7 +311,7 @@ async function initDatabase() {
       require('./lib/aland/journey').bind({ store, io });
       aland.startEscalationWatcher(store, io);
       unassignedRequestWatcher.start(store, io, {
-        timeoutMinutes: parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '10', 10) || 10
+        timeoutMinutes: parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15
       });
       backup.startBackupScheduler(store, (event, detail) => {
         store.logSecurityEvent(event, detail, null);

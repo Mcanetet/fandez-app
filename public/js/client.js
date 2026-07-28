@@ -350,13 +350,14 @@
     }
   }
 
-  const SEARCH_TIMEOUT_MS = 10 * 60 * 1000;
+  const SEARCH_TIMEOUT_MS = 15 * 60 * 1000;
   const SEARCH_POLL_MS = 2000;
   const SEARCH_RING_CIRCUMFERENCE = 2 * Math.PI * 52;
+  const SEARCH_TIMEOUT_MINUTES = Math.round(SEARCH_TIMEOUT_MS / 60000);
   const SEARCH_PHASES = [
-    { untilMs: 2 * 60 * 1000, step: 'step1', phase: 'near', title: 'client.js.search_title_near', sub: 'client.js.search_sub_near', label: 'client.js.search_phase_near' },
-    { untilMs: 5 * 60 * 1000, step: 'step2', phase: 'expand', title: 'client.js.search_title_expand', sub: 'client.js.search_sub_expand', label: 'client.js.search_phase_expand' },
-    { untilMs: 8 * 60 * 1000, step: 'step3', phase: 'notify', title: 'client.js.search_title_notify', sub: 'client.js.search_sub_notify', label: 'client.js.search_phase_notify' },
+    { untilMs: 3 * 60 * 1000, step: 'step1', phase: 'near', title: 'client.js.search_title_near', sub: 'client.js.search_sub_near', label: 'client.js.search_phase_near' },
+    { untilMs: 7 * 60 * 1000, step: 'step2', phase: 'expand', title: 'client.js.search_title_expand', sub: 'client.js.search_sub_expand', label: 'client.js.search_phase_expand' },
+    { untilMs: 12 * 60 * 1000, step: 'step3', phase: 'notify', title: 'client.js.search_title_notify', sub: 'client.js.search_sub_notify', label: 'client.js.search_phase_notify' },
     { untilMs: SEARCH_TIMEOUT_MS, step: 'step3', phase: 'final', title: 'client.js.search_title_final', sub: 'client.js.search_sub_final', label: 'client.js.search_phase_final' },
     { untilMs: Infinity, step: 'step4', phase: 'busy', title: 'client.js.search_title_busy', sub: 'client.js.search_sub_busy', label: 'client.js.search_phase_busy' }
   ];
@@ -431,7 +432,7 @@
     if (timerEl) timerEl.textContent = formatSearchClock(capped);
     if (barEl) barEl.style.width = `${Math.round(ratio * 100)}%`;
     if (labelEl) {
-      const mins = Math.min(10, Math.floor(capped / 60000));
+      const mins = Math.min(SEARCH_TIMEOUT_MINUTES, Math.floor(capped / 60000));
       labelEl.textContent = t('client.js.search_progress', { elapsed: String(mins) });
     }
     if (ringEl) {
