@@ -19,7 +19,7 @@ window.FundezMap = {
   _destIcon() {
     return L.divIcon({
       className: 'fundez-map-pin',
-      html: this._pinHtml('#2563EB'),
+      html: this._pinHtml('#1C64B4'),
       iconSize: [32, 42],
       iconAnchor: [16, 42],
       popupAnchor: [0, -38]

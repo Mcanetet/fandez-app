@@ -1,18 +1,14 @@
 <%- include('partials/head') %>
 
 <div class="min-h-screen flex items-center justify-center p-5 relative">
-  <div class="fixed inset-0 pointer-events-none">
-    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-zilo-accent/6 rounded-full blur-3xl"></div>
-  </div>
-
   <div class="absolute top-5 right-5 z-20">
     <%- include('partials/lang-switcher') %>
   </div>
 
-  <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-3xl p-8">
+  <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-2xl p-8">
     <a href="/" class="flex flex-col items-center mb-8">
       <%- include('partials/logo', { className: 'w-14 h-14 mb-3', logoId: 'login' }) %>
-      <span class="zilo-display text-2xl tracking-wide"><%= t('app.name') %></span>
+      <span class="zilo-display text-2xl tracking-tight"><%= t('app.name') %></span>
     </a>
 
     <h1 class="zilo-display text-3xl text-center mb-1"><%= t('auth.welcome') %></h1>
@@ -45,7 +41,7 @@
         }) %>
       </div>
       <label class="flex items-center gap-2 text-sm text-zilo-muted cursor-pointer select-none">
-        <input type="checkbox" id="remember" name="remember" value="1" class="rounded accent-[#2563EB] shrink-0">
+        <input type="checkbox" id="remember" name="remember" value="1" class="rounded accent-zilo-accent shrink-0">
         <span><%= t('auth.remember_password') %></span>
       </label>
       <button type="submit" class="zilo-btn-primary"><%= t('auth.login') %></button>

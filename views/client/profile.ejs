@@ -62,11 +62,11 @@
 
       <div class="grid grid-cols-2 gap-2">
         <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer billing-type-option <%= billing.type !== 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
-          <input type="radio" name="billingType" value="natural" <%= billing.type !== 'empresa' ? 'checked' : '' %> class="accent-[#2563EB]">
+          <input type="radio" name="billingType" value="natural" <%= billing.type !== 'empresa' ? 'checked' : '' %> class="accent-zilo-accent">
           <span class="text-sm"><%= t('client.profile.natural') %></span>
         </label>
         <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer billing-type-option <%= billing.type === 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
-          <input type="radio" name="billingType" value="empresa" <%= billing.type === 'empresa' ? 'checked' : '' %> class="accent-[#2563EB]">
+          <input type="radio" name="billingType" value="empresa" <%= billing.type === 'empresa' ? 'checked' : '' %> class="accent-zilo-accent">
           <span class="text-sm"><%= t('client.profile.company') %></span>
         </label>
       </div>

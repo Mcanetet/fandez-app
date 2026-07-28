@@ -1438,7 +1438,7 @@
       <div class="p-2 rounded-lg bg-zilo-bg border border-gray-200" data-kb-id="${escapeHtml(k.id)}">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
-            <strong class="text-violet-600 uppercase text-[10px]">${escapeHtml(k.sourceType)}</strong>
+            <strong class="text-aland-strong uppercase text-[10px]">${escapeHtml(k.sourceType)}</strong>
             <p class="font-medium">${escapeHtml(k.title)}</p>
             <p class="text-gray-500 line-clamp-2">${escapeHtml(k.content)}</p>
           </div>
@@ -1652,7 +1652,7 @@
     const isAlert = Boolean(msg.meta?.securityAlert || msg.meta?.risk === 'injection' || msg.meta?.type === 'prompt_injection');
     const align = type === 'client' ? 'text-left' : 'text-right';
     let bg = 'bg-white border border-gray-200';
-    if (type === 'aland') bg = 'bg-violet-50 border border-violet-100';
+    if (type === 'aland') bg = 'bg-aland-soft border border-aland';
     if (type === 'admin' || type === 'provider') bg = 'bg-zilo-accent text-white border-transparent';
     if (type === 'system' || isAlert) bg = 'bg-amber-50 border border-amber-200 text-amber-900';
     const usage = msg.meta?.usage?.total_tokens
@@ -1688,11 +1688,11 @@
     }
     alandMonitorList.innerHTML = items.map((c) => {
       const inj = Number(c.injectionCount) || 0;
-      const active = c.id === alandMonitorActiveId ? 'border-violet-400 ring-1 ring-violet-200' : 'border-gray-200';
-      return `<button type="button" class="w-full text-left p-2.5 rounded-xl bg-zilo-bg border ${active} hover:border-violet-300 aland-mon-item" data-id="${escapeHtml(c.id)}">
+      const active = c.id === alandMonitorActiveId ? 'border-aland ring-1 ring-aland' : 'border-gray-200';
+      return `<button type="button" class="w-full text-left p-2.5 rounded-xl bg-zilo-bg border ${active} hover:border-aland aland-mon-item" data-id="${escapeHtml(c.id)}">
         <div class="flex justify-between gap-2">
           <strong class="truncate">${escapeHtml(c.clientName || 'Cliente')}</strong>
-          <span class="text-[10px] text-violet-600 shrink-0">${alandStatusLabel(c.status)}</span>
+          <span class="text-[10px] text-aland-strong shrink-0">${alandStatusLabel(c.status)}</span>
         </div>
         <p class="text-gray-500 mt-0.5 truncate">${escapeHtml(c.serviceName || '')}</p>
         <div class="flex flex-wrap gap-2 mt-1 text-[10px] text-gray-500">
@@ -1875,8 +1875,8 @@
       return;
     }
     mensajesList.innerHTML = items.map((c) => `
-      <button type="button" class="w-full text-left p-3 rounded-xl bg-zilo-bg border border-gray-200 hover:border-violet-400 mensajes-item" data-id="${c.id}">
-        <div class="flex justify-between"><strong class="text-sm">${c.clientName}</strong><span class="text-[10px] text-violet-600">${mensajesStatusLabel(c.status)}</span></div>
+      <button type="button" class="w-full text-left p-3 rounded-xl bg-zilo-bg border border-gray-200 hover:border-aland mensajes-item" data-id="${c.id}">
+        <div class="flex justify-between"><strong class="text-sm">${c.clientName}</strong><span class="text-[10px] text-aland-strong">${mensajesStatusLabel(c.status)}</span></div>
         <p class="text-gray-500 mt-1">${c.serviceName} · ${c.providerName ? c.providerName : 'Sin socio'}</p>
       </button>
     `).join('');
@@ -2009,20 +2009,20 @@
         ? `<a href="${escapeHtml(item.imageUrl)}" target="_blank" rel="noopener" class="block shrink-0" title="Abrir imagen">
              <img src="${escapeHtml(item.imageUrl)}" alt="" class="w-full sm:w-36 h-36 object-cover rounded-xl border border-gray-200">
            </a>`
-        : '<div class="w-full sm:w-36 h-24 sm:h-36 rounded-xl bg-gradient-to-br from-fuchsia-100 to-violet-100 flex items-center justify-center text-xs text-fuchsia-700 shrink-0">Imagen pendiente</div>';
+        : '<div class="w-full sm:w-36 h-24 sm:h-36 rounded-xl bg-gradient-to-br from-aland-soft to-zilo-accent-soft flex items-center justify-center text-xs text-aland-strong shrink-0">Imagen pendiente</div>';
       const manage = canFlorenciaManage && item.status !== 'published'
-        ? `<button type="button" data-florencia-chat="${item.id}" class="px-2.5 py-1.5 rounded-lg bg-fuchsia-50 border border-fuchsia-200 text-fuchsia-700 text-xs">Hablar con Florencia</button>
-           <button type="button" data-florencia-image="${item.id}" class="px-2.5 py-1.5 rounded-lg border border-fuchsia-200 text-fuchsia-700 text-xs">${item.imageUrl ? 'Regenerar imagen' : 'Generar imagen'}</button>
+        ? `<button type="button" data-florencia-chat="${item.id}" class="px-2.5 py-1.5 rounded-lg bg-aland-soft border border-aland/30 text-aland-strong text-xs">Hablar con Florencia</button>
+           <button type="button" data-florencia-image="${item.id}" class="px-2.5 py-1.5 rounded-lg border border-aland/30 text-aland-strong text-xs">${item.imageUrl ? 'Regenerar imagen' : 'Generar imagen'}</button>
            <button type="button" data-florencia-edit="${item.id}" class="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs">Editar</button>`
         : (canFlorenciaManage
-          ? `<button type="button" data-florencia-chat="${item.id}" class="px-2.5 py-1.5 rounded-lg bg-fuchsia-50 border border-fuchsia-200 text-fuchsia-700 text-xs">Hablar con Florencia</button>`
+          ? `<button type="button" data-florencia-chat="${item.id}" class="px-2.5 py-1.5 rounded-lg bg-aland-soft border border-aland/30 text-aland-strong text-xs">Hablar con Florencia</button>`
           : '');
       const approve = canFlorenciaApprove && item.status === 'pending_approval'
         ? `<button type="button" data-florencia-approve="${item.id}" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs">Aprobar</button>
            <button type="button" data-florencia-reject="${item.id}" class="px-2.5 py-1.5 rounded-lg border border-red-200 text-red-700 text-xs">Rechazar</button>`
         : '';
       const publish = canFlorenciaPublish && item.status === 'approved' && connections[item.channel]
-        ? `<button type="button" data-florencia-publish="${item.id}" class="px-2.5 py-1.5 rounded-lg bg-fuchsia-600 text-white text-xs">Publicar ahora</button>`
+        ? `<button type="button" data-florencia-publish="${item.id}" class="px-2.5 py-1.5 rounded-lg bg-aland text-white text-xs">Publicar ahora</button>`
         : (item.status === 'approved' && !connections[item.channel]
           ? '<span class="text-[10px] text-amber-700 self-center">Aprobada · usa Descargar para publicar a mano o configura la conexión</span>'
           : '');
@@ -2038,7 +2038,7 @@
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap justify-between gap-2 mb-2">
               <div>
-                <span class="text-[10px] uppercase font-semibold text-fuchsia-700">${escapeHtml(item.channel)}</span>
+                <span class="text-[10px] uppercase font-semibold text-aland-strong">${escapeHtml(item.channel)}</span>
                 <h4 class="text-sm font-semibold">${escapeHtml(item.title)}</h4>
               </div>
               <div class="text-right">
@@ -2049,7 +2049,7 @@
             ${c.subject ? `<p class="text-xs font-semibold mb-1">Asunto: ${escapeHtml(c.subject)}</p>` : ''}
             <p class="text-xs text-gray-700 whitespace-pre-wrap mb-2" data-role="florencia-copy">${escapeHtml(c.copy || '')}</p>
             ${c.cta ? `<p class="text-xs font-semibold text-zilo-accent" data-role="florencia-cta">${escapeHtml(c.cta)}</p>` : ''}
-            ${hashtags ? `<p class="text-[11px] text-fuchsia-700 mt-1" data-role="florencia-hashtags">${escapeHtml(hashtags)}</p>` : ''}
+            ${hashtags ? `<p class="text-[11px] text-aland-strong mt-1" data-role="florencia-hashtags">${escapeHtml(hashtags)}</p>` : ''}
             ${item.error ? `<p class="text-[11px] text-red-600 mt-2">${escapeHtml(item.error)}</p>` : ''}
             <div class="flex flex-wrap gap-2 mt-3">${downloads}${manage}${approve}${publish}</div>
           </div>
@@ -2119,7 +2119,7 @@
 
     function buildCopyPack(card) {
       const title = card?.querySelector('h4')?.textContent?.trim() || 'Pieza Florencia';
-      const channel = card?.querySelector('.text-fuchsia-700.uppercase')?.textContent?.trim() || '';
+      const channel = card?.querySelector('.text-aland-strong.uppercase')?.textContent?.trim() || '';
       const copy = card?.querySelector('[data-role="florencia-copy"]')?.textContent || '';
       const cta = card?.querySelector('[data-role="florencia-cta"]')?.textContent || '';
       const tags = card?.querySelector('[data-role="florencia-hashtags"]')?.textContent || '';
@@ -2269,8 +2269,8 @@
         ? `<p class="text-[10px] mt-1 opacity-80">${msg.meta.regenerated ? 'Imagen regenerada · ' : ''}Cambios: ${escapeHtml(msg.meta.applied.map((a) => a.type).join(', '))}</p>`
         : '';
       return `<div class="flex ${mine ? 'justify-end' : 'justify-start'}">
-        <div class="max-w-[85%] px-3 py-2 rounded-2xl ${mine ? 'bg-fuchsia-600 text-white' : 'bg-white border border-gray-200 text-gray-800'}">
-          <p class="text-[10px] font-semibold mb-0.5 ${mine ? 'text-fuchsia-100' : 'text-fuchsia-700'}">${mine ? 'Tú' : 'Florencia'}</p>
+        <div class="max-w-[85%] px-3 py-2 rounded-2xl ${mine ? 'bg-aland text-white' : 'bg-white border border-gray-200 text-gray-800'}">
+          <p class="text-[10px] font-semibold mb-0.5 ${mine ? 'text-white/80' : 'text-aland-strong'}">${mine ? 'Tú' : 'Florencia'}</p>
           <p class="whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.body || '')}</p>
           ${applied}
         </div>

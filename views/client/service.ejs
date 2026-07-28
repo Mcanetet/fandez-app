@@ -70,7 +70,7 @@
           else if (pct < 0) { badge = pct + '%'; badgeClass = 'text-emerald-700'; }
         %>
           <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer urgency-option <%= isDefault ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-tier="<%= tier.id %>">
-            <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="mt-1 accent-[#2563EB]" <%= isDefault ? 'checked' : '' %>>
+            <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="mt-1 accent-zilo-accent" <%= isDefault ? 'checked' : '' %>>
             <div class="flex-1 min-w-0">
               <div class="flex justify-between items-start gap-2">
                 <strong class="text-sm"><%= tier.label %></strong>
@@ -85,19 +85,19 @@
     <% } %>
 
     <% if (mod('client_aland')) { %>
-    <section class="p-4 rounded-2xl zilo-card-premium mb-5 zilo-page-enter-delay-1 border border-violet-500/20" id="alandChatSection" data-auto-open="<%= (typeof currentQuery !== 'undefined' && String(currentQuery).includes('aland=1')) ? '1' : '0' %>">
+    <section class="p-4 rounded-xl zilo-card-premium mb-5 zilo-page-enter-delay-1 border border-aland/25 aland-surface" id="alandChatSection" data-auto-open="<%= (typeof currentQuery !== 'undefined' && String(currentQuery).includes('aland=1')) ? '1' : '0' %>">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <p class="text-sm font-semibold text-violet-800"><%= t('client.service.aland_title') %></p>
+          <p class="text-sm font-semibold text-aland-strong"><%= t('client.service.aland_title') %></p>
           <p class="text-[11px] text-zilo-muted"><%= t('client.service.aland_sub') %></p>
         </div>
-        <button type="button" id="alandChatToggle" class="text-xs px-3 py-1.5 rounded-lg bg-violet-500/15 text-violet-700 border border-violet-500/20"><%= t('client.service.aland_open') %></button>
+        <button type="button" id="alandChatToggle" class="text-xs px-3 py-1.5 rounded-lg aland-chip"><%= t('client.service.aland_open') %></button>
       </div>
       <div id="alandChatPanel" class="hidden border border-zilo-border rounded-xl overflow-hidden">
         <div id="alandChatMessages" class="h-56 overflow-y-auto p-3 space-y-2 bg-zilo-bg text-sm"></div>
         <form id="alandChatForm" class="flex gap-2 p-2 border-t border-zilo-border bg-white">
           <input type="text" id="alandChatInput" placeholder="<%= t('client.service.aland_placeholder') %>" class="flex-1 px-3 py-2 rounded-lg border border-zilo-border text-sm" autocomplete="off">
-          <button type="submit" class="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-medium"><%= t('client.service.aland_send') %></button>
+          <button type="submit" class="px-4 py-2 rounded-lg aland-btn text-sm font-medium"><%= t('client.service.aland_send') %></button>
         </form>
       </div>
     </section>
@@ -107,7 +107,7 @@
       <% if (mod('client_regalo')) { %>
       <div class="p-4 rounded-2xl zilo-gift-card">
         <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" id="giftToggle" class="w-5 h-5 rounded accent-[#2563EB]">
+          <input type="checkbox" id="giftToggle" class="w-5 h-5 rounded accent-zilo-accent">
           <div>
             <strong class="text-sm block"><%= t('client.service.gift') %></strong>
             <span class="text-xs text-zilo-muted"><%= mod('client_guardian') ? t('client.service.gift_guardian') : t('client.service.gift_other') %></span>
@@ -194,7 +194,7 @@
         </div>
 
         <label class="flex items-start gap-2.5 p-3 rounded-xl border border-zilo-border cursor-pointer">
-          <input type="checkbox" id="brandNotVisible" class="mt-0.5 accent-[#2563EB] shrink-0">
+          <input type="checkbox" id="brandNotVisible" class="mt-0.5 accent-zilo-accent shrink-0">
           <span class="text-sm leading-snug">
             <strong class="block font-medium"><%= t('client.service.brand_not_visible') %></strong>
             <span class="text-[11px] text-zilo-muted"><%= t('client.service.brand_not_visible_hint') %></span>
@@ -230,9 +230,8 @@
                 stroke-dasharray="326.73" stroke-dashoffset="326.73"></circle>
               <defs>
                 <linearGradient id="searchRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#38BDF8"/>
-                  <stop offset="55%" stop-color="#2563EB"/>
-                  <stop offset="100%" stop-color="#1D4ED8"/>
+                  <stop offset="0%" stop-color="#1C64B4"/>
+                  <stop offset="100%" stop-color="#15508F"/>
                 </linearGradient>
               </defs>
             </svg>
@@ -323,7 +322,7 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
         </div>
         <div class="min-w-0">
-          <p class="zilo-label text-violet-700 mb-0.5">Aland IA</p>
+          <p class="text-xs font-semibold text-aland-strong mb-0.5">Aland</p>
           <strong class="text-sm block mb-1"><%= t('client.js.no_provider_title') %> <span id="noProviderServiceName"></span></strong>
           <p class="text-xs text-amber-900/90 leading-relaxed"><%= t('client.js.no_provider_body') %></p>
         </div>
@@ -339,7 +338,7 @@
         <button type="button" id="btnNoProviderRefund" class="w-full py-2.5 px-3 rounded-xl bg-white border border-red-200 text-red-700 text-xs font-semibold">
           <%= t('client.js.no_provider_refund') %>
         </button>
-        <button type="button" data-open-aland class="w-full py-2 text-xs font-semibold text-violet-700 hover:underline">
+        <button type="button" data-open-aland class="w-full py-2 text-xs font-semibold text-aland-strong hover:underline">
           <%= t('client.service.talk_aland') %>
         </button>
       </div>
@@ -436,7 +435,7 @@
         <a id="providerPhone" href="tel:" class="zilo-btn-ghost w-full mb-2"><%= t('client.service.call_tech') %></a>
         <a id="providerEmail" href="mailto:" class="hidden zilo-btn-ghost w-full mb-2 !text-xs"><%= t('client.service.email_tech') %></a>
         <button type="button" id="openJobChatBtn" class="hidden zilo-btn-primary w-full mb-2 !text-sm">Mensajes con el socio</button>
-        <a id="whatsappSupport" href="#aland-support" data-open-aland class="zilo-btn-ghost w-full text-violet-700 border-violet-500/25"><%= t('client.service.concierge') %></a>
+        <a id="whatsappSupport" href="#aland-support" data-open-aland class="zilo-btn-ghost w-full text-aland-strong border-aland/25"><%= t('client.service.concierge') %></a>
       </div>
 
       <section id="jobChatPanel" class="hidden p-5 rounded-2xl zilo-card-premium">
@@ -471,7 +470,7 @@
 <div id="photoHelpModal" class="hidden fixed inset-0 z-[400]" aria-hidden="true" role="dialog" aria-labelledby="photoHelpTitle">
   <div id="photoHelpBackdrop" class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
   <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-5 pointer-events-none">
-    <div class="guide-modal-panel w-full max-w-lg max-h-[88vh] sm:max-h-[85vh] overflow-hidden flex flex-col pointer-events-auto animate-slide-up sm:rounded-3xl">
+    <div class="guide-modal-panel w-full max-w-lg max-h-[88vh] sm:max-h-[85vh] overflow-hidden flex flex-col pointer-events-auto animate-slide-up sm:rounded-2xl">
       <div class="zilo-modal-accent-bar shrink-0"></div>
       <div class="flex items-center justify-between px-5 py-4 border-b border-zilo-border shrink-0">
         <div>

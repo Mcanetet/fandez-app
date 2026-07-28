@@ -21,8 +21,8 @@
     const isAland = msg.senderType === 'aland';
     const isSystem = msg.senderType === 'system';
     const align = isClient ? 'text-right' : 'text-left';
-    const bg = isClient ? 'bg-violet-600 text-white' : isAland ? 'bg-white border border-zilo-border' : isSystem ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 border border-blue-200';
-    const name = msg.senderName || (isAland ? 'Aland IA' : msg.senderType);
+    const bg = isClient ? 'bg-aland text-white' : isAland ? 'bg-white border border-zilo-border' : isSystem ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 border border-blue-200';
+    const name = msg.senderName || (isAland ? 'Aland' : msg.senderType);
     return `<div class="${align}"><div class="inline-block max-w-[90%] px-3 py-2 rounded-xl text-sm ${bg}"><span class="block text-[10px] opacity-70 mb-0.5">${escapeHtml(name)}</span>${escapeHtml(msg.body).replace(/\n/g, '<br>')}</div></div>`;
   }
 

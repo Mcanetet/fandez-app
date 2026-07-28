@@ -44,7 +44,7 @@
     }
     listEl.innerHTML = items.map((c) => `
       <button type="button" class="w-full text-left p-3 rounded-xl bg-zilo-card border border-zilo-border hover:border-zilo-accent/40 provider-msg-item" data-id="${c.id}">
-        <div class="flex justify-between gap-2"><strong class="text-sm">${escapeHtml(c.clientName)}</strong><span class="text-[10px] uppercase text-violet-600">${escapeHtml(statusLabel(c.status))}</span></div>
+        <div class="flex justify-between gap-2"><strong class="text-sm">${escapeHtml(c.clientName)}</strong><span class="text-[10px] uppercase text-aland-strong">${escapeHtml(statusLabel(c.status))}</span></div>
         <p class="text-xs text-zilo-muted mt-1">${escapeHtml(c.serviceName)} · ${c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleString('es-CL') : ''}</p>
       </button>
     `).join('');

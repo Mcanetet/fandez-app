@@ -485,7 +485,7 @@
     }
 
     if (online) {
-      statusDot.className = 'w-3 h-3 rounded-full bg-zilo-success shadow-lg shadow-zilo-success/40 animate-pulse';
+      statusDot.className = 'w-3 h-3 rounded-full bg-zilo-success animate-pulse';
       statusText.textContent = FundezI18n.t('provider.online');
       statusSub.textContent = FundezI18n.t('provider.status_online_sub');
       FundezNotify.show(data.dispatched > 0 ? FundezI18n.t('js.requests_on_wall', { count: data.dispatched }) : FundezI18n.t('js.online_activated'), 'success');

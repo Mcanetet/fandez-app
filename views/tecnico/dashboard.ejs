@@ -24,7 +24,7 @@
   <main class="flex-1 px-5 py-5 pb-10">
     <section class="flex items-center justify-between p-5 rounded-2xl zilo-card-premium mb-5" data-tour="tech-online">
       <div class="flex items-center gap-3">
-        <div id="techStatusDot" class="w-3 h-3 rounded-full <%= tecnico.online ? 'bg-zilo-success shadow-lg shadow-zilo-success/40 animate-pulse' : 'bg-zilo-muted/40' %>"></div>
+        <div id="techStatusDot" class="w-3 h-3 rounded-full <%= tecnico.online ? 'bg-zilo-success animate-pulse' : 'bg-zilo-muted/40' %>"></div>
         <div>
           <h2 id="techStatusText" class="font-semibold text-sm"><%= tecnico.online ? t('tecnico.online') : t('tecnico.offline') %></h2>
           <p id="techStatusSub" class="text-xs text-zilo-muted"><%= tecnico.online ? t('tecnico.online_sub') : t('tecnico.offline_sub') %></p>
