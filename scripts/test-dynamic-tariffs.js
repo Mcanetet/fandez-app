@@ -120,6 +120,45 @@ function run() {
   assertEqual(customNight.horarioPercent, 40, 'Nocturno configurable desde admin 40%');
   assertEqual(customNight.total, 168000, '100000 × 1.4 × 1.2');
 
+  // Visitas diferidas: no heredan recargo de la hora actual
+  const deferredEvening = calculateDynamicTariff({
+    valorBase: 100000,
+    horaSolicitud: '19:57',
+    tiempoRespuestaMinutos: 180,
+    urgenciaMultiplier: 1,
+    urgenciaBand: 'tomorrow',
+    forceHorarioBand: 'normal'
+  });
+  assertEqual(deferredEvening.horarioBand, 'normal', 'Mañana fuerza horario normal');
+  assertEqual(deferredEvening.total, 100000, 'Mañana = precio base sin recargo tarde');
+
+  const deferredDiscount = calculateDynamicTariff({
+    valorBase: 100000,
+    horaSolicitud: '19:57',
+    tiempoRespuestaMinutos: 180,
+    urgenciaMultiplier: 0.9,
+    urgenciaBand: 'two_days',
+    forceHorarioBand: 'normal'
+  });
+  assertEqual(deferredDiscount.total, 90000, 'En 2 días = −10% sobre base');
+
+  const { calculateVisitPricing } = require('../lib/pricing');
+  const tomorrowPreview = calculateVisitPricing({}, 'tomorrow', {
+    horaSolicitud: '19:57',
+    valorBase: 100000,
+    timeZone: 'America/Santiago'
+  });
+  assertEqual(tomorrowPreview.visitTotal, 100000, 'calculateVisitPricing mañana sin recargo');
+  assertEqual(tomorrowPreview.adjustmentAmount, 0, 'calculateVisitPricing mañana sin ajuste');
+
+  const twoDaysPreview = calculateVisitPricing({}, 'two_days', {
+    horaSolicitud: '19:57',
+    valorBase: 100000,
+    timeZone: 'America/Santiago'
+  });
+  assertEqual(twoDaysPreview.visitTotal, 90000, 'calculateVisitPricing 2 días con −10%');
+  assertEqual(twoDaysPreview.adjustmentAmount, -10000, 'calculateVisitPricing 2 días descuento');
+
   const catalogCount = SERVICE_CATALOG.reduce((n, s) => n + s.activities.length, 0);
   if (SERVICE_CATALOG.length < 5) throw new Error('Catálogo debe tener al menos 5 especialidades');
   if (catalogCount < 20) throw new Error(`Catálogo demasiado corto: ${catalogCount}`);

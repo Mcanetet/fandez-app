@@ -149,12 +149,14 @@
         if (p.adjustmentAmount !== 0) {
           adjRow.classList.remove('hidden');
           adjRow.classList.add('flex');
-          const horarioLabel = p.tariff?.horarioBand === 'nocturno'
-            ? 'madrugada'
-            : (p.tariff?.horarioBand || '');
-          const band = p.tariff
-            ? `${horarioLabel} / ${p.tariff.urgenciaBand || ''}`
-            : p.tier.label;
+          const scheduleLabels = {
+            normal: '',
+            tarde: t('client.js.schedule_evening'),
+            nocturno: t('client.js.schedule_night')
+          };
+          const schedulePart = scheduleLabels[p.tariff?.horarioBand] || '';
+          const tierLabel = p.tier?.label || '';
+          const band = [schedulePart, tierLabel].filter(Boolean).join(' · ') || tierLabel;
           document.getElementById('urgencyAdjustmentLabel').textContent =
             p.adjustmentAmount > 0
               ? t('client.js.surcharge_label', { label: band })
