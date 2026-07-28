@@ -193,7 +193,7 @@
                 <input type="text" name="tierDesc" value="<%= tier.description %>" placeholder="Descripción para el cliente" class="zilo-input w-full !py-2 text-sm">
                 <div class="grid grid-cols-2 gap-2">
                   <div class="flex items-center gap-2">
-                    <label class="text-xs text-gray-500 shrink-0">Minutos</label>
+                    <label class="text-xs text-gray-500 shrink-0" title="Solo se usa en el cálculo interno de urgencia; no se muestra al cliente">Min. internos</label>
                     <input type="number" name="tierMinutes" value="<%= tier.responseMinutes || 180 %>" min="0" step="15" class="zilo-input flex-1 !py-2 text-sm" required>
                   </div>
                   <div class="flex items-center gap-2">

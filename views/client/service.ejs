@@ -63,13 +63,18 @@
       <div class="space-y-2" id="urgencyOptions">
         <% urgencyTiers.forEach((tier, i) => {
           const isDefault = tier.id === 'scheduled' || (i === urgencyTiers.length - 1 && !urgencyTiers.some(t => t.id === 'scheduled'));
+          const pct = Number(tier.surchargePercent != null ? tier.surchargePercent : tier.adjustmentPercent) || 0;
+          let badge = t('client.service.urgency_normal');
+          let badgeClass = 'text-zilo-muted';
+          if (pct > 0) { badge = '+' + pct + '%'; badgeClass = 'text-amber-700'; }
+          else if (pct < 0) { badge = pct + '%'; badgeClass = 'text-emerald-700'; }
         %>
           <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer urgency-option <%= isDefault ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-tier="<%= tier.id %>">
             <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="mt-1 accent-[#2563EB]" <%= isDefault ? 'checked' : '' %>>
             <div class="flex-1 min-w-0">
               <div class="flex justify-between items-start gap-2">
                 <strong class="text-sm"><%= tier.label %></strong>
-                <span class="text-xs font-medium shrink-0 urgency-pct text-zilo-muted"><%= tier.responseMinutes || '—' %> min</span>
+                <span class="text-xs font-medium shrink-0 urgency-pct <%= badgeClass %>"><%= badge %></span>
               </div>
               <% if (tier.description) { %><p class="text-[11px] text-zilo-muted mt-0.5"><%= tier.description %></p><% } %>
             </div>
