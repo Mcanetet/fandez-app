@@ -258,11 +258,13 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
   const pricing = store.getPricingConfig();
   const urgencyTiers = store.getUrgencyTiersForClient();
   const activities = store.getActivitiesForService(serviceRaw.id);
+  const catalogServices = localizeServices(store.getActiveServices(), req.t);
   res.render('client/service', {
     title: `${service.name} — Fundez`,
     user: req.session.user,
     profile,
     service,
+    catalogServices,
     pricing,
     urgencyTiers,
     activities,

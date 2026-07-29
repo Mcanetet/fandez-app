@@ -767,9 +767,9 @@
   position: relative;
 }
 .search-hero-core {
-  background: #FFFFFF;
-  border: 1px solid var(--zilo-border);
-  box-shadow: var(--zilo-shadow);
+  background: transparent;
+  border: none;
+  box-shadow: none;
   overflow: visible;
 }
 .search-ring-progress {
@@ -779,6 +779,45 @@
 .search-progress-fill {
   background: var(--zilo-accent);
   box-shadow: none;
+}
+
+/* Carrusel minimalista de servicios (pantalla de búsqueda) */
+.search-services-marquee {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.search-services-track {
+  display: flex;
+  width: max-content;
+  gap: 0.5rem;
+  animation: searchServicesScroll 28s linear infinite;
+}
+.search-services-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--zilo-border);
+  color: var(--zilo-text);
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.search-services-chip .zilo-icon-wrap {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.4rem;
+  background: var(--zilo-accent-soft);
+  border: none;
+  color: var(--zilo-accent);
+}
+@keyframes searchServicesScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 .search-phase-pill {
   display: inline-flex;
@@ -923,7 +962,7 @@
 .zilo-radar {
   position: absolute;
   inset: 0;
-  border: 2px solid var(--zilo-accent);
+  border: 2px solid rgba(28, 100, 180, 0.45);
   border-radius: 9999px;
   opacity: 0;
   animation: fundezRadar 2s ease-out infinite;
@@ -1872,6 +1911,9 @@
     box-shadow: 0 0 0 6px rgba(28, 100, 180, 0.18);
   }
   .zilo-search-plunger {
+    animation: none !important;
+  }
+  .search-services-track {
     animation: none !important;
   }
 }
