@@ -25,8 +25,15 @@ async function main() {
     ['favicon.png', 96],
     ['apple-touch-icon.png', 180],
     ['icon-192.png', 192],
-    ['icon-512.png', 512]
+    ['icon-512.png', 512],
+    // Rutas nuevas para PWA / pantalla de inicio (evitar caché de iOS)
+    ['icons/fundez-96.png', 96],
+    ['icons/fundez-180.png', 180],
+    ['icons/fundez-192.png', 192],
+    ['icons/fundez-512.png', 512]
   ];
+
+  fs.mkdirSync(path.join(publicDir, 'icons'), { recursive: true });
 
   for (const [name, size] of sizes) {
     await sharp(svg).resize(size, size).png().toFile(path.join(publicDir, name));

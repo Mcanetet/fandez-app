@@ -98,13 +98,38 @@ app.use((req, res, next) => {
   if (cleaned === pathPart) return next();
   return res.redirect(301, cleaned + query);
 });
+
+// Manifest PWA dinámico: iconos con path nuevo + ?v= para forzar recarga en móvil
+app.get('/site.webmanifest', (req, res) => {
+  const v = getAssetVersion();
+  const q = `?v=${encodeURIComponent(v)}`;
+  res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.json({
+    name: 'Fundez — Soluciones del hogar a tiempo',
+    short_name: 'Fundez',
+    description: 'Cuando algo falla en casa, técnicos verificados en Santiago lo resuelven a tiempo y en forma.',
+    lang: 'es-CL',
+    start_url: `/?v=${encodeURIComponent(v)}`,
+    display: 'standalone',
+    background_color: '#F4F2EE',
+    theme_color: '#C45C14',
+    icons: [
+      { src: `/icons/fundez-96.png${q}`, sizes: '96x96', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-180.png${q}`, sizes: '180x180', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-192.png${q}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+    ]
+  });
+});
+
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders(res, filePath) {
     if (/\.(js|css)$/.test(filePath)) {
       res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     }
-    // Favicons / logos: el móvil cachea agresivo; no fijar max-age largo
-    if (/(favicon|apple-touch-icon|icon-\d+|logo-plunger|logo(-mark)?\.svg|site\.webmanifest)/i.test(filePath)) {
+    if (/(favicon|apple-touch-icon|icon-\d+|icons\/fundez|logo-plunger|logo(-mark)?\.svg|site\.webmanifest)/i.test(filePath)) {
       res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     }
   }
