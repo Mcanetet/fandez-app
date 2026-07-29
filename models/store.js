@@ -574,7 +574,7 @@ function upsertPromo(input = {}) {
     title: String(input.title || existing?.title || '').trim() || 'Promoción',
     desc: String(input.desc || input.description || existing?.desc || '').trim(),
     code,
-    color: String(input.color || existing?.color || '#C45C14').trim() || '#C45C14',
+    color: String(input.color || existing?.color || '#0D9488').trim() || '#0D9488',
     sortOrder: Number.isFinite(Number(input.sortOrder))
       ? Number(input.sortOrder)
       : (existing?.sortOrder || PROMOS.length + 1),

@@ -38,11 +38,11 @@
       <h2 class="zilo-label mb-3">Datos para factura</h2>
       <div class="grid grid-cols-2 gap-2 mb-3">
         <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer billing-type-option text-xs <%= billing.type !== 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
-          <input type="radio" name="billingType" value="natural" <%= billing.type !== 'empresa' ? 'checked' : '' %> class="accent-[#C45C14]">
+          <input type="radio" name="billingType" value="natural" <%= billing.type !== 'empresa' ? 'checked' : '' %> class="accent-[#0D9488]">
           Persona natural
         </label>
         <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer billing-type-option text-xs <%= billing.type === 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
-          <input type="radio" name="billingType" value="empresa" <%= billing.type === 'empresa' ? 'checked' : '' %> class="accent-[#C45C14]">
+          <input type="radio" name="billingType" value="empresa" <%= billing.type === 'empresa' ? 'checked' : '' %> class="accent-[#0D9488]">
           Empresa
         </label>
       </div>
@@ -60,7 +60,7 @@
       <h2 class="zilo-label">Método de pago</h2>
       <% if (summary.cardEnabled && typeof enabledCardGateways !== 'undefined' && enabledCardGateways.length) { %>
       <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer payment-option <%= (summary.paymentMethod || 'card') === 'card' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-method="card">
-        <input type="radio" name="paymentMethod" value="card" <%= (summary.paymentMethod || 'card') === 'card' ? 'checked' : '' %> class="mt-0.5 accent-[#C45C14]">
+        <input type="radio" name="paymentMethod" value="card" <%= (summary.paymentMethod || 'card') === 'card' ? 'checked' : '' %> class="mt-0.5 accent-[#0D9488]">
         <div class="flex-1">
           <strong class="text-sm block">Tarjeta débito / crédito</strong>
           <span class="text-xs text-zilo-muted">Pago seguro · sin recargo adicional en el total</span>
@@ -74,7 +74,7 @@
         <p class="text-[10px] text-zilo-muted">Pasarela de pago</p>
         <% enabledCardGateways.forEach((gw, i) => { %>
           <label class="flex items-center gap-2 text-xs cursor-pointer">
-            <input type="radio" name="cardGateway" value="<%= gw.id %>" <%= i === 0 ? 'checked' : '' %> class="accent-[#C45C14]">
+            <input type="radio" name="cardGateway" value="<%= gw.id %>" <%= i === 0 ? 'checked' : '' %> class="accent-[#0D9488]">
             <%= gw.label %>
           </label>
         <% }); %>
@@ -83,7 +83,7 @@
       <% } %>
       <% if (summary.transferEnabled) { %>
       <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer payment-option <%= summary.paymentMethod === 'transfer' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-method="transfer">
-        <input type="radio" name="paymentMethod" value="transfer" <%= summary.paymentMethod === 'transfer' ? 'checked' : '' %> class="mt-0.5 accent-[#C45C14]">
+        <input type="radio" name="paymentMethod" value="transfer" <%= summary.paymentMethod === 'transfer' ? 'checked' : '' %> class="mt-0.5 accent-[#0D9488]">
         <div class="flex-1">
           <strong class="text-sm block">Transferencia bancaria</strong>
           <span class="text-xs text-emerald-600">Sin recargo</span>
@@ -102,7 +102,7 @@
           <strong class="text-sm block">Usar crédito</strong>
           <span class="text-xs text-zilo-success"><%= formatCLP(referral.creditsCLP) %> disponible</span>
         </div>
-        <input type="checkbox" id="useCredits" class="w-5 h-5 rounded accent-[#C45C14]" checked>
+        <input type="checkbox" id="useCredits" class="w-5 h-5 rounded accent-[#0D9488]" checked>
       </label>
       <% } %>
 
@@ -112,7 +112,7 @@
           <strong class="text-sm block">Canjear Puntos Fundez</strong>
           <span class="text-xs text-zilo-muted"><%= referral.points %> pts = <%= formatCLP(referral.points * pointsValue) %></span>
         </div>
-        <input type="checkbox" id="usePoints" class="w-5 h-5 rounded accent-[#C45C14]">
+        <input type="checkbox" id="usePoints" class="w-5 h-5 rounded accent-[#0D9488]">
       </label>
       <% } %>
 

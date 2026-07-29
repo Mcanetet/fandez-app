@@ -32,7 +32,7 @@ window.FundezMap = {
   _destIcon() {
     return L.divIcon({
       className: 'fundez-map-pin',
-      html: this._pinHtml('#C45C14'),
+      html: this._pinHtml('#0D9488'),
       iconSize: [32, 42],
       iconAnchor: [16, 42],
       popupAnchor: [0, -38]
@@ -70,7 +70,7 @@ window.FundezMap = {
       store.route.setLatLngs(latlngs);
     } else {
       store.route = L.polyline(latlngs, {
-        color: '#C45C14',
+        color: '#0D9488',
         weight: 4,
         opacity: 0.85,
         dashArray: '8 10',

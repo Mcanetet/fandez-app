@@ -2,5 +2,6 @@
 
 | Carpeta | Descripción |
 |---------|-------------|
-| `v1-azul/` | Marca anterior: azul `#1C64B4` + logo casita/llave. Ver `v1-azul/README.md` para restaurar. |
-| *(activa)* | Carbón + ámbar `#C45C14` + ventosa. Tokens en `public/css/main.css` y `views/partials/head.ejs`. Manual: `docs/manual-marca.html`. |
+| `v1-azul/` | Azul `#1C64B4` + logo casita |
+| `v2-ambar/` | Ámbar `#C45C14` + ventosa |
+| *(activa)* | Grafito + teal `#0D9488` · frase: «Oficinas y hogares, listos cuando fallan.» |

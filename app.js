@@ -106,20 +106,20 @@ app.get('/site.webmanifest', (req, res) => {
   res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.json({
-    name: 'Fundez — Soluciones del hogar a tiempo',
+    name: 'Fundez — Hogares y oficinas a tiempo',
     short_name: 'Fundez',
-    description: 'Cuando algo falla en casa, técnicos verificados en Santiago lo resuelven a tiempo y en forma.',
+    description: 'Oficinas y hogares en Santiago: técnicos verificados, seguimiento en tiempo real y Pasaporte Hogar digital.',
     lang: 'es-CL',
     start_url: `/?v=${encodeURIComponent(v)}`,
     display: 'standalone',
-    background_color: '#F4F2EE',
-    theme_color: '#C45C14',
+    background_color: '#F3F5F7',
+    theme_color: '#0D9488',
     icons: [
-      { src: `/icons/fundez-96.png${q}`, sizes: '96x96', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-180.png${q}`, sizes: '180x180', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-192.png${q}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: `/icons/fundez-v3-96.png${q}`, sizes: '96x96', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v3-180.png${q}`, sizes: '180x180', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v3-192.png${q}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v3-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v3-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   });
 });

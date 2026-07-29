@@ -30,7 +30,11 @@ async function main() {
     ['icons/fundez-96.png', 96],
     ['icons/fundez-180.png', 180],
     ['icons/fundez-192.png', 192],
-    ['icons/fundez-512.png', 512]
+    ['icons/fundez-512.png', 512],
+    ['icons/fundez-v3-96.png', 96],
+    ['icons/fundez-v3-180.png', 180],
+    ['icons/fundez-v3-192.png', 192],
+    ['icons/fundez-v3-512.png', 512]
   ];
 
   fs.mkdirSync(path.join(publicDir, 'icons'), { recursive: true });
