@@ -682,9 +682,109 @@
   }
 
   let lastTripStepAlert = null;
+  let lastTrackedRequest = null;
+
+  function isDeferredUrgency(request) {
+    const tier = String(request?.urgencyTier || '').toLowerCase();
+    return ['tomorrow', 'two_days', 'scheduled'].includes(tier);
+  }
+
+  function isLiveTrackingActive(request) {
+    if (!request?.providerId) return false;
+    const ts = String(request.techStatus || '');
+    if (['en_camino', 'en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(ts)) {
+      return true;
+    }
+    // Inmediato / hoy: mapa activo desde la asignación
+    if (!isDeferredUrgency(request) && ['assigned', 'in_progress'].includes(request.status)) {
+      return true;
+    }
+    return false;
+  }
+
+  function updateLiveTrackBanner(request, { etaMinutes, distanceKm, hasLocation } = {}) {
+    const shell = document.getElementById('liveTrackShell');
+    const etaBox = document.getElementById('liveTrackEta');
+    const etaMin = document.getElementById('liveEtaMinutes');
+    const title = document.getElementById('liveEtaTitle');
+    const sub = document.getElementById('liveEtaSub');
+    const hint = document.getElementById('liveTrackHint');
+    const badge = document.getElementById('providerAssignBadge');
+    if (!shell || !etaBox) return;
+
+    const deferred = isDeferredUrgency(request);
+    const enRoute = request?.techStatus === 'en_camino';
+    const live = isLiveTrackingActive(request);
+
+    shell.classList.toggle('hidden', !request?.coords);
+    if (hint) {
+      hint.classList.toggle('hidden', !(deferred && !enRoute && request?.providerId));
+    }
+
+    if (!live && deferred) {
+      etaBox.classList.add('is-waiting');
+      if (etaMin) etaMin.innerHTML = '—<small>min</small>';
+      if (title) title.textContent = t('client.service.live_waiting_title');
+      if (sub) sub.textContent = t('client.service.live_scheduled_hint');
+      if (badge) badge.textContent = t('client.service.assigned_badge');
+      return;
+    }
+
+    if (enRoute || hasLocation) {
+      etaBox.classList.remove('is-waiting');
+      if (etaMin) {
+        etaMin.innerHTML = etaMinutes != null
+          ? `${etaMinutes}<small>min</small>`
+          : '—<small>min</small>';
+      }
+      if (title) title.textContent = t('client.service.live_enroute_title');
+      if (sub) {
+        const dist = distanceKm != null ? t('client.js.live_distance', { km: distanceKm }) : '';
+        sub.textContent = etaMinutes != null
+          ? `${t('client.js.live_eta', { n: etaMinutes })} ${dist}`.trim()
+          : t('client.service.live_enroute_sub');
+      }
+      if (badge) badge.textContent = t('client.service.live_badge_enroute');
+      return;
+    }
+
+    etaBox.classList.add('is-waiting');
+    if (etaMin) etaMin.innerHTML = '—<small>min</small>';
+    if (title) title.textContent = t('client.service.live_assigned_title');
+    if (sub) sub.textContent = t('client.service.live_assigned_sub');
+    if (badge) badge.textContent = t('client.service.assigned_badge');
+  }
+
+  function ensureTrackingMap(request, provider) {
+    if (!request?.coords || typeof FundezMap === 'undefined') return;
+    const shell = document.getElementById('liveTrackShell');
+    const tMap = document.getElementById('trackingMap');
+    if (!shell || !tMap) return;
+    shell.classList.remove('hidden');
+    page.dataset.destLat = request.coords.lat;
+    page.dataset.destLng = request.coords.lng;
+
+    const prov = provider?.location;
+    const showLivePin = isLiveTrackingActive(request) && prov?.lat != null;
+
+    if (!FundezMap.maps.trackingMap) {
+      FundezMap.initTracking(tMap, {
+        destLat: request.coords.lat,
+        destLng: request.coords.lng,
+        destLabel: request.address,
+        providerLat: showLivePin ? prov.lat : null,
+        providerLng: showLivePin ? prov.lng : null
+      });
+    } else if (showLivePin) {
+      FundezMap.updateProviderLocation('trackingMap', prov.lat, prov.lng, request.coords.lat, request.coords.lng);
+    }
+    setTimeout(() => FundezMap.maps.trackingMap?.invalidateSize?.(), 200);
+  }
 
   function syncTripFromRequest(request) {
     if (!request) return;
+    lastTrackedRequest = request;
+    if (request.urgencyTier) page.dataset.urgencyTier = request.urgencyTier;
     const ts = request.techStatus;
     let step = 'assigned';
     if (['diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado', 'completado', 'en_sitio'].includes(ts)) {
@@ -697,14 +797,26 @@
       return;
     }
     advanceTripStep(step);
+    updateLiveTrackBanner(request);
 
     if (lastTripStepAlert === step) return;
     // Solo alertar en hitos de movimiento (no al asignar, eso ya lo hace showProvider)
     if (step === 'enroute' || step === 'arrived') {
       lastTripStepAlert = step;
       if (step === 'enroute') {
-        if (window.FundezAlerts) FundezAlerts.notify({ type: 'update', title: t('client.js.enroute_alert_title'), body: t('client.js.enroute_home'), tag: 'fundez-enroute' });
-        else FundezNotify.show(t('client.js.enroute_home'), 'info');
+        const name = request.technicianName || document.getElementById('providerName')?.textContent || '';
+        const body = t('client.js.enroute_alert_body', { name: name || 'Tu técnico' });
+        if (window.FundezAlerts) {
+          FundezAlerts.notify({
+            type: 'alert',
+            title: t('client.js.enroute_alert_title'),
+            body,
+            tag: 'fundez-enroute-' + (request.id || '')
+          });
+        } else {
+          FundezNotify.show(body, 'info');
+        }
+        document.getElementById('liveTrackShell')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
         if (window.FundezAlerts) FundezAlerts.notify({ type: 'update', title: t('client.js.arrived_alert_title'), body: t('client.js.arrived'), tag: 'fundez-arrived' });
         else FundezNotify.show(t('client.js.arrived'), 'info');
@@ -1015,6 +1127,10 @@
 
   function showProvider(provider, request) {
     if (request?.id) currentRequestId = request.id;
+    if (request) {
+      lastTrackedRequest = request;
+      if (request.urgencyTier) page.dataset.urgencyTier = request.urgencyTier;
+    }
 
     document.getElementById('providerAvatar').textContent = provider.avatar;
     document.getElementById('providerName').textContent = provider.name;
@@ -1059,24 +1175,19 @@
     `).join('');
 
     if (request?.coords) {
-      const tMap = document.getElementById('trackingMap');
-      tMap.classList.remove('hidden');
-      page.dataset.destLat = request.coords.lat;
-      page.dataset.destLng = request.coords.lng;
-      const prov = provider.location;
-      FundezMap.initTracking(tMap, {
-        destLat: request.coords.lat,
-        destLng: request.coords.lng,
-        destLabel: request.address,
-        providerLat: prov?.lat,
-        providerLng: prov?.lng
+      ensureTrackingMap(request, provider);
+      updateLiveTrackBanner(request, {
+        hasLocation: Boolean(provider?.location?.lat),
+        etaMinutes: null,
+        distanceKm: null
       });
       const locStatus = document.getElementById('providerLocationStatus');
       if (locStatus) {
-        locStatus.classList.toggle('hidden', !prov);
-        if (prov) {
+        const showLive = isLiveTrackingActive(request) && provider?.location;
+        locStatus.classList.toggle('hidden', !showLive);
+        if (showLive) {
           locStatus.textContent = provider.location?.label
-            ? `${provider.location.label} en vivo`
+            ? `${provider.location.label} · ${t('client.js.tech_moving')}`
             : t('client.js.tech_live_location');
         }
       }
@@ -1216,6 +1327,10 @@
         showActivityChangeBanner(payload.request);
         showAdditionalPaymentBanner(payload.request);
         syncTripFromRequest(payload.request);
+        if (payload.request?.coords) {
+          ensureTrackingMap(payload.request, { location: null });
+          updateLiveTrackBanner(payload.request);
+        }
         const completed = payload.request.status === 'completed' || payload.request.techStatus === 'completado';
         if (completed && lastCompletionAlertId !== requestId) {
           lastCompletionAlertId = requestId;
@@ -1235,7 +1350,20 @@
     socket.on(`provider_location_${requestId}`, (payload) => {
       const destLat = parseFloat(page.dataset.destLat);
       const destLng = parseFloat(page.dataset.destLng);
-      if (!isNaN(destLat) && typeof FundezMap !== 'undefined') {
+      const shell = document.getElementById('liveTrackShell');
+      shell?.classList.remove('hidden');
+      if (!FundezMap.maps.trackingMap && !isNaN(destLat)) {
+        const tMap = document.getElementById('trackingMap');
+        if (tMap) {
+          FundezMap.initTracking(tMap, {
+            destLat,
+            destLng,
+            destLabel: '',
+            providerLat: payload.lat,
+            providerLng: payload.lng
+          });
+        }
+      } else if (!isNaN(destLat) && typeof FundezMap !== 'undefined') {
         FundezMap.updateProviderLocation('trackingMap', payload.lat, payload.lng, destLat, destLng);
       }
       const locStatus = document.getElementById('providerLocationStatus');
@@ -1249,6 +1377,12 @@
       if (tripEta && payload.etaMinutes) {
         tripEta.textContent = `ETA ${payload.etaMinutes} min`;
       }
+      updateLiveTrackBanner(lastTrackedRequest || {
+        techStatus: 'en_camino',
+        providerId: true,
+        urgencyTier: page.dataset.urgencyTier || 'immediate'
+      }, { etaMinutes: payload.etaMinutes, distanceKm: payload.distanceKm, hasLocation: true });
+      if (lastTrackedRequest) lastTrackedRequest.techStatus = 'en_camino';
       advanceTripStep('enroute');
     });
     pollForProvider(requestId);

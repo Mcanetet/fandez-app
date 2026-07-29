@@ -312,6 +312,7 @@
     if (status === 'asignado') {
       addBtn(t('tecnico.js.accept_job'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) => transition(b, 'aceptado', t('tecnico.js.job_accepted')));
     } else if (status === 'aceptado') {
+      startSharing(card);
       addBtn(t('tecnico.js.head_out'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) => transition(b, 'en_camino', t('tecnico.js.sharing_location')));
     } else if (status === 'en_camino') {
       const info = document.createElement('span');

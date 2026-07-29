@@ -16,6 +16,19 @@ window.FundezMap = {
     </svg>`;
   },
 
+  _techHtml() {
+    return `<div class="fundez-tech-marker" aria-hidden="true">
+      <span class="fundez-tech-marker__pulse"></span>
+      <span class="fundez-tech-marker__dot">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 11h18"/><path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/>
+          <circle cx="7.5" cy="15.5" r="1.5"/><circle cx="16.5" cy="15.5" r="1.5"/>
+          <path d="M5 11l1.5 4h11L19 11"/>
+        </svg>
+      </span>
+    </div>`;
+  },
+
   _destIcon() {
     return L.divIcon({
       className: 'fundez-map-pin',
@@ -28,11 +41,11 @@ window.FundezMap = {
 
   _providerIcon() {
     return L.divIcon({
-      className: 'fundez-map-pin',
-      html: this._pinHtml('#6B8F71'),
-      iconSize: [32, 42],
-      iconAnchor: [16, 42],
-      popupAnchor: [0, -38]
+      className: 'fundez-map-pin fundez-tech-pin',
+      html: this._techHtml(),
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
+      popupAnchor: [0, -18]
     });
   },
 
@@ -43,6 +56,28 @@ window.FundezMap = {
       const pos = marker.getLatLng();
       onMarkerDrag(pos.lat, pos.lng, mapId);
     });
+  },
+
+  _drawRoute(mapId, fromLat, fromLng, toLat, toLng) {
+    const map = this.maps[mapId];
+    if (!map || typeof L === 'undefined') return;
+    const store = this.markers[mapId] || {};
+    const latlngs = [
+      [parseFloat(fromLat), parseFloat(fromLng)],
+      [parseFloat(toLat), parseFloat(toLng)]
+    ];
+    if (store.route) {
+      store.route.setLatLngs(latlngs);
+    } else {
+      store.route = L.polyline(latlngs, {
+        color: '#C45C14',
+        weight: 4,
+        opacity: 0.85,
+        dashArray: '8 10',
+        lineCap: 'round'
+      }).addTo(map);
+    }
+    this.markers[mapId] = store;
   },
 
   init(container, {
@@ -101,15 +136,8 @@ window.FundezMap = {
   initTracking(container, { destLat, destLng, destLabel, providerLat, providerLng }) {
     this.init(container, { lat: destLat, lng: destLng, label: destLabel, zoom: 14 });
     const mapId = container.id;
-    if (providerLat != null && providerLng != null) {
-      const pm = L.marker([parseFloat(providerLat), parseFloat(providerLng)], { icon: this._providerIcon() })
-        .addTo(this.maps[mapId])
-        .bindPopup('Técnico en camino');
-      this.markers[mapId].provider = pm;
-      this.maps[mapId].fitBounds(L.latLngBounds([
-        [destLat, destLng],
-        [providerLat, providerLng]
-      ]).pad(0.2));
+    if (providerLat != null && providerLng != null && !isNaN(parseFloat(providerLat))) {
+      this.updateProviderLocation(mapId, providerLat, providerLng, destLat, destLng);
     }
     return this.maps[mapId];
   },
@@ -126,6 +154,7 @@ window.FundezMap = {
     map.setView([latitude, longitude], zoom);
     map.eachLayer((layer) => {
       if (layer instanceof L.Marker) map.removeLayer(layer);
+      if (layer instanceof L.Polyline && !(layer instanceof L.TileLayer)) map.removeLayer(layer);
     });
     const marker = L.marker([latitude, longitude], {
       icon: this._destIcon(),
@@ -136,6 +165,8 @@ window.FundezMap = {
     const store = this.markers[containerId] || {};
     store.destination = marker;
     store.onMarkerDrag = onMarkerDrag;
+    store.provider = null;
+    store.route = null;
     this.markers[containerId] = store;
     setTimeout(() => map.invalidateSize(), 100);
   },
@@ -177,6 +208,8 @@ window.FundezMap = {
 
     const plat = parseFloat(lat);
     const plng = parseFloat(lng);
+    if (isNaN(plat) || isNaN(plng)) return;
+
     const store = this.markers[containerId] || {};
 
     if (store.provider) {
@@ -188,8 +221,10 @@ window.FundezMap = {
       this.markers[containerId] = store;
     }
 
-    if (destLat != null && destLng != null) {
-      map.fitBounds(L.latLngBounds([[destLat, destLng], [plat, plng]]).pad(0.15));
+    if (destLat != null && destLng != null && !isNaN(parseFloat(destLat))) {
+      this._drawRoute(containerId, plat, plng, destLat, destLng);
+      map.fitBounds(L.latLngBounds([[destLat, destLng], [plat, plng]]).pad(0.22));
     }
+    setTimeout(() => map.invalidateSize(), 80);
   }
 };

@@ -260,11 +260,27 @@ io.on('connection', (socket) => {
     dispatchPendingToProvider(io, providerId);
   });
 
-  socket.on('register_client', (requestId) => {
+  socket.on('register_client', (payload) => {
+    const requestId = typeof payload === 'string' ? payload : payload?.requestId;
+    const guardianToken = typeof payload === 'object' ? payload?.guardianToken : null;
+    if (!requestId) return;
+
     const sessionUser = socket.request?.session?.user;
-    if (!sessionUser) return;
     const request = store.isReady() ? store.requests.find((r) => r.id === requestId) : null;
-    if (request && sessionUser.role === 'client' && request.clientId !== sessionUser.id) return;
+    if (!request) return;
+
+    if (!sessionUser) {
+      if (!guardianToken || request.guardianToken !== guardianToken) return;
+    } else if (sessionUser.role === 'client') {
+      if (request.clientId !== sessionUser.id) return;
+    } else if (sessionUser.role === 'provider') {
+      if (request.providerId !== sessionUser.id) return;
+    } else if (sessionUser.role === 'tecnico') {
+      if (request.technicianId !== sessionUser.id) return;
+    } else if (sessionUser.role !== 'admin') {
+      return;
+    }
+
     socket.join(`request_${requestId}`);
     socket.requestId = requestId;
   });

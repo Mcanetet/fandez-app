@@ -52,6 +52,8 @@ router.get('/:token/estado', (req, res) => {
       address: request.address,
       status: request.status,
       techStatus: request.techStatus,
+      urgencyTier: request.urgencyTier,
+      technicianName: request.technicianName,
       beneficiaryName: request.beneficiaryName,
       isGift: request.isGift,
       coords: request.coords,
@@ -60,7 +62,8 @@ router.get('/:token/estado', (req, res) => {
         budgetAmount: request.siteReport.budgetAmount
       } : null
     },
-    provider
+    provider,
+    location: store.getLiveTrackingLocation(request)
   });
 });
 

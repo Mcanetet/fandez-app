@@ -1,6 +1,6 @@
 <%- include('../partials/head', { useMap: true }) %>
 
-<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="guardianPage" data-token="<%= request.guardianToken %>">
+<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="guardianPage" data-token="<%= request.guardianToken %>" data-request-id="<%= request.id %>">
   <header class="px-5 py-6 border-b border-zilo-border">
     <div class="flex items-center gap-3 mb-3">
       <%- include('../partials/logo', { className: 'w-9 h-9' }) %>
@@ -27,27 +27,29 @@
       <div id="gStatusDot" class="w-3 h-3 rounded-full bg-zilo-accent animate-pulse shrink-0"></div>
       <div>
         <p class="zilo-label">Estado</p>
-        <p class="font-semibold capitalize" id="gStatus"><%= request.status %></p>
+        <p class="font-semibold capitalize" id="gStatus"><%= request.techStatus || request.status %></p>
       </div>
     </div>
 
     <div id="gProvider" class="zilo-card-premium rounded-2xl p-5 <%= provider ? '' : 'hidden' %>">
-      <p class="zilo-label mb-2">Técnico asignado</p>
+      <p class="zilo-label mb-2">Técnico / socio</p>
       <p class="font-semibold" id="gProviderName"><%= provider ? provider.name : '' %></p>
       <p class="text-xs text-zilo-muted" id="gProviderRating"><%= provider ? provider.rating + '★' : '' %></p>
     </div>
 
-    <div id="gEta" class="hidden zilo-card-premium rounded-2xl p-5 flex items-center gap-4">
-      <svg class="w-6 h-6 text-zilo-accent shrink-0" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-      <div>
-        <p class="zilo-label">Llega en aprox.</p>
-        <p class="font-semibold"><span id="gEtaMin">—</span> min <span id="gEtaKm" class="text-xs text-zilo-muted font-normal"></span></p>
+    <div id="gEta" class="hidden live-track-eta !relative !left-auto !right-auto !top-auto !shadow-none border border-zilo-border">
+      <div class="live-track-eta__time"><span id="gEtaMin">—</span><small>min</small></div>
+      <div class="live-track-eta__copy">
+        <strong>Llega en aprox.</strong>
+        <span id="gEtaKm"></span>
       </div>
     </div>
 
     <% if (request.coords) { %>
-    <div id="guardianMap" class="w-full h-52 rounded-2xl overflow-hidden border border-zilo-border"
-      data-lat="<%= request.coords.lat %>" data-lng="<%= request.coords.lng %>" data-label="<%= request.address %>"></div>
+    <div class="live-track-shell">
+      <div id="guardianMap" class="w-full"
+        data-lat="<%= request.coords.lat %>" data-lng="<%= request.coords.lng %>" data-label="<%= request.address %>"></div>
+    </div>
     <% } %>
 
     <p class="text-center text-[10px] text-zilo-muted pt-4">
@@ -59,17 +61,25 @@
 <script src="/js/map.js"></script>
 <script>
 (function () {
-  const token = document.getElementById('guardianPage').dataset.token;
-  const requestId = '<%= request.id %>';
+  const page = document.getElementById('guardianPage');
+  const token = page.dataset.token;
+  const requestId = page.dataset.requestId;
   const socket = io();
   let mapEl = null;
 
   document.addEventListener('DOMContentLoaded', () => {
     mapEl = document.getElementById('guardianMap');
     if (mapEl && typeof FundezMap !== 'undefined') {
-      FundezMap.init(mapEl, { lat: mapEl.dataset.lat, lng: mapEl.dataset.lng, label: mapEl.dataset.label, zoom: 15 });
+      FundezMap.initTracking(mapEl, {
+        destLat: mapEl.dataset.lat,
+        destLng: mapEl.dataset.lng,
+        destLabel: mapEl.dataset.label
+      });
     }
-    socket.emit('register_client', requestId);
+    socket.emit('register_client', { requestId, guardianToken: token });
+    socket.on('connect', () => {
+      socket.emit('register_client', { requestId, guardianToken: token });
+    });
   });
 
   socket.on(`provider_location_${requestId}`, (loc) => {
@@ -87,8 +97,12 @@
   const statusLabels = {
     pending_payment: 'Pendiente de pago',
     searching: 'Buscando técnico',
+    scheduled: 'Visita programada',
     assigned: 'Técnico asignado',
-    enroute: 'En camino',
+    asignado: 'Técnico asignado',
+    aceptado: 'Técnico aceptó el trabajo',
+    en_camino: 'En camino',
+    en_sitio: 'En el domicilio',
     arrived: 'En el domicilio',
     in_progress: 'Trabajando',
     completed: 'Completado',
@@ -106,14 +120,20 @@
 
   function updateUI(data) {
     const r = data.request;
+    if (!r) return;
     document.getElementById('gStatus').textContent = techStatusLabel(r);
     if (data.provider) {
       document.getElementById('gProvider').classList.remove('hidden');
       document.getElementById('gProviderName').textContent = data.provider.name;
       document.getElementById('gProviderRating').textContent = data.provider.rating + '★';
     }
-    if (r.status === 'completed') {
+    if (data.location?.lat != null && mapEl && typeof FundezMap !== 'undefined') {
+      FundezMap.updateProviderLocation(mapEl.id, data.location.lat, data.location.lng, parseFloat(mapEl.dataset.lat), parseFloat(mapEl.dataset.lng));
+    }
+    if (r.status === 'completed' || r.techStatus === 'completado') {
       document.getElementById('gStatusDot').className = 'w-3 h-3 rounded-full bg-zilo-success shrink-0';
+    } else if (r.techStatus === 'en_camino') {
+      document.getElementById('gStatusDot').className = 'w-3 h-3 rounded-full bg-zilo-accent animate-pulse shrink-0';
     }
   }
 
@@ -125,7 +145,7 @@
     } catch (_) {}
   }, 4000);
 
-  socket.on(`request_update_${'<%= request.id %>'}`, (payload) => updateUI(payload));
+  socket.on(`request_update_${requestId}`, (payload) => updateUI(payload));
 })();
 </script>
 
