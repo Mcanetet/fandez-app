@@ -1,0 +1,40 @@
+/* Snapshot marca v1 (azul) — julio 2026 */
+
+:root {
+  --zilo-bg: #F2F3F5;
+  --zilo-surface: #FFFFFF;
+  --zilo-card: #FFFFFF;
+  --zilo-elevated: #EBECEF;
+  --zilo-accent: #1C64B4;
+  --zilo-accent-soft: #E7F0F8;
+  --zilo-accent-strong: #15508F;
+  --zilo-text: #171A1F;
+  --zilo-muted: #5E6572;
+  --zilo-border: #E2E5EB;
+  --zilo-success: #0F7A56;
+  --zilo-danger: #C0392B;
+  --aland: #0F766E;
+  --aland-soft: #E6F5F3;
+  --aland-strong: #0B5F59;
+}
+
+/* Tailwind (head.ejs) */
+/*
+zilo: {
+  bg: '#F2F3F5',
+  surface: '#FFFFFF',
+  card: '#FFFFFF',
+  elevated: '#EBECEF',
+  border: '#E2E5EB',
+  accent: '#1C64B4',
+  'accent-soft': '#E7F0F8',
+  'accent-strong': '#15508F',
+  text: '#171A1F',
+  muted: '#5E6572',
+  success: '#0F7A56',
+  warning: '#B47814',
+  danger: '#C0392B'
+}
+theme-color / theme_color: #1C64B4
+accent RGB legacy: rgba(28, 100, 180, …)
+*/

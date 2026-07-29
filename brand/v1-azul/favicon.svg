@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="Fundez">
+  <!-- Icono sólido y legible a 16–48px para Google Search -->
+  <rect width="48" height="48" rx="12" fill="#2563EB"/>
+  <path fill="#FFFFFF" d="M24 9.5L39 22.2V38a2.5 2.5 0 0 1-2.5 2.5h-9.2V28.8c0-1.5-1.2-2.7-2.7-2.7h-2.2c-1.5 0-2.7 1.2-2.7 2.7V40.5H11.5A2.5 2.5 0 0 1 9 38V22.2L24 9.5z"/>
+  <path fill="#2563EB" d="M21.4 40.5V28.8c0-.55.45-1 1-1h3.2c.55 0 1 .45 1 1v11.7h-5.2z"/>
+</svg>

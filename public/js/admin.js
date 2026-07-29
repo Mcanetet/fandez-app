@@ -579,7 +579,7 @@
     if (!form) return;
     form.reset();
     document.getElementById('promoEditId').value = '';
-    document.getElementById('promoColor').value = '#2563EB';
+    document.getElementById('promoColor').value = '#C45C14';
     document.getElementById('promoShowBanner').checked = true;
     document.getElementById('promoCheckout').checked = true;
     document.getElementById('promoEnabled').checked = true;
@@ -624,7 +624,7 @@
       document.getElementById('promoTitle').value = btn.dataset.title || '';
       document.getElementById('promoDesc').value = btn.dataset.desc || '';
       document.getElementById('promoCodeInput').value = btn.dataset.code || '';
-      document.getElementById('promoColor').value = btn.dataset.color || '#2563EB';
+      document.getElementById('promoColor').value = btn.dataset.color || '#C45C14';
       document.getElementById('promoDiscount').value = btn.dataset.discount || '';
       document.getElementById('promoShowBanner').checked = btn.dataset.banner === '1';
       document.getElementById('promoCheckout').checked = btn.dataset.checkout === '1';

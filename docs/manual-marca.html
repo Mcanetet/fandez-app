@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fundez — Manual de marca</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F4F2EE;
+      --surface: #FFFFFF;
+      --ink: #1A1814;
+      --muted: #6B635A;
+      --border: #E6E0D8;
+      --amber: #C45C14;
+      --amber-soft: #F3E6D8;
+      --amber-strong: #9A3F0A;
+      --success: #2F6B4F;
+      --danger: #B83A2E;
+      --aland: #2A6A5B;
+      --aland-soft: #E4F0EC;
+      --dark: #1A1814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Source Sans 3", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.55;
+      font-size: 16px;
+    }
+    h1, h2, h3, .display {
+      font-family: "Bricolage Grotesque", "Source Sans 3", system-ui, sans-serif;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      margin: 0 0 0.5rem;
+      color: var(--ink);
+    }
+    h1 { font-size: clamp(2.5rem, 5vw, 3.6rem); font-weight: 800; }
+    h2 { font-size: 1.7rem; font-weight: 700; }
+    h3 { font-size: 1.05rem; font-weight: 700; }
+    p { margin: 0 0 0.85rem; color: var(--muted); }
+    strong { color: var(--ink); }
+    code { font-size: 0.82em; background: rgba(26,24,20,0.06); padding: 0.1em 0.35em; border-radius: 0.3em; }
+    .wrap { max-width: 940px; margin: 0 auto; padding: 0 1.25rem 4rem; }
+
+    .hero {
+      background:
+        radial-gradient(ellipse 80% 60% at 100% 0%, rgba(196,92,20,0.35), transparent 55%),
+        var(--dark);
+      color: #fff;
+      padding: 3.25rem 1.25rem 2.75rem;
+      margin-bottom: 2rem;
+    }
+    .hero .inner {
+      max-width: 940px; margin: 0 auto;
+      display: grid; gap: 1.75rem; align-items: end;
+    }
+    @media (min-width: 720px) {
+      .hero .inner { grid-template-columns: 132px 1fr; gap: 2.25rem; }
+    }
+    .hero h1 { color: #fff; }
+    .hero p { color: rgba(255,255,255,0.72); max-width: 34rem; }
+    .hero .meta {
+      font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.45); margin-bottom: 0.65rem; font-weight: 600;
+    }
+    .hero .badge {
+      display: inline-block; margin-top: 0.75rem;
+      font-size: 0.75rem; font-weight: 700;
+      padding: 0.35rem 0.7rem; border-radius: 999px;
+      background: var(--amber); color: #fff;
+    }
+
+    .logo-mark { width: 120px; height: 130px; display: block; }
+
+    nav.toc {
+      display: flex; flex-wrap: wrap; gap: 0.45rem;
+      margin: 0 0 2rem;
+    }
+    nav.toc a {
+      text-decoration: none; font-size: 0.78rem; font-weight: 600;
+      padding: 0.4rem 0.75rem; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--border); color: var(--ink);
+    }
+    nav.toc a:hover { border-color: var(--amber); color: var(--amber-strong); }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.75rem 1.5rem;
+      margin-bottom: 1.15rem;
+    }
+    .label {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 0.85rem;
+    }
+
+    .grid-2, .grid-3 { display: grid; gap: 1rem; }
+    .grid-4 { display: grid; gap: 0.75rem; }
+    @media (min-width: 640px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+      .grid-3 { grid-template-columns: repeat(3, 1fr); }
+      .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .swatch { border-radius: 0.85rem; overflow: hidden; border: 1px solid var(--border); }
+    .swatch .chip { height: 76px; }
+    .swatch .info { padding: 0.75rem 0.85rem; background: #fff; }
+    .swatch strong { display: block; font-size: 0.88rem; }
+    .swatch code { background: none; padding: 0; font-size: 0.72rem; color: var(--muted); }
+
+    .panel {
+      border-radius: 0.85rem; border: 1px solid var(--border);
+      padding: 1.25rem; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 0.7rem; min-height: 168px;
+    }
+    .panel.dark { background: var(--dark); border-color: #2a2620; }
+    .panel.light { background: #fff; }
+    .panel.amber { background: var(--amber); border-color: var(--amber-strong); }
+    .panel.soft { background: var(--amber-soft); }
+    .panel span { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-align: center; }
+    .panel.dark span, .panel.amber span { color: rgba(255,255,255,0.75); }
+    .panel img { width: 76px; height: auto; }
+
+    .wordmark {
+      display: flex; align-items: center; gap: 0.7rem;
+      font-family: "Bricolage Grotesque", sans-serif;
+      font-weight: 800; font-size: 1.55rem; letter-spacing: -0.03em; color: var(--ink);
+    }
+    .wordmark.inv { color: #fff; }
+
+    .card-ex {
+      border-radius: 0.85rem; border: 1px solid var(--border);
+      padding: 1rem; background: #FAF8F5;
+    }
+    .card-ex.ok { border-color: rgba(47,107,79,0.35); background: #F2F8F4; }
+    .card-ex.bad { border-color: rgba(184,58,46,0.3); background: #FDF6F5; }
+    .card-ex .tag {
+      display: inline-block; font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.55rem;
+      padding: 0.2rem 0.45rem; border-radius: 0.35rem;
+    }
+    .card-ex.ok .tag { background: rgba(47,107,79,0.15); color: var(--success); }
+    .card-ex.bad .tag { background: rgba(184,58,46,0.12); color: var(--danger); }
+
+    ul.rules { margin: 0; padding-left: 1.1rem; color: var(--muted); }
+    ul.rules li { margin-bottom: 0.4rem; }
+
+    .type-sample .huge {
+      font-size: 2.6rem; font-weight: 800; color: var(--ink);
+      letter-spacing: -0.03em; font-family: "Bricolage Grotesque", sans-serif;
+    }
+    .type-sample .body { font-size: 1.05rem; color: var(--muted); }
+
+    .btn-demo {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0.85rem 1.35rem; border-radius: 0.875rem;
+      font-weight: 600; font-size: 0.95rem;
+      border: 1px solid var(--amber-strong);
+      background: var(--amber); color: #fff;
+    }
+    .btn-ghost {
+      display: inline-flex; padding: 0.7rem 1.15rem; border-radius: 0.875rem;
+      font-weight: 600; font-size: 0.875rem;
+      border: 1px solid var(--border); background: #fff; color: var(--ink);
+    }
+
+    .phone {
+      width: 180px; border-radius: 1.5rem; border: 3px solid #2a2620;
+      background: var(--dark); padding: 1rem 0.75rem 1.25rem; margin: 0 auto;
+    }
+    .phone .icons {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; text-align: center;
+    }
+    .phone .app {
+      display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+    }
+    .phone .app i {
+      width: 44px; height: 44px; border-radius: 11px;
+      display: grid; place-items: center;
+    }
+    .phone .app i img { width: 26px; height: auto; }
+    .phone .app em {
+      font-style: normal; font-size: 0.58rem; color: rgba(255,255,255,0.65); max-width: 3.4rem;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .phone .caption {
+      text-align: center; font-size: 0.7rem; color: rgba(255,255,255,0.45); margin-top: 0.85rem;
+    }
+
+    .compare {
+      display: grid; gap: 0.75rem;
+    }
+    @media (min-width: 640px) { .compare { grid-template-columns: 1fr 1fr; } }
+    .compare .box {
+      border-radius: 0.85rem; padding: 1rem; border: 1px solid var(--border);
+    }
+    .compare .box.old { background: #EFF6FF; }
+    .compare .box.now { background: var(--amber-soft); border-color: rgba(196,92,20,0.3); }
+    .compare .dot {
+      width: 36px; height: 36px; border-radius: 10px; margin-bottom: 0.5rem;
+    }
+
+    footer.manual-foot {
+      text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 0.8rem;
+    }
+    @media print {
+      body { background: #fff; }
+      nav.toc { display: none; }
+      section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="inner">
+      <img class="logo-mark" src="../public/logo-plunger.svg" alt="Símbolo Fundez">
+      <div>
+        <p class="meta">Manual de marca · v2.0 · Julio 2026</p>
+        <h1>Fundez</h1>
+        <p>Concierge del hogar en Santiago. Paleta de <strong style="color:#fff">carbón + ámbar de herramienta</strong>: se ve distinta en el celular frente al mar de apps azules y celestes.</p>
+        <span class="badge">Acento #C45C14 · no azul genérico</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <nav class="toc" aria-label="Índice">
+      <a href="#esencia">Esencia</a>
+      <a href="#por-que">Por qué este color</a>
+      <a href="#logo">Logo</a>
+      <a href="#icono">Icono app</a>
+      <a href="#color">Color</a>
+      <a href="#tipo">Tipografía</a>
+      <a href="#voz">Voz</a>
+      <a href="#ui">UI</a>
+      <a href="#archivos">Archivos</a>
+    </nav>
+
+    <section id="esencia">
+      <p class="label">01 · Esencia</p>
+      <h2>Oficio del hogar, no otra fintech azul</h2>
+      <p>Fundez conecta hogares con técnicos verificados. La marca debe sentirse <strong>práctica, cálida y de taller</strong> — memorable en la grilla del teléfono.</p>
+      <div class="grid-3" style="margin-top:1.15rem">
+        <div class="card-ex">
+          <h3>Práctico</h3>
+          <p style="margin:0">Menos adorno, más claridad de precio y estado.</p>
+        </div>
+        <div class="card-ex">
+          <h3>Humano</h3>
+          <p style="margin:0">Tono cercano. Aland es soporte, no “magia IA”.</p>
+        </div>
+        <div class="card-ex">
+          <h3>Distinto</h3>
+          <p style="margin:0">Ámbar de herramienta vs. el azul/celeste de casi todas las apps.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="por-que">
+      <p class="label">02 · Decisión de color</p>
+      <h2>Por qué no azul</h2>
+      <p>Bancos, mensajería, marketplaces y SaaS ya saturan el azul. En el dock del celular Fundez se pierde si usa el mismo acento.</p>
+      <div class="compare" style="margin-top:1rem">
+        <div class="box old">
+          <div class="dot" style="background:#2563EB"></div>
+          <h3>Evitar</h3>
+          <p style="margin:0">Azul Tailwind / celeste (#2563EB, #0EA5E9). Se mezcla con WhatsApp Business, bancos y “apps genéricas”.</p>
+        </div>
+        <div class="box now">
+          <div class="dot" style="background:#C45C14"></div>
+          <h3>Usar</h3>
+          <p style="margin:0">Ámbar cobre (#C45C14) sobre carbón (#1A1814). Evoca metal, herramienta y oficio — y se lee a distancia.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="logo">
+      <p class="label">03 · Logo</p>
+      <h2>Símbolo de la ventosa</h2>
+      <p>Isotipo: <strong>base del desatascador sin mango</strong>, contorno con interior transparente. Humor contenido, oficio del hogar.</p>
+
+      <div class="grid-3" style="margin:1.2rem 0">
+        <div class="panel dark">
+          <img src="../public/logo-plunger.svg" alt="Blanco sobre oscuro">
+          <span>Principal · blanco / fondo carbón o ámbar</span>
+        </div>
+        <div class="panel light">
+          <img src="../public/logo-plunger-dark.svg" alt="Oscuro sobre claro">
+          <span>Sobre claro · stroke tinta</span>
+        </div>
+        <div class="panel soft">
+          <img src="../public/logo-plunger-amber.svg" alt="Ámbar">
+          <span>Acento · stroke ámbar</span>
+        </div>
+      </div>
+
+      <h3 style="margin:1.25rem 0 0.75rem">Con wordmark</h3>
+      <div class="grid-2">
+        <div class="panel light" style="flex-direction:row;justify-content:flex-start;gap:0.85rem;padding:1.2rem 1.4rem;min-height:auto">
+          <img src="../public/logo-plunger-dark.svg" width="40" height="44" alt="">
+          <span class="wordmark" style="font-size:1.45rem">Fundez</span>
+        </div>
+        <div class="panel amber" style="flex-direction:row;justify-content:flex-start;gap:0.85rem;padding:1.2rem 1.4rem;min-height:auto">
+          <img src="../public/logo-plunger.svg" width="40" height="44" alt="">
+          <span class="wordmark inv" style="font-size:1.45rem">Fundez</span>
+        </div>
+      </div>
+
+      <h3 style="margin:1.35rem 0 0.75rem">Sí / No</h3>
+      <div class="grid-2">
+        <div class="card-ex ok">
+          <span class="tag">Sí</span>
+          <ul class="rules">
+            <li>SVG oficial sin deformar</li>
+            <li>Blanco sobre carbón o ámbar</li>
+            <li>Tinta o ámbar sobre fondos claros</li>
+            <li>Área libre ≈ ¼ de la altura del símbolo</li>
+          </ul>
+        </div>
+        <div class="card-ex bad">
+          <span class="tag">No</span>
+          <ul class="rules">
+            <li>No rellenar el hueco ni agregar mango</li>
+            <li>No azul/celeste ni violeta “IA”</li>
+            <li>No glow, degradados púrpura ni sombras de neón</li>
+            <li>No rotar ni aplastar el viewBox</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="icono">
+      <p class="label">04 · Icono de app (home screen)</p>
+      <h2>Cómo resalta en el celular</h2>
+      <p>El ícono debe ganar en la grilla: fondo <strong>ámbar</strong> o <strong>carbón</strong> + símbolo <strong>blanco</strong>.</p>
+      <div class="grid-2" style="margin-top:1.1rem;align-items:center">
+        <div class="phone" aria-hidden="true">
+          <div class="icons">
+            <div class="app"><i style="background:#25D366"></i><em>Chat</em></div>
+            <div class="app"><i style="background:#2563EB"></i><em>Banco</em></div>
+            <div class="app">
+              <i style="background:#C45C14">
+                <img src="../public/logo-plunger.svg" alt="">
+              </i>
+              <em>Fundez</em>
+            </div>
+            <div class="app"><i style="background:#0EA5E9"></i><em>Clima</em></div>
+            <div class="app"><i style="background:#1A1814"><img src="../public/logo-plunger.svg" alt=""></i><em>Fundez</em></div>
+            <div class="app"><i style="background:#6366F1"></i><em>Otra</em></div>
+          </div>
+          <p class="caption">Ámbar o carbón · el azul se pierde</p>
+        </div>
+        <div>
+          <ul class="rules">
+            <li><strong>Preferido:</strong> fondo <code>#C45C14</code> + logo blanco</li>
+            <li><strong>Alternativa:</strong> fondo <code>#1A1814</code> + logo blanco</li>
+            <li>Esquinas según máscara del sistema (iOS/Android)</li>
+            <li>No usar fondo celeste ni azul eléctrico</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="color">
+      <p class="label">05 · Paleta</p>
+      <h2>Carbón + ámbar de herramienta</h2>
+      <div class="grid-4" style="margin-top:1rem">
+        <div class="swatch">
+          <div class="chip" style="background:#C45C14"></div>
+          <div class="info"><strong>Ámbar Fundez</strong><code>#C45C14 · accent / CTA</code></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#9A3F0A"></div>
+          <div class="info"><strong>Óxido</strong><code>#9A3F0A · hover / borde</code></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#F3E6D8"></div>
+          <div class="info"><strong>Arena</strong><code>#F3E6D8 · soft</code></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#1A1814"></div>
+          <div class="info"><strong>Carbón</strong><code>#1A1814 · texto / dark</code></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#6B635A"></div>
+          <div class="info"><strong>Muted</strong><code>#6B635A</code></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#F4F2EE;border-bottom:1px solid #E6E0D8"></div>
+          <div class="info"><strong>Fondo app</strong><code>#F4F2EE</code></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#2F6B4F"></div>
+          <div class="info"><strong>Éxito</strong><code>#2F6B4F</code></div>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="background:#2A6A5B"></div>
+          <div class="info"><strong>Aland</strong><code>#2A6A5B · asistente</code></div>
+        </div>
+      </div>
+      <p style="margin-top:1rem;margin-bottom:0">Tokens CSS: <code>--zilo-accent</code>, <code>--zilo-accent-strong</code>, <code>--zilo-accent-soft</code>, <code>--zilo-text</code>, <code>--zilo-bg</code>.</p>
+    </section>
+
+    <section id="tipo">
+      <p class="label">06 · Tipografía</p>
+      <h2>Familias</h2>
+      <div class="grid-2" style="margin-top:1rem">
+        <div class="type-sample card-ex">
+          <p class="label" style="margin-bottom:0.45rem">Display · Bricolage Grotesque</p>
+          <div class="huge">Tu hogar,<br>en buenas manos.</div>
+          <p style="margin-top:0.7rem;margin-bottom:0">Títulos y marca. Pesos 600–800.</p>
+        </div>
+        <div class="type-sample card-ex">
+          <p class="label" style="margin-bottom:0.45rem">Cuerpo · Source Sans 3</p>
+          <div class="body">UI, formularios y ayuda. Legible en móvil. Evitar Inter, Roboto o el azul “de plantilla”.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="voz">
+      <p class="label">07 · Voz</p>
+      <h2>Cómo hablamos</h2>
+      <div class="grid-2" style="margin-top:1rem">
+        <div class="card-ex ok">
+          <span class="tag">Sí</span>
+          <ul class="rules">
+            <li>“Estamos buscando un técnico cerca de ti.”</li>
+            <li>“¿Quieres seguir buscando?”</li>
+            <li>Frases cortas, tutear con respeto.</li>
+          </ul>
+        </div>
+        <div class="card-ex bad">
+          <span class="tag">No</span>
+          <ul class="rules">
+            <li>“IA disruptiva para el home services.”</li>
+            <li>Claves crudas en pantalla (<code>client.service…</code>)</li>
+            <li>Glow, pastillas y copy de startup genérica.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="ui">
+      <p class="label">08 · UI</p>
+      <h2>Componentes</h2>
+      <p>Botones ~14px de radio, relleno sólido ámbar (sin degradado brillante). Cards con borde suave.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:1rem;align-items:center">
+        <span class="btn-demo">Crear cuenta gratis</span>
+        <span class="btn-ghost">Ingresar</span>
+      </div>
+      <ul class="rules" style="margin-top:1.15rem">
+        <li>Acento de acción = ámbar, no azul.</li>
+        <li>Aland = teal aparte; no competir con el CTA.</li>
+        <li>Sin orbes blur ni grillas decorativas.</li>
+      </ul>
+    </section>
+
+    <section id="archivos">
+      <p class="label">09 · Archivos</p>
+      <h2>Entrega</h2>
+      <ul class="rules">
+        <li><code>public/logo-plunger.svg</code> — blanco (fondos oscuros / ícono)</li>
+        <li><code>public/logo-plunger-dark.svg</code> — carbón (fondos claros)</li>
+        <li><code>public/logo-plunger-amber.svg</code> — ámbar marca</li>
+        <li><code>public/logo-plunger-blue.svg</code> — legado (no usar en UI nueva)</li>
+        <li><code>docs/manual-marca.html</code> — este manual</li>
+      </ul>
+      <p style="margin-top:1rem;margin-bottom:0">PDF: abrir en el navegador → Imprimir → Guardar como PDF.</p>
+    </section>
+  </div>
+
+  <footer class="manual-foot">
+    Fundez SpA · Santiago · Manual de marca v2.0 · Carbón + ámbar · 2026
+  </footer>
+</body>
+</html>

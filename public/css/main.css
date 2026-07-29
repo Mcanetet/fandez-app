@@ -1,30 +1,31 @@
-/* Fundez — Sistema visual (servicio del hogar, tono humano) */
+/* Fundez — Sistema visual (carbón + ámbar de herramienta) */
+/* Legacy azul: brand/v1-azul/ */
 :root {
-  --zilo-bg: #F2F3F5;
+  --zilo-bg: #F4F2EE;
   --zilo-surface: #FFFFFF;
   --zilo-card: #FFFFFF;
-  --zilo-elevated: #EBECEF;
-  --zilo-accent: #1C64B4;
-  --zilo-accent-soft: #E7F0F8;
-  --zilo-accent-strong: #15508F;
-  --zilo-text: #171A1F;
-  --zilo-muted: #5E6572;
-  --zilo-border: #E2E5EB;
-  --zilo-success: #0F7A56;
-  --zilo-danger: #C0392B;
-  --aland: #0F766E;
-  --aland-soft: #E6F5F3;
-  --aland-strong: #0B5F59;
+  --zilo-elevated: #EBE6DF;
+  --zilo-accent: #C45C14;
+  --zilo-accent-soft: #F3E6D8;
+  --zilo-accent-strong: #9A3F0A;
+  --zilo-text: #1A1814;
+  --zilo-muted: #6B635A;
+  --zilo-border: #E6E0D8;
+  --zilo-success: #2F6B4F;
+  --zilo-danger: #B83A2E;
+  --aland: #2A6A5B;
+  --aland-soft: #E4F0EC;
+  --aland-strong: #1F5246;
   --zilo-radius-btn: 0.875rem;
   --zilo-radius-card: 1rem;
-  --zilo-shadow: 0 1px 2px rgba(23, 26, 31, 0.05);
-  --zilo-shadow-md: 0 1px 2px rgba(23, 26, 31, 0.04), 0 6px 16px rgba(23, 26, 31, 0.06);
+  --zilo-shadow: 0 1px 2px rgba(26, 24, 20, 0.05);
+  --zilo-shadow-md: 0 1px 2px rgba(26, 24, 20, 0.04), 0 6px 16px rgba(26, 24, 20, 0.06);
 }
 
 /* Aland — asistente (teal, no violeta “IA”) */
 .aland-surface {
   background: var(--aland-soft);
-  border-color: rgba(15, 118, 110, 0.28);
+  border-color: rgba(42, 106, 91, 0.28);
 }
 .aland-text { color: var(--aland-strong); }
 .aland-btn {
@@ -34,15 +35,15 @@
 }
 .aland-btn:hover { background: var(--aland-strong); }
 .aland-chip {
-  background: rgba(15, 118, 110, 0.12);
+  background: rgba(42, 106, 91, 0.12);
   color: var(--aland-strong);
-  border: 1px solid rgba(15, 118, 110, 0.22);
+  border: 1px solid rgba(42, 106, 91, 0.22);
 }
 
 .zilo-body {
   background-color: var(--zilo-bg);
   background-image:
-    linear-gradient(180deg, #EEF1F4 0%, var(--zilo-bg) 28%, var(--zilo-bg) 100%);
+    linear-gradient(180deg, #EFEBE4 0%, var(--zilo-bg) 28%, var(--zilo-bg) 100%);
 }
 
 .zilo-display {
@@ -151,7 +152,7 @@
 }
 .zilo-btn-ghost:hover {
   color: var(--zilo-accent);
-  border-color: rgba(28, 100, 180, 0.35);
+  border-color: rgba(196, 92, 20, 0.35);
   background: var(--zilo-accent-soft);
 }
 
@@ -165,11 +166,11 @@
   font-size: 0.875rem;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.zilo-input::placeholder { color: #9AA1AC; }
+.zilo-input::placeholder { color: #9A9188; }
 .zilo-input:focus {
   outline: none;
-  border-color: rgba(28, 100, 180, 0.55);
-  box-shadow: 0 0 0 3px rgba(28, 100, 180, 0.12);
+  border-color: rgba(196, 92, 20, 0.55);
+  box-shadow: 0 0 0 3px rgba(196, 92, 20, 0.12);
 }
 
 .password-field-input {
@@ -194,11 +195,11 @@
 }
 .password-toggle:hover {
   color: var(--zilo-accent);
-  background: rgba(28, 100, 180, 0.06);
+  background: rgba(196, 92, 20, 0.06);
 }
 .password-toggle:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(28, 100, 180, 0.18);
+  box-shadow: 0 0 0 3px rgba(196, 92, 20, 0.18);
 }
 
 .zilo-select-tech {
@@ -206,9 +207,9 @@
   min-width: 0;
   min-height: 3rem;
   padding: 0.75rem 2.5rem 0.75rem 1rem;
-  border: 1.5px solid rgba(28, 100, 180, 0.3);
+  border: 1.5px solid rgba(196, 92, 20, 0.3);
   background-color: #F7FAFC;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%231C64B4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23C45C14' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 1.1rem;
@@ -218,8 +219,8 @@
   font-weight: 500;
 }
 .zilo-select-tech:focus {
-  border-color: rgba(28, 100, 180, 0.65);
-  box-shadow: 0 0 0 3px rgba(28, 100, 180, 0.12);
+  border-color: rgba(196, 92, 20, 0.65);
+  box-shadow: 0 0 0 3px rgba(196, 92, 20, 0.12);
   outline: none;
 }
 .zilo-select-tech:disabled {
@@ -237,7 +238,7 @@
 }
 .job-chat-bubble--mine {
   margin-left: auto;
-  background: rgba(28, 100, 180, 0.1);
+  background: rgba(196, 92, 20, 0.1);
   color: var(--zilo-text);
   border-bottom-right-radius: 0.25rem;
 }
@@ -365,12 +366,12 @@
 .toast-info {
   color: #143A6B;
   background: #FFFFFF;
-  border-color: rgba(28, 100, 180, 0.25);
+  border-color: rgba(196, 92, 20, 0.25);
 }
-.toast-info::before { background: #1C64B4; }
+.toast-info::before { background: #C45C14; }
 .toast-info .toast-icon {
-  color: #1C64B4;
-  background: rgba(28, 100, 180, 0.1);
+  color: #C45C14;
+  background: rgba(196, 92, 20, 0.1);
 }
 
 .toast-warning {
@@ -421,7 +422,7 @@
   top: 28px;
   bottom: -2px;
   width: 2px;
-  background: rgba(28, 100, 180, 0.18);
+  background: rgba(196, 92, 20, 0.18);
 }
 .trip-step.done { opacity: 0.75; }
 .trip-step.done .trip-dot { background: var(--zilo-success); box-shadow: none; }
@@ -434,7 +435,7 @@
   background: #D8DCE5;
   flex-shrink: 0;
   margin-top: 2px;
-  border: 2px solid rgba(28, 100, 180, 0.2);
+  border: 2px solid rgba(196, 92, 20, 0.2);
 }
 
 .admin-tabs { scrollbar-width: none; }
@@ -453,7 +454,7 @@
 .group:hover .zilo-icon-wrap {
   transform: none;
   background: #FAFBFC;
-  border-color: rgba(28, 100, 180, 0.22);
+  border-color: rgba(196, 92, 20, 0.22);
   color: var(--zilo-accent);
   box-shadow: none;
 }
@@ -482,7 +483,7 @@
   transition: border-color 0.15s, background 0.15s;
 }
 .zilo-specialty-pill:hover {
-  border-color: rgba(28, 100, 180, 0.28);
+  border-color: rgba(196, 92, 20, 0.28);
   background: var(--zilo-accent-soft);
 }
 .zilo-specialty-pill .zilo-icon-wrap {
@@ -676,7 +677,7 @@
   animation: guardianPulse 2s ease-in-out infinite;
 }
 @keyframes guardianPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(28, 100, 180,0.3); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(196, 92, 20,0.3); }
   50% { box-shadow: none; }
 }
 
@@ -693,7 +694,7 @@
   border: 1px solid var(--zilo-border);
   transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
-.zilo-icon-btn:hover { color: var(--zilo-accent); border-color: rgba(28, 100, 180,0.35); box-shadow: 0 2px 8px rgba(16,24,40,0.06); }
+.zilo-icon-btn:hover { color: var(--zilo-accent); border-color: rgba(196, 92, 20,0.35); box-shadow: 0 2px 8px rgba(16,24,40,0.06); }
 
 .zilo-stat {
   padding: 0.875rem;
@@ -715,7 +716,7 @@
   letter-spacing: 0.04em;
   background: var(--zilo-accent-soft);
   color: var(--zilo-accent-strong);
-  border: 1px solid rgba(28, 100, 180,0.2);
+  border: 1px solid rgba(196, 92, 20,0.2);
 }
 .zilo-badge-success { background: #E7F6EF; color: var(--zilo-success); border-color: rgba(5,150,105,0.25); }
 .zilo-badge-muted { background: #F2F4F7; color: var(--zilo-muted); border-color: var(--zilo-border); }
@@ -729,7 +730,7 @@
 .step-item { transition: all 0.35s ease; }
 .step-item.is-active {
   background: var(--zilo-accent-soft) !important;
-  border-color: rgba(28, 100, 180,0.28) !important;
+  border-color: rgba(196, 92, 20,0.28) !important;
   color: var(--zilo-accent-strong) !important;
 }
 .step-item.is-done { opacity: 0.85; color: var(--zilo-success) !important; }
@@ -748,7 +749,7 @@
 .step-item.is-active .search-step-dot,
 .step-item.is-busy .search-step-dot {
   opacity: 1;
-  box-shadow: 0 0 0 4px rgba(28, 100, 180,0.12);
+  box-shadow: 0 0 0 4px rgba(196, 92, 20,0.12);
 }
 .step-item.is-busy .search-step-dot {
   box-shadow: 0 0 0 4px rgba(217,119,6,0.15);
@@ -756,7 +757,7 @@
 
 /* Overlay búsqueda de técnico */
 .search-overlay {
-  background: #EEF1F4;
+  background: #F4F2EE;
 }
 .search-overlay-orb,
 .search-overlay-grid {
@@ -831,7 +832,7 @@
   text-transform: none;
   color: var(--zilo-accent-strong);
   background: var(--zilo-accent-soft);
-  border: 1px solid rgba(28, 100, 180, 0.18);
+  border: 1px solid rgba(196, 92, 20, 0.18);
 }
 
 .search-timeline {
@@ -845,7 +846,7 @@
   top: 1.1rem;
   bottom: 1.1rem;
   width: 2px;
-  background: rgba(28, 100, 180, 0.18);
+  background: rgba(196, 92, 20, 0.18);
   border-radius: 1px;
 }
 .search-timeline-item {
@@ -867,7 +868,7 @@
   width: 1.15rem;
   height: 1.15rem;
   border-radius: 999px;
-  border: 2px solid rgba(28, 100, 180, 0.25);
+  border: 2px solid rgba(196, 92, 20, 0.25);
   background: #fff;
   flex-shrink: 0;
   margin-left: 0.35rem;
@@ -881,13 +882,13 @@
 .search-timeline-item.is-active {
   color: #1E3A8A;
   background: linear-gradient(135deg, rgba(239, 246, 255, 0.95), rgba(255,255,255,0.98));
-  border-color: rgba(28, 100, 180, 0.22);
-  box-shadow: 0 8px 20px rgba(28, 100, 180, 0.08);
+  border-color: rgba(196, 92, 20, 0.22);
+  box-shadow: 0 8px 20px rgba(196, 92, 20, 0.08);
 }
 .search-timeline-item.is-active .search-timeline-marker {
-  border-color: #1C64B4;
-  background: #1C64B4;
-  box-shadow: 0 0 0 4px rgba(28, 100, 180, 0.15);
+  border-color: #C45C14;
+  background: #C45C14;
+  box-shadow: 0 0 0 4px rgba(196, 92, 20, 0.15);
 }
 .search-timeline-item.is-done {
   color: #047857;
@@ -917,7 +918,7 @@
   padding: 0.9rem 1rem;
   border-radius: 1.1rem;
   background: rgba(255,255,255,0.88);
-  border: 1px solid rgba(28, 100, 180, 0.1);
+  border: 1px solid rgba(196, 92, 20, 0.1);
   box-shadow: 0 8px 24px rgba(16, 24, 40, 0.05);
   backdrop-filter: blur(8px);
 }
@@ -962,7 +963,7 @@
 .zilo-radar {
   position: absolute;
   inset: 0;
-  border: 2px solid rgba(28, 100, 180, 0.45);
+  border: 2px solid rgba(196, 92, 20, 0.45);
   border-radius: 9999px;
   opacity: 0;
   animation: fundezRadar 2s ease-out infinite;
@@ -1127,7 +1128,7 @@
 .admin-nav-item-active {
   background: var(--zilo-accent-soft);
   color: var(--zilo-accent-strong);
-  border-color: rgba(28, 100, 180, 0.22);
+  border-color: rgba(196, 92, 20, 0.22);
   font-weight: 600;
 }
 .admin-nav-icon {
@@ -1268,7 +1269,7 @@
   padding: 0.2rem 0.45rem;
   border-radius: 9999px;
 }
-.admin-badge-blue { background: rgba(28, 100, 180,0.12); color: #15508F; }
+.admin-badge-blue { background: rgba(196, 92, 20,0.12); color: #9A3F0A; }
 .admin-badge-green { background: rgba(16,185,129,0.12); color: #059669; }
 .admin-badge-gray { background: #F1F5F9; color: #64748B; }
 .admin-perm-check {
@@ -1313,7 +1314,7 @@
   border-color: var(--zilo-accent-strong) !important;
   box-shadow: none;
 }
-.admin-page .stat-gold { border-color: rgba(28, 100, 180,0.25); background: var(--zilo-accent-soft); }
+.admin-page .stat-gold { border-color: rgba(196, 92, 20,0.25); background: var(--zilo-accent-soft); }
 .admin-page .stat-gold p { color: var(--zilo-accent); }
 
 .legal-footer { border-color: var(--zilo-border) !important; }
@@ -1322,7 +1323,7 @@
 /* Gift card */
 .zilo-gift-card {
   background: var(--zilo-accent-soft);
-  border: 1px solid rgba(28, 100, 180, 0.22);
+  border: 1px solid rgba(196, 92, 20, 0.22);
 }
 
 /* Invite hero */
@@ -1373,7 +1374,7 @@
   pointer-events: none;
   z-index: 601;
   box-shadow: 0 0 0 9999px rgba(17, 24, 39, 0.55);
-  border: 2px solid rgba(28, 100, 180, 0.7);
+  border: 2px solid rgba(196, 92, 20, 0.7);
   transition: top 0.35s cubic-bezier(0.22, 1, 0.36, 1),
               left 0.35s cubic-bezier(0.22, 1, 0.36, 1),
               width 0.35s cubic-bezier(0.22, 1, 0.36, 1),
@@ -1415,7 +1416,7 @@
 }
 .zilo-onboarding-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #1C64B4, #15508F);
+  background: linear-gradient(90deg, #C45C14, #9A3F0A);
   border-radius: 999px;
   transition: width 0.35s ease;
 }
@@ -1477,7 +1478,7 @@
 .fundez-error-orb--1 {
   width: 320px; height: 320px;
   top: -8%; right: -12%;
-  background: rgba(28, 100, 180, 0.18);
+  background: rgba(196, 92, 20, 0.18);
 }
 .fundez-error-orb--2 {
   width: 280px; height: 280px;
@@ -1489,8 +1490,8 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(28, 100, 180, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(28, 100, 180, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(196, 92, 20, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(196, 92, 20, 0.04) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent);
 }
@@ -1545,7 +1546,7 @@
   line-height: 0.95;
   letter-spacing: -0.04em;
   color: var(--zilo-accent);
-  text-shadow: 0 8px 32px rgba(28, 100, 180, 0.22);
+  text-shadow: 0 8px 32px rgba(196, 92, 20, 0.22);
   position: relative;
 }
 .fundez-error-glitch {
@@ -1592,8 +1593,8 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--zilo-accent);
-  background: rgba(28, 100, 180, 0.1);
-  border: 1px solid rgba(28, 100, 180, 0.2);
+  background: rgba(196, 92, 20, 0.1);
+  border: 1px solid rgba(196, 92, 20, 0.2);
 }
 
 .fundez-error-headline {
@@ -1687,13 +1688,13 @@
   height: 8px;
   border-radius: 50%;
   background: var(--zilo-accent);
-  box-shadow: 0 0 0 4px rgba(28, 100, 180, 0.15);
+  box-shadow: 0 0 0 4px rgba(196, 92, 20, 0.15);
   flex-shrink: 0;
   animation: errorDotPulse 2s ease-in-out infinite;
 }
 @keyframes errorDotPulse {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(28, 100, 180, 0.15); }
-  50% { box-shadow: 0 0 0 7px rgba(28, 100, 180, 0.08); }
+  0%, 100% { box-shadow: 0 0 0 4px rgba(196, 92, 20, 0.15); }
+  50% { box-shadow: 0 0 0 7px rgba(196, 92, 20, 0.08); }
 }
 
 .fundez-error-title {
@@ -1815,7 +1816,7 @@
   background: var(--zilo-accent);
   color: #fff;
   border-color: var(--zilo-accent);
-  box-shadow: 0 4px 12px rgba(28, 100, 180,0.3);
+  box-shadow: 0 4px 12px rgba(196, 92, 20,0.3);
 }
 .checkout-progress-step.is-done .checkout-progress-dot {
   background: var(--zilo-success);
@@ -1886,7 +1887,7 @@
 .provider-workflow .checkout-progress-step { min-width: 3.5rem; }
 .provider-workflow .checkout-progress-line { max-width: 1.75rem; }
 .provider-wall-card { transition: border-color 0.2s, transform 0.2s; }
-.provider-wall-card:hover { border-color: rgba(28, 100, 180,0.35); transform: translateY(-1px); }
+.provider-wall-card:hover { border-color: rgba(196, 92, 20,0.35); transform: translateY(-1px); }
 
 @media (prefers-reduced-motion: reduce) {
   .zilo-page-enter,
@@ -1908,7 +1909,7 @@
   .zilo-radar:nth-child(2) { opacity: 0.25; transform: scale(1.2); }
   .zilo-radar-dot {
     animation: none !important;
-    box-shadow: 0 0 0 6px rgba(28, 100, 180, 0.18);
+    box-shadow: 0 0 0 6px rgba(196, 92, 20, 0.18);
   }
   .zilo-search-plunger {
     animation: none !important;
