@@ -547,6 +547,15 @@
   border: 0 !important;
 }
 
+/* Logo UI: contraste estable en fondos oscuros / dark mode forzado */
+.fundez-logo-mark {
+  display: block;
+  flex-shrink: 0;
+  color-scheme: only light;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(13, 148, 136, 0.12);
+}
+
 .admin-tabs { scrollbar-width: none; }
 .admin-tabs::-webkit-scrollbar { display: none; }
 
