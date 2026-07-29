@@ -103,6 +103,10 @@ app.use(express.static(path.join(__dirname, 'public'), {
     if (/\.(js|css)$/.test(filePath)) {
       res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     }
+    // Favicons / logos: el móvil cachea agresivo; no fijar max-age largo
+    if (/(favicon|apple-touch-icon|icon-\d+|logo-plunger|logo(-mark)?\.svg|site\.webmanifest)/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    }
   }
 }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
@@ -151,6 +155,12 @@ app.use((req, res, next) => {
   res.locals.adminBase = ADMIN_BASE;
   res.locals.adminUrl = appMode.adminUrl;
   res.locals.appModeStatus = appMode.getPublicStatus();
+  // Evita que Safari/Chrome en móvil reutilicen HTML viejo (colores/logo antiguos)
+  const accept = req.get('accept') || '';
+  if (accept.includes('text/html')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+  }
   next();
 });
 
