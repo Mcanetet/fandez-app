@@ -115,20 +115,25 @@
 
 <div id="jobChatModal" class="fixed inset-0 z-[80] hidden">
   <div class="absolute inset-0 bg-black/40" data-role="chat-backdrop"></div>
-  <div class="absolute inset-x-0 bottom-0 max-w-lg mx-auto bg-white rounded-t-3xl border border-zilo-border shadow-xl flex flex-col" style="max-height: 85vh;">
-    <div class="flex items-center justify-between px-5 py-4 border-b border-zilo-border">
+  <div class="job-chat-sheet absolute inset-x-0 bottom-0 max-w-lg mx-auto rounded-t-3xl border border-zilo-border shadow-xl flex flex-col" style="max-height: 85vh;">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-zilo-border bg-white rounded-t-3xl">
       <div>
         <p class="zilo-label !text-[9px]">Chat del servicio</p>
-        <h2 id="jobChatTitle" class="text-sm font-semibold">Cliente</h2>
+        <h2 id="jobChatTitle" class="text-sm font-semibold text-zilo-text">Cliente</h2>
+        <p id="jobChatYouAre" class="text-[10px] text-zilo-muted mt-0.5">Escribes como Socio</p>
       </div>
       <button type="button" class="zilo-icon-btn" data-role="chat-close" aria-label="Cerrar">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
     </div>
-    <div id="jobChatThread" class="flex-1 overflow-y-auto px-5 py-4 space-y-2 min-h-[220px]"></div>
-    <form id="jobChatForm" class="p-4 border-t border-zilo-border flex gap-2">
-      <input id="jobChatInput" type="text" maxlength="1000" autocomplete="off" placeholder="Escribe un mensaje al cliente…" class="zilo-input flex-1 !py-2.5 text-sm">
-      <button type="submit" class="zilo-btn-primary !py-2.5 !px-4 !text-sm shrink-0">Enviar</button>
+    <div id="jobChatThread" class="job-chat-thread flex-1 overflow-y-auto px-4 py-4 space-y-2.5 min-h-[220px]"></div>
+    <form id="jobChatForm" class="job-chat-composer">
+      <label class="job-chat-composer__label" for="jobChatInput">Tu mensaje</label>
+      <div class="job-chat-composer__row">
+        <input id="jobChatInput" type="text" maxlength="1000" autocomplete="off" placeholder="Escribe aquí para el cliente…" class="job-chat-input">
+        <button type="submit" class="job-chat-send">Enviar</button>
+      </div>
+      <p class="job-chat-composer__hint">Se verá como <strong>Socio</strong>. El cliente y el técnico también quedan etiquetados.</p>
     </form>
   </div>
 </div>

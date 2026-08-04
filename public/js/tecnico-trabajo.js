@@ -328,12 +328,37 @@
     }
   }
 
+  function roleLabel(senderType) {
+    if (senderType === 'provider') return 'Socio';
+    if (senderType === 'tecnico') return 'Técnico';
+    if (senderType === 'client') return 'Cliente';
+    return 'Fundez';
+  }
+
+  function displayName(msg) {
+    const raw = String(msg.senderName || '').trim();
+    const role = roleLabel(msg.senderType);
+    if (!raw) return role;
+    if (raw.includes('·')) return raw.split('·')[0].trim() || role;
+    if (/^(socio|técnico|tecnico|cliente|fundez)/i.test(raw)) return raw;
+    return raw;
+  }
+
   function renderChatMsg(msg) {
     const isSystem = msg.senderType === 'system';
     const isMine = !isSystem && msg.senderType === myChatRole;
-    const cls = isSystem ? 'job-chat-bubble--system' : (isMine ? 'job-chat-bubble--mine' : 'job-chat-bubble--theirs');
-    const meta = isSystem ? '' : `<span class="job-chat-meta">${escapeHtml(msg.senderName || '')} · ${escapeHtml(formatTime(msg.createdAt))}</span>`;
-    return `<div class="job-chat-bubble ${cls}" data-msg-id="${escapeHtml(msg.id)}">${meta}${escapeHtml(msg.body)}</div>`;
+    const role = msg.senderType || 'system';
+    if (isSystem) {
+      return `<div class="job-chat-bubble job-chat-bubble--system" data-msg-id="${escapeHtml(msg.id)}">${escapeHtml(msg.body)}</div>`;
+    }
+    const cls = `job-chat-bubble ${isMine ? 'job-chat-bubble--mine' : 'job-chat-bubble--theirs'} job-chat-bubble--role-${role}`;
+    const meta = `
+      <span class="job-chat-meta">
+        <span class="job-chat-role job-chat-role--${role}">${escapeHtml(roleLabel(role))}</span>
+        <span class="job-chat-name">${escapeHtml(displayName(msg))}</span>
+        <span class="job-chat-meta__time">${escapeHtml(formatTime(msg.createdAt))}</span>
+      </span>`;
+    return `<div class="${cls}" data-msg-id="${escapeHtml(msg.id)}">${meta}${escapeHtml(msg.body)}</div>`;
   }
 
   function appendChat(msg) {
@@ -351,9 +376,11 @@
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo abrir el chat');
       if (chatTitle && data.peerName) chatTitle.textContent = data.peerName;
+      const youAre = document.getElementById('jobChatYouAre');
+      if (youAre && data.youAre) youAre.textContent = `Escribes como ${data.youAre}`;
       if (chatThread) {
         chatThread.innerHTML = (data.messages || []).map(renderChatMsg).join('')
-          || '<p class="text-xs text-zilo-muted text-center">Coordina llegada, acceso y detalles del servicio.</p>';
+          || '<p class="text-xs text-zilo-muted text-center px-4">Coordina llegada, acceso y detalles del servicio.</p>';
         chatThread.scrollTop = chatThread.scrollHeight;
       }
       socket.emit('register_client', requestId);

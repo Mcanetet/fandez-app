@@ -462,17 +462,20 @@
         <a id="whatsappSupport" href="#aland-support" data-open-aland class="zilo-btn-ghost w-full text-aland-strong border-aland/25"><%= t('client.service.concierge') %></a>
       </div>
 
-      <section id="jobChatPanel" class="hidden p-5 rounded-2xl zilo-card-premium">
-        <div class="flex items-center justify-between mb-3">
-          <div>
-            <p class="zilo-label !text-[9px]">Chat del servicio</p>
-            <h3 id="jobChatPeer" class="text-sm font-semibold">Socio</h3>
-          </div>
+      <section id="jobChatPanel" class="job-chat-panel hidden p-0 rounded-2xl zilo-card-premium overflow-hidden border border-zilo-border">
+        <div class="px-5 py-4 border-b border-zilo-border bg-white">
+          <p class="zilo-label !text-[9px]">Chat del servicio</p>
+          <h3 id="jobChatPeer" class="text-sm font-semibold text-zilo-text">Equipo Fundez</h3>
+          <p class="text-[10px] text-zilo-muted mt-0.5">Escribes como Cliente · verás si responde el Socio o el Técnico</p>
         </div>
-        <div id="jobChatThread" class="max-h-64 overflow-y-auto space-y-2 mb-3 min-h-[120px]"></div>
-        <form id="jobChatForm" class="flex gap-2">
-          <input id="jobChatInput" type="text" maxlength="1000" autocomplete="off" placeholder="Escribe al socio…" class="zilo-input flex-1 !py-2.5 text-sm">
-          <button type="submit" class="zilo-btn-primary !py-2.5 !px-4 !text-sm shrink-0">Enviar</button>
+        <div id="jobChatThread" class="job-chat-thread max-h-72 overflow-y-auto px-4 py-4 space-y-2.5 min-h-[140px]"></div>
+        <form id="jobChatForm" class="job-chat-composer">
+          <label class="job-chat-composer__label" for="jobChatInput">Tu mensaje</label>
+          <div class="job-chat-composer__row">
+            <input id="jobChatInput" type="text" maxlength="1000" autocomplete="off" placeholder="Escribe aquí al equipo…" class="job-chat-input">
+            <button type="submit" class="job-chat-send">Enviar</button>
+          </div>
+          <p class="job-chat-composer__hint">Cada mensaje muestra si lo envió el <strong>Cliente</strong>, el <strong>Socio</strong> o el <strong>Técnico</strong>.</p>
         </form>
       </section>
     </section>

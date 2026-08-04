@@ -229,39 +229,154 @@
 }
 
 .job-chat-bubble {
-  max-width: 85%;
-  padding: 0.625rem 0.875rem;
+  max-width: 88%;
+  padding: 0.7rem 0.9rem;
   border-radius: 1rem;
   font-size: 0.8125rem;
-  line-height: 1.4;
+  line-height: 1.45;
   word-break: break-word;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 .job-chat-bubble--mine {
   margin-left: auto;
-  background: rgba(13, 148, 136, 0.1);
-  color: var(--zilo-text);
-  border-bottom-right-radius: 0.25rem;
+  background: #0D9488;
+  color: #FFFFFF;
+  border-bottom-right-radius: 0.3rem;
+}
+.job-chat-bubble--mine .job-chat-meta,
+.job-chat-bubble--mine .job-chat-role {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.18);
 }
 .job-chat-bubble--theirs {
   margin-right: auto;
-  background: #F3F4F6;
-  color: var(--zilo-text);
-  border-bottom-left-radius: 0.25rem;
+  background: #FFFFFF;
+  color: #0F172A;
+  border: 1px solid #E2E8F0;
+  border-bottom-left-radius: 0.3rem;
+}
+.job-chat-bubble--role-client.job-chat-bubble--theirs {
+  border-left: 3px solid #64748B;
+}
+.job-chat-bubble--role-provider.job-chat-bubble--theirs {
+  border-left: 3px solid #0D9488;
+}
+.job-chat-bubble--role-tecnico.job-chat-bubble--theirs {
+  border-left: 3px solid #059669;
 }
 .job-chat-bubble--system {
-  margin: 0 auto;
+  margin: 0.35rem auto;
   max-width: 95%;
-  background: transparent;
-  color: var(--zilo-muted);
-  font-size: 0.7rem;
+  background: #F1F5F9;
+  color: #64748B;
+  font-size: 0.72rem;
   text-align: center;
-  padding: 0.25rem 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  box-shadow: none;
 }
 .job-chat-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.65rem;
+  color: #64748B;
+  margin-bottom: 0.3rem;
+}
+.job-chat-meta__time {
+  opacity: 0.85;
+}
+.job-chat-role {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: #E2E8F0;
+  color: #334155;
+}
+.job-chat-role--client { background: #E2E8F0; color: #334155; }
+.job-chat-role--provider { background: #CCFBF1; color: #0F766E; }
+.job-chat-role--tecnico { background: #D1FAE5; color: #047857; }
+.job-chat-name {
+  font-weight: 600;
+  color: inherit;
+}
+
+.job-chat-panel,
+.job-chat-sheet {
+  color-scheme: only light;
+  background: #FFFFFF !important;
+  color: #0F172A;
+}
+.job-chat-thread {
+  background: #F8FAFC;
+}
+.job-chat-composer {
+  color-scheme: only light;
+  background: #FFFFFF;
+  border-top: 1px solid #E2E8F0;
+  padding: 0.85rem 1rem 1rem;
+}
+.job-chat-composer__label {
   display: block;
-  font-size: 0.625rem;
-  color: var(--zilo-muted);
-  margin-bottom: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748B;
+  margin-bottom: 0.4rem;
+}
+.job-chat-composer__row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.55rem;
+}
+.job-chat-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.85rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.85rem;
+  border: 1.5px solid #94A3B8 !important;
+  background: #F8FAFC !important;
+  color: #0F172A !important;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.job-chat-input::placeholder {
+  color: #64748B !important;
+  opacity: 1;
+}
+.job-chat-input:focus {
+  outline: none;
+  border-color: #0D9488 !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.18);
+}
+.job-chat-send {
+  flex-shrink: 0;
+  min-width: 5.5rem;
+  padding: 0.7rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid #0F766E;
+  background: #0D9488;
+  color: #FFFFFF;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.job-chat-send:disabled {
+  opacity: 0.55;
+}
+.job-chat-composer__hint {
+  margin-top: 0.45rem;
+  font-size: 0.7rem;
+  color: #64748B;
 }
 
 .zilo-health-ring {

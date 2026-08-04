@@ -2738,12 +2738,20 @@ function canAccessRequestChat(request, user) {
   return false;
 }
 
-function chatDisplayName(senderType) {
-  if (senderType === 'provider') return 'Socio Fundez';
-  if (senderType === 'tecnico') return 'Técnico Fundez';
+function chatRoleLabel(senderType) {
+  if (senderType === 'provider') return 'Socio';
+  if (senderType === 'tecnico') return 'Técnico';
   if (senderType === 'client') return 'Cliente';
-  if (senderType === 'system') return 'Fundez';
+  if (senderType === 'system') return 'Sistema';
   return 'Fundez';
+}
+
+function chatDisplayName(senderType, userName) {
+  const role = chatRoleLabel(senderType);
+  const name = String(userName || '').trim();
+  if (senderType === 'system') return 'Fundez';
+  if (name && name.toLowerCase() !== role.toLowerCase()) return `${name} · ${role}`;
+  return role === 'Socio' ? 'Socio Fundez' : (role === 'Técnico' ? 'Técnico Fundez' : role);
 }
 
 function getRequestChat(requestId, user) {
@@ -2756,8 +2764,9 @@ function getRequestChat(requestId, user) {
     requestId: request.id,
     messages: request.chatMessages,
     peerName: user.role === 'client'
-      ? (request.technicianId ? 'Técnico Fundez' : 'Socio Fundez')
-      : (getUserById(request.clientId)?.name || request.clientName || 'Cliente')
+      ? (request.technicianId ? 'Equipo Fundez (socio y técnico)' : 'Socio Fundez')
+      : (getUserById(request.clientId)?.name || request.clientName || 'Cliente'),
+    youAre: chatRoleLabel(user.role === 'client' ? 'client' : (user.role === 'tecnico' ? 'tecnico' : 'provider'))
   };
 }
 
@@ -2772,7 +2781,7 @@ function postRequestChatMessage(requestId, user, body) {
   const message = appendChatMessage(request, {
     senderType,
     senderId: user.id,
-    senderName: chatDisplayName(senderType),
+    senderName: chatDisplayName(senderType, user.name),
     body
   });
   if (!message) return { error: 'Escribe un mensaje.' };

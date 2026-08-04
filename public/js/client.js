@@ -1035,14 +1035,37 @@
     }
   }
 
+  function roleLabelChat(senderType) {
+    if (senderType === 'provider') return 'Socio';
+    if (senderType === 'tecnico') return 'Técnico';
+    if (senderType === 'client') return 'Cliente';
+    return 'Fundez';
+  }
+
+  function displayChatName(msg) {
+    const raw = String(msg.senderName || '').trim();
+    const role = roleLabelChat(msg.senderType);
+    if (!raw) return role;
+    if (raw.includes('·')) return raw.split('·')[0].trim() || role;
+    if (/^(socio|técnico|tecnico|cliente|fundez)/i.test(raw)) return raw;
+    return raw;
+  }
+
   function renderJobChatMessage(msg) {
     const isSystem = msg.senderType === 'system';
     const isMine = !isSystem && msg.senderType === 'client';
-    const cls = isSystem ? 'job-chat-bubble--system' : (isMine ? 'job-chat-bubble--mine' : 'job-chat-bubble--theirs');
-    const meta = isSystem
-      ? ''
-      : `<span class="job-chat-meta">${escapeChatHtml(msg.senderName || '')} · ${escapeChatHtml(formatChatTime(msg.createdAt))}</span>`;
-    return `<div class="job-chat-bubble ${cls}" data-msg-id="${escapeChatHtml(msg.id)}">${meta}${escapeChatHtml(msg.body)}</div>`;
+    const role = msg.senderType || 'system';
+    if (isSystem) {
+      return `<div class="job-chat-bubble job-chat-bubble--system" data-msg-id="${escapeChatHtml(msg.id)}">${escapeChatHtml(msg.body)}</div>`;
+    }
+    const cls = `job-chat-bubble ${isMine ? 'job-chat-bubble--mine' : 'job-chat-bubble--theirs'} job-chat-bubble--role-${role}`;
+    const meta = `
+      <span class="job-chat-meta">
+        <span class="job-chat-role job-chat-role--${role}">${escapeChatHtml(roleLabelChat(role))}</span>
+        <span class="job-chat-name">${escapeChatHtml(displayChatName(msg))}</span>
+        <span class="job-chat-meta__time">${escapeChatHtml(formatChatTime(msg.createdAt))}</span>
+      </span>`;
+    return `<div class="${cls}" data-msg-id="${escapeChatHtml(msg.id)}">${meta}${escapeChatHtml(msg.body)}</div>`;
   }
 
   function appendJobChatMessage(msg) {
