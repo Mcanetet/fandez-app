@@ -391,11 +391,24 @@
         showNoProviderChoice(data.request);
         return;
       }
-    } catch (_) { /* fallback local */ }
-    showNoProviderChoice({
-      id: requestId,
-      serviceName: page.dataset.serviceName || ''
-    });
+      // Si el servidor aún no abre la decisión, no mostrar UI local engañosa.
+      searchTimeoutTriggered = false;
+      if (data.error) FundezNotify.show(data.error, 'info');
+    } catch (_) {
+      searchTimeoutTriggered = false;
+    }
+  }
+
+  function requestSearchStartedAt(request) {
+    const raw = request?.searchingAt || request?.paidAt || request?.createdAt;
+    const ts = raw ? Date.parse(raw) : NaN;
+    return Number.isFinite(ts) ? ts : null;
+  }
+
+  function isPastSearchTimeout(request) {
+    const started = requestSearchStartedAt(request);
+    if (!started) return false;
+    return Date.now() - started >= SEARCH_TIMEOUT_MS;
   }
 
   function formatSearchClock(ms) {
@@ -625,23 +638,36 @@
     const buttons = panel?.querySelectorAll('button') || [];
     buttons.forEach((b) => { b.disabled = true; });
     try {
+      // Asegura pending en servidor (reabre ciclos “seguir buscando” atascados).
+      await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/timeout-busqueda`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        credentials: 'same-origin',
+        body: '{}'
+      }).catch(() => null);
+
       const response = await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/sin-socio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify({ choice })
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success) throw new Error(data.error || t('client.js.no_provider_error'));
       hideNoProviderChoice();
-      if (choice === 'refund') {
+      searchTimeoutTriggered = false;
+      const refundDone = choice === 'refund' || data.choice === 'refund' || data.already;
+      if (refundDone && (choice === 'refund' || data.choice === 'refund')) {
+        const body = data.already
+          ? (data.message || t('client.js.refund_requested_body'))
+          : t('client.js.refund_requested_body');
         if (window.FundezAlerts) FundezAlerts.notify({
           type: 'success',
           title: t('client.js.refund_requested_title'),
-          body: t('client.js.refund_requested_body'),
+          body,
           toast: 'success'
         });
-        else FundezNotify.show(t('client.js.refund_requested_body'), 'success');
+        else FundezNotify.show(body, 'success');
         setTimeout(() => { window.location.href = '/cliente'; }, 1200);
       } else {
         if (window.FundezAlerts) FundezAlerts.notify({
@@ -1268,6 +1294,10 @@
           showNoProviderChoice(data.request);
           return;
         }
+        if (data.request?.status === 'searching' && isPastSearchTimeout(data.request)) {
+          triggerSearchTimeout(requestId);
+          return;
+        }
         if (Date.now() - (searchStartedAt || startedAt) >= SEARCH_TIMEOUT_MS) {
           triggerSearchTimeout(requestId);
           return;
@@ -1292,6 +1322,8 @@
           showProvider(data.provider, data.request);
         } else if (data.request?.noProviderDecisionStatus === 'pending') {
           showNoProviderChoice(data.request);
+        } else if (data.request?.status === 'searching' && isPastSearchTimeout(data.request)) {
+          triggerSearchTimeout(data.request.id || requestId);
         } else {
           hideScheduledPanel();
           loaderOverlay?.classList.remove('hidden');

@@ -3491,7 +3491,8 @@ function getUnassignedRequestsAwaitingNotice(timeoutMinutes = 15, now = Date.now
   const timeoutMs = Math.max(1, Number(timeoutMinutes) || 15) * 60 * 1000;
   return requests.filter((request) => {
     if (request.status !== 'searching' || request.paymentStatus !== 'approved' || request.providerId) return false;
-    if (request.noProviderNotifiedAt) return false;
+    // Ya esperando respuesta del cliente: no reenviar aviso.
+    if (request.noProviderDecisionStatus === 'pending') return false;
     const startedAt = Date.parse(request.searchingAt || request.paidAt || request.createdAt || '');
     return Number.isFinite(startedAt) && now - startedAt >= timeoutMs;
   });
@@ -3499,11 +3500,22 @@ function getUnassignedRequestsAwaitingNotice(timeoutMinutes = 15, now = Date.now
 
 function markNoProviderNotice(requestId, { tokenHash, conversationId } = {}) {
   const request = requests.find((item) => item.id === requestId);
-  if (!request || request.status !== 'searching' || request.providerId || request.noProviderNotifiedAt) return null;
+  if (!request || request.status !== 'searching' || request.providerId) return null;
+  // Ya hay decisión abierta: devolver tal cual (y refrescar token si llega uno nuevo).
+  if (request.noProviderDecisionStatus === 'pending') {
+    if (tokenHash && !request.noProviderChoiceTokenHash) {
+      request.noProviderChoiceTokenHash = tokenHash;
+      if (conversationId) request.alandConversationId = conversationId;
+      repository.persist(() => repository.saveRequest(request), `aviso sin socio token ${requestId}`);
+    }
+    return request;
+  }
 
   request.noProviderNotifiedAt = new Date().toISOString();
   request.noProviderDecisionStatus = 'pending';
   request.noProviderChoiceTokenHash = tokenHash || null;
+  request.noProviderChoice = null;
+  request.noProviderRespondedAt = null;
   request.alandConversationId = conversationId || request.alandConversationId || null;
   repository.persist(() => repository.saveRequest(request), `aviso sin socio ${requestId}`);
   return request;
@@ -3513,10 +3525,20 @@ function respondNoProviderChoice(requestId, { clientId, tokenHash, choice } = {}
   const request = requests.find((item) => item.id === requestId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (clientId && request.clientId !== clientId) return { error: 'No autorizado.' };
-  if (tokenHash && request.noProviderChoiceTokenHash !== tokenHash) return { error: 'El enlace no es válido.' };
+  // Dueño autenticado puede decidir sin token; el token solo aplica a enlaces de correo.
+  if (!clientId) {
+    if (!tokenHash || request.noProviderChoiceTokenHash !== tokenHash) {
+      return { error: 'El enlace no es válido.' };
+    }
+  } else if (tokenHash && request.noProviderChoiceTokenHash && request.noProviderChoiceTokenHash !== tokenHash) {
+    return { error: 'El enlace no es válido.' };
+  }
   if (!clientId && !tokenHash) return { error: 'No autorizado.' };
-  if (request.noProviderDecisionStatus === 'resolved') {
-    return { success: true, already: true, choice: request.noProviderChoice, request };
+  if (
+    (request.noProviderDecisionStatus === 'resolved' && request.noProviderChoice === 'refund')
+    || (request.status === 'cancelled' && (request.refundStatus === 'requested' || request.cancelReason === 'no_provider_available'))
+  ) {
+    return { success: true, already: true, choice: 'refund', request };
   }
   if (request.noProviderDecisionStatus !== 'pending') {
     return { error: 'Esta solicitud no tiene una decisión pendiente.' };
@@ -3531,17 +3553,20 @@ function respondNoProviderChoice(requestId, { clientId, tokenHash, choice } = {}
     request.refundStatus = 'requested';
     request.refundRequestedAt = now;
     request.refundScheduledDate = nextBusinessDayIso(new Date());
+    request.noProviderDecisionStatus = 'resolved';
   } else if (normalizedChoice === 'continue') {
     if (request.status !== 'searching' || request.providerId) {
       return { error: 'La solicitud ya cambió de estado.' };
     }
+    // Reinicia el ciclo de búsqueda para poder volver a preguntar tras otro timeout.
     request.searchingAt = now;
+    request.noProviderNotifiedAt = null;
+    request.noProviderDecisionStatus = null;
   } else {
     return { error: 'Opción no válida.' };
   }
 
   request.noProviderChoice = normalizedChoice;
-  request.noProviderDecisionStatus = 'resolved';
   request.noProviderRespondedAt = now;
   request.noProviderChoiceTokenHash = null;
   repository.persist(() => repository.saveRequest(request), `respuesta sin socio ${requestId}`);
@@ -3556,20 +3581,23 @@ function respondNoProviderChoice(requestId, { clientId, tokenHash, choice } = {}
   return { success: true, choice: normalizedChoice, request };
 }
 
-function ensureNoProviderChoiceForClient(requestId, clientId, { minWaitMinutes = 14 } = {}) {
+function ensureNoProviderChoiceForClient(requestId, clientId, { minWaitMinutes = 14, force = false } = {}) {
   const request = requests.find((item) => item.id === requestId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (request.clientId !== clientId) return { error: 'No autorizado.' };
   if (request.providerId) return { error: 'Ya hay un técnico asignado.' };
   if (request.status !== 'searching') {
+    if (request.status === 'cancelled' && (request.refundStatus === 'requested' || request.cancelReason === 'no_provider_available')) {
+      return { success: true, already: true, request, refunded: true };
+    }
     return { error: 'Esta solicitud ya no está en búsqueda.' };
   }
   if (request.noProviderDecisionStatus === 'pending') {
     return { success: true, request, already: true };
   }
   const startedAt = Date.parse(request.searchingAt || request.paidAt || request.createdAt || '');
-  const minMs = Math.max(1, Number(minWaitMinutes) || 14) * 60 * 1000;
-  if (!Number.isFinite(startedAt) || Date.now() - startedAt < minMs) {
+  const minMs = Math.max(0, Number(minWaitMinutes) || 0) * 60 * 1000;
+  if (!force && minMs > 0 && (!Number.isFinite(startedAt) || Date.now() - startedAt < minMs)) {
     return { error: 'Aún estamos buscando un técnico. Espera un momento más.' };
   }
   const updated = markNoProviderNotice(requestId, {});
@@ -3581,6 +3609,25 @@ function getPendingNoProviderRequestForClient(clientId) {
   return requests
     .filter((request) => request.clientId === clientId && request.noProviderDecisionStatus === 'pending')
     .sort((a, b) => new Date(b.noProviderNotifiedAt || 0) - new Date(a.noProviderNotifiedAt || 0))[0] || null;
+}
+
+/** Al volver a la app: abre decisión en búsquedas ya vencidas sin pending. */
+function ensureStaleNoProviderChoicesForClient(clientId, timeoutMinutes = 15) {
+  const timeoutMs = Math.max(1, Number(timeoutMinutes) || 15) * 60 * 1000;
+  const now = Date.now();
+  const opened = [];
+  for (const request of requests) {
+    if (request.clientId !== clientId) continue;
+    if (request.status !== 'searching' || request.providerId) continue;
+    if (request.noProviderDecisionStatus === 'pending') continue;
+    const startedAt = Date.parse(request.searchingAt || request.paidAt || request.createdAt || '');
+    if (!Number.isFinite(startedAt) || now - startedAt < timeoutMs) continue;
+    const result = ensureNoProviderChoiceForClient(request.id, clientId, {
+      minWaitMinutes: Math.max(0, (Number(timeoutMinutes) || 15) - 1)
+    });
+    if (result.success && result.request) opened.push(result.request);
+  }
+  return opened;
 }
 
 const REQUEST_STATUS_LABELS = {
@@ -4445,6 +4492,7 @@ module.exports = {
   respondNoProviderChoice,
   getPendingNoProviderRequestForClient,
   ensureNoProviderChoiceForClient,
+  ensureStaleNoProviderChoicesForClient,
   getActiveRequestsForClient,
   getLastCompletedRequest,
   getClientTrustStats,

@@ -268,18 +268,27 @@
       const buttons = button.closest('[data-no-provider-card]')?.querySelectorAll('button') || [];
       buttons.forEach((item) => { item.disabled = true; });
       try {
+        await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/timeout-busqueda`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          credentials: 'same-origin',
+          body: '{}'
+        }).catch(() => null);
         const response = await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/sin-socio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           credentials: 'same-origin',
           body: JSON.stringify({ choice })
         });
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.success) throw new Error(data.error || 'No se pudo guardar tu elección');
+        const refundDone = choice === 'refund' || data.choice === 'refund';
         FundezNotify.show(
-          choice === 'refund'
-            ? 'Devolución solicitada para el siguiente día hábil.'
-            : 'Seguiremos intentando encontrar un socio.',
+          data.already && data.message
+            ? data.message
+            : (refundDone
+              ? 'Devolución solicitada para el siguiente día hábil.'
+              : 'Seguiremos intentando encontrar un socio.'),
           'success'
         );
         setTimeout(() => location.reload(), 700);

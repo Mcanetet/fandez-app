@@ -12,15 +12,98 @@ const unassignedRequestWatcher = require('../lib/unassignedRequestWatcher');
 const aland = require('../lib/aland');
 const notifications = require('../lib/notifications');
 
+function isAlreadyNoProviderRefund(request) {
+  if (!request) return false;
+  if (request.noProviderDecisionStatus === 'resolved' && request.noProviderChoice === 'refund') return true;
+  if (['requested', 'processed', 'completed', 'paid'].includes(String(request.refundStatus || ''))) {
+    return request.cancelReason === 'no_provider_available'
+      || request.cancelReason === 'client_cancelled_search'
+      || request.status === 'cancelled';
+  }
+  return false;
+}
+
+function respondAlreadyNoProvider(req, res, request, choice = 'refund') {
+  const payload = { request: store.enrichRequestForClient(request, req.locale || 'es') };
+  if (wantsJson(req)) {
+    return res.json({
+      success: true,
+      already: true,
+      choice: request.noProviderChoice || choice,
+      request: payload.request,
+      message: choice === 'refund' || request.noProviderChoice === 'refund'
+        ? 'La devolución ya estaba solicitada. Administración la procesará al mismo medio de pago.'
+        : 'Ya registramos tu elección de seguir buscando.'
+    });
+  }
+  return res.render('client/no-provider-choice', {
+    title: 'Respuesta recibida — Fundez',
+    request,
+    token: '',
+    selectedChoice: request.noProviderChoice || choice,
+    completed: true
+  });
+}
+
+function wantsJson(req) {
+  const accept = String(req.get('Accept') || '');
+  return accept.includes('application/json') || req.is('application/json') === 'application/json';
+}
+
+function isNoProviderOwner(req, request) {
+  return Boolean(
+    request
+    && req.session?.user?.role === 'client'
+    && req.session.user.id === request.clientId
+  );
+}
+
 function canOpenNoProviderDecision(req, request) {
   if (!request || request.noProviderDecisionStatus !== 'pending') return false;
-  if (req.session?.user?.role === 'client' && req.session.user.id === request.clientId) return true;
-  const token = String(req.query.token || req.body.token || '');
+  if (isNoProviderOwner(req, request)) return true;
+  const token = String(req.query.token || req.body?.token || '');
   return Boolean(token && request.noProviderChoiceTokenHash === unassignedRequestWatcher.hashToken(token));
 }
 
+function noProviderTimeoutMinutes() {
+  return Math.max(1, parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15);
+}
+
+/** Cliente dueño: abre (o reabre) la decisión pendiente antes de responder. */
+function ensurePendingForOwner(req, request) {
+  if (!isNoProviderOwner(req, request)) return request;
+  if (request.noProviderDecisionStatus === 'pending') return request;
+  if (request.status !== 'searching' || request.providerId) return request;
+  if (isAlreadyNoProviderRefund(request)) return request;
+
+  const timeoutMin = noProviderTimeoutMinutes();
+  const startedAt = Date.parse(request.searchingAt || request.paidAt || request.createdAt || '');
+  const waitedMs = Number.isFinite(startedAt) ? Date.now() - startedAt : 0;
+  const waitedEnough = waitedMs >= Math.max(0, timeoutMin - 1) * 60 * 1000;
+  // Casos atascados: ya hubo aviso/ciclo anterior pero el estado no quedó en pending.
+  const stuckCycle = Boolean(request.noProviderNotifiedAt || request.noProviderChoice === 'continue');
+  if (!waitedEnough && !stuckCycle) return request;
+
+  const result = store.ensureNoProviderChoiceForClient(request.id, req.session.user.id, {
+    minWaitMinutes: waitedEnough ? 0 : timeoutMin - 1,
+    force: stuckCycle && waitedEnough
+  });
+  return result.request || request;
+}
+
 router.get('/solicitud/:id/sin-socio', (req, res) => {
-  const request = store.requests.find((item) => item.id === req.params.id);
+  let request = store.requests.find((item) => item.id === req.params.id);
+  // Solicitud antigua ya con devolución: mostrar confirmación, no error.
+  if (request && isAlreadyNoProviderRefund(request)) {
+    const token = String(req.query.token || '');
+    const tokenOk = Boolean(token && request.noProviderChoiceTokenHash === unassignedRequestWatcher.hashToken(token));
+    if (isNoProviderOwner(req, request) || tokenOk || !request.noProviderChoiceTokenHash) {
+      return respondAlreadyNoProvider(req, res, request, 'refund');
+    }
+  }
+  if (isNoProviderOwner(req, request) && request?.status === 'searching' && !request.providerId) {
+    request = ensurePendingForOwner(req, request);
+  }
   if (!canOpenNoProviderDecision(req, request)) {
     return res.status(404).render('error', {
       title: 'Enlace no válido',
@@ -37,22 +120,47 @@ router.get('/solicitud/:id/sin-socio', (req, res) => {
 });
 
 router.post('/solicitud/:id/sin-socio', async (req, res) => {
-  const request = store.requests.find((item) => item.id === req.params.id);
+  let request = store.requests.find((item) => item.id === req.params.id);
+  if (!request) {
+    const message = 'Solicitud no encontrada.';
+    if (wantsJson(req)) return res.status(404).json({ error: message });
+    return res.status(404).render('error', { title: 'No encontrada', message, code: 404 });
+  }
+
+  // Devolución ya registrada: éxito idempotente, no error.
+  if (isAlreadyNoProviderRefund(request)) {
+    const token = String(req.body?.token || req.query?.token || '');
+    const tokenOk = Boolean(token && request.noProviderChoiceTokenHash === unassignedRequestWatcher.hashToken(token));
+    if (isNoProviderOwner(req, request) || tokenOk || !request.noProviderChoiceTokenHash) {
+      return respondAlreadyNoProvider(req, res, request, 'refund');
+    }
+  }
+
+  if (isNoProviderOwner(req, request) && request.status === 'searching' && !request.providerId) {
+    request = ensurePendingForOwner(req, request);
+  }
   if (!canOpenNoProviderDecision(req, request)) {
+    if (isNoProviderOwner(req, request) && (request.status === 'cancelled' || request.noProviderDecisionStatus === 'resolved')) {
+      return respondAlreadyNoProvider(req, res, request, request.noProviderChoice || req.body?.choice || 'refund');
+    }
     const message = 'El enlace no es válido o la solicitud ya fue respondida.';
-    if (req.accepts('json') && !req.accepts('html')) return res.status(403).json({ error: message });
+    if (wantsJson(req)) return res.status(403).json({ error: message });
     return res.status(403).render('error', { title: 'No autorizado', message, code: 403 });
   }
 
   const token = String(req.body.token || '');
+  const ownerId = isNoProviderOwner(req, request) ? req.session.user.id : null;
   const result = store.respondNoProviderChoice(req.params.id, {
-    clientId: req.session?.user?.id || null,
+    clientId: ownerId,
     tokenHash: token ? unassignedRequestWatcher.hashToken(token) : null,
     choice: req.body.choice
   });
   if (result.error) {
-    if (req.accepts('json') && !req.accepts('html')) return res.status(400).json(result);
+    if (wantsJson(req)) return res.status(400).json(result);
     return res.status(400).render('error', { title: 'No se pudo guardar', message: result.error, code: 400 });
+  }
+  if (result.already) {
+    return respondAlreadyNoProvider(req, res, result.request, result.choice);
   }
 
   const updated = result.request;
@@ -97,7 +205,7 @@ router.post('/solicitud/:id/sin-socio', async (req, res) => {
     }
   }
 
-  if (req.accepts('json') && !req.accepts('html')) {
+  if (wantsJson(req)) {
     return res.json({ success: true, choice: result.choice, request: payload.request });
   }
   res.render('client/no-provider-choice', {
@@ -119,6 +227,10 @@ router.get('/', requireRole('client'), (req, res) => {
   const profile = store.getUserById(req.session.user.id);
   const referralBonus = req.session.referralBonus;
   if (referralBonus) delete req.session.referralBonus;
+  const timeoutMinutes = Math.max(1, parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15);
+  if (typeof store.ensureStaleNoProviderChoicesForClient === 'function') {
+    store.ensureStaleNoProviderChoicesForClient(req.session.user.id, timeoutMinutes);
+  }
   res.render('client/dashboard', {
     title: 'Fundez — Servicios',
     user: req.session.user,
