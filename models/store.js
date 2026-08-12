@@ -3224,6 +3224,9 @@ function updateTechStatus(requestId, technicianId, techStatus) {
   ) {
     return { error: 'Espera la aprobación del cliente al cambio de servicio antes de continuar.' };
   }
+  if (techStatus === 'aceptado' && !request.serviceConfirmStatus) {
+    request.serviceConfirmStatus = 'pending';
+  }
   request.techStatus = techStatus;
   const map = {
     aceptado: 'assigned',
