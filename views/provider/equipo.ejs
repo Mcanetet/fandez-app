@@ -17,12 +17,50 @@
     <div class="mb-5 p-4 rounded-2xl zilo-card-premium border border-zilo-accent/15">
       <p class="zilo-label mb-1">Tu equipo</p>
       <p class="text-2xl font-bold text-zilo-accent"><%= technicians.length %></p>
-      <p class="text-xs text-zilo-muted">técnicos registrados · cada servicio activo necesita un técnico con expediente completo</p>
+      <p class="text-xs text-zilo-muted">técnicos registrados · cada servicio activo necesita un técnico listo (o actívate tú mismo abajo)</p>
     </div>
+
+    <% if (typeof ok !== 'undefined' && ok === 'self') { %>
+      <div class="mb-4 p-3 rounded-xl border border-zilo-success/30 bg-zilo-success/10 text-sm text-zilo-success">Listo: ya puedes tomar pedidos y hacer las visitas tú mismo.</div>
+    <% } %>
 
     <% if (typeof error !== 'undefined' && error) { %>
       <div class="mb-4 p-3 rounded-xl border border-zilo-danger/30 bg-zilo-danger/10 text-sm text-zilo-danger"><%= error %></div>
     <% } %>
+
+    <section class="mb-6 zilo-card-premium rounded-2xl p-5 border border-zilo-accent/20">
+      <p class="zilo-label mb-1">¿Trabajas solo?</p>
+      <h2 class="text-sm font-semibold mb-1">Yo hago el servicio</h2>
+      <p class="text-xs text-zilo-muted mb-3">Si eres el que va a los domicilios, actívalo y no necesitas crear otro técnico. Usarás tus documentos de socio ya verificados.</p>
+      <% if (typeof selfOperator !== 'undefined' && selfOperator) { %>
+        <p class="text-sm text-zilo-success font-medium mb-2">Activo · puedes tomar y ejecutar visitas</p>
+        <form method="POST" action="/proveedor/entrar-terreno" id="enterTerrainForm" class="hidden"></form>
+        <button type="button" id="btnEnterTerrain" class="w-full py-3 rounded-xl zilo-btn-ghost">Ir a mi panel de visitas</button>
+        <script>
+          document.getElementById('btnEnterTerrain')?.addEventListener('click', async () => {
+            const res = await fetch('/proveedor/entrar-terreno', { method: 'POST', headers: { Accept: 'application/json' } });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+              if (window.FundezNotify) FundezNotify.show(data.error || 'No se pudo entrar', 'error');
+              return;
+            }
+            window.location.href = '/tecnico';
+          });
+        </script>
+      <% } else if (typeof canEnableSelf !== 'undefined' && canEnableSelf) { %>
+        <form method="POST" action="/proveedor/equipo/yo-hago-servicio">
+          <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary">Activar: yo hago las visitas</button>
+        </form>
+      <% } else { %>
+        <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-2">
+          Primero completa verificación, contrato y al menos un servicio activo
+          <% if (typeof selfGateMissing !== 'undefined' && selfGateMissing.length) { %>
+            (falta: <%= selfGateMissing.join(', ') %>)
+          <% } %>.
+        </p>
+        <a href="/proveedor/perfil" class="inline-flex text-xs font-semibold text-zilo-accent">Ir a mi perfil →</a>
+      <% } %>
+    </section>
 
     <section class="mb-6 zilo-card-premium rounded-2xl p-5" id="servicesSection">
       <p class="zilo-label mb-1">Servicios de la empresa</p>
@@ -62,7 +100,7 @@
 
     <section class="mb-6 zilo-page-enter">
       <p class="zilo-label mb-2">Técnicos</p>
-      <p class="text-xs text-zilo-muted mb-4">Ingresa a cada técnico con su información y especialidades. Así podrás delegarle los pedidos desde el cuadro de mando.</p>
+      <p class="text-xs text-zilo-muted mb-4">Ingresa a cada técnico con su información y especialidades. Así podrás delegarle los pedidos desde Mis trabajos.</p>
 
       <% if (technicians.length === 0) { %>
         <div class="zilo-empty zilo-card-premium rounded-2xl">
@@ -86,7 +124,7 @@
                   <% if (techSpecs.length) { %>
                     <span class="text-[10px] text-zilo-muted truncate block mt-0.5"><%= techSpecs.join(' · ') %></span>
                   <% } %>
-                  <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %>"><%= t.dossierCheck.ok ? 'Expediente completo' : 'Expediente incompleto' %></span>
+                  <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %>"><%= t.isSelfOperator ? 'Tú · listo para visitas' : (t.dossierCheck.ok ? 'Expediente completo' : 'Expediente incompleto') %></span>
                 </div>
               </div>
               <div class="flex items-center gap-2 shrink-0">

@@ -29,6 +29,33 @@ function serializeJob(request) {
   return serializeFieldJob(store, request);
 }
 
+router.post('/volver-socio', requireRole('tecnico'), (req, res) => {
+  const linked = req.session.linkedProvider;
+  if (!linked?.id) {
+    return res.status(400).json({ success: false, error: 'No hay panel de socio vinculado.' });
+  }
+  const provider = store.getUserById(linked.id);
+  if (!provider || provider.role !== 'provider') {
+    delete req.session.linkedProvider;
+    return res.status(400).json({ success: false, error: 'Socio no encontrado.' });
+  }
+  const self = store.getSelfOperator(provider.id);
+  if (!self || self.id !== req.session.user.id) {
+    delete req.session.linkedProvider;
+    return res.status(403).json({ success: false, error: 'Sesión no válida.' });
+  }
+  delete req.session.linkedProvider;
+  req.session.user = {
+    id: provider.id,
+    email: provider.email,
+    name: provider.name,
+    role: 'provider',
+    primaryRole: 'provider',
+    clientEnabled: Boolean(provider.clientEnabled)
+  };
+  res.json({ success: true, redirect: '/proveedor' });
+});
+
 router.get('/', requireRole('tecnico'), (req, res) => {
   const tecnico = store.getUserById(req.session.user.id);
   const socio = tecnico?.parentId ? store.getUserById(tecnico.parentId) : null;
@@ -42,6 +69,7 @@ router.get('/', requireRole('tecnico'), (req, res) => {
     tecnico,
     socio,
     jobs,
+    linkedProvider: req.session.linkedProvider || null,
     techLabels: getTechLabels(req.t),
     services: store.SERVICES,
     formatCLP: store.formatCLP,

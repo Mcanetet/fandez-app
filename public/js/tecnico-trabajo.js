@@ -34,6 +34,15 @@
   if (photoStart) photoStart.addEventListener('change', () => previewFile(photoStart, document.getElementById('photoStartPreview')));
   if (photoEnd) photoEnd.addEventListener('change', () => previewFile(photoEnd, document.getElementById('photoEndPreview')));
 
+  document.querySelectorAll('.diagnosis-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('is-selected');
+      chip.classList.toggle('border-zilo-accent');
+      chip.classList.toggle('bg-zilo-accent/10');
+      chip.classList.toggle('text-zilo-accent');
+    });
+  });
+
   document.getElementById('btnTrayecto')?.addEventListener('click', async (event) => {
     const btn = event.currentTarget;
     btn.disabled = true;
@@ -129,8 +138,11 @@
 
   document.getElementById('btnLlegada')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnLlegada');
-    const diagnosis = document.getElementById('diagnosis').value.trim();
-    if (!diagnosis) return notify('Describe lo que observas', 'warning');
+    const chipEls = [...document.querySelectorAll('.diagnosis-chip.is-selected')];
+    const chipText = chipEls.map((el) => el.dataset.chip).filter(Boolean).join(', ');
+    const detail = document.getElementById('diagnosis').value.trim();
+    const diagnosis = [chipText, detail].filter(Boolean).join('. ');
+    if (!diagnosis) return notify('Elige al menos una opción o escribe un detalle', 'warning');
     btn.disabled = true;
     try {
       const photoData = await fileToBase64(photoStart);
@@ -394,7 +406,7 @@
     set('setCharged', fmt(s.grandTotal));
     set('setCardLabel', `Tarjeta y administración ${s.merchantCardFeePercent || 0}%`);
     set('setCard', `−${fmt(s.cardFee)}`);
-    set('setAppLabel', `Fee aplicación ${Math.round((s.laborCommissionRate || 0) * 100)}%`);
+    set('setAppLabel', `Comisión Fundez ${Math.round((s.laborCommissionRate || 0) * 100)}%`);
     set('setApp', `−${fmt(s.laborCommission)}`);
     if (s.materialsTotal) {
       set('setMaterialsKeep', fmt(s.materialsTotal));
@@ -405,6 +417,7 @@
     set('setIvaLabel', `IVA ${Math.round((s.ivaRate || 0) * 100)}% sobre comisión/cargos`);
     set('setIva', `−${fmt(s.ivaOnFees)}`);
     set('setPayout', fmt(s.providerPayout));
+    set('setPayoutHero', fmt(s.providerPayout));
 
     document.querySelectorAll('#trabajoPage main > section.field-step, #trabajoPage main > #fieldExtraActions').forEach((el) => {
       el.classList.add('hidden');

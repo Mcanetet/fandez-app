@@ -2326,6 +2326,11 @@ function syncTechniciansToProviderServices(socioId) {
   if (!socio || socio.role !== 'provider') return;
   const allowed = new Set(Array.isArray(socio.specialties) ? socio.specialties : []);
   for (const tecnico of getTechniciansByProvider(socioId)) {
+    if (tecnico.isSelfOperator) {
+      tecnico.specialties = [...allowed];
+      repository.persist(() => repository.saveUser(tecnico), `sync self-operator ${tecnico.id}`);
+      continue;
+    }
     const current = Array.isArray(tecnico.specialties) ? tecnico.specialties : [];
     const next = current.filter((id) => allowed.has(id));
     if (next.length !== current.length) {
@@ -2529,6 +2534,18 @@ function ensureTechnicianDossier(tecnico) {
 
 function canTechnicianOperate(tecnico) {
   if (!tecnico || tecnico.role !== 'tecnico') return { ok: false, missing: ['Técnico inválido'] };
+  if (tecnico.isSelfOperator) {
+    const parent = getUserById(tecnico.parentId || getTechnicianParentIds(tecnico)[0]);
+    if (!parent || parent.role !== 'provider') {
+      return { ok: false, missing: ['socio vinculado'], status: 'incomplete' };
+    }
+    const gate = canProviderGoOnline(parent);
+    if (!gate.ok) {
+      return { ok: false, missing: gate.missing || ['verificación del socio'], status: 'incomplete' };
+    }
+    if (tecnico.active === false) return { ok: false, missing: ['cuenta activa'], status: 'incomplete' };
+    return { ok: true, missing: [], status: 'complete' };
+  }
   const dossier = ensureTechnicianDossier(tecnico);
   const missing = [];
   if (!dossier.photo) missing.push('foto');
@@ -2538,6 +2555,92 @@ function canTechnicianOperate(tecnico) {
   if (!dossier.studyCertificates.length) missing.push('certificado de estudios');
   if (tecnico.active === false) missing.push('cuenta activa');
   return { ok: missing.length === 0, missing, status: dossier.status };
+}
+
+/** Activa el perfil «Yo hago el servicio»: el socio opera visitas sin crear otro técnico. */
+async function enableSelfOperator(providerId) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') {
+    return { error: 'Cuenta de socio no válida.' };
+  }
+  if (!Array.isArray(provider.specialties) || !provider.specialties.length) {
+    return { error: 'Activa al menos un servicio de tu empresa antes de operar tú mismo.' };
+  }
+  const gate = canProviderGoOnline(provider);
+  if (!gate.ok) {
+    return {
+      error: `Completa tu verificación y contrato para operar: ${(gate.missing || []).join(', ')}.`
+    };
+  }
+
+  let existing = getTechniciansByProvider(providerId).find((t) => t.isSelfOperator);
+  if (existing) {
+    existing.specialties = [...provider.specialties];
+    existing.active = true;
+    existing.name = provider.name;
+    existing.phone = provider.phone || existing.phone;
+    existing.avatar = provider.avatar || existing.avatar;
+    repository.persist(() => repository.saveUser(existing), `self-operator sync ${existing.id}`);
+    return { success: true, tecnico: existing, created: false };
+  }
+
+  const hashedPassword = await hashPassword(`self-${providerId}-${uuidv4()}`);
+  const email = `self.${String(providerId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 28)}@fundez.self`;
+  if (getUserByEmail(email)) {
+    return { error: 'Ya existe un perfil operativo. Recarga la página.' };
+  }
+
+  const tecnico = {
+    id: `tecnico-self-${uuidv4().slice(0, 8)}`,
+    email,
+    password: hashedPassword,
+    name: provider.name,
+    role: 'tecnico',
+    parentId: providerId,
+    parentIds: [providerId],
+    isSelfOperator: true,
+    phone: provider.phone || null,
+    specialties: [...provider.specialties],
+    rating: null,
+    reviewsCount: 0,
+    online: false,
+    avatar: provider.avatar || provider.name.split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
+    bio: 'Operador del socio (visitas propias)',
+    reviews: [],
+    verification: {
+      status: 'complete',
+      isSelfOperator: true,
+      photo: provider.verification?.selfie || null,
+      idCardFront: provider.verification?.idCardFront || null,
+      idCardBack: provider.verification?.idCardBack || null,
+      criminalRecord: 'self-operator-via-provider',
+      studyCertificates: [{ url: 'self-operator', label: 'Verificado vía contrato de socio', uploadedAt: new Date().toISOString() }],
+      otherCertificates: [],
+      updatedAt: new Date().toISOString()
+    },
+    locationShare: provider.locationShare || defaultLocationShare(),
+    active: true,
+    memberSince: new Date().toISOString().slice(0, 10),
+    emailVerifiedAt: new Date().toISOString(),
+    emailVerificationCodeHash: null,
+    emailVerificationExpiresAt: null,
+    emailVerificationSentAt: null
+  };
+
+  USERS.push(tecnico);
+  try {
+    await repository.saveUser(tecnico);
+  } catch (err) {
+    const idx = USERS.indexOf(tecnico);
+    if (idx >= 0) USERS.splice(idx, 1);
+    console.error('Error creando self-operator:', err.message);
+    return { error: 'No se pudo activar el modo. Intenta nuevamente.' };
+  }
+  return { success: true, tecnico, created: true };
+}
+
+function getSelfOperator(providerId) {
+  return getTechniciansByProvider(providerId).find((t) => t.isSelfOperator && t.active !== false) || null;
 }
 
 function saveTechnicianDocument(socioId, tecnicoId, type, url, label) {
@@ -3049,12 +3152,22 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
     request.technicianName = tecnico.name;
     request.technicianPhone = tecnico.phone || null;
     request.technicianAssignedAt = new Date().toISOString();
-    request.techStatus = 'asignado';
     request.serviceConfirmStatus = 'pending';
     request.serviceConfirmedAt = null;
     request.serviceConfirmMode = null;
     request.awaitingProviderReassign = false;
     bumpProviderCounter(user.id, 'jobsTakenCount', 1);
+
+    if (tecnico.isSelfOperator) {
+      // El socio opera la visita: acepta al instante (sin espera de 10 min).
+      request.techStatus = 'aceptado';
+      request.etaMinutesMin = 45;
+      request.etaMinutesMax = 90;
+      request.etaLabel = formatEtaRangeLabel(45, 90, 'es');
+      request.etaDeclaredAt = new Date().toISOString();
+    } else {
+      request.techStatus = 'asignado';
+    }
   } else if (user.role === 'tecnico') {
     if (!Array.isArray(user.specialties) || !user.specialties.includes(request.serviceId)) {
       return { error: 'No tienes esta especialidad' };
@@ -3098,12 +3211,13 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
   }
 
   ensureRequestChat(request);
-  if (user.role === 'tecnico') {
+  const selfOp = user.role === 'provider' && getUserById(request.technicianId)?.isSelfOperator;
+  if (user.role === 'tecnico' || selfOp) {
     acceptChatMessage = appendChatMessage(request, {
       senderType: 'system',
       senderId: null,
       senderName: 'Fundez',
-      body: `${user.name} ha tomado tu pedido. Su hora de llegada estimada es de ${request.etaLabel}.`
+      body: `${request.technicianName || user.name} ha tomado tu pedido. Su hora de llegada estimada es de ${request.etaLabel}.`
     });
   } else {
     acceptChatMessage = appendChatMessage(request, {
@@ -3119,7 +3233,12 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
     ev.onProviderAssigned(request);
     if (request.technicianId) ev.onTechnicianAssigned(request);
   });
-  return { success: true, request, chatMessage: acceptChatMessage };
+  return {
+    success: true,
+    request,
+    chatMessage: acceptChatMessage,
+    selfOperator: Boolean(selfOp)
+  };
 }
 
 function setTechnicianEta(requestId, technicianId, { etaMinutesMin, etaMinutesMax } = {}) {
@@ -3584,9 +3703,10 @@ function getEligibleTechniciansForProvider(providerId, serviceId) {
     .filter((t) => !serviceId || (Array.isArray(t.specialties) && t.specialties.includes(serviceId)))
     .map((t) => ({
       id: t.id,
-      name: t.name,
+      name: t.isSelfOperator ? `${t.name} (tú)` : t.name,
       phone: t.phone || null,
-      specialties: t.specialties || []
+      specialties: t.specialties || [],
+      isSelfOperator: Boolean(t.isSelfOperator)
     }));
 }
 
@@ -5163,6 +5283,8 @@ module.exports = {
   changeUserPassword,
   registerUser,
   createTechnician,
+  enableSelfOperator,
+  getSelfOperator,
   getTechniciansByProvider,
   linkTechnicianToProvider,
   technicianBelongsToProvider,

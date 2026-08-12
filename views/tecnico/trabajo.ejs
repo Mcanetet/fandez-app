@@ -135,47 +135,52 @@
 
     <section id="stepConfirmarServicio" data-wizard-panel="confirmar" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'confirmar' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Antes de ir</p>
-      <h2 class="text-sm font-semibold mb-1">Confirma el servicio pedido</h2>
+      <h2 class="text-sm font-semibold mb-1">¿Es el mismo trabajo?</h2>
       <p class="text-xs text-zilo-muted mb-3">
-        Solicitado: <strong><%= request.activityName || request.serviceName %></strong>.
-        Debes confirmar que es el mismo trabajo o proponer un cambio para que el cliente apruebe.
+        Pedido: <strong><%= request.activityName || request.serviceName %></strong>.
+        Si coincide, sigue. Solo cambia si viste otra cosa en el lugar.
       </p>
       <div class="space-y-2">
-        <button type="button" id="btnConfirmServiceSame" class="w-full py-3 rounded-xl zilo-btn-primary">Es el mismo servicio</button>
-        <button type="button" id="btnShowServiceChange" class="w-full py-3 rounded-xl zilo-btn-ghost">Proponer modificación</button>
+        <button type="button" id="btnConfirmServiceSame" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Sí, es el mismo trabajo</button>
+        <button type="button" id="btnShowServiceChange" class="w-full py-3 rounded-xl zilo-btn-ghost text-sm">No coincide — proponer cambio</button>
       </div>
     </section>
 
     <section id="stepTrayecto" data-wizard-panel="trayecto" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'trayecto' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Trayecto</p>
-      <h2 class="text-sm font-semibold mb-2"><%= request.techStatus === 'aceptado' ? '¿Listo para ir al domicilio?' : 'Confirma al llegar' %></h2>
-      <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'El cliente verá que vas en camino y tu ubicación en vivo.' : 'Confirma únicamente cuando estés en el lugar.' %></p>
+      <h2 class="text-sm font-semibold mb-2"><%= request.techStatus === 'aceptado' ? '¿Listo para ir?' : '¿Ya estás en la puerta?' %></h2>
+      <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'El cliente verá que vas en camino y tu ubicación.' : 'Confirma solo cuando estés en el domicilio.' %></p>
       <% if (request.coords && request.coords.lat != null && request.techStatus === 'aceptado') { %>
         <a href="https://www.google.com/maps/dir/?api=1&destination=<%= request.coords.lat %>,<%= request.coords.lng %>"
           target="_blank" rel="noopener"
           class="block w-full mb-2 py-3 rounded-xl zilo-btn-ghost text-center !text-sm">Abrir en Google Maps</a>
       <% } %>
       <button type="button" id="btnTrayecto" data-next-status="<%= request.techStatus === 'aceptado' ? 'en_camino' : 'en_sitio' %>"
-        class="w-full py-3 rounded-xl zilo-btn-primary"><%= request.techStatus === 'aceptado' ? 'Iniciar viaje' : 'Ya llegué' %></button>
+        class="w-full py-4 rounded-xl zilo-btn-primary text-base"><%= request.techStatus === 'aceptado' ? 'Salí hacia el cliente' : 'Ya estoy en la puerta' %></button>
     </section>
 
     <!-- Paso 1: Llegada -->
     <section id="stepLlegada" data-wizard-panel="llegada" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'llegada' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Ahora · Llegada</p>
-      <h2 class="text-sm font-semibold mb-3">Registra lo que observas</h2>
+      <h2 class="text-sm font-semibold mb-3">¿Qué ves?</h2>
       <div class="space-y-3">
         <div>
-          <label class="text-xs text-zilo-muted">Diagnóstico y observaciones *</label>
-          <textarea id="diagnosis" rows="4" class="zilo-input w-full mt-1 resize-none" placeholder="Describe el problema, estado del equipo, lo que necesitas..."></textarea>
+          <label class="text-xs text-zilo-muted mb-2 block">Elige lo que describe el problema (puedes marcar varios)</label>
+          <div class="flex flex-wrap gap-2" id="diagnosisChips">
+            <% ['No enciende', 'Fuga / goteo', 'Hace ruido', 'No enfría / no calienta', 'Olor a gas / quemado', 'Se cayó / golpe', 'Otro'].forEach(function(chip) { %>
+              <button type="button" class="diagnosis-chip px-3 py-2 rounded-xl border border-zilo-border text-xs font-medium text-zilo-text" data-chip="<%= chip %>"><%= chip %></button>
+            <% }); %>
+          </div>
+          <textarea id="diagnosis" rows="2" class="zilo-input w-full mt-3 resize-none" placeholder="Detalle opcional (marca, modelo, qué probaste…)"></textarea>
         </div>
         <div>
-          <label class="text-xs text-zilo-muted">Foto inicial de la visita *</label>
+          <label class="text-xs text-zilo-muted">Foto de llegada *</label>
           <input type="file" id="photoStart" accept="image/*" capture="environment" class="mt-1 block w-full text-xs text-zilo-muted file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent file:text-xs file:font-medium">
           <div id="photoStartPreview" class="hidden mt-2">
             <img src="" alt="Vista previa" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
           </div>
         </div>
-        <button type="button" id="btnLlegada" class="w-full py-3 rounded-xl zilo-btn-primary">Confirmar llegada</button>
+        <button type="button" id="btnLlegada" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Confirmar llegada</button>
       </div>
     </section>
 
@@ -231,19 +236,19 @@
     <!-- Paso 2: Acción -->
     <section id="stepAccion" data-wizard-panel="accion" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'accion' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Ahora · Decisión</p>
-      <h2 class="text-sm font-semibold mb-3">¿Qué harás ahora?</h2>
+      <h2 class="text-sm font-semibold mb-3">¿Puedes reparar ahora?</h2>
       <div class="grid gap-2">
-        <button type="button" class="action-btn py-3 px-4 rounded-xl zilo-btn-primary !text-sm text-left" data-action="reparar">
-          <strong class="block">Reparar ahora</strong>
-          <span class="text-xs opacity-80">Tienes lo necesario para resolver</span>
+        <button type="button" class="action-btn py-4 px-4 rounded-xl zilo-btn-primary !text-sm text-left" data-action="reparar">
+          <strong class="block text-base">Sí, reparo ahora</strong>
+          <span class="text-xs opacity-80">Tengo lo necesario</span>
         </button>
-        <button type="button" class="action-btn py-3 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="comprar">
-          <strong class="block">Ir a comprar materiales</strong>
-          <span class="text-xs text-zilo-muted">Necesitas repuestos o insumos</span>
+        <button type="button" class="action-btn py-3.5 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="comprar">
+          <strong class="block">Necesito materiales</strong>
+          <span class="text-xs text-zilo-muted">Voy a comprar o uso stock</span>
         </button>
-        <button type="button" class="action-btn py-3 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="presupuesto">
-          <strong class="block">Generar presupuesto</strong>
-          <span class="text-xs text-zilo-muted">El trabajo es muy costoso, requiere aprobación</span>
+        <button type="button" class="action-btn py-3.5 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="presupuesto">
+          <strong class="block">Debo cotizar</strong>
+          <span class="text-xs text-zilo-muted">El cliente debe aprobar el monto</span>
         </button>
       </div>
     </section>
@@ -377,45 +382,49 @@
           </div>
         </div>
         <button type="button" id="btnBackToMaterials" class="<%= request.techStatus === 'comprando' || request.techStatus === 'reparando' || request.techStatus === 'presupuesto_aprobado' ? '' : 'hidden' %> w-full py-2.5 rounded-xl zilo-btn-ghost !text-xs">Volver a materiales</button>
-        <button type="button" id="btnCompletar" class="w-full py-3 rounded-xl zilo-btn-primary">Completar visita</button>
+        <button type="button" id="btnCompletar" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Trabajo listo</button>
       </div>
     </section>
 
     <!-- Liquidación final: total cobrado y desglose con porcentajes -->
     <section id="settlementResult" class="zilo-card-premium rounded-2xl p-5 hidden">
       <p class="zilo-label mb-1">Visita completada</p>
-      <h2 class="text-sm font-semibold mb-3">Liquidación del servicio</h2>
-      <div class="space-y-1.5 text-sm">
-        <div class="flex justify-between">
-          <span class="text-zilo-muted">Total cobrado al cliente</span>
-          <strong id="setCharged">—</strong>
+      <h2 class="text-sm font-semibold mb-1">Tu ganancia</h2>
+      <p class="text-2xl font-bold text-zilo-success mb-3" id="setPayoutHero">—</p>
+      <details class="mb-3">
+        <summary class="text-xs text-zilo-muted cursor-pointer">Ver detalle de comisión</summary>
+        <div class="space-y-1.5 text-sm mt-3">
+          <div class="flex justify-between">
+            <span class="text-zilo-muted">Total cobrado al cliente</span>
+            <strong id="setCharged">—</strong>
+          </div>
+          <div class="flex justify-between text-zilo-muted">
+            <span id="setCardLabel">Tarjeta y administración 5%</span>
+            <span id="setCard">—</span>
+          </div>
+          <div class="flex justify-between text-zilo-muted">
+            <span id="setAppLabel">Comisión Fundez 20%</span>
+            <span id="setApp">—</span>
+          </div>
+          <div class="flex justify-between text-zilo-success" id="setMaterialsKeepRow">
+            <span>Materiales (100% tuyos)</span>
+            <span id="setMaterialsKeep">—</span>
+          </div>
+          <div class="flex justify-between text-zilo-muted hidden" id="setMaterialsRow">
+            <span>Comisión materiales</span>
+            <span id="setMaterials">—</span>
+          </div>
+          <div class="flex justify-between text-zilo-muted">
+            <span id="setIvaLabel">IVA sobre comisión/cargos</span>
+            <span id="setIva">—</span>
+          </div>
+          <div class="flex justify-between pt-2 mt-1 border-t border-zilo-border">
+            <span class="font-medium">Tu neto</span>
+            <strong class="text-zilo-success" id="setPayout">—</strong>
+          </div>
         </div>
-        <div class="flex justify-between text-zilo-muted">
-          <span id="setCardLabel">Tarjeta y administración 5%</span>
-          <span id="setCard">—</span>
-        </div>
-        <div class="flex justify-between text-zilo-muted">
-          <span id="setAppLabel">Fee aplicación 20%</span>
-          <span id="setApp">—</span>
-        </div>
-        <div class="flex justify-between text-zilo-success" id="setMaterialsKeepRow">
-          <span>Materiales (100% tuyos)</span>
-          <span id="setMaterialsKeep">—</span>
-        </div>
-        <div class="flex justify-between text-zilo-muted hidden" id="setMaterialsRow">
-          <span>Comisión materiales</span>
-          <span id="setMaterials">—</span>
-        </div>
-        <div class="flex justify-between text-zilo-muted">
-          <span id="setIvaLabel">IVA sobre comisión/cargos</span>
-          <span id="setIva">—</span>
-        </div>
-        <div class="flex justify-between pt-2 mt-1 border-t border-zilo-border">
-          <span class="font-medium">Tu neto</span>
-          <strong class="text-zilo-success" id="setPayout">—</strong>
-        </div>
-        <p class="text-[11px] text-zilo-muted/80 mt-1">Del cobro de mano de obra: 5% tarjeta/admin y 20% fee app son de Fundez; el resto es tuyo. Los materiales no entran en ese porcentaje.</p>
-      </div>
+      </details>
+      <p class="text-[11px] text-zilo-muted/80">De la mano de obra: 5% tarjeta/admin y 20% comisión Fundez. Los materiales son 100% tuyos.</p>
       <a href="<%= typeof returnUrl !== 'undefined' ? returnUrl : '/tecnico' %>" class="mt-4 block w-full text-center py-3 rounded-xl zilo-btn-primary">Volver al panel</a>
     </section>
   </main>

@@ -13,6 +13,9 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
+        <% if (typeof linkedProvider !== 'undefined' && linkedProvider) { %>
+        <button type="button" id="btnBackToProvider" class="zilo-btn-ghost !py-2 !px-3 !text-xs">Volver a socio</button>
+        <% } %>
         <%- include('../partials/lang-switcher') %>
         <a href="/logout" class="zilo-icon-btn" title="<%= t('common.logout') %>">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
@@ -117,10 +120,10 @@
   role: 'tecnico',
   title: 'Procedimiento de atención Fundez',
   steps: [
-    { title: 'Disponibilidad', body: 'Activa el modo en línea para ver el muro. Sin estar en línea no recibes trabajos nuevos.', tip: 'Activa notificaciones del navegador (sonido y vibración).' },
+    { title: 'Disponibilidad', body: 'Activa el modo en línea para ver trabajos disponibles. Sin estar en línea no recibes pedidos nuevos.', tip: 'Activa notificaciones del navegador (sonido y vibración).' },
     { title: 'Tomar un trabajo', body: 'Revisa dirección, notas y fotos del cliente. El primero que acepta se queda con el servicio.', tip: 'No aceptes si no puedes llegar a tiempo.' },
-    { title: 'En domicilio (nivel europeo)', body: 'Puntualidad · Presentación con nombre y Fundez · Permiso de ingreso · Explicar diagnóstico · Aprobación antes de sobrecosto · Foto inicio/fin · Limpieza · Despedida y pedir calificación.', tip: 'Usa el checklist en la pantalla de la visita.' },
-    { title: 'Estados', body: 'En camino → En sitio → Diagnóstico → presupuesto si aplica → Completar. Cada cambio informa al cliente vía Aland IA.', tip: 'Nunca cobres extras sin aprobación en la app.' }
+    { title: 'En el domicilio', body: 'Saluda con tu nombre · Pide permiso de ingreso · Explica lo que ves · Pide aprobación antes de un sobrecosto · Foto al llegar y al terminar · Deja limpio.', tip: 'Usa el checklist en la pantalla de la visita.' },
+    { title: 'Estados', body: 'En camino → En la puerta → Diagnóstico → presupuesto si aplica → Trabajo listo. Cada cambio avisa al cliente.', tip: 'Nunca cobres extras sin aprobación en la app.' }
   ],
   extras: [
     { title: 'Sin sesgos', body: 'Trata cada caso por los hechos. No asumas capacidad de pago ni urgencias inventadas.' },
@@ -133,3 +136,16 @@
 <%- include('../partials/footer', { pageScript: '/js/tecnico.js' }) %>
 <script src="/js/guide.js"></script>
 <script src="/js/map.js"></script>
+<% if (typeof linkedProvider !== 'undefined' && linkedProvider) { %>
+<script>
+  document.getElementById('btnBackToProvider')?.addEventListener('click', async () => {
+    const res = await fetch('/tecnico/volver-socio', { method: 'POST', headers: { Accept: 'application/json' } });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      if (window.FundezNotify) FundezNotify.show(data.error || 'No se pudo volver', 'error');
+      return;
+    }
+    window.location.href = data.redirect || '/proveedor';
+  });
+</script>
+<% } %>

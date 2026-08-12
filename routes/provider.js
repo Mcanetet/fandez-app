@@ -22,6 +22,27 @@ const { CONSENT_DEFINITIONS, POLICY_VERSION } = require('../lib/consent-policy')
 const { serializeFieldJob } = require('../lib/fieldJob');
 const { ATTENTION_CHECKLIST } = require('../lib/onboarding');
 
+function equipoViewLocals(req, provider, extra = {}) {
+  const onlineGate = store.canProviderGoOnline(provider);
+  return {
+    title: 'Mi equipo — Fundez',
+    user: req.session.user,
+    provider,
+    technicians: store.getTechniciansByProvider(provider.id).map((tecnico) => ({
+      ...tecnico,
+      dossierCheck: store.canTechnicianOperate(tecnico)
+    })),
+    selfOperator: store.getSelfOperator(provider.id),
+    canEnableSelf: onlineGate.ok && Array.isArray(provider.specialties) && provider.specialties.length > 0,
+    selfGateMissing: onlineGate.missing || [],
+    services: store.SERVICES,
+    serviceStatus: store.getProviderServicesStatus(provider.id),
+    error: null,
+    ok: null,
+    ...extra
+  };
+}
+
 router.use(requireRole('provider'), requireVerifiedEmail);
 
 router.get('/mensajes', requireRole('provider'), requireModule('provider_mensajes'), (req, res) => {
@@ -139,7 +160,12 @@ router.post('/accept/:requestId', requireRole('provider'), requireModule('provid
     io.to(providerSocket).emit('provider_job_update', payload);
   }
 
-  res.json({ success: true, request: store.enrichRequestForProvider(request, req.locale) });
+  res.json({
+    success: true,
+    request: store.enrichRequestForProvider(request, req.locale),
+    selfOperator: Boolean(result.selfOperator),
+    technicianId: request.technicianId
+  });
 });
 
 router.get('/tecnicos-elegibles', requireRole('provider'), (req, res) => {
@@ -360,20 +386,39 @@ router.post('/ubicacion', requireRole('provider'), requireModule('provider_ubica
 
 router.get('/equipo', requireRole('provider'), requireModule('provider_equipo'), (req, res) => {
   const provider = store.getUserById(req.session.user.id);
-  const technicians = store.getTechniciansByProvider(provider.id).map((tecnico) => ({
-    ...tecnico,
-    dossierCheck: store.canTechnicianOperate(tecnico)
-  }));
-  res.render('provider/equipo', {
-    title: 'Mi equipo — Fundez',
-    user: req.session.user,
-    provider,
-    technicians,
-    services: store.SERVICES,
-    serviceStatus: store.getProviderServicesStatus(provider.id),
-    error: null,
-    ok: null
-  });
+  res.render('provider/equipo', equipoViewLocals(req, provider, { ok: req.query.ok || null }));
+});
+
+router.post('/equipo/yo-hago-servicio', requireRole('provider'), requireModule('provider_equipo'), async (req, res) => {
+  const result = await store.enableSelfOperator(req.session.user.id);
+  if (result.error) {
+    const provider = store.getUserById(req.session.user.id);
+    return res.status(400).render('provider/equipo', equipoViewLocals(req, provider, { error: result.error }));
+  }
+  store.logSecurityEvent('self_operator_enabled', result.tecnico.id, req);
+  res.redirect('/proveedor/equipo?ok=self');
+});
+
+router.post('/entrar-terreno', requireRole('provider'), (req, res) => {
+  const provider = store.getUserById(req.session.user.id);
+  const self = store.getSelfOperator(provider.id);
+  if (!self) {
+    return res.status(400).json({ success: false, error: 'Activa «Yo hago el servicio» en Mi equipo.' });
+  }
+  req.session.linkedProvider = {
+    id: provider.id,
+    name: provider.name,
+    email: provider.email,
+    role: 'provider'
+  };
+  req.session.user = {
+    id: self.id,
+    name: self.name,
+    email: self.email,
+    role: 'tecnico',
+    avatar: self.avatar
+  };
+  res.json({ success: true, technicianId: self.id });
 });
 
 router.get('/equipo/:id/expediente', requireRole('provider'), requireModule('provider_equipo'), (req, res) => {
@@ -444,18 +489,7 @@ router.post('/equipo/vincular', requireRole('provider'), requireModule('provider
   });
   if (result.error) {
     const provider = store.getUserById(req.session.user.id);
-    return res.status(400).render('provider/equipo', {
-      title: 'Servicios y equipo — Fundez',
-      user: req.session.user,
-      provider,
-      technicians: store.getTechniciansByProvider(provider.id).map((tecnico) => ({
-        ...tecnico,
-        dossierCheck: store.canTechnicianOperate(tecnico)
-      })),
-      serviceStatus: store.getProviderServicesStatus(provider.id),
-      services: store.SERVICES,
-      error: result.error
-    });
+    return res.status(400).render('provider/equipo', equipoViewLocals(req, provider, { error: result.error }));
   }
   store.logSecurityEvent('tecnico_vinculado', result.tecnico.email, req);
   res.redirect('/proveedor/equipo');
@@ -473,19 +507,7 @@ router.post('/equipo', requireRole('provider'), requireModule('provider_equipo')
     const isJson = req.xhr || (req.get('accept') || '').includes('application/json');
     if (isJson) return res.status(400).json({ success: false, error: result.error });
     const provider = store.getUserById(req.session.user.id);
-    return res.status(400).render('provider/equipo', {
-      title: 'Mi equipo — Fundez',
-      user: req.session.user,
-      provider,
-      technicians: store.getTechniciansByProvider(provider.id).map((tecnico) => ({
-        ...tecnico,
-        dossierCheck: store.canTechnicianOperate(tecnico)
-      })),
-      services: store.SERVICES,
-      serviceStatus: store.getProviderServicesStatus(provider.id),
-      error: result.error,
-      ok: null
-    });
+    return res.status(400).render('provider/equipo', equipoViewLocals(req, provider, { error: result.error }));
   }
 
   store.logSecurityEvent('tecnico_creado', result.tecnico.email, req);
@@ -528,7 +550,7 @@ router.get('/mando', requireRole('provider'), requireModule('provider_mando'), (
   const active = store.getActiveRequestsForProvider(provider.id, req.locale);
 
   res.render('provider/mando', {
-    title: 'Cuadro de mando — Fundez',
+    title: 'Mis trabajos — Fundez',
     user: req.session.user,
     provider,
     technicians,

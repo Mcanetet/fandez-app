@@ -391,9 +391,12 @@
     const data = await res.json().catch(() => ({}));
     const techs = data.technicians || [];
     if (!techs.length) {
-      FundezNotify.show('No tienes técnicos elegibles para este servicio. Agrégalos en Mi equipo.', 'warning');
+      FundezNotify.show('No tienes técnicos listos para este servicio. Activa «Yo hago el servicio» o agrega un técnico en Mi equipo.', 'warning');
       return null;
     }
+    if (techs.length === 1) return techs[0].id;
+    // Preferir "tú" primero en la lista
+    techs.sort((a, b) => Number(Boolean(b.isSelfOperator)) - Number(Boolean(a.isSelfOperator)));
     return new Promise((resolve) => {
       const existing = document.getElementById('providerTechModal');
       if (existing) existing.remove();
@@ -403,8 +406,8 @@
       modal.innerHTML = `
         <div class="w-full max-w-md rounded-2xl bg-zilo-surface border border-zilo-border p-5 shadow-xl">
           <p class="text-xs font-semibold text-zilo-accent mb-1">Al tomar el pedido</p>
-          <h3 class="text-base font-semibold mb-1">Asigna un técnico ahora</h3>
-          <p class="text-xs text-zilo-muted mb-4">Tendrá 10 minutos para aceptar. Si no responde, el pedido vuelve a ti.</p>
+          <h3 class="text-base font-semibold mb-1">¿Quién va a la visita?</h3>
+          <p class="text-xs text-zilo-muted mb-4">Si eliges a otra persona, tendrá 10 minutos para aceptar. Si vas tú, entras directo a la visita.</p>
           <div class="space-y-2" data-role="tech-options"></div>
           <button type="button" data-role="tech-cancel" class="mt-3 w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm">Cancelar</button>
         </div>`;
@@ -455,6 +458,22 @@
 
     removeWallItem(requestId);
     closeModal();
+
+    if (data.selfOperator) {
+      FundezNotify.show('Pedido tomado. Entrando a la visita…', 'success');
+      try {
+        const enter = await fetch('/proveedor/entrar-terreno', {
+          method: 'POST',
+          headers: { Accept: 'application/json' }
+        });
+        const enterData = await enter.json().catch(() => ({}));
+        if (enter.ok && enterData.success) {
+          window.location.href = `/tecnico/trabajo/${encodeURIComponent(requestId)}`;
+          return;
+        }
+      } catch (_) { /* fall through */ }
+    }
+
     activeRequestId = requestId;
     startLocationWatch();
     FundezNotify.show(t('provider.js.job_taken_chat'), 'success');

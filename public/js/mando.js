@@ -140,7 +140,7 @@
 
   document.querySelectorAll('[data-role="desert-btn"]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      if (!confirm('¿Desertar este pedido? Volverá a búsqueda para otros socios y sumará a tu tasa de deserción.')) return;
+      if (!confirm('¿Liberar este pedido? Volverá a búsqueda para otros socios y sumará a tu tasa de liberación.')) return;
       btn.disabled = true;
       try {
         const res = await fetch(`/proveedor/desertar/${btn.dataset.id}`, {
@@ -149,12 +149,12 @@
           body: '{}'
         });
         const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo desertar');
+        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo liberar');
         notify('Pedido liberado. El cliente sigue en búsqueda.', 'info');
         setTimeout(() => location.reload(), 800);
       } catch (err) {
         btn.disabled = false;
-        notify(err.message || 'No se pudo desertar', 'error');
+        notify(err.message || 'No se pudo liberar', 'error');
       }
     });
   });

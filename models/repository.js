@@ -37,7 +37,7 @@ const SEED_MODULES = [
   { id: 'provider_online', audience: 'provider', name: 'Modo en línea', description: 'Activar disponibilidad para recibir trabajos', sortOrder: 1, enabled: true },
   { id: 'provider_aceptar', audience: 'provider', name: 'Aceptar solicitudes', description: 'Modal de nuevas solicitudes entrantes', sortOrder: 2, enabled: true },
   { id: 'provider_equipo', audience: 'provider', name: 'Gestión de técnicos', description: 'Crear y administrar subusuarios técnicos', sortOrder: 3, enabled: true },
-  { id: 'provider_mando', audience: 'provider', name: 'Cuadro de mando', description: 'Asignar trabajos y hacer seguimiento', sortOrder: 4, enabled: true },
+  { id: 'provider_mando', audience: 'provider', name: 'Mis trabajos', description: 'Asigna pedidos y sigue tus visitas', sortOrder: 4, enabled: true },
   { id: 'provider_verificacion', audience: 'provider', name: 'Verificación KYC', description: 'Carnet, selfie y consentimiento de ubicación', sortOrder: 5, enabled: true },
   { id: 'provider_ubicacion', audience: 'provider', name: 'Ubicación en tiempo real', description: 'Compartir GPS durante el servicio', sortOrder: 6, enabled: true },
   { id: 'provider_perfil', audience: 'provider', name: 'Perfil público', description: 'Editar datos visibles para clientes', sortOrder: 7, enabled: true },
@@ -369,6 +369,10 @@ function rowToUser(row) {
     user.locationShare = parseJson(row.location_share, defaultLocationShare());
     if (row.role === 'provider') {
       user.providerContract = normalizeProviderContract(parseJson(row.provider_contract, null));
+    }
+    if (row.role === 'tecnico') {
+      user.isSelfOperator = Boolean(user.verification?.isSelfOperator)
+        || String(user.email || '').endsWith('@fundez.self');
     }
   }
 
