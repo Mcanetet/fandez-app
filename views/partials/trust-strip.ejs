@@ -1,24 +1,25 @@
 <% const stats = typeof trustStats !== 'undefined' ? trustStats : {}; %>
-<div class="trust-strip" role="region" aria-label="Garantías Fundez">
+<% const numLocale = (typeof locale !== 'undefined' && locale === 'en') ? 'en-US' : 'es-CL'; %>
+<div class="trust-strip" role="region" aria-label="<%= t('trust.aria') %>">
   <div class="trust-strip-item">
     <%- include('ui-icon', { name: 'shield', size: 18, className: 'trust-strip-icon' }) %>
     <div>
-      <strong>Técnicos verificados</strong>
-      <span><%= stats.verifiedProviders || '100' %>% identidad confirmada</span>
+      <strong><%= t('trust.verified_title') %></strong>
+      <span><%= t('trust.verified_sub', { percent: stats.verifiedProviders || '100' }) %></span>
     </div>
   </div>
   <div class="trust-strip-item">
     <%- include('ui-icon', { name: 'star', size: 18, className: 'trust-strip-icon' }) %>
     <div>
-      <strong><%= stats.avgRating || '4.9' %> promedio</strong>
-      <span><%= stats.completedServices ? stats.completedServices.toLocaleString('es-CL') + '+' : '1.200+' %> servicios</span>
+      <strong><%= t('trust.rating_title', { rating: stats.avgRating || '4.9' }) %></strong>
+      <span><%= t('trust.rating_sub', { count: stats.completedServices ? Number(stats.completedServices).toLocaleString(numLocale) + '+' : '1.200+' }) %></span>
     </div>
   </div>
   <div class="trust-strip-item">
     <%- include('ui-icon', { name: 'bolt', size: 18, className: 'trust-strip-icon' }) %>
     <div>
-      <strong>Asignación <%= stats.responseTime || '~45 min' %></strong>
-      <span>Santiago y alrededores</span>
+      <strong><%= t('trust.eta_title', { time: stats.responseTime || '~45 min' }) %></strong>
+      <span><%= t('trust.eta_sub') %></span>
     </div>
   </div>
 </div>

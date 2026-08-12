@@ -921,9 +921,14 @@ function getHomePassport(clientId) {
   entries.slice(0, 8).forEach(e => { healthScore += e.healthImpact || 5; });
   healthScore = Math.min(100, healthScore);
 
-  const level = healthScore >= 85 ? 'Excelente'
-    : healthScore >= 70 ? 'Muy bueno'
-    : healthScore >= 55 ? 'Regular'
+  const levelKey = healthScore >= 85 ? 'excellent'
+    : healthScore >= 70 ? 'very_good'
+    : healthScore >= 55 ? 'fair'
+    : 'needs_attention';
+
+  const level = levelKey === 'excellent' ? 'Excelente'
+    : levelKey === 'very_good' ? 'Muy bueno'
+    : levelKey === 'fair' ? 'Regular'
     : 'Necesita atención';
 
   const monthsSinceLast = entries.length
@@ -934,11 +939,13 @@ function getHomePassport(clientId) {
     address,
     healthScore,
     level,
+    levelKey,
     entries,
     monthsSinceLast,
     recommendation: healthScore < 70
       ? 'Te recomendamos una revisión preventiva de instalaciones este trimestre.'
-      : 'Tu hogar está bien mantenido. Sigue registrando cada servicio en tu Pasaporte.'
+      : 'Tu hogar está bien mantenido. Sigue registrando cada servicio en tu Pasaporte.',
+    recommendationKey: healthScore < 70 ? 'preventive' : 'maintained'
   };
 }
 
@@ -4340,8 +4347,35 @@ function getRequestStatusLabel(request, locale = 'es') {
   if (request.techStatus === 'presupuesto_pendiente') {
     return translate(locale, 'status.tech.presupuesto_pendiente');
   }
+  if (request.techStatus === 'presupuesto_aprobado') {
+    return translate(locale, 'status.tech.presupuesto_aprobado');
+  }
+  if (request.techStatus === 'reparando') return translate(locale, 'status.tech.reparando');
+  if (request.techStatus === 'comprando' || request.techStatus === 'comprando_materiales') {
+    return translate(locale, 'status.tech.comprando');
+  }
+  if (request.techStatus === 'aceptado') {
+    const name = request.technicianName || translate(locale, 'client.request.technician');
+    const eta = request.etaLabel || translate(locale, 'client.request.eta_pending');
+    return translate(locale, 'client.request.accepted_eta', { name, eta });
+  }
+  if (request.techStatus === 'asignado') {
+    return translate(locale, 'client.request.awaiting_accept');
+  }
+  if (request.status === 'searching') return translate(locale, 'client.request.searching');
+  if (request.status === 'scheduled') return translate(locale, 'status.request.scheduled');
+  if (request.etaLabel && ['assigned', 'in_progress'].includes(request.status)) {
+    return translate(locale, 'client.request.eta_label', { eta: request.etaLabel });
+  }
   const key = REQUEST_STATUS_LABELS[request.status];
   return key ? translate(locale, key) : request.status;
+}
+
+function localizeServiceName(serviceId, fallback, locale = 'es') {
+  if (!serviceId) return fallback || '—';
+  const key = `services.${serviceId}.name`;
+  const localized = translate(locale, key);
+  return !localized || localized === key ? (fallback || serviceId) : localized;
 }
 
 function enrichRequestForClient(request, locale = 'es') {
@@ -4358,6 +4392,7 @@ function enrichRequestForClient(request, locale = 'es') {
     : null;
   return {
     ...request,
+    serviceName: localizeServiceName(request.serviceId, request.serviceName, locale),
     statusLabel: getRequestStatusLabel(request, locale),
     clientTotals: clientTotals.completed ? clientTotals : null,
     providerInvoicePlan,

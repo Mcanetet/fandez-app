@@ -6,14 +6,14 @@
       </svg>
     </div>
     <div class="flex-1 min-w-0">
-      <p class="zilo-label mb-1">Guía de uso</p>
+      <p class="zilo-label mb-1"><%= typeof title !== 'undefined' && title ? title : t('client.guide.card_title') %></p>
       <p class="text-sm text-zilo-muted leading-relaxed mb-3"><%= summary %></p>
       <button type="button" data-open-guide class="text-sm font-medium text-zilo-accent hover:text-zilo-accent-soft transition inline-flex items-center gap-1">
-        <%= linkText || 'Ver instrucciones completas' %>
+        <%= linkText || t('client.guide.link') %>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
       </button>
       <button type="button" data-restart-tour class="text-sm font-medium text-zilo-muted hover:text-zilo-accent transition inline-flex items-center gap-1 mt-2 block">
-        Ver tour guiado paso a paso
+        <%= t('client.guide.tour_link') %>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
     </div>

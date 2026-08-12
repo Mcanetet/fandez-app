@@ -238,7 +238,7 @@ router.get('/', requireRole('client'), (req, res) => {
     ? store.getClientAttentionItems(req.session.user.id)
     : [];
   res.render('client/dashboard', {
-    title: 'Fundez — Servicios',
+    title: req.t('client.dashboard.page_title'),
     user: req.session.user,
     profile,
     services: localizeServices(store.getActiveServices(), req.t),
@@ -255,7 +255,7 @@ router.get('/', requireRole('client'), (req, res) => {
     lastCompleted: store.getLastCompletedRequest(req.session.user.id, req.locale),
     trustStats: store.getClientTrustStats(),
     showOnboarding: store.needsOnboarding(profile),
-    onboardingSteps: getClientOnboardingSteps(),
+    onboardingSteps: getClientOnboardingSteps(req.t),
     onboardingCompleteUrl: '/cliente/onboarding/complete'
   });
 });

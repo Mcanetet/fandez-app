@@ -27,9 +27,9 @@
           <span class="text-[10px] text-zilo-muted uppercase tracking-wider">Salud hogar</span>
         </div>
       </div>
-      <h2 class="zilo-display text-2xl mb-1"><%= passport.level %></h2>
+      <h2 class="zilo-display text-2xl mb-1"><%= t('client.passport.level.' + (passport.levelKey || 'fair')) %></h2>
       <p class="text-xs text-zilo-muted mb-3"><%= passport.address %></p>
-      <p class="text-sm text-zilo-muted leading-relaxed"><%= passport.recommendation %></p>
+      <p class="text-sm text-zilo-muted leading-relaxed"><%= t('client.passport.recommendation.' + (passport.recommendationKey || 'maintained')) %></p>
     </div>
 
     <div class="grid grid-cols-2 gap-3">
