@@ -99,29 +99,73 @@ app.use((req, res, next) => {
   return res.redirect(301, cleaned + query);
 });
 
-// Manifest PWA dinámico: iconos con path nuevo + ?v= para forzar recarga en móvil
+// Manifest PWA dinámico: iconos v5 + ?v= (Hostinger CDN cachea paths viejos 1 año)
 app.get('/site.webmanifest', (req, res) => {
   const v = getAssetVersion();
   const q = `?v=${encodeURIComponent(v)}`;
   res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Surrogate-Control', 'no-store');
   res.json({
+    id: '/',
     name: 'Fundez — Hogares y oficinas a tiempo',
     short_name: 'Fundez',
     description: 'Oficinas y hogares en Santiago: técnicos verificados, seguimiento en tiempo real y Pasaporte Hogar digital.',
     lang: 'es-CL',
-    start_url: `/?v=${encodeURIComponent(v)}`,
+    start_url: '/',
+    scope: '/',
     display: 'standalone',
+    orientation: 'portrait-primary',
     background_color: '#F4F2EE',
     theme_color: '#C45C14',
     icons: [
-      { src: `/icons/fundez-v4-96.png${q}`, sizes: '96x96', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v4-180.png${q}`, sizes: '180x180', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v4-192.png${q}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v4-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v4-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: `/icons/fundez-v5-96.png${q}`, sizes: '96x96', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v5-180.png${q}`, sizes: '180x180', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v5-192.png${q}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v5-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v5-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   });
+});
+
+/** Sirve iconos de marca con headers anti-caché CDN (Hostinger hcdn). */
+function sendBrandAsset(res, relativePath) {
+  const filePath = path.join(__dirname, 'public', relativePath);
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Surrogate-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(filePath, (err) => {
+    if (err && !res.headersSent) res.status(404).end();
+  });
+}
+
+[
+  ['/favicon.ico', 'favicon.ico'],
+  ['/favicon.svg', 'favicon.svg'],
+  ['/favicon.png', 'favicon.png'],
+  ['/favicon-16.png', 'favicon-16.png'],
+  ['/favicon-32.png', 'favicon-32.png'],
+  ['/favicon-48.png', 'favicon-48.png'],
+  ['/favicon-96.png', 'favicon-96.png'],
+  ['/apple-touch-icon.png', 'apple-touch-icon.png'],
+  ['/icon-192.png', 'icon-192.png'],
+  ['/icon-512.png', 'icon-512.png'],
+  ['/icons/fundez-v5-96.png', 'icons/fundez-v5-96.png'],
+  ['/icons/fundez-v5-180.png', 'icons/fundez-v5-180.png'],
+  ['/icons/fundez-v5-192.png', 'icons/fundez-v5-192.png'],
+  ['/icons/fundez-v5-512.png', 'icons/fundez-v5-512.png'],
+  ['/icons/fundez-v5.ico', 'icons/fundez-v5.ico']
+].forEach(([route, file]) => {
+  app.get(route, (req, res) => sendBrandAsset(res, file));
+});
+
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.sendFile(path.join(__dirname, 'public', 'sw.js'));
 });
 
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -129,8 +173,10 @@ app.use(express.static(path.join(__dirname, 'public'), {
     if (/\.(js|css)$/.test(filePath)) {
       res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     }
-    if (/(favicon|apple-touch-icon|icon-\d+|icons\/fundez|logo-plunger|logo(-mark)?\.svg|site\.webmanifest)/i.test(filePath)) {
-      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    if (/(favicon|apple-touch-icon|icon-\d+|icons\/fundez|logo-plunger|logo(-mark)?\.svg|site\.webmanifest|\/sw\.js)/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      res.setHeader('CDN-Cache-Control', 'no-store');
+      res.setHeader('Surrogate-Control', 'no-store');
     }
   }
 }));

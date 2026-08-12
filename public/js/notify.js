@@ -186,8 +186,8 @@ window.FundezAlerts = {
     try {
       const n = new Notification(title || 'Fundez', {
         body: body || '',
-        icon: '/icon-192.png',
-        badge: '/favicon-96.png',
+        icon: '/icons/fundez-v5-192.png',
+        badge: '/icons/fundez-v5-96.png',
         tag: tag || ('fundez-' + type),
         renotify: true,
         vibrate: this.VIBRATE[type] || this.VIBRATE.default,
