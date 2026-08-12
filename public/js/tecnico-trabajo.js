@@ -72,12 +72,60 @@
   });
 
   document.getElementById('btnShowServiceChange')?.addEventListener('click', () => {
-    const change = document.getElementById('stepCambioServicio');
-    if (change) {
-      change.classList.remove('hidden');
-      change.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    showWizardPanel('cambio');
   });
+
+  document.getElementById('btnToggleServiceChange')?.addEventListener('click', () => {
+    const panel = document.getElementById('stepCambioServicio');
+    if (!panel) return;
+    if (panel.classList.contains('hidden')) showWizardPanel('cambio');
+    else syncFieldWizard();
+  });
+
+  document.getElementById('btnGoToCierre')?.addEventListener('click', () => {
+    showWizardPanel('cierre');
+  });
+
+  document.getElementById('btnBackToMaterials')?.addEventListener('click', () => {
+    showWizardPanel('materiales');
+  });
+
+  const WIZARD_PANELS = ['confirmar', 'trayecto', 'llegada', 'accion', 'presupuesto', 'espera', 'materiales', 'cierre', 'cambio'];
+
+  function resolveWizardStep() {
+    const nav = document.getElementById('fieldWizard');
+    const fromNav = nav?.dataset.step;
+    if (fromNav && fromNav !== 'done') return fromNav;
+    const ts = page.dataset.techStatus || nav?.dataset.techStatus || '';
+    const confirm = nav?.dataset.confirmStatus || '';
+    if (ts === 'aceptado' && confirm === 'pending') return 'confirmar';
+    if (confirm === 'change_pending') return 'cambio';
+    if (ts === 'aceptado' || ts === 'en_camino') return 'trayecto';
+    if (ts === 'en_sitio') return 'llegada';
+    if (ts === 'diagnostico') return 'accion';
+    if (ts === 'presupuesto_pendiente') return 'presupuesto';
+    if (ts === 'comprando') return 'materiales';
+    if (ts === 'reparando' || ts === 'presupuesto_aprobado') return 'cierre';
+    return 'trayecto';
+  }
+
+  function showWizardPanel(step) {
+    WIZARD_PANELS.forEach((id) => {
+      const el = document.querySelector(`[data-wizard-panel="${id}"]`);
+      if (!el) return;
+      el.classList.toggle('hidden', id !== step);
+    });
+    const nav = document.getElementById('fieldWizard');
+    if (nav && step !== 'cambio') nav.dataset.step = step;
+    const active = document.querySelector(`[data-wizard-panel="${step}"]`);
+    active?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function syncFieldWizard() {
+    showWizardPanel(resolveWizardStep());
+  }
+
+  syncFieldWizard();
 
   document.getElementById('btnLlegada')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnLlegada');
@@ -307,6 +355,9 @@
     set('setIva', `−${fmt(s.ivaOnFees)}`);
     set('setPayout', fmt(s.providerPayout));
 
+    document.querySelectorAll('#trabajoPage main > section.field-step, #trabajoPage main > #fieldExtraActions').forEach((el) => {
+      el.classList.add('hidden');
+    });
     document.querySelectorAll('#trabajoPage main > section').forEach((el) => {
       if (el.id !== 'settlementResult') el.classList.add('hidden');
     });

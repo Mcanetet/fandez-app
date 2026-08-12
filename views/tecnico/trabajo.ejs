@@ -39,52 +39,101 @@
       </div>
     <% } %>
 
-    <section class="zilo-card-premium rounded-2xl p-4 overflow-hidden">
-      <div class="flex items-center justify-between mb-2">
-        <p class="zilo-label !text-[9px]">Ubicación en vivo</p>
-        <span id="fieldLiveBadge" class="text-[10px] text-zilo-muted">Esperando GPS…</span>
-      </div>
-      <div id="fieldMap" class="w-full h-44 rounded-xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
-      <p class="text-[11px] text-zilo-muted mt-2">El cliente ve el avance del técnico en el mapa de su pedido.</p>
-    </section>
+    <%
+      const budgetWaiting = request.techStatus === 'presupuesto_pendiente'
+        && request.siteReport && ['pending','payment_pending'].includes(request.siteReport.budgetStatus);
+      const budgetForm = request.techStatus === 'presupuesto_pendiente' && !budgetWaiting;
+      let wizardStep = 'trayecto';
+      if (request.techStatus === 'aceptado' && request.serviceConfirmStatus === 'pending') wizardStep = 'confirmar';
+      else if (request.serviceConfirmStatus === 'change_pending'
+        || (request.siteReport && request.siteReport.activityChange && ['pending','payment_pending'].includes(request.siteReport.activityChange.status)
+          && ['aceptado','en_camino'].includes(request.techStatus))) wizardStep = 'cambio';
+      else if (['aceptado','en_camino'].includes(request.techStatus)) wizardStep = 'trayecto';
+      else if (request.techStatus === 'en_sitio') wizardStep = 'llegada';
+      else if (request.techStatus === 'diagnostico') wizardStep = 'accion';
+      else if (budgetForm) wizardStep = 'presupuesto';
+      else if (budgetWaiting) wizardStep = 'espera';
+      else if (request.techStatus === 'comprando') wizardStep = 'materiales';
+      else if (['reparando','presupuesto_aprobado'].includes(request.techStatus)) wizardStep = 'cierre';
+      else if (request.techStatus === 'completado') wizardStep = 'done';
+      const wizardOrder = ['confirmar','trayecto','llegada','accion','presupuesto','espera','materiales','cierre','done'];
+      const wizardIdx = Math.max(0, wizardOrder.indexOf(wizardStep === 'cambio' ? 'accion' : wizardStep));
+      const wizardSteps = [
+        { id: 'confirmar', label: 'Confirmar' },
+        { id: 'trayecto', label: 'Trayecto' },
+        { id: 'llegada', label: 'Llegada' },
+        { id: 'accion', label: 'Decisión' },
+        { id: 'materiales', label: 'Materiales' },
+        { id: 'cierre', label: 'Cierre' }
+      ];
+    %>
 
-    <section class="zilo-card-premium rounded-2xl p-4">
-      <div class="flex justify-between items-start mb-2">
+    <nav class="field-wizard" id="fieldWizard" aria-label="Progreso de la visita"
+      data-step="<%= wizardStep %>"
+      data-tech-status="<%= request.techStatus %>"
+      data-confirm-status="<%= request.serviceConfirmStatus || '' %>">
+      <p class="zilo-label mb-2">Un paso a la vez</p>
+      <ol class="field-wizard-track">
+        <% wizardSteps.forEach(function(s) {
+          const si = wizardOrder.indexOf(s.id);
+          let state = 'upcoming';
+          if (si < wizardIdx && si >= 0) state = 'done';
+          else if (s.id === wizardStep || ((wizardStep === 'presupuesto' || wizardStep === 'espera') && s.id === 'accion')) state = 'active';
+        %>
+          <li class="field-wizard-step is-<%= state %>" data-wizard="<%= s.id %>">
+            <span class="field-wizard-dot" aria-hidden="true"></span>
+            <span class="field-wizard-label"><%= s.label %></span>
+          </li>
+        <% }); %>
+      </ol>
+    </nav>
+
+    <details class="zilo-card-premium rounded-2xl overflow-hidden" id="fieldContext"<%= ['aceptado','en_camino'].includes(request.techStatus) || wizardStep === 'confirmar' ? ' open' : '' %>>
+      <summary class="px-4 py-3 cursor-pointer list-none flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="zilo-label !text-[9px]">Cliente y mapa</p>
+          <strong class="text-sm block truncate"><% if (request.isGift) { %>Regalo · <%= request.beneficiaryName %><% } else { %><%= request.clientName %><% } %></strong>
+          <span class="text-xs text-zilo-muted truncate block"><%= request.address %></span>
+        </div>
+        <span class="zilo-badge zilo-badge-muted shrink-0" id="statusBadge"><%= techLabels[request.techStatus] || request.techStatus %></span>
+      </summary>
+      <div class="px-4 pb-4 space-y-3 border-t border-zilo-border pt-3">
         <div>
-          <strong class="text-sm block"><% if (request.isGift) { %>Regalo · <%= request.beneficiaryName %><% } else { %><%= request.clientName %><% } %></strong>
-          <span class="text-xs text-zilo-muted"><%= request.address %></span>
+          <div class="flex items-center justify-between mb-2">
+            <p class="zilo-label !text-[9px]">Ubicación en vivo</p>
+            <span id="fieldLiveBadge" class="text-[10px] text-zilo-muted">Esperando GPS…</span>
+          </div>
+          <div id="fieldMap" class="w-full h-40 rounded-xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
         </div>
-        <span class="zilo-badge zilo-badge-muted" id="statusBadge"><%= techLabels[request.techStatus] || request.techStatus %></span>
+        <% if (request.notes) { %>
+          <p class="text-xs text-zilo-muted italic p-2.5 rounded-lg bg-zilo-bg/80 border border-zilo-border"><%= request.notes %></p>
+        <% } %>
+        <% if (request.clientPhotoUrl || request.clientBrandPhotoUrl || request.brandNotVisible) { %>
+          <div class="space-y-3">
+            <% if (request.clientPhotoUrl) { %>
+              <div>
+                <p class="zilo-label mb-1.5">Foto del problema</p>
+                <a href="<%= request.clientPhotoUrl %>" target="_blank" rel="noopener">
+                  <img src="<%= request.clientPhotoUrl %>" alt="Foto del problema" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
+                </a>
+              </div>
+            <% } %>
+            <% if (request.clientBrandPhotoUrl) { %>
+              <div>
+                <p class="zilo-label mb-1.5">Foto de la marca</p>
+                <a href="<%= request.clientBrandPhotoUrl %>" target="_blank" rel="noopener">
+                  <img src="<%= request.clientBrandPhotoUrl %>" alt="Foto de la marca" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
+                </a>
+              </div>
+            <% } else if (request.brandNotVisible) { %>
+              <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Sin marca a la vista — el cliente no pudo fotografiar etiqueta ni logo.</p>
+            <% } %>
+          </div>
+        <% } %>
       </div>
-      <% if (request.notes) { %>
-        <p class="text-xs text-zilo-muted italic p-2.5 rounded-lg bg-zilo-bg/80 border border-zilo-border mt-2"><%= request.notes %></p>
-      <% } %>
-      <% if (request.clientPhotoUrl || request.clientBrandPhotoUrl || request.brandNotVisible) { %>
-        <div class="mt-3 space-y-3">
-          <% if (request.clientPhotoUrl) { %>
-            <div>
-              <p class="zilo-label mb-1.5">Foto del problema</p>
-              <a href="<%= request.clientPhotoUrl %>" target="_blank" rel="noopener">
-                <img src="<%= request.clientPhotoUrl %>" alt="Foto del problema" class="w-full max-h-40 object-cover rounded-xl border border-zilo-border">
-              </a>
-            </div>
-          <% } %>
-          <% if (request.clientBrandPhotoUrl) { %>
-            <div>
-              <p class="zilo-label mb-1.5">Foto de la marca</p>
-              <a href="<%= request.clientBrandPhotoUrl %>" target="_blank" rel="noopener">
-                <img src="<%= request.clientBrandPhotoUrl %>" alt="Foto de la marca" class="w-full max-h-40 object-cover rounded-xl border border-zilo-border">
-              </a>
-              <p class="text-[10px] text-zilo-muted mt-1">Úsala para llevar el repuesto correcto.</p>
-            </div>
-          <% } else if (request.brandNotVisible) { %>
-            <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Sin marca a la vista — el cliente no pudo fotografiar etiqueta ni logo.</p>
-          <% } %>
-        </div>
-      <% } %>
-    </section>
+    </details>
 
-    <section id="stepConfirmarServicio" class="zilo-card-premium rounded-2xl p-5 <%= request.techStatus === 'aceptado' && request.serviceConfirmStatus === 'pending' ? '' : 'hidden' %>">
+    <section id="stepConfirmarServicio" data-wizard-panel="confirmar" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'confirmar' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Antes de ir</p>
       <h2 class="text-sm font-semibold mb-1">Confirma el servicio pedido</h2>
       <p class="text-xs text-zilo-muted mb-3">
@@ -97,7 +146,7 @@
       </div>
     </section>
 
-    <section id="stepTrayecto" class="zilo-card-premium rounded-2xl p-5 <%= ['aceptado','en_camino'].includes(request.techStatus) && request.serviceConfirmStatus !== 'pending' && request.serviceConfirmStatus !== 'change_pending' ? '' : 'hidden' %>">
+    <section id="stepTrayecto" data-wizard-panel="trayecto" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'trayecto' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Trayecto</p>
       <h2 class="text-sm font-semibold mb-2"><%= request.techStatus === 'aceptado' ? '¿Listo para ir al domicilio?' : 'Confirma al llegar' %></h2>
       <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'El cliente verá que vas en camino y tu ubicación en vivo.' : 'Confirma únicamente cuando estés en el lugar.' %></p>
@@ -111,8 +160,8 @@
     </section>
 
     <!-- Paso 1: Llegada -->
-    <section id="stepLlegada" class="zilo-card-premium rounded-2xl p-5 <%= request.techStatus === 'en_sitio' ? '' : 'hidden' %>">
-      <p class="zilo-label mb-1">Paso 1 · Llegada</p>
+    <section id="stepLlegada" data-wizard-panel="llegada" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'llegada' ? '' : 'hidden' %>">
+      <p class="zilo-label mb-1">Ahora · Llegada</p>
       <h2 class="text-sm font-semibold mb-3">Registra lo que observas</h2>
       <div class="space-y-3">
         <div>
@@ -130,8 +179,14 @@
       </div>
     </section>
 
-    <!-- Cambio de subservicio si en terreno es otra cosa -->
-    <section id="stepCambioServicio" class="zilo-card-premium rounded-2xl p-5 <%= ['en_camino','en_sitio','diagnostico','reparando','comprando','presupuesto_pendiente','presupuesto_aprobado'].includes(request.techStatus) || request.serviceConfirmStatus === 'change_pending' ? '' : 'hidden' %>">
+    <div id="fieldExtraActions" class="<%= ['en_sitio','diagnostico','reparando','comprando','presupuesto_pendiente','presupuesto_aprobado'].includes(request.techStatus) || request.serviceConfirmStatus === 'change_pending' || request.serviceConfirmStatus === 'pending' ? '' : 'hidden' %>">
+      <button type="button" id="btnToggleServiceChange" class="w-full py-2.5 rounded-xl border border-dashed border-zilo-border text-xs font-semibold text-zilo-muted hover:text-zilo-accent hover:border-zilo-accent/40 transition">
+        ¿El trabajo es distinto? Proponer cambio
+      </button>
+    </div>
+
+    <!-- Cambio de subservicio: secundario, no bloquea el paso activo -->
+    <section id="stepCambioServicio" data-wizard-panel="cambio" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'cambio' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">¿El trabajo es distinto?</p>
       <h2 class="text-sm font-semibold mb-1">Proponer cambio de subservicio</h2>
       <p class="text-xs text-zilo-muted mb-3">
@@ -174,8 +229,8 @@
     </section>
 
     <!-- Paso 2: Acción -->
-    <section id="stepAccion" class="zilo-card-premium rounded-2xl p-5 <%= request.techStatus === 'diagnostico' ? '' : 'hidden' %>">
-      <p class="zilo-label mb-1">Paso 2 · Decisión</p>
+    <section id="stepAccion" data-wizard-panel="accion" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'accion' ? '' : 'hidden' %>">
+      <p class="zilo-label mb-1">Ahora · Decisión</p>
       <h2 class="text-sm font-semibold mb-3">¿Qué harás ahora?</h2>
       <div class="grid gap-2">
         <button type="button" class="action-btn py-3 px-4 rounded-xl zilo-btn-primary !text-sm text-left" data-action="reparar">
@@ -194,7 +249,7 @@
     </section>
 
     <!-- Paso 2b: Presupuesto -->
-    <section id="stepPresupuesto" class="zilo-card-premium rounded-2xl p-5 <%= request.techStatus === 'presupuesto_pendiente' && (!request.siteReport || !['pending','payment_pending'].includes(request.siteReport.budgetStatus)) ? '' : 'hidden' %>">
+    <section id="stepPresupuesto" data-wizard-panel="presupuesto" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'presupuesto' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Presupuesto</p>
       <div class="space-y-3">
         <div>
@@ -211,7 +266,7 @@
     </section>
 
     <!-- Esperando cliente -->
-    <section id="stepEsperaPresupuesto" class="zilo-card-premium rounded-2xl p-5 text-center <%= request.techStatus === 'presupuesto_pendiente' && request.siteReport && ['pending','payment_pending'].includes(request.siteReport.budgetStatus) ? '' : 'hidden' %>">
+    <section id="stepEsperaPresupuesto" data-wizard-panel="espera" class="zilo-card-premium rounded-2xl p-5 text-center field-step <%= wizardStep === 'espera' ? '' : 'hidden' %>">
       <p class="zilo-display text-lg mb-2"><%= request.siteReport && request.siteReport.budgetStatus === 'payment_pending' ? 'Esperando el pago' : 'Esperando al cliente' %></p>
       <p class="text-sm text-zilo-muted">Presupuesto de <strong class="text-zilo-accent"><%= request.siteReport ? formatCLP(request.siteReport.budgetAmount) : '' %></strong> enviado. <%= request.siteReport && request.siteReport.budgetStatus === 'payment_pending' ? 'El cliente lo aprobó; te avisaremos cuando pague.' : 'Te avisaremos cuando responda.' %></p>
       <% if (request.siteReport && request.siteReport.budgetDescription) { %>
@@ -219,9 +274,9 @@
       <% } %>
     </section>
 
-    <!-- Paso 3: Materiales (comprando) -->
-    <section id="stepMateriales" class="zilo-card-premium rounded-2xl p-5 <%= ['comprando','reparando','presupuesto_aprobado'].includes(request.techStatus) ? '' : 'hidden' %>">
-      <p class="zilo-label mb-1">Materiales</p>
+    <!-- Materiales: solo cuando el paso activo es materiales -->
+    <section id="stepMateriales" data-wizard-panel="materiales" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'materiales' ? '' : 'hidden' %>">
+      <p class="zilo-label mb-1">Ahora · Materiales</p>
       <div id="materialsList" class="space-y-2 mb-3">
         <% if (request.siteReport && request.siteReport.materials && request.siteReport.materials.length) { %>
           <% request.siteReport.materials.forEach(m => { %>
@@ -247,12 +302,12 @@
         <input type="file" id="matReceipt" accept="image/*,application/pdf" class="block w-full text-xs text-zilo-muted file:mr-2 file:py-1.5 file:px-2 file:rounded file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent">
         <p class="text-[11px] text-zilo-muted">La IA revisa la foto: que sea legible, el monto cuadre y el material corresponda al trabajo.</p>
         <button type="button" id="btnAddMaterial" class="w-full py-2 rounded-xl zilo-btn-ghost !text-sm">+ Agregar material</button>
+        <button type="button" id="btnGoToCierre" class="w-full py-3 rounded-xl zilo-btn-primary !text-sm mt-1">Listo · Continuar al cierre</button>
       </div>
     </section>
 
-    <!-- Paso 4: Cierre -->
-    <section id="stepCierre" class="zilo-card-premium rounded-2xl p-5 <%= ['reparando','comprando','presupuesto_aprobado'].includes(request.techStatus) ? '' : 'hidden' %>">
-      <p class="zilo-label mb-1">Paso final · Cierre</p>
+    <section id="stepCierre" data-wizard-panel="cierre" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'cierre' ? '' : 'hidden' %>">
+      <p class="zilo-label mb-1">Ahora · Cierre</p>
       <h2 class="text-sm font-semibold mb-3">Resumen de la visita</h2>
       <div class="space-y-3">
         <details id="attentionChecklistBox" class="rounded-xl border border-zilo-border bg-zilo-bg/60 p-3" open>
@@ -278,6 +333,7 @@
             <img src="" alt="Vista previa" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
           </div>
         </div>
+        <button type="button" id="btnBackToMaterials" class="<%= request.techStatus === 'comprando' || request.techStatus === 'reparando' || request.techStatus === 'presupuesto_aprobado' ? '' : 'hidden' %> w-full py-2.5 rounded-xl zilo-btn-ghost !text-xs">Volver a materiales</button>
         <button type="button" id="btnCompletar" class="w-full py-3 rounded-xl zilo-btn-primary">Completar visita</button>
       </div>
     </section>

@@ -714,32 +714,51 @@
     const title = document.getElementById('tripStatusTitle');
     const sub = document.getElementById('tripStatusSub');
     const call = document.getElementById('tripHeroCall');
+    const sticky = document.getElementById('stickyTrackBar');
+    const stickyStatus = document.getElementById('stickyTrackStatus');
+    const stickyLabel = document.getElementById('stickyTrackLabel');
+    const stickyCall = document.getElementById('stickyTrackCall');
     if (!title || !sub) return;
     const tech = request?.technicianName || 'Tu técnico';
     const map = {
-      paid: ['Pago confirmado', 'Estamos conectándote con un equipo Fundez.'],
+      paid: ['Pago confirmado', 'Estamos conectándote con un equipo Fundez.', 'Buscando equipo'],
       assigned: [
         request?.techStatus === 'asignado' ? 'Esperando aceptación del técnico' : 'Equipo asignado',
         request?.etaLabel
           ? `${tech} · llegada estimada ${request.etaLabel}`
-          : 'Te avisamos cuando acepte y salga hacia ti.'
+          : 'Te avisamos cuando acepte y salga hacia ti.',
+        request?.techStatus === 'asignado' ? 'Esperando técnico' : 'Equipo listo'
       ],
-      enroute: [`${tech} va en camino`, request?.etaLabel ? `ETA ${request.etaLabel}` : 'Sigue su ubicación en el mapa.'],
-      arrived: [`${tech} llegó`, 'Puede iniciar el diagnóstico en tu domicilio.'],
-      working: ['Trabajo en curso', 'Diagnóstico, presupuesto o reparación según lo acordado.'],
-      done: ['Servicio completado', 'Revisa el resumen y califica tu experiencia.']
+      enroute: [`${tech} va en camino`, request?.etaLabel ? `ETA ${request.etaLabel}` : 'Sigue su ubicación en el mapa.', 'En camino'],
+      arrived: [`${tech} llegó`, 'Puede iniciar el diagnóstico en tu domicilio.', 'En tu domicilio'],
+      working: ['Trabajo en curso', 'Diagnóstico, presupuesto o reparación según lo acordado.', 'En trabajo'],
+      done: ['Servicio completado', 'Revisa el resumen y califica tu experiencia.', 'Completado']
     };
     const pair = map[step] || map.assigned;
     title.textContent = pair[0];
     sub.textContent = pair[1];
-    if (call) {
-      const phone = request?.technicianPhone;
-      if (phone) {
-        call.href = `tel:${phone}`;
-        call.classList.remove('hidden');
+    if (stickyStatus) stickyStatus.textContent = pair[0];
+    if (stickyLabel) stickyLabel.textContent = pair[2] || 'Tu visita';
+
+    const phone = request?.technicianPhone
+      || request?.providerPhone
+      || (document.getElementById('providerPhone')?.getAttribute('href') || '').replace(/^tel:/, '');
+    const applyCall = (el) => {
+      if (!el) return;
+      if (phone && step !== 'done' && step !== 'paid') {
+        el.href = `tel:${phone}`;
+        el.classList.remove('hidden');
       } else {
-        call.classList.add('hidden');
+        el.classList.add('hidden');
       }
+    };
+    applyCall(call);
+    applyCall(stickyCall);
+
+    if (sticky) {
+      const show = step !== 'done' && !!request?.providerId;
+      sticky.classList.toggle('is-visible', show);
+      sticky.setAttribute('aria-hidden', show ? 'false' : 'true');
     }
   }
 
@@ -1659,11 +1678,18 @@
 
   btnRequest.addEventListener('click', submitRequest);
 
-  document.getElementById('tripHeroChat')?.addEventListener('click', () => {
-    document.getElementById('openJobChatBtn')?.click();
-    document.getElementById('jobChatPanel')?.classList.remove('hidden');
-    document.getElementById('jobChatPanel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
+  function openTrackingChat() {
+    const btn = document.getElementById('openJobChatBtn');
+    const panel = document.getElementById('jobChatPanel');
+    if (btn) btn.click();
+    else {
+      panel?.classList.remove('hidden');
+      panel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  document.getElementById('tripHeroChat')?.addEventListener('click', openTrackingChat);
+  document.getElementById('stickyTrackChat')?.addEventListener('click', openTrackingChat);
 
   document.getElementById('btnNoProviderContinue')?.addEventListener('click', () => {
     const id = document.getElementById('noProviderChoicePanel')?.dataset?.requestId || currentRequestId;
