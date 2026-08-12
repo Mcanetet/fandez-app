@@ -274,34 +274,77 @@
       <% } %>
     </section>
 
-    <!-- Materiales: solo cuando el paso activo es materiales -->
+    <!-- Materiales: catálogo + boleta (compra) o stock -->
     <section id="stepMateriales" data-wizard-panel="materiales" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'materiales' ? '' : 'hidden' %>">
-      <p class="zilo-label mb-1">Ahora · Materiales</p>
+      <p class="zilo-label mb-1">Materiales</p>
+      <h2 class="text-sm font-semibold mb-1">Lo que usaste o compraste</h2>
+      <p class="text-xs text-zilo-muted mb-3">Elige del catálogo (precio de mercado) o escribe uno. Si saliste a comprar, sube la boleta. Si lo llevabas, se cobra el precio de lista al cliente.</p>
       <div id="materialsList" class="space-y-2 mb-3">
         <% if (request.siteReport && request.siteReport.materials && request.siteReport.materials.length) { %>
           <% request.siteReport.materials.forEach(m => { %>
             <div class="p-3 rounded-xl bg-zilo-bg/80 border border-zilo-border text-sm">
               <div class="flex justify-between items-center gap-2">
-                <span><%= m.description %></span>
+                <span>
+                  <%= m.description %>
+                  <% if (m.source === 'stock') { %><span class="text-[10px] text-zilo-muted"> · stock</span><% } %>
+                  <% if (m.source === 'purchased') { %><span class="text-[10px] text-zilo-muted"> · compra</span><% } %>
+                </span>
                 <strong class="text-zilo-accent shrink-0"><%= formatCLP(m.amount) %></strong>
               </div>
               <% if (m.reviewStatus) { %>
                 <p class="text-[10px] mt-1 <%= m.reviewStatus === 'approved' ? 'text-emerald-600' : (m.reviewStatus === 'rejected' ? 'text-red-600' : 'text-amber-600') %>">
-                  <%= m.reviewStatus === 'approved' ? 'IA: aprobada' : (m.reviewStatus === 'rejected' ? 'IA: rechazada' : 'IA: revisión pendiente') %>
+                  <%= m.reviewStatus === 'approved' ? 'OK' : (m.reviewStatus === 'rejected' ? 'Rechazada' : 'Revisión pendiente') %>
                   <% if (m.reviewReason) { %> · <%= m.reviewReason %><% } %>
                 </p>
               <% } %>
             </div>
           <% }); %>
+        <% } else { %>
+          <p class="text-xs text-zilo-muted">Aún no hay materiales en esta visita.</p>
         <% } %>
       </div>
       <div class="space-y-2 border-t border-zilo-border pt-3">
-        <input type="text" id="matDesc" class="zilo-input w-full !py-2 text-sm" placeholder="Descripción del material">
-        <input type="number" id="matAmount" class="zilo-input w-full !py-2 text-sm" placeholder="Precio CLP" min="100">
-        <label class="text-xs text-zilo-muted block">Boleta / factura *</label>
-        <input type="file" id="matReceipt" accept="image/*,application/pdf" class="block w-full text-xs text-zilo-muted file:mr-2 file:py-1.5 file:px-2 file:rounded file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent">
-        <p class="text-[11px] text-zilo-muted">La IA revisa la foto: que sea legible, el monto cuadre y el material corresponda al trabajo.</p>
-        <button type="button" id="btnAddMaterial" class="w-full py-2 rounded-xl zilo-btn-ghost !text-sm">+ Agregar material</button>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="zilo-choice-card zilo-choice-card--compact !min-h-0 !py-2.5 cursor-pointer">
+            <input type="radio" name="matSource" value="stock" class="sr-only" checked>
+            <span class="zilo-choice-title">Lo traje / stock</span>
+            <span class="zilo-choice-desc">Precio de lista</span>
+          </label>
+          <label class="zilo-choice-card zilo-choice-card--compact !min-h-0 !py-2.5 cursor-pointer">
+            <input type="radio" name="matSource" value="purchased" class="sr-only">
+            <span class="zilo-choice-title">Salí a comprar</span>
+            <span class="zilo-choice-desc">Con boleta</span>
+          </label>
+        </div>
+        <div>
+          <label class="text-xs text-zilo-muted">Catálogo recurrente</label>
+          <select id="matCatalog" class="zilo-input w-full mt-1 !py-2 text-sm">
+            <option value="">Otro / escribir manualmente…</option>
+            <% (typeof materialsCatalog !== 'undefined' ? materialsCatalog : []).forEach(function(m) { %>
+              <option value="<%= m.id %>" data-price="<%= m.marketPrice %>" data-unit="<%= m.unit %>" data-name="<%= m.name %>">
+                <%= m.name %> — <%= formatCLP(m.marketPrice) %>/<%= m.unit %>
+              </option>
+            <% }); %>
+          </select>
+        </div>
+        <input type="text" id="matDesc" class="zilo-input w-full !py-2 text-sm" placeholder="Nombre del material" autocomplete="off">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs text-zilo-muted">Cantidad</label>
+            <input type="number" id="matQty" class="zilo-input w-full !py-2 text-sm" value="1" min="1" max="50">
+          </div>
+          <div>
+            <label class="text-xs text-zilo-muted">Total CLP</label>
+            <input type="number" id="matAmount" class="zilo-input w-full !py-2 text-sm" placeholder="Precio" min="100">
+          </div>
+        </div>
+        <div id="matReceiptWrap" class="hidden">
+          <label class="text-xs text-zilo-muted block">Boleta / factura *</label>
+          <input type="file" id="matReceipt" accept="image/*,application/pdf" class="block w-full text-xs text-zilo-muted file:mr-2 file:py-1.5 file:px-2 file:rounded file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent">
+          <p class="text-[11px] text-zilo-muted mt-1">Obligatorio si compraste el material. La IA verifica monto y legibilidad.</p>
+        </div>
+        <p id="matStockHint" class="text-[11px] text-zilo-muted">Sin boleta: se usa el precio de mercado del catálogo y se cobra al cliente a costo.</p>
+        <button type="button" id="btnAddMaterial" class="w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm">+ Agregar material</button>
         <button type="button" id="btnGoToCierre" class="w-full py-3 rounded-xl zilo-btn-primary !text-sm mt-1">Listo · Continuar al cierre</button>
       </div>
     </section>

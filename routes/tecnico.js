@@ -66,7 +66,8 @@ router.get('/trabajo/:requestId', requireRole('tecnico'), (req, res) => {
     chatApiBase: '/tecnico',
     techLabels: getTechLabels(req.t),
     formatCLP: store.formatCLP,
-    attentionChecklist: ATTENTION_CHECKLIST
+    attentionChecklist: ATTENTION_CHECKLIST,
+    materialsCatalog: store.getMaterialsCatalogForService(request.serviceId)
   });
 });
 
@@ -238,7 +239,19 @@ router.post('/trabajo/:requestId/cambio-servicio', requireRole('tecnico'), (req,
   res.json({ success: true, request: serializeJob(result.request), activityChange: result.activityChange });
 });
 
+router.get('/trabajo/:requestId/materiales-catalogo', requireRole('tecnico'), (req, res) => {
+  const request = store.getRequestForTechnician(req.params.requestId, req.session.user.id);
+  if (!request) return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
+  res.json({
+    success: true,
+    materials: store.getMaterialsCatalogForService(request.serviceId),
+    formatHint: 'Precios de mercado Fundez · se cobran al cliente a costo'
+  });
+});
+
 router.post('/trabajo/:requestId/material', requireRole('tecnico'), async (req, res) => {
+  const source = String(req.body.source || 'purchased').toLowerCase() === 'stock' ? 'stock' : 'purchased';
+  const catalogId = req.body.catalogId || null;
   let receiptUrl = null;
   if (req.body.receipt) {
     try {
@@ -250,30 +263,35 @@ router.post('/trabajo/:requestId/material', requireRole('tecnico'), async (req, 
 
   const requestPreview = store.getRequestForTechnician(req.params.requestId, req.session.user.id);
   let review = null;
-  try {
-    const { reviewMaterialReceipt } = require('../lib/materials/receiptReview');
-    review = await reviewMaterialReceipt({
-      description: req.body.description,
-      amount: req.body.amount,
-      receiptUrl,
-      serviceName: requestPreview?.serviceName,
-      activityName: requestPreview?.activityName
-    });
-  } catch (err) {
-    review = {
-      status: 'pending_manual',
-      approved: null,
-      confidence: null,
-      reason: err.message || 'No se pudo revisar la boleta',
-      reviewedAt: new Date().toISOString()
-    };
+  if (source === 'purchased') {
+    try {
+      const { reviewMaterialReceipt } = require('../lib/materials/receiptReview');
+      review = await reviewMaterialReceipt({
+        description: req.body.description,
+        amount: req.body.amount,
+        receiptUrl,
+        serviceName: requestPreview?.serviceName,
+        activityName: requestPreview?.activityName
+      });
+    } catch (err) {
+      review = {
+        status: 'pending_manual',
+        approved: null,
+        confidence: null,
+        reason: err.message || 'No se pudo revisar la boleta',
+        reviewedAt: new Date().toISOString()
+      };
+    }
   }
 
   const result = store.addSiteMaterial(req.params.requestId, req.session.user.id, {
     description: req.body.description,
     amount: req.body.amount,
     receiptUrl,
-    review
+    review,
+    catalogId,
+    source,
+    quantity: req.body.quantity
   });
   if (result.error) {
     return res.status(400).json({ success: false, error: result.error, review: result.review || review });
@@ -283,7 +301,10 @@ router.post('/trabajo/:requestId/material', requireRole('tecnico'), async (req, 
     success: true,
     material: result.material,
     materials: result.request.siteReport.materials,
-    review
+    review: result.material?.reviewStatus ? {
+      status: result.material.reviewStatus,
+      reason: result.material.reviewReason
+    } : review
   });
 });
 
@@ -304,7 +325,12 @@ router.post('/trabajo/:requestId/completar', requireRole('tecnico'), (req, res) 
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });
   const enriched = store.enrichRequestForProvider(result.request);
-  res.json({ success: true, request: serializeJob(result.request), settlement: enriched.financialsVisible });
+  res.json({
+    success: true,
+    request: serializeJob(result.request),
+    settlement: enriched.financialsVisible,
+    additionalCharge: result.additionalCharge || null
+  });
 });
 
 router.post('/ubicacion', requireRole('tecnico'), requireModule('provider_ubicacion'), (req, res) => {

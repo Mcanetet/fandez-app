@@ -1119,6 +1119,32 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
     if (id && Number.isFinite(price) && price > 0) catalogPrices[id] = price;
   }
 
+  const matIds = Array.isArray(body.matId) ? body.matId : (body.matId ? [body.matId] : []);
+  const matNames = Array.isArray(body.matName) ? body.matName : (body.matName ? [body.matName] : []);
+  const matUnits = Array.isArray(body.matUnit) ? body.matUnit : (body.matUnit ? [body.matUnit] : []);
+  const matPrices = Array.isArray(body.matPrice) ? body.matPrice : (body.matPrice ? [body.matPrice] : []);
+  const matEnabledRaw = body.matEnabled;
+  const matEnabledSet = new Set(Array.isArray(matEnabledRaw) ? matEnabledRaw : (matEnabledRaw ? [matEnabledRaw] : []));
+  const materialsCatalog = [];
+  for (let i = 0; i < matIds.length; i++) {
+    const id = String(matIds[i] || '').trim();
+    const name = String(matNames[i] || '').trim();
+    if (!name) continue;
+    const specKey = `matSpec_${id}`;
+    const specRaw = body[specKey];
+    const specialtyIds = Array.isArray(specRaw)
+      ? specRaw.map(String).filter(Boolean)
+      : (specRaw ? [String(specRaw)] : []);
+    materialsCatalog.push({
+      id: id || undefined,
+      name,
+      unit: String(matUnits[i] || 'unidad').trim() || 'unidad',
+      marketPrice: parseInt(matPrices[i], 10) || 0,
+      specialtyIds,
+      enabled: matEnabledSet.has(id)
+    });
+  }
+
   const updated = store.updatePricingConfig({
     visitPrice: parseInt(body.visitPrice, 10),
     servicePrice: parseInt(body.servicePrice, 10),
@@ -1149,7 +1175,8 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
       nocturnoPercent: parseInt(body.scheduleNocturnoPercent, 10)
     },
     urgencyTiers: tiers.length ? tiers : undefined,
-    catalogPrices
+    catalogPrices,
+    materialsCatalog: materialsCatalog.length ? materialsCatalog : undefined
   });
 
   store.logSecurityEvent('pricing_update', 'config', req);

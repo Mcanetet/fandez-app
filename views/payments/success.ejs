@@ -9,7 +9,7 @@
   </div>
   <% const isAdditionalPayment = typeof additionalPayment !== 'undefined' && additionalPayment; %>
   <h1 class="zilo-display text-3xl mb-2">Pago confirmado</h1>
-  <p class="text-zilo-muted text-sm mb-1"><%= isAdditionalPayment ? 'El ajuste fue pagado y el trabajo puede continuar' : 'Estamos buscando un socio verificado (hasta ~15 min). Te avisamos en la app y por Aland.' %></p>
+  <p class="text-zilo-muted text-sm mb-1"><%= isAdditionalPayment ? ((additionalPayment.reason === 'materials') ? 'Materiales pagados. Gracias por completar el pago.' : 'El ajuste fue pagado y el trabajo puede continuar') : 'Estamos buscando un socio verificado (hasta ~15 min). Te avisamos en la app y por Aland.' %></p>
   <% if (request) { %>
     <p class="text-zilo-accent font-semibold text-lg mb-6"><%= formatCLP(isAdditionalPayment ? additionalPayment.amountDue : (request.amountDue ?? request.estimatedVisit)) %></p>
 

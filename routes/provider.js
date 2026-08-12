@@ -567,7 +567,8 @@ router.get('/trabajo/:requestId', requireRole('provider'), requireModule('provid
     chatApiBase: '/proveedor',
     techLabels,
     formatCLP: store.formatCLP,
-    attentionChecklist: ATTENTION_CHECKLIST
+    attentionChecklist: ATTENTION_CHECKLIST,
+    materialsCatalog: store.getMaterialsCatalogForService(request.serviceId)
   });
 });
 

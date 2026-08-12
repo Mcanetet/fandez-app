@@ -259,27 +259,74 @@
     }
   });
 
+  function syncMaterialSourceUi() {
+    const source = document.querySelector('input[name="matSource"]:checked')?.value || 'stock';
+    const receiptWrap = document.getElementById('matReceiptWrap');
+    const stockHint = document.getElementById('matStockHint');
+    receiptWrap?.classList.toggle('hidden', source !== 'purchased');
+    stockHint?.classList.toggle('hidden', source === 'purchased');
+    document.querySelectorAll('label.zilo-choice-card').forEach((label) => {
+      const input = label.querySelector('input[name="matSource"]');
+      if (!input) return;
+      label.classList.toggle('border-zilo-accent', input.checked);
+      label.classList.toggle('bg-zilo-accent-soft/40', input.checked);
+    });
+  }
+
+  function syncMaterialCatalogUi() {
+    const select = document.getElementById('matCatalog');
+    const opt = select?.selectedOptions?.[0];
+    const desc = document.getElementById('matDesc');
+    const amount = document.getElementById('matAmount');
+    const qty = Math.max(1, parseInt(document.getElementById('matQty')?.value, 10) || 1);
+    if (!opt || !opt.value) return;
+    if (desc && !desc.value) desc.value = opt.dataset.name || opt.textContent || '';
+    if (desc && opt.dataset.name) desc.value = opt.dataset.name;
+    const unitPrice = parseInt(opt.dataset.price, 10) || 0;
+    if (amount && unitPrice) amount.value = String(unitPrice * qty);
+  }
+
+  document.querySelectorAll('input[name="matSource"]').forEach((el) => {
+    el.addEventListener('change', syncMaterialSourceUi);
+  });
+  document.getElementById('matCatalog')?.addEventListener('change', syncMaterialCatalogUi);
+  document.getElementById('matQty')?.addEventListener('input', syncMaterialCatalogUi);
+  syncMaterialSourceUi();
+
   document.getElementById('btnAddMaterial')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnAddMaterial');
+    const catalogId = document.getElementById('matCatalog')?.value || '';
     const description = document.getElementById('matDesc').value.trim();
     const amount = document.getElementById('matAmount').value;
-    if (!description || !amount) return notify('Completa descripción y precio', 'warning');
+    const quantity = document.getElementById('matQty')?.value || 1;
+    const source = document.querySelector('input[name="matSource"]:checked')?.value || 'stock';
+    if (!description && !catalogId) return notify('Elige un material del catálogo o escribe el nombre', 'warning');
+    if (!amount && !catalogId) return notify('Indica el precio del material', 'warning');
     const receiptInput = document.getElementById('matReceipt');
-    if (!receiptInput?.files?.[0]) return notify('Sube la boleta o factura del material', 'warning');
+    if (source === 'purchased' && !receiptInput?.files?.[0]) {
+      return notify('Sube la boleta o factura del material comprado', 'warning');
+    }
     btn.disabled = true;
-    btn.textContent = 'Revisando boleta…';
+    btn.textContent = source === 'purchased' ? 'Revisando boleta…' : 'Agregando…';
     try {
       let receipt = null;
-      if (receiptInput?.files?.[0]) receipt = await fileToBase64(receiptInput);
+      if (source === 'purchased' && receiptInput?.files?.[0]) receipt = await fileToBase64(receiptInput);
       const res = await fetch(`/tecnico/trabajo/${requestId}/material`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ description, amount, receipt })
+        body: JSON.stringify({
+          description,
+          amount,
+          quantity,
+          catalogId: catalogId || null,
+          source,
+          receipt
+        })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Error');
       const reviewMsg = data.review?.status === 'approved'
-        ? 'Material agregado · boleta aprobada por IA'
+        ? 'Material agregado'
         : (data.review?.status === 'pending_manual'
           ? 'Material agregado · boleta pendiente de revisión'
           : 'Material agregado');
@@ -323,7 +370,11 @@
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Error');
-      notify('¡Visita completada!', 'success');
+      if (data.additionalCharge) {
+        notify(`Visita completada · Cliente debe pagar materiales (${new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(data.additionalCharge.amountDue || 0)})`, 'success');
+      } else {
+        notify('¡Visita completada!', 'success');
+      }
       showSettlement(data.settlement);
     } catch (err) {
       btn.disabled = false;

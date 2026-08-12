@@ -37,7 +37,9 @@ const {
   CANCELLATION_REASONS,
   resolveCancellationTier,
   getCancellationFeeClp,
-  getCancellationReasonLabel
+  getCancellationReasonLabel,
+  getEnabledMaterialsCatalog,
+  findMaterialInCatalog
 } = require('../lib/pricing');
 const {
   defaultProviderContract,
@@ -1065,8 +1067,14 @@ function markAdditionalPaymentApproved(requestId, paymentId) {
   charge.status = 'approved';
   charge.paymentId = paymentId;
   charge.paidAt = new Date().toISOString();
-  request.additionalPaymentsTotal = (request.additionalPaymentsTotal || 0) + charge.amountDue;
-  request.approvedServicePrice = request.additionalPaymentsTotal;
+
+  if (charge.reason === 'materials') {
+    // Materiales: passthrough al socio; no inflar serviceAmount / mano de obra.
+    request.materialsPaidTotal = (request.materialsPaidTotal || 0) + (charge.amountDue || 0);
+  } else {
+    request.additionalPaymentsTotal = (request.additionalPaymentsTotal || 0) + charge.amountDue;
+    request.approvedServicePrice = request.additionalPaymentsTotal;
+  }
 
   const sr = ensureSiteReport(request);
   if (charge.reason === 'budget') {
@@ -1079,6 +1087,8 @@ function markAdditionalPaymentApproved(requestId, paymentId) {
     request.serviceConfirmStatus = 'confirmed';
     request.serviceConfirmedAt = charge.paidAt;
     request.serviceConfirmMode = 'change';
+  } else if (charge.reason === 'materials') {
+    sr.materialsPaidAt = charge.paidAt;
   }
 
   repository.persist(() => repository.saveRequest(request), `pago ajuste ${requestId}`);
@@ -1624,6 +1634,9 @@ function updatePricingConfig(updates) {
     cancellations: updates.cancellations
       ? { ...current.cancellations, ...updates.cancellations }
       : current.cancellations,
+    materialsCatalog: updates.materialsCatalog != null
+      ? updates.materialsCatalog
+      : current.materialsCatalog,
     urgencyTiers: updates.urgencyTiers || current.urgencyTiers,
     scheduleSurcharges: updates.scheduleSurcharges || current.scheduleSurcharges,
     paymentGateways: updates.paymentGateways || current.paymentGateways,
@@ -3921,26 +3934,72 @@ function respondActivityChange(requestId, clientId, approved) {
   return { success: true, request, approved, activityChange: change, additionalCharge };
 }
 
-function addSiteMaterial(requestId, technicianId, { description, amount, receiptUrl, review } = {}) {
+function getMaterialsCatalogForService(serviceId = null) {
+  return getEnabledMaterialsCatalog(getPricingConfig().materialsCatalog, { serviceId });
+}
+
+function addSiteMaterial(requestId, technicianId, {
+  description,
+  amount,
+  receiptUrl,
+  review,
+  catalogId = null,
+  source = 'purchased',
+  quantity = 1
+} = {}) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (!['comprando', 'reparando', 'presupuesto_aprobado'].includes(request.techStatus)) {
     return { error: 'No puedes agregar materiales en este estado.' };
   }
 
-  const parsed = parseInt(amount, 10);
-  if (!parsed || parsed < 100) return { error: 'Monto de material inválido.' };
-  description = (description || '').trim();
-  if (!description) return { error: 'Describe el material.' };
-  if (!receiptUrl) return { error: 'Sube la boleta o factura del material.' };
+  const qty = Math.max(1, Math.min(50, parseInt(quantity, 10) || 1));
+  const src = String(source || 'purchased').toLowerCase() === 'stock' ? 'stock' : 'purchased';
+  const catalogItem = catalogId
+    ? findMaterialInCatalog(getPricingConfig().materialsCatalog, catalogId)
+    : null;
 
-  const reviewResult = review || {
-    status: 'pending_manual',
-    approved: null,
-    confidence: null,
-    reason: 'Pendiente de revisión.',
-    reviewedAt: new Date().toISOString()
-  };
+  let desc = (description || catalogItem?.name || '').trim();
+  let parsed = parseInt(amount, 10);
+
+  if (catalogItem) {
+    if (!desc) desc = catalogItem.name;
+    // Stock desde catálogo: precio de mercado × cantidad (sin boleta).
+    if (src === 'stock') {
+      parsed = catalogItem.marketPrice * qty;
+    } else if (!parsed || parsed < 100) {
+      parsed = catalogItem.marketPrice * qty;
+    }
+  }
+
+  if (!parsed || parsed < 100) return { error: 'Monto de material inválido.' };
+  if (!desc) return { error: 'Describe el material o elige uno del catálogo.' };
+
+  // Compra en tienda: boleta obligatoria. Stock/catálogo: no requiere boleta.
+  if (src === 'purchased' && !receiptUrl) {
+    return { error: 'Sube la boleta o factura del material comprado.' };
+  }
+
+  let reviewResult = review || null;
+  if (src === 'stock' || (catalogItem && !receiptUrl)) {
+    reviewResult = {
+      status: 'approved',
+      approved: true,
+      confidence: 1,
+      reason: catalogItem
+        ? `Precio de mercado Fundez (${catalogItem.unit || 'unidad'}).`
+        : 'Material de stock del técnico.',
+      reviewedAt: new Date().toISOString()
+    };
+  } else if (!reviewResult) {
+    reviewResult = {
+      status: 'pending_manual',
+      approved: null,
+      confidence: null,
+      reason: 'Pendiente de revisión.',
+      reviewedAt: new Date().toISOString()
+    };
+  }
 
   if (reviewResult.status === 'rejected' || reviewResult.approved === false) {
     return {
@@ -3952,8 +4011,13 @@ function addSiteMaterial(requestId, technicianId, { description, amount, receipt
   const sr = ensureSiteReport(request);
   const material = {
     id: `mat-${Date.now()}`,
-    description,
+    description: qty > 1 ? `${desc} × ${qty}` : desc,
     amount: parsed,
+    unitPrice: catalogItem ? catalogItem.marketPrice : Math.round(parsed / qty),
+    quantity: qty,
+    unit: catalogItem?.unit || 'unidad',
+    catalogId: catalogItem?.id || null,
+    source: src,
     receiptUrl: receiptUrl || null,
     reviewStatus: reviewResult.status,
     reviewApproved: reviewResult.approved,
@@ -3981,6 +4045,10 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
   if (!workNotes) return { error: 'Escribe el resumen de lo realizado.' };
   if (!photoEnd) return { error: 'Sube la foto final de la visita.' };
 
+  if (request.additionalCharge?.status === 'pending') {
+    return { error: 'Hay un ajuste pendiente de pago del cliente. Espera a que pague antes de cerrar.' };
+  }
+
   const sr = ensureSiteReport(request);
   sr.workNotes = workNotes;
   sr.photoEnd = photoEnd;
@@ -3991,6 +4059,25 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
       incompleteWarned: Boolean(attentionChecklist.incompleteWarned)
     };
   }
+
+  // Cobrar materiales al cliente a costo (no van en additionalPaymentsTotal / mano de obra).
+  const materialsTotal = (sr.materials || []).reduce((sum, m) => {
+    if (m.reviewStatus === 'rejected') return sum;
+    return sum + (parseInt(m.amount, 10) || 0);
+  }, 0);
+  const alreadyPaid = Math.max(0, parseInt(request.materialsPaidTotal, 10) || 0);
+  const materialsDue = Math.max(0, materialsTotal - alreadyPaid);
+  let additionalCharge = null;
+  if (materialsDue > 0) {
+    const chargeResult = openAdditionalCharge(request, {
+      reason: 'materials',
+      baseAmount: materialsDue,
+      description: `Materiales de la visita (${(sr.materials || []).filter((m) => m.reviewStatus !== 'rejected').length} ítem(s))`
+    });
+    if (chargeResult.error) return chargeResult;
+    additionalCharge = chargeResult.additionalCharge;
+  }
+
   request.techStatus = 'completado';
   request.status = 'completed';
   request.completedAt = new Date().toISOString();
@@ -3999,8 +4086,13 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
   buildProviderInvoicePlan(request, request.financials);
   addLogbookEntryFromRequest(request);
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
-  afterEvent((ev) => ev.onServiceCompleted(request));
-  return { success: true, request };
+  afterEvent((ev) => {
+    ev.onServiceCompleted(request);
+    if (additionalCharge) {
+      ev.onMaterialsChargeOpened?.(request, additionalCharge);
+    }
+  });
+  return { success: true, request, additionalCharge };
 }
 
 function getRequestsByTechnician(technicianId) {
@@ -5085,6 +5177,7 @@ module.exports = {
   getCancellationPolicy,
   cancelClientRequest,
   previewCancellationFee,
+  getMaterialsCatalogForService,
   getClientAttentionItems,
   confirmServiceSame,
   assignProvider,

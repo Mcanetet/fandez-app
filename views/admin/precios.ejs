@@ -290,6 +290,118 @@
         <% } %>
       </section>
 
+      <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
+        <h2 class="text-sm font-semibold mb-1">Materiales recurrentes</h2>
+        <p class="text-xs text-gray-500 mb-4">
+          Lista con precios de mercado. El técnico elige stock (sin boleta) o compra (con boleta).
+          Se cobran al cliente a costo (0% comisión Fundez). Deja especialidades vacío = todos los servicios.
+        </p>
+        <% const matCatalog = Array.isArray(pricing.materialsCatalog) ? pricing.materialsCatalog : []; %>
+        <% const appServices = [
+          { id: 'gasfiter', name: 'Gasfitería' },
+          { id: 'electrico', name: 'Electricidad' },
+          { id: 'termos', name: 'Termos' },
+          { id: 'cerrajero', name: 'Cerrajería' },
+          { id: 'lavadora', name: 'Lavadoras' },
+          { id: 'lavavajillas', name: 'Lavavajillas' },
+          { id: 'calderas', name: 'Calderas' },
+          { id: 'generadores', name: 'Generadores' }
+        ]; %>
+        <div class="overflow-x-auto rounded-xl border border-gray-100 mb-3">
+          <table class="w-full text-sm min-w-[720px]">
+            <thead>
+              <tr class="text-[10px] uppercase tracking-wide text-gray-500 border-b border-gray-100 bg-gray-50/80">
+                <th class="px-3 py-2 font-medium text-left">Material</th>
+                <th class="px-3 py-2 font-medium w-24">Unidad</th>
+                <th class="px-3 py-2 font-medium w-32">Precio mercado</th>
+                <th class="px-3 py-2 font-medium">Especialidades</th>
+                <th class="px-3 py-2 font-medium w-16 text-center">Activo</th>
+              </tr>
+            </thead>
+            <tbody id="materialsCatalogBody">
+              <% matCatalog.forEach(function(m) { %>
+                <tr class="border-b border-gray-50 align-top">
+                  <td class="px-3 py-2">
+                    <input type="hidden" name="matId" value="<%= m.id %>">
+                    <input type="text" name="matName" value="<%= m.name %>" class="zilo-input !py-1.5 text-sm w-full" required>
+                  </td>
+                  <td class="px-3 py-2">
+                    <input type="text" name="matUnit" value="<%= m.unit || 'unidad' %>" class="zilo-input !py-1.5 text-sm w-full" required>
+                  </td>
+                  <td class="px-3 py-2">
+                    <input type="number" name="matPrice" value="<%= m.marketPrice %>" min="0" step="100" class="zilo-input !py-1.5 text-sm w-full" required>
+                  </td>
+                  <td class="px-3 py-2">
+                    <div class="flex flex-wrap gap-x-2 gap-y-1">
+                      <% appServices.forEach(function(s) { %>
+                        <label class="inline-flex items-center gap-1 text-[11px] text-gray-600 cursor-pointer">
+                          <input type="checkbox" name="matSpec_<%= m.id %>" value="<%= s.id %>" <%= (m.specialtyIds || []).includes(s.id) ? 'checked' : '' %> class="rounded accent-zilo-accent">
+                          <%= s.name %>
+                        </label>
+                      <% }); %>
+                    </div>
+                  </td>
+                  <td class="px-3 py-2 text-center">
+                    <input type="checkbox" name="matEnabled" value="<%= m.id %>" <%= m.enabled !== false ? 'checked' : '' %> class="rounded accent-zilo-accent">
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+        <button type="button" id="btnAddMaterialRow" class="text-xs font-medium text-zilo-accent hover:underline">+ Agregar material</button>
+        <template id="matRowTemplate">
+          <tr class="border-b border-gray-50 align-top">
+            <td class="px-3 py-2">
+              <input type="hidden" name="matId" value="">
+              <input type="text" name="matName" value="" placeholder="Nombre" class="zilo-input !py-1.5 text-sm w-full" required>
+            </td>
+            <td class="px-3 py-2">
+              <input type="text" name="matUnit" value="unidad" class="zilo-input !py-1.5 text-sm w-full" required>
+            </td>
+            <td class="px-3 py-2">
+              <input type="number" name="matPrice" value="0" min="0" step="100" class="zilo-input !py-1.5 text-sm w-full" required>
+            </td>
+            <td class="px-3 py-2">
+              <div class="flex flex-wrap gap-x-2 gap-y-1 mat-spec-wrap" data-new="1">
+                <% appServices.forEach(function(s) { %>
+                  <label class="inline-flex items-center gap-1 text-[11px] text-gray-600 cursor-pointer">
+                    <input type="checkbox" data-spec="<%= s.id %>" value="<%= s.id %>" class="rounded accent-zilo-accent mat-spec-cb">
+                    <%= s.name %>
+                  </label>
+                <% }); %>
+              </div>
+            </td>
+            <td class="px-3 py-2 text-center">
+              <input type="checkbox" data-enabled-new="1" class="rounded accent-zilo-accent" checked>
+            </td>
+          </tr>
+        </template>
+        <script>
+          (function () {
+            const body = document.getElementById('materialsCatalogBody');
+            const tpl = document.getElementById('matRowTemplate');
+            let newIdx = 0;
+            document.getElementById('btnAddMaterialRow')?.addEventListener('click', function () {
+              if (!body || !tpl) return;
+              const node = tpl.content.cloneNode(true);
+              const id = 'mat-new-' + Date.now().toString(36) + '-' + (newIdx++);
+              const idInput = node.querySelector('input[name="matId"]');
+              if (idInput) idInput.value = id;
+              node.querySelectorAll('.mat-spec-cb').forEach(function (cb) {
+                cb.name = 'matSpec_' + id;
+              });
+              const en = node.querySelector('[data-enabled-new]');
+              if (en) {
+                en.name = 'matEnabled';
+                en.value = id;
+              }
+              body.appendChild(node);
+            });
+          })();
+        </script>
+      </section>
+
       <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary">Guardar configuración</button>
     </form>
 
