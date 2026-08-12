@@ -302,6 +302,8 @@
   "client.dashboard.hero_sub": "Elige el servicio y un técnico verificado llega a tu domicilio.",
   "client.dashboard.trust_compact": "técnicos verificados",
   "client.dashboard.active_focus_hint": "Cuando termine tu visita, aquí volverás a ver todos los servicios.",
+  "client.dashboard.request_another": "Pedir otro servicio",
+  "client.dashboard.request_another_hint": "Puedes solicitar otro servicio mientras sigues el actual.",
   "client.dashboard.more_services": "Ver más servicios",
   "client.dashboard.more_help": "Más ayuda y guía",
   "client.dashboard.less_help": "Ocultar ayuda",

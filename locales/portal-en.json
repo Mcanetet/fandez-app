@@ -293,6 +293,8 @@
   "client.dashboard.hero_sub": "Pick a service and a verified technician comes to your home.",
   "client.dashboard.trust_compact": "verified technicians",
   "client.dashboard.active_focus_hint": "When your visit ends, you’ll see all services here again.",
+  "client.dashboard.request_another": "Request another service",
+  "client.dashboard.request_another_hint": "You can request another service while tracking the current one.",
   "client.dashboard.more_services": "See more services",
   "client.dashboard.more_help": "More help and guide",
   "client.dashboard.less_help": "Hide help",

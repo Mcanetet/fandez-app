@@ -65,7 +65,7 @@
     <% }); %>
 
     <% if (hasActive) { %>
-    <!-- Modo visita activa: solo tracking (un trabajo por pantalla) -->
+    <!-- Modo visita activa: tracking + opción de pedir otro servicio -->
     <section class="mb-6">
       <div class="flex items-center justify-between mb-3">
         <h2 class="zilo-label !mb-0"><%= t('client.in_progress') %></h2>
@@ -87,8 +87,34 @@
           </a>
         <% }); %>
       </div>
-      <p class="text-[11px] text-zilo-muted mt-3 text-center"><%= t('client.dashboard.active_focus_hint') %></p>
     </section>
+
+    <% if (mod('client_solicitar')) { %>
+    <h2 class="zilo-label mb-1" data-tour="services" id="servicesSection"><%= t('client.dashboard.request_another') %></h2>
+    <p class="text-xs text-zilo-muted mb-3"><%= t('client.dashboard.request_another_hint') %></p>
+    <div id="servicesGrid" class="grid grid-cols-2 gap-3 mb-5">
+      <% (services || []).forEach(function(service, idx) { %>
+        <a href="/cliente/servicio/<%= service.id %>" data-service-id="<%= service.id %>"
+          class="service-item group flex flex-col items-center gap-3 p-5 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 hover:-translate-y-0.5 transition-all duration-300 <%= idx >= 6 ? 'hidden service-item--extra' : '' %>">
+          <%- include('../partials/service-icon', { icon: service.icon, size: 'lg' }) %>
+          <span class="font-medium text-sm text-center leading-tight"><%= service.name %></span>
+          <span class="w-full text-center leading-tight">
+            <span class="block text-[10px] text-zilo-muted"><%= t('client.from_price') %></span>
+            <span class="block text-xs font-medium text-zilo-muted tabular-nums"><%= formatCLP(service.averagePrice) %></span>
+          </span>
+        </a>
+      <% }); %>
+    </div>
+    <% if ((services || []).length > 6) { %>
+    <button type="button" id="btnShowMoreServicesActive" class="w-full mb-5 py-2.5 rounded-xl zilo-btn-ghost text-sm"><%= t('client.dashboard.more_services') %></button>
+    <script>
+      document.getElementById('btnShowMoreServicesActive')?.addEventListener('click', function () {
+        document.querySelectorAll('#servicesGrid .service-item--extra').forEach(function (el) { el.classList.remove('hidden'); });
+        this.remove();
+      });
+    </script>
+    <% } %>
+    <% } %>
 
     <% } else { %>
     <!-- Modo calma: CTA única + servicios -->
