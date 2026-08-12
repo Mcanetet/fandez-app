@@ -88,6 +88,18 @@
   }
 
   function pushBrowserNotification(title, body) {
+    if (window.FundezAlerts) {
+      FundezAlerts.notify({
+        type: 'order',
+        title: title || t('tecnico.js.push_title'),
+        body: body || '',
+        tag: 'fundez-tech-wall',
+        requireInteraction: true,
+        system: true,
+        url: '/tecnico'
+      });
+      return;
+    }
     if (typeof Notification === 'undefined') return;
     if (Notification.permission === 'granted') {
       try {
@@ -98,6 +110,80 @@
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission();
     }
+  }
+
+  const ETA_PRESETS = [
+    { min: 30, max: 45, label: '30–45 min' },
+    { min: 45, max: 60, label: '45–60 min' },
+    { min: 60, max: 90, label: '1–1,5 h' },
+    { min: 90, max: 120, label: '1,5–2 h' },
+    { min: 120, max: 180, label: '2–3 h' }
+  ];
+
+  function askEtaRange() {
+    return new Promise((resolve) => {
+      const existing = document.getElementById('techEtaModal');
+      if (existing) existing.remove();
+      const modal = document.createElement('div');
+      modal.id = 'techEtaModal';
+      modal.className = 'fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-4 bg-black/50';
+      modal.innerHTML = `
+        <div class="w-full max-w-md rounded-2xl bg-zilo-surface border border-zilo-border p-5 shadow-xl">
+          <p class="text-xs font-semibold text-zilo-accent mb-1">Antes de tomar el pedido</p>
+          <h3 class="text-base font-semibold mb-1">¿Cuál es tu hora estimada de llegada?</h3>
+          <p class="text-xs text-zilo-muted mb-4">El cliente lo verá al instante en el chat del servicio.</p>
+          <div class="grid grid-cols-1 gap-2" data-role="eta-options"></div>
+          <button type="button" data-role="eta-cancel" class="mt-3 w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm">Cancelar</button>
+        </div>`;
+      const options = modal.querySelector('[data-role="eta-options"]');
+      ETA_PRESETS.forEach((preset) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-full py-3 px-3 rounded-xl border border-zilo-border bg-zilo-bg/60 text-sm font-semibold hover:border-zilo-accent';
+        btn.textContent = preset.label;
+        btn.addEventListener('click', () => {
+          modal.remove();
+          resolve({ etaMinutesMin: preset.min, etaMinutesMax: preset.max });
+        });
+        options.appendChild(btn);
+      });
+      modal.querySelector('[data-role="eta-cancel"]').addEventListener('click', () => {
+        modal.remove();
+        resolve(null);
+      });
+      modal.addEventListener('click', (ev) => {
+        if (ev.target === modal) {
+          modal.remove();
+          resolve(null);
+        }
+      });
+      document.body.appendChild(modal);
+    });
+  }
+
+  async function acceptFromWall(requestId, btn) {
+    if (btn) btn.disabled = true;
+    const eta = await askEtaRange();
+    if (!eta) {
+      if (btn) btn.disabled = false;
+      return;
+    }
+    const res = await fetch(`/tecnico/accept/${requestId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(eta)
+    });
+    const data = await res.json();
+    if (!data.success) {
+      if (btn) btn.disabled = false;
+      notify(data.error || t('provider.js.take_error'), 'warning');
+      if (res.status === 409) removeWallItem(requestId);
+      return;
+    }
+    removeWallItem(requestId);
+    stopRepeatingAlert();
+    notify(t('tecnico.js.job_taken_reload'), 'success');
+    setTimeout(() => location.reload(), 800);
   }
 
   function escapeHtml(value) {
@@ -210,22 +296,6 @@
     } catch (_) {}
   }
 
-  async function acceptFromWall(requestId, btn) {
-    if (btn) btn.disabled = true;
-    const res = await fetch(`/tecnico/accept/${requestId}`, { method: 'POST' });
-    const data = await res.json();
-    if (!data.success) {
-      if (btn) btn.disabled = false;
-      notify(data.error || t('provider.js.take_error'), 'warning');
-      if (res.status === 409) removeWallItem(requestId);
-      return;
-    }
-    removeWallItem(requestId);
-    stopRepeatingAlert();
-    notify(t('tecnico.js.job_taken_reload'), 'success');
-    setTimeout(() => location.reload(), 800);
-  }
-
   async function postStatus(jobId, techStatus) {
     const res = await fetch(`/tecnico/status/${jobId}`, {
       method: 'POST',
@@ -235,6 +305,21 @@
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.error || 'Error');
     return data;
+  }
+
+  async function ensureEtaThenStatus(jobId, techStatus) {
+    if (techStatus === 'aceptado') {
+      const eta = await askEtaRange();
+      if (!eta) throw new Error('Debes indicar tu hora estimada de llegada');
+      const etaRes = await fetch(`/tecnico/trabajo/${jobId}/eta`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(eta)
+      });
+      const etaData = await etaRes.json();
+      if (!etaRes.ok || !etaData.success) throw new Error(etaData.error || 'No se pudo guardar la ETA');
+    }
+    return postStatus(jobId, techStatus);
   }
 
   function startSharing(card) {
@@ -293,9 +378,9 @@
     const transition = async (btn, next, successMsg, redirect) => {
       btn.disabled = true;
       try {
-        await postStatus(card.dataset.jobId, next);
+        await ensureEtaThenStatus(card.dataset.jobId, next);
         card.dataset.techStatus = next;
-        if (next === 'en_camino') startSharing(card);
+        if (next === 'aceptado' || next === 'en_camino') startSharing(card);
         if (redirect) {
           notify(successMsg, 'success');
           window.location.href = redirect;
@@ -343,7 +428,10 @@
       upsertWallItem(data);
       playAlertSound();
       startRepeatingAlert();
-      pushBrowserNotification(t('tecnico.js.push_title'), `${data.service.name} · ${data.request.address}`);
+      const title = t('tecnico.js.push_title');
+      const body = `${data.service?.name || 'Servicio'} · ${data.request?.address || ''}`.trim();
+      pushBrowserNotification(title, body);
+      if (window.FundezAlerts) FundezAlerts.ensurePermission();
     });
 
     socket.on('request_taken', ({ requestId }) => {

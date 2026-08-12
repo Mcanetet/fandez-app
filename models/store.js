@@ -1205,8 +1205,8 @@ function promoteDueScheduledSearches(now = Date.now()) {
  */
 function expireStaleUnassignedRequests(now = Date.now(), maxOpenHours = null) {
   const hours = Math.max(
-    6,
-    Number(maxOpenHours) || parseInt(process.env.OPEN_REQUEST_MAX_HOURS || '48', 10) || 48
+    4,
+    Number(maxOpenHours) || parseInt(process.env.OPEN_REQUEST_MAX_HOURS || '24', 10) || 24
   );
   const maxMs = hours * 3600 * 1000;
   const expired = [];
@@ -1214,8 +1214,12 @@ function expireStaleUnassignedRequests(now = Date.now(), maxOpenHours = null) {
   for (const request of requests) {
     if (!['scheduled', 'searching'].includes(request.status)) continue;
     if (request.providerId || request.paymentStatus !== 'approved') continue;
+    // Programadas: el reloj corre desde la hora en que debió empezar la búsqueda.
+    // Searching: desde searchingAt (o scheduledSearchAt si existe).
     const anchor = Date.parse(
-      request.scheduledSearchAt || request.searchingAt || request.paidAt || request.createdAt || ''
+      request.status === 'scheduled'
+        ? (request.scheduledSearchAt || request.paidAt || request.createdAt || '')
+        : (request.searchingAt || request.scheduledSearchAt || request.paidAt || request.createdAt || '')
     );
     if (!Number.isFinite(anchor) || now - anchor < maxMs) continue;
 
@@ -2817,7 +2821,46 @@ function getWorkWallItems(userId) {
     .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 }
 
-function tryAcceptRequest(requestId, userId) {
+function formatEtaRangeLabel(minMinutes, maxMinutes, locale = 'es') {
+  const minM = Math.max(1, parseInt(minMinutes, 10) || 0);
+  const maxM = Math.max(minM, parseInt(maxMinutes, 10) || minM);
+  const isEn = String(locale).startsWith('en');
+  const fmtHours = (m) => {
+    const h = m / 60;
+    if (Number.isInteger(h)) return String(h);
+    const rounded = Math.round(h * 10) / 10;
+    return String(rounded).replace('.', isEn ? '.' : ',');
+  };
+  if (maxM < 60) {
+    return isEn ? `${minM} to ${maxM} minutes` : `${minM} a ${maxM} minutos`;
+  }
+  if (minM < 60) {
+    return isEn
+      ? `${minM} minutes to ${fmtHours(maxM)} hours`
+      : `${minM} minutos a ${fmtHours(maxM)} horas`;
+  }
+  return isEn
+    ? `${fmtHours(minM)} to ${fmtHours(maxM)} hours`
+    : `${fmtHours(minM)} a ${fmtHours(maxM)} horas`;
+}
+
+function normalizeEtaRange(etaMinutesMin, etaMinutesMax) {
+  const min = parseInt(etaMinutesMin, 10);
+  const max = parseInt(etaMinutesMax, 10);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return { error: 'Indica tu hora estimada de llegada.' };
+  }
+  if (min < 15 || max < min || max > 360) {
+    return { error: 'La ETA debe estar entre 15 minutos y 6 horas.' };
+  }
+  return {
+    etaMinutesMin: min,
+    etaMinutesMax: max,
+    etaLabel: formatEtaRangeLabel(min, max, 'es')
+  };
+}
+
+function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax } = {}) {
   const request = requests.find(r => r.id === requestId);
   if (!request || request.status !== 'searching') {
     return { error: 'Solicitud ya no está disponible', code: 'taken' };
@@ -2835,6 +2878,8 @@ function tryAcceptRequest(requestId, userId) {
       return { error: 'No puedes tomar una solicitud de tu propio socio' };
     }
   }
+
+  let acceptChatMessage = null;
 
   if (user.role === 'provider') {
     if (!Array.isArray(user.specialties) || !user.specialties.includes(request.serviceId)) {
@@ -2861,6 +2906,9 @@ function tryAcceptRequest(requestId, userId) {
       .find((s) => s && Array.isArray(s.specialties) && s.specialties.includes(request.serviceId));
     if (!socio) return { error: 'Ninguno de tus socios ofrece este servicio actualmente.' };
 
+    const eta = normalizeEtaRange(etaMinutesMin, etaMinutesMax);
+    if (eta.error) return { error: eta.error };
+
     request.providerId = socio.id;
     request.technicianId = user.id;
     request.technicianName = user.name;
@@ -2872,6 +2920,10 @@ function tryAcceptRequest(requestId, userId) {
     request.serviceConfirmStatus = 'pending';
     request.serviceConfirmedAt = null;
     request.serviceConfirmMode = null;
+    request.etaMinutesMin = eta.etaMinutesMin;
+    request.etaMinutesMax = eta.etaMinutesMax;
+    request.etaLabel = eta.etaLabel;
+    request.etaDeclaredAt = new Date().toISOString();
   } else {
     return { error: 'Rol no autorizado' };
   }
@@ -2884,20 +2936,54 @@ function tryAcceptRequest(requestId, userId) {
   }
 
   ensureRequestChat(request);
-  const openerName = user.role === 'provider' ? user.name : (getUserById(request.providerId)?.name || user.name);
-  appendChatMessage(request, {
-    senderType: 'system',
-    senderId: null,
-    senderName: 'Fundez',
-    body: `${openerName} tomó el servicio. Ya pueden coordinar por este chat.`
-  });
+  if (user.role === 'tecnico') {
+    acceptChatMessage = appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fundez',
+      body: `${user.name} ha tomado tu pedido. Su hora de llegada estimada es de ${request.etaLabel}.`
+    });
+  } else {
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fundez',
+      body: `${user.name} tomó el servicio. Cuando el técnico acepte, te indicará su hora estimada de llegada.`
+    });
+  }
 
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   afterEvent((ev) => {
     ev.onProviderAssigned(request);
     if (request.technicianId) ev.onTechnicianAssigned(request);
   });
-  return { success: true, request };
+  return { success: true, request, chatMessage: acceptChatMessage };
+}
+
+function setTechnicianEta(requestId, technicianId, { etaMinutesMin, etaMinutesMax } = {}) {
+  const request = getRequestForTechnician(requestId, technicianId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (!['aceptado', 'asignado', 'en_camino'].includes(request.techStatus)) {
+    return { error: 'Ya no puedes cambiar la ETA en este estado.' };
+  }
+  const eta = normalizeEtaRange(etaMinutesMin, etaMinutesMax);
+  if (eta.error) return { error: eta.error };
+  const wasFirstEta = !(request.etaMinutesMin && request.etaMinutesMax);
+  request.etaMinutesMin = eta.etaMinutesMin;
+  request.etaMinutesMax = eta.etaMinutesMax;
+  request.etaLabel = eta.etaLabel;
+  request.etaDeclaredAt = new Date().toISOString();
+  const techName = request.technicianName || getUserById(technicianId)?.name || 'El técnico';
+  const message = appendChatMessage(request, {
+    senderType: 'system',
+    senderId: null,
+    senderName: 'Fundez',
+    body: wasFirstEta
+      ? `${techName} ha tomado tu pedido. Su hora de llegada estimada es de ${request.etaLabel}.`
+      : `${techName} actualizó su hora de llegada estimada: ${request.etaLabel}.`
+  });
+  repository.persist(() => repository.saveRequest(request), `eta técnico ${requestId}`);
+  return { success: true, request, chatMessage: message };
 }
 
 function ensureRequestChat(request) {
@@ -3226,6 +3312,9 @@ function updateTechStatus(requestId, technicianId, techStatus) {
   }
   if (techStatus === 'aceptado' && !request.serviceConfirmStatus) {
     request.serviceConfirmStatus = 'pending';
+  }
+  if (techStatus === 'aceptado' && !(request.etaMinutesMin && request.etaMinutesMax)) {
+    return { error: 'Indica tu hora estimada de llegada antes de aceptar el pedido.' };
   }
   request.techStatus = techStatus;
   const map = {
@@ -4745,6 +4834,8 @@ module.exports = {
   getPendingRequestsForProvider,
   getWorkWallItems,
   tryAcceptRequest,
+  setTechnicianEta,
+  formatEtaRangeLabel,
   getRequestChat,
   postRequestChatMessage,
   getOnlineTechnicians,

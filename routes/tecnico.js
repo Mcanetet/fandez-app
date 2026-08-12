@@ -112,7 +112,10 @@ router.post('/toggle-online', requireRole('tecnico'), (req, res) => {
 });
 
 router.post('/accept/:requestId', requireRole('tecnico'), (req, res) => {
-  const result = store.tryAcceptRequest(req.params.requestId, req.session.user.id);
+  const result = store.tryAcceptRequest(req.params.requestId, req.session.user.id, {
+    etaMinutesMin: req.body?.etaMinutesMin,
+    etaMinutesMax: req.body?.etaMinutesMax
+  });
   if (result.error) {
     return res.status(result.code === 'taken' ? 409 : 400).json({ success: false, error: result.error });
   }
@@ -121,13 +124,27 @@ router.post('/accept/:requestId', requireRole('tecnico'), (req, res) => {
   const socio = store.getUserById(request.providerId);
   const io = req.app.get('io');
   broadcastRequestTaken(io, request.id, req.session.user.id);
-  io.emit(`request_update_${request.id}`, {
+  const payload = {
     request,
-    provider: store.getPublicProviderProfile(socio)
-  });
+    provider: store.getPublicProviderProfile(socio),
+    chatMessage: result.chatMessage || null
+  };
+  io.emit(`request_update_${request.id}`, payload);
+  io.to(`request_${request.id}`).emit(`request_update_${request.id}`, payload);
   io.to(store.technicianSockets.get(req.session.user.id) || '').emit(`tecnico_assignment_${req.session.user.id}`, { request: serializeJob(request) });
 
-  res.json({ success: true, request: serializeJob(request) });
+  res.json({ success: true, request: serializeJob(request), chatMessage: result.chatMessage || null });
+});
+
+router.post('/trabajo/:requestId/eta', requireRole('tecnico'), (req, res) => {
+  const result = store.setTechnicianEta(req.params.requestId, req.session.user.id, {
+    etaMinutesMin: req.body?.etaMinutesMin,
+    etaMinutesMax: req.body?.etaMinutesMax
+  });
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  const payload = { request: result.request, chatMessage: result.chatMessage || null };
+  req.app.get('io').emit(`request_update_${result.request.id}`, payload);
+  res.json({ success: true, request: serializeJob(result.request), chatMessage: result.chatMessage || null });
 });
 
 router.post('/status/:requestId', requireRole('tecnico'), (req, res) => {

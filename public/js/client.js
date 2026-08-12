@@ -722,14 +722,21 @@
   function isLiveTrackingActive(request) {
     if (!request?.providerId) return false;
     const ts = String(request.techStatus || '');
-    if (['en_camino', 'en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(ts)) {
+    // Desde que el técnico acepta: el cliente puede ver ubicación + ETA declarada.
+    if (['aceptado', 'en_camino', 'en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(ts)) {
       return true;
     }
-    // Inmediato / hoy: mapa activo desde la asignación
-    if (!isDeferredUrgency(request) && ['assigned', 'in_progress'].includes(request.status)) {
+    if (!isDeferredUrgency(request) && ['assigned', 'in_progress'].includes(request.status) && request.technicianId) {
       return true;
     }
     return false;
+  }
+
+  function declaredEtaMinutes(request) {
+    if (request?.etaMinutesMin != null && request?.etaMinutesMax != null) {
+      return Math.round((Number(request.etaMinutesMin) + Number(request.etaMinutesMax)) / 2);
+    }
+    return null;
   }
 
   function updateLiveTrackBanner(request, { etaMinutes, distanceKm, hasLocation } = {}) {
@@ -745,13 +752,15 @@
     const deferred = isDeferredUrgency(request);
     const enRoute = request?.techStatus === 'en_camino';
     const live = isLiveTrackingActive(request);
+    const declared = declaredEtaMinutes(request);
+    const displayEta = etaMinutes != null ? etaMinutes : declared;
 
     shell.classList.toggle('hidden', !request?.coords);
     if (hint) {
-      hint.classList.toggle('hidden', !(deferred && !enRoute && request?.providerId));
+      hint.classList.toggle('hidden', !(deferred && !enRoute && !request?.etaLabel && request?.providerId));
     }
 
-    if (!live && deferred) {
+    if (!live && deferred && !request?.etaLabel) {
       etaBox.classList.add('is-waiting');
       if (etaMin) etaMin.innerHTML = '—<small>min</small>';
       if (title) title.textContent = t('client.service.live_waiting_title');
@@ -760,21 +769,31 @@
       return;
     }
 
-    if (enRoute || hasLocation) {
+    if (enRoute || hasLocation || request?.etaLabel || live) {
       etaBox.classList.remove('is-waiting');
       if (etaMin) {
-        etaMin.innerHTML = etaMinutes != null
-          ? `${etaMinutes}<small>min</small>`
+        etaMin.innerHTML = displayEta != null
+          ? `${displayEta}<small>min</small>`
           : '—<small>min</small>';
       }
-      if (title) title.textContent = t('client.service.live_enroute_title');
-      if (sub) {
-        const dist = distanceKm != null ? t('client.js.live_distance', { km: distanceKm }) : '';
-        sub.textContent = etaMinutes != null
-          ? `${t('client.js.live_eta', { n: etaMinutes })} ${dist}`.trim()
-          : t('client.service.live_enroute_sub');
+      if (title) {
+        title.textContent = enRoute || hasLocation
+          ? t('client.service.live_enroute_title')
+          : (request?.technicianName
+            ? `${request.technicianName} tomó tu pedido`
+            : t('client.service.live_assigned_title'));
       }
-      if (badge) badge.textContent = t('client.service.live_badge_enroute');
+      if (sub) {
+        if (request?.etaLabel && !hasLocation) {
+          sub.textContent = `Llegada estimada: ${request.etaLabel}`;
+        } else {
+          const dist = distanceKm != null ? t('client.js.live_distance', { km: distanceKm }) : '';
+          sub.textContent = displayEta != null
+            ? `${t('client.js.live_eta', { n: displayEta })} ${dist}`.trim()
+            : (request?.etaLabel ? `Llegada estimada: ${request.etaLabel}` : t('client.service.live_enroute_sub'));
+        }
+      }
+      if (badge) badge.textContent = enRoute ? t('client.service.live_badge_enroute') : t('client.service.assigned_badge');
       return;
     }
 
@@ -1231,7 +1250,7 @@
       ensureTrackingMap(request, provider);
       updateLiveTrackBanner(request, {
         hasLocation: Boolean(provider?.location?.lat),
-        etaMinutes: null,
+        etaMinutes: declaredEtaMinutes(request),
         distanceKm: null
       });
       const locStatus = document.getElementById('providerLocationStatus');
@@ -1242,7 +1261,14 @@
           locStatus.textContent = provider.location?.label
             ? `${provider.location.label} · ${t('client.js.tech_moving')}`
             : t('client.js.tech_live_location');
+        } else if (request?.etaLabel) {
+          locStatus.classList.remove('hidden');
+          locStatus.textContent = `Llegada estimada: ${request.etaLabel}`;
         }
+      }
+      const tripEta = document.getElementById('tripEta');
+      if (tripEta && request?.etaLabel) {
+        tripEta.textContent = `ETA ${request.etaLabel}`;
       }
     }
 

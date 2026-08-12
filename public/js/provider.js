@@ -86,6 +86,18 @@
   }
 
   function pushBrowserNotification(title, body) {
+    if (window.FundezAlerts) {
+      FundezAlerts.notify({
+        type: 'order',
+        title: title || 'Nuevo pedido Fundez',
+        body: body || '',
+        tag: 'fundez-work-wall',
+        requireInteraction: true,
+        system: true,
+        url: '/proveedor'
+      });
+      return;
+    }
     if (typeof Notification === 'undefined') return;
     if (Notification.permission === 'granted') {
       try {
