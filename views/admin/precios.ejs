@@ -37,9 +37,28 @@
             <input type="number" name="servicePrice" value="<%= pricing.servicePrice %>" min="100000" step="1000" class="zilo-input w-full mt-1" required>
             <p class="text-[10px] text-gray-400 mt-1">Base del cálculo dinámico (mín. $100.000). Sobre esto se aplican horario y urgencia.</p>
           </div>
+        </div>
+      </section>
+
+      <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
+        <h2 class="text-sm font-semibold mb-1">Cancelaciones</h2>
+        <p class="text-xs text-gray-500 mb-4">Monto retenido al cancelar (CLP). El resto se devoluciona al cliente. Escala según avance del servicio.</p>
+        <% const cancelCfg = pricing.cancellations || { beforeAccepted: 0, afterTechAccepted: 15000, enRouteOrOnSite: 30000 }; %>
+        <div class="grid grid-cols-1 gap-3">
           <div>
-            <label class="text-xs text-gray-500">Cargo por cancelación (CLP)</label>
-            <input type="number" name="cancellationFee" value="<%= pricing.cancellationFee %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <label class="text-xs text-gray-500">Antes de que el técnico acepte</label>
+            <input type="number" name="cancelBeforeAccepted" value="<%= cancelCfg.beforeAccepted %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Búsqueda, programada o asignado pendiente. Default $0 (devolución completa).</p>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">Técnico aceptó (aún no en camino)</label>
+            <input type="number" name="cancelAfterTechAccepted" value="<%= cancelCfg.afterTechAccepted %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Socio y técnico ya tomaron el pedido. Default $15.000.</p>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">En camino o en el domicilio</label>
+            <input type="number" name="cancelEnRouteOrOnSite" value="<%= cancelCfg.enRouteOrOnSite %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Técnico marcó “en camino” o ya está en sitio. Default $30.000.</p>
           </div>
         </div>
       </section>

@@ -33,7 +33,11 @@ const {
   quoteActivityForRequest,
   findCatalogActivity,
   getServiceAveragePrice,
-  MIN_WORK_BASE_CLP
+  MIN_WORK_BASE_CLP,
+  CANCELLATION_REASONS,
+  resolveCancellationTier,
+  getCancellationFeeClp,
+  getCancellationReasonLabel
 } = require('../lib/pricing');
 const {
   defaultProviderContract,
@@ -1133,32 +1137,46 @@ function activateRequest(requestId) {
   return beginSearchingRequest(request);
 }
 
-function getVisitRetentionFeeClp() {
+function getVisitRetentionFeeClp(request = null) {
   try {
-    const pricing = getPricingConfig();
-    const fromPricing = Math.max(0, parseInt(pricing?.visitPrice, 10) || 0);
-    const fromCancel = Math.max(0, parseInt(pricing?.cancellationFee, 10) || 0);
-    return Math.max(50000, fromPricing, fromCancel);
+    return getCancellationFeeClp(getPricingConfig(), request || {});
   } catch (_) {
-    return 50000;
+    return 0;
   }
+}
+
+function getCancellationPolicy() {
+  const cfg = getPricingConfig();
+  return {
+    cancellations: { ...cfg.cancellations },
+    reasons: CANCELLATION_REASONS.map((r) => ({ ...r }))
+  };
 }
 
 function applyCancellationWithRetention(request, {
   cancelReason,
-  cancelledBy = 'client'
+  cancelledBy = 'client',
+  reasonCode = null,
+  reasonText = null
 } = {}) {
   const now = new Date().toISOString();
   const paid = Math.max(0, parseInt(request.visitPricePaid || request.amountDue || request.visitTotal || 0, 10) || 0);
-  const retentionFee = Math.min(paid, getVisitRetentionFeeClp());
-  const refundAmount = Math.max(0, paid - retentionFee);
+  const tier = resolveCancellationTier(request);
+  const retentionFee = Math.min(paid, getCancellationFeeClp(getPricingConfig(), request));
+  let refundAmount = Math.max(0, paid - retentionFee);
 
   request.status = 'cancelled';
   request.cancelledAt = now;
   request.cancelReason = cancelReason;
   request.cancelledBy = cancelledBy;
+  request.cancellationTier = tier;
   request.cancellationFeeCharged = retentionFee;
   request.refundAmount = refundAmount;
+  if (reasonCode) {
+    request.cancelReasonCode = reasonCode;
+    request.cancelReasonLabel = getCancellationReasonLabel(reasonCode);
+  }
+  if (reasonText) request.cancelReasonText = String(reasonText).slice(0, 400);
   request.noProviderDecisionStatus = request.noProviderDecisionStatus === 'pending' ? 'resolved' : request.noProviderDecisionStatus;
   request.noProviderChoiceTokenHash = null;
   if (request.noProviderDecisionStatus === 'resolved' && !request.noProviderChoice) {
@@ -1174,7 +1192,7 @@ function applyCancellationWithRetention(request, {
     request.refundRequestedAt = now;
     request.refundScheduledDate = null;
   }
-  return { paid, retentionFee, refundAmount };
+  return { paid, retentionFee, refundAmount, tier };
 }
 
 function promoteDueScheduledSearches(now = Date.now()) {
@@ -1201,7 +1219,7 @@ function promoteDueScheduledSearches(now = Date.now()) {
 
 /**
  * Cierra solicitudes abiertas demasiado tiempo sin técnico asignado.
- * Retiene la tarifa base de visita ($50.000) y reembolsa el resto.
+ * Sin técnico que haya aceptado → devolución completa (fee $0).
  */
 function expireStaleUnassignedRequests(now = Date.now(), maxOpenHours = null) {
   const hours = Math.max(
@@ -1234,7 +1252,7 @@ function expireStaleUnassignedRequests(now = Date.now(), maxOpenHours = null) {
   return expired;
 }
 
-function cancelClientSearch(requestId, clientId) {
+function cancelClientSearch(requestId, clientId, { reasonCode = null, reasonText = null } = {}) {
   const request = requests.find((r) => r.id === requestId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (request.clientId !== clientId) return { error: 'No autorizado.' };
@@ -1244,15 +1262,77 @@ function cancelClientSearch(requestId, clientId) {
   if (request.providerId) {
     return { error: 'Ya hay un técnico asignado. Cancela desde el seguimiento del servicio.' };
   }
+  if (!reasonCode || !CANCELLATION_REASONS.some((r) => r.id === reasonCode)) {
+    return { error: 'Selecciona el motivo de cancelación.' };
+  }
+  if (reasonCode === 'other' && !String(reasonText || '').trim()) {
+    return { error: 'Cuéntanos el motivo de la cancelación.' };
+  }
 
   const wasScheduled = request.status === 'scheduled';
   const money = applyCancellationWithRetention(request, {
     cancelReason: wasScheduled ? 'client_cancelled_scheduled' : 'client_cancelled_search',
-    cancelledBy: 'client'
+    cancelledBy: 'client',
+    reasonCode,
+    reasonText
   });
   repository.persist(() => repository.saveRequest(request), `cancelar búsqueda ${requestId}`);
   afterEvent((ev) => ev.onRefundRequested?.(request));
   return { success: true, request, ...money };
+}
+
+/** Cancelación con escalera de fee cuando ya hay socio/técnico. */
+function cancelClientRequest(requestId, clientId, { reasonCode = null, reasonText = null } = {}) {
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (request.clientId !== clientId) return { error: 'No autorizado.' };
+  if (!['searching', 'scheduled', 'assigned', 'in_progress'].includes(request.status)) {
+    return { error: 'Esta solicitud ya no se puede cancelar.' };
+  }
+  if (request.techStatus === 'completado' || request.status === 'completed') {
+    return { error: 'El servicio ya fue completado.' };
+  }
+  if (!reasonCode || !CANCELLATION_REASONS.some((r) => r.id === reasonCode)) {
+    return { error: 'Selecciona el motivo de cancelación.' };
+  }
+  if (reasonCode === 'other' && !String(reasonText || '').trim()) {
+    return { error: 'Cuéntanos el motivo de la cancelación.' };
+  }
+
+  // Sin asignación: misma lógica que cancelar búsqueda
+  if (!request.providerId && ['searching', 'scheduled'].includes(request.status)) {
+    return cancelClientSearch(requestId, clientId, { reasonCode, reasonText });
+  }
+
+  const money = applyCancellationWithRetention(request, {
+    cancelReason: 'client_cancelled_service',
+    cancelledBy: 'client',
+    reasonCode,
+    reasonText
+  });
+  // Liberar técnico/socio del pedido cancelado
+  request.techStatus = request.techStatus || null;
+  repository.persist(() => repository.saveRequest(request), `cancelar servicio ${requestId}`);
+  afterEvent((ev) => ev.onRefundRequested?.(request));
+  return { success: true, request, ...money };
+}
+
+function previewCancellationFee(requestId, clientId) {
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (request.clientId !== clientId) return { error: 'No autorizado.' };
+  const paid = Math.max(0, parseInt(request.visitPricePaid || request.amountDue || request.visitTotal || 0, 10) || 0);
+  const tier = resolveCancellationTier(request);
+  const fee = Math.min(paid, getCancellationFeeClp(getPricingConfig(), request));
+  return {
+    success: true,
+    tier,
+    fee,
+    paid,
+    refundAmount: Math.max(0, paid - fee),
+    reasons: CANCELLATION_REASONS,
+    policy: getCancellationPolicy().cancellations
+  };
 }
 
 /** Solicitudes que el cliente debe atender (banner + push del sistema). */
@@ -1541,6 +1621,9 @@ function updatePricingConfig(updates) {
   const merged = normalizePricing({
     ...current,
     ...updates,
+    cancellations: updates.cancellations
+      ? { ...current.cancellations, ...updates.cancellations }
+      : current.cancellations,
     urgencyTiers: updates.urgencyTiers || current.urgencyTiers,
     scheduleSurcharges: updates.scheduleSurcharges || current.scheduleSurcharges,
     paymentGateways: updates.paymentGateways || current.paymentGateways,
@@ -4186,8 +4269,11 @@ function enrichRequestForClient(request, locale = 'es') {
     statusLabel: getRequestStatusLabel(request, locale),
     clientTotals: clientTotals.completed ? clientTotals : null,
     providerInvoicePlan,
-    visitRetentionFeeClp: getVisitRetentionFeeClp(),
-    canCancelWithRetention: ['scheduled', 'searching'].includes(request.status) && !request.providerId,
+    visitRetentionFeeClp: getVisitRetentionFeeClp(request),
+    cancellationFeePreview: getCancellationFeeClp(getPricingConfig(), request),
+    cancellationTier: resolveCancellationTier(request),
+    canCancelWithRetention: ['scheduled', 'searching', 'assigned', 'in_progress'].includes(request.status)
+      && request.techStatus !== 'completado',
     canChangeProvider: Boolean(
       request.providerId
       && ['assigned', 'in_progress'].includes(request.status)
@@ -4996,6 +5082,9 @@ module.exports = {
   expireStaleUnassignedRequests,
   cancelClientSearch,
   getVisitRetentionFeeClp,
+  getCancellationPolicy,
+  cancelClientRequest,
+  previewCancellationFee,
   getClientAttentionItems,
   confirmServiceSame,
   assignProvider,

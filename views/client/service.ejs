@@ -485,6 +485,7 @@
         <a id="providerEmail" href="mailto:" class="hidden zilo-btn-ghost w-full mb-2 !text-xs"><%= t('client.service.email_tech') %></a>
         <button type="button" id="openJobChatBtn" class="hidden zilo-btn-primary w-full mb-2 !text-sm">Mensajes con el socio</button>
         <button type="button" id="btnChangeProvider" class="hidden w-full mb-2 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-semibold">Cambiar de socio (seguir buscando)</button>
+        <button type="button" id="btnCancelService" class="w-full mb-2 py-2.5 rounded-xl border border-red-200 bg-white text-red-700 text-xs font-semibold"><%= t('client.service.cancel_track') %></button>
         <a id="whatsappSupport" href="#aland-support" data-open-aland class="zilo-btn-ghost w-full text-aland-strong border-aland/25"><%= t('client.service.concierge') %></a>
       </div>
 
@@ -556,6 +557,36 @@
       </div>
       <div class="px-5 py-4 border-t border-zilo-border shrink-0 safe-bottom">
         <button type="button" id="photoHelpOk" class="zilo-btn-primary !py-3"><%= t('client.service.photo_help_ok') %></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div id="cancelModal" class="hidden fixed inset-0 z-[420]" aria-hidden="true" role="dialog" aria-labelledby="cancelModalTitle">
+  <div id="cancelModalBackdrop" class="absolute inset-0 bg-black/55 backdrop-blur-sm"></div>
+  <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-5 pointer-events-none">
+    <div class="w-full max-w-lg max-h-[88vh] overflow-hidden flex flex-col pointer-events-auto bg-white rounded-t-3xl sm:rounded-2xl border border-zilo-border shadow-xl">
+      <div class="px-5 py-4 border-b border-zilo-border">
+        <p class="zilo-label !text-[9px]">Cancelaciones</p>
+        <h2 id="cancelModalTitle" class="text-base font-semibold"><%= t('client.service.cancel_title') %></h2>
+        <p id="cancelFeeSummary" class="text-sm text-zilo-muted mt-1"></p>
+        <p id="cancelRefundSummary" class="text-xs text-zilo-accent font-medium mt-0.5"></p>
+      </div>
+      <div class="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+        <label class="text-xs text-zilo-muted block" for="cancelReasonSelect"><%= t('client.service.cancel_reason_label') %></label>
+        <select id="cancelReasonSelect" class="zilo-input w-full">
+          <option value="">Cargando…</option>
+        </select>
+        <div id="cancelReasonOtherWrap" class="hidden">
+          <label class="text-xs text-zilo-muted block" for="cancelReasonText"><%= t('client.service.cancel_reason_other') %></label>
+          <textarea id="cancelReasonText" rows="3" maxlength="400" class="zilo-input w-full mt-1 resize-none" placeholder="<%= t('client.service.cancel_reason_other') %>"></textarea>
+        </div>
+      </div>
+      <div class="px-5 py-4 border-t border-zilo-border space-y-2 safe-bottom">
+        <button type="button" id="cancelModalConfirm" class="w-full py-3 rounded-xl bg-red-600 text-white text-sm font-semibold"><%= t('client.service.cancel_confirm_btn') %></button>
+        <button type="button" id="cancelModalClose" class="w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.service.cancel_close') %></button>
       </div>
     </div>
   </div>

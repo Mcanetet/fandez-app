@@ -1122,7 +1122,11 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
   const updated = store.updatePricingConfig({
     visitPrice: parseInt(body.visitPrice, 10),
     servicePrice: parseInt(body.servicePrice, 10),
-    cancellationFee: parseInt(body.cancellationFee, 10),
+    cancellations: {
+      beforeAccepted: parseInt(body.cancelBeforeAccepted, 10),
+      afterTechAccepted: parseInt(body.cancelAfterTechAccepted, 10),
+      enRouteOrOnSite: parseInt(body.cancelEnRouteOrOnSite, 10)
+    },
     laborCommissionRate: parseFloat(body.laborCommissionPercent) / 100,
     materialsCommissionRate: parseFloat(body.materialsCommissionPercent) / 100,
     merchantCardFeePercent: parseInt(body.merchantCardFeePercent, 10),

@@ -251,6 +251,7 @@ router.get('/', requireRole('client'), (req, res) => {
     activeRequests: store.getActiveRequestsForClient(req.session.user.id, req.locale),
     attentionItems,
     retentionFee: store.getVisitRetentionFeeClp(),
+    cancellationPolicy: store.getCancellationPolicy().cancellations,
     lastCompleted: store.getLastCompletedRequest(req.session.user.id, req.locale),
     trustStats: store.getClientTrustStats(),
     showOnboarding: store.needsOnboarding(profile),
@@ -586,24 +587,28 @@ router.get('/solicitud/:id', requireRole('client'), (req, res) => {
 
 router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (req, res) => {
   try {
-    const result = store.cancelClientSearch(req.params.id, req.session.user.id);
+    const reasonCode = req.body?.reasonCode || req.body?.reason;
+    const reasonText = req.body?.reasonText || '';
+    const result = store.cancelClientSearch(req.params.id, req.session.user.id, { reasonCode, reasonText });
     if (result.error) return res.status(400).json({ success: false, error: result.error });
 
     const updated = result.request;
-    const retention = updated.cancellationFeeCharged || store.getVisitRetentionFeeClp();
+    const retention = updated.cancellationFeeCharged || 0;
     const refundAmt = updated.refundAmount != null ? updated.refundAmount : 0;
     notifications.notify({
       event: 'service.refund_requested',
       to: company.supportEmail,
-      subject: `Cancelación de búsqueda — ${updated.serviceName}`,
-      text: `El cliente ${updated.clientName} canceló la ${updated.cancelReason === 'client_cancelled_scheduled' ? 'visita programada' : 'búsqueda'} de la solicitud ${updated.id}. Retención tarifa base: ${store.formatCLP(retention)}. Devolución: ${store.formatCLP(refundAmt)} (fecha: ${updated.refundScheduledDate || 'n/a'}).`,
+      subject: `Cancelación — ${updated.serviceName}`,
+      text: `El cliente ${updated.clientName} canceló la ${updated.cancelReason === 'client_cancelled_scheduled' ? 'visita programada' : 'búsqueda'} de la solicitud ${updated.id}. Motivo: ${updated.cancelReasonLabel || reasonCode || '—'}. Retención: ${store.formatCLP(retention)}. Devolución: ${store.formatCLP(refundAmt)} (fecha: ${updated.refundScheduledDate || 'n/a'}).`,
       requestId: updated.id,
       userId: updated.clientId,
       meta: {
         refundScheduledDate: updated.refundScheduledDate,
         reason: updated.cancelReason,
+        reasonCode: updated.cancelReasonCode,
         retentionFee: retention,
-        refundAmount: refundAmt
+        refundAmount: refundAmt,
+        tier: updated.cancellationTier
       }
     }).catch(() => {});
 
@@ -617,11 +622,75 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
       success: true,
       request: payload.request,
       retentionFee: retention,
-      refundAmount: refundAmt
+      refundAmount: refundAmt,
+      tier: result.tier || updated.cancellationTier
     });
   } catch (err) {
     console.error('[cancelar-busqueda]', err.message);
     return res.status(500).json({ success: false, error: 'No se pudo cancelar la búsqueda. Intenta de nuevo.' });
+  }
+});
+
+router.get('/solicitud/:id/cancelacion', requireRole('client'), (req, res) => {
+  const preview = store.previewCancellationFee(req.params.id, req.session.user.id);
+  if (preview.error) return res.status(400).json({ success: false, error: preview.error });
+  return res.json({
+    success: true,
+    ...preview,
+    feeLabel: store.formatCLP(preview.fee),
+    refundLabel: store.formatCLP(preview.refundAmount)
+  });
+});
+
+router.post('/solicitud/:id/cancelar', requireRole('client'), async (req, res) => {
+  try {
+    const reasonCode = req.body?.reasonCode || req.body?.reason;
+    const reasonText = req.body?.reasonText || '';
+    const result = store.cancelClientRequest(req.params.id, req.session.user.id, { reasonCode, reasonText });
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
+
+    const updated = result.request;
+    const retention = updated.cancellationFeeCharged || 0;
+    const refundAmt = updated.refundAmount != null ? updated.refundAmount : 0;
+    notifications.notify({
+      event: 'service.refund_requested',
+      to: company.supportEmail,
+      subject: `Cancelación de servicio — ${updated.serviceName}`,
+      text: `El cliente ${updated.clientName} canceló la solicitud ${updated.id}. Motivo: ${updated.cancelReasonLabel || reasonCode}. Escalón: ${updated.cancellationTier}. Retención: ${store.formatCLP(retention)}. Devolución: ${store.formatCLP(refundAmt)}.`,
+      requestId: updated.id,
+      userId: updated.clientId,
+      meta: {
+        reasonCode: updated.cancelReasonCode,
+        retentionFee: retention,
+        refundAmount: refundAmt,
+        tier: updated.cancellationTier
+      }
+    }).catch(() => {});
+
+    const io = req.app.get('io');
+    const payload = { request: store.enrichRequestForClient(updated, req.locale || 'es'), cancelled: true };
+    if (io) {
+      io.to(`request_${updated.id}`).emit(`request_update_${updated.id}`, payload);
+      if (updated.providerId) {
+        const sock = store.providerSockets.get(updated.providerId);
+        if (sock) io.to(sock).emit('provider_job_cancelled', { requestId: updated.id });
+      }
+      if (updated.technicianId) {
+        const ts = store.technicianSockets.get(updated.technicianId);
+        if (ts) io.to(ts).emit('tecnico_job_cancelled', { requestId: updated.id });
+      }
+    }
+
+    return res.json({
+      success: true,
+      request: payload.request,
+      retentionFee: retention,
+      refundAmount: refundAmt,
+      tier: result.tier || updated.cancellationTier
+    });
+  } catch (err) {
+    console.error('[cancelar]', err.message);
+    return res.status(500).json({ success: false, error: 'No se pudo cancelar. Intenta de nuevo.' });
   }
 });
 

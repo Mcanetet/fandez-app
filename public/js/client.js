@@ -584,18 +584,89 @@
 
   async function cancelSearchOrSchedule(requestId) {
     if (!requestId) return;
-    const ok = window.confirm(t('client.service.cancel_search_confirm'));
-    if (!ok) return;
-    const btn = document.getElementById('btnCancelSearch');
+    openCancelModal(requestId);
+  }
+
+  let cancelTargetId = null;
+
+  function closeCancelModal() {
+    const modal = document.getElementById('cancelModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    cancelTargetId = null;
+  }
+
+  async function openCancelModal(requestId) {
+    cancelTargetId = requestId;
+    const modal = document.getElementById('cancelModal');
+    const select = document.getElementById('cancelReasonSelect');
+    const feeEl = document.getElementById('cancelFeeSummary');
+    const refundEl = document.getElementById('cancelRefundSummary');
+    const otherWrap = document.getElementById('cancelReasonOtherWrap');
+    if (!modal || !select) return;
+    select.innerHTML = '<option value="">Cargando…</option>';
+    otherWrap?.classList.add('hidden');
+    if (feeEl) feeEl.textContent = '…';
+    if (refundEl) refundEl.textContent = '';
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    try {
+      const res = await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/cancelacion`, {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin'
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || t('client.service.cancel_search_error'));
+      const fmt = (n) => '$' + Number(n || 0).toLocaleString('es-CL');
+      if (feeEl) {
+        feeEl.textContent = data.fee > 0
+          ? t('client.service.cancel_fee_label', { fee: data.feeLabel || fmt(data.fee) })
+          : t('client.service.cancel_fee_free');
+      }
+      if (refundEl) {
+        refundEl.textContent = t('client.service.cancel_refund_label', {
+          refund: data.refundLabel || fmt(data.refundAmount)
+        });
+      }
+      select.innerHTML = '<option value="">' + t('client.service.cancel_reason_label') + '</option>';
+      (data.reasons || []).forEach((r) => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.label;
+        select.appendChild(opt);
+      });
+    } catch (err) {
+      closeCancelModal();
+      FundezNotify.show(err.message || t('client.service.cancel_search_error'), 'error');
+    }
+  }
+
+  async function submitCancelModal() {
+    if (!cancelTargetId) return;
+    const select = document.getElementById('cancelReasonSelect');
+    const reasonCode = select?.value;
+    const reasonText = document.getElementById('cancelReasonText')?.value.trim() || '';
+    if (!reasonCode) {
+      FundezNotify.show(t('client.service.cancel_reason_label'), 'warning');
+      return;
+    }
+    if (reasonCode === 'other' && !reasonText) {
+      FundezNotify.show(t('client.service.cancel_reason_other'), 'warning');
+      return;
+    }
+    const btn = document.getElementById('cancelModalConfirm');
+    const btnSearch = document.getElementById('btnCancelSearch');
     const btnScheduled = document.getElementById('btnCancelScheduled');
     if (btn) btn.disabled = true;
+    if (btnSearch) btnSearch.disabled = true;
     if (btnScheduled) btnScheduled.disabled = true;
     try {
-      const response = await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/cancelar-busqueda`, {
+      const response = await fetch(`/cliente/solicitud/${encodeURIComponent(cancelTargetId)}/cancelar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         credentials: 'same-origin',
-        body: '{}'
+        body: JSON.stringify({ reasonCode, reasonText })
       });
       const raw = await response.text();
       let data = {};
@@ -605,13 +676,16 @@
       if (!response.ok || !data.success) {
         throw new Error(data.error || t('client.service.cancel_search_error'));
       }
+      closeCancelModal();
       stopSearchExperience();
       loaderOverlay?.classList.add('hidden');
       hideScheduledPanel();
       const fmt = (n) => '$' + Number(n || 0).toLocaleString('es-CL');
-      const okBody = data.refundAmount != null
+      const okBody = data.retentionFee > 0
         ? `Retención ${fmt(data.retentionFee)}. Devolución ${fmt(data.refundAmount)}.`
-        : t('client.service.cancel_search_ok_body');
+        : (data.refundAmount > 0
+          ? `Devolución completa ${fmt(data.refundAmount)}.`
+          : t('client.service.cancel_search_ok_body'));
       if (window.FundezAlerts) {
         FundezAlerts.notify({
           type: 'success',
@@ -625,6 +699,7 @@
       setTimeout(() => { window.location.href = '/cliente'; }, 1000);
     } catch (err) {
       if (btn) btn.disabled = false;
+      if (btnSearch) btnSearch.disabled = false;
       if (btnScheduled) btnScheduled.disabled = false;
       FundezNotify.show(err.message || t('client.service.cancel_search_error'), 'error');
     }
@@ -635,6 +710,15 @@
   });
   document.getElementById('btnCancelScheduled')?.addEventListener('click', () => {
     cancelSearchOrSchedule(scheduledPanel?.dataset.requestId || currentRequestId || page.dataset.tracking);
+  });
+  document.getElementById('btnCancelService')?.addEventListener('click', () => {
+    cancelSearchOrSchedule(currentRequestId || page.dataset.tracking);
+  });
+  document.getElementById('cancelModalClose')?.addEventListener('click', closeCancelModal);
+  document.getElementById('cancelModalBackdrop')?.addEventListener('click', closeCancelModal);
+  document.getElementById('cancelModalConfirm')?.addEventListener('click', submitCancelModal);
+  document.getElementById('cancelReasonSelect')?.addEventListener('change', (e) => {
+    document.getElementById('cancelReasonOtherWrap')?.classList.toggle('hidden', e.target.value !== 'other');
   });
 
   async function submitNoProviderChoice(choice, requestId) {

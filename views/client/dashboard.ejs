@@ -39,7 +39,7 @@
           </li>
         <% }) %>
       </ul>
-      <p class="text-[11px] text-amber-800/80 mt-3">Si cancelas sin técnico asignado, se retiene la tarifa base (<%= typeof formatCLP === 'function' ? formatCLP(typeof retentionFee !== 'undefined' ? retentionFee : 50000) : '$50.000' %>) y se devuelve el resto.</p>
+      <p class="text-[11px] text-amber-800/80 mt-3">Si cancelas antes de que un técnico acepte, se devoluciona el 100%. Con técnico aceptado se retiene <%= typeof formatCLP === 'function' ? formatCLP((typeof cancellationPolicy !== 'undefined' && cancellationPolicy.afterTechAccepted) || 15000) : '$15.000' %>; en camino o en domicilio <%= typeof formatCLP === 'function' ? formatCLP((typeof cancellationPolicy !== 'undefined' && cancellationPolicy.enRouteOrOnSite) || 30000) : '$30.000' %>.</p>
     </section>
     <% } %>
 
@@ -48,12 +48,12 @@
     <section class="mb-5 p-4 rounded-2xl border border-amber-300 bg-amber-50" data-no-provider-card="<%= item.id %>">
       <p class="text-xs font-semibold text-aland-strong mb-1">Acción requerida</p>
       <strong class="text-sm block mb-1">Aún no encontramos un socio para <%= item.serviceName %></strong>
-      <p class="text-xs text-amber-900 mb-3">Han pasado 15 minutos. ¿Seguir buscando o cancelar? Al cancelar se retiene la tarifa base (<%= typeof formatCLP === 'function' ? formatCLP(typeof retentionFee !== 'undefined' ? retentionFee : 50000) : '$50.000' %>) y se devuelve el resto.</p>
+      <p class="text-xs text-amber-900 mb-3">Han pasado 15 minutos. ¿Seguir buscando o cancelar? Si cancelas ahora (aún sin técnico que acepte), se devoluciona el 100%.</p>
       <div class="grid grid-cols-2 gap-2">
         <button type="button" data-no-provider-choice="continue" data-request-id="<%= item.id %>"
           class="py-2.5 px-2 rounded-xl bg-zilo-accent text-white text-xs font-semibold">Sí, seguir buscando</button>
         <button type="button" data-no-provider-choice="refund" data-request-id="<%= item.id %>"
-          class="py-2.5 px-2 rounded-xl bg-white border border-red-300 text-red-700 text-xs font-semibold">Cancelar con tarifa base</button>
+          class="py-2.5 px-2 rounded-xl bg-white border border-red-300 text-red-700 text-xs font-semibold">Cancelar y devolver</button>
       </div>
     </section>
     <% }); %>
