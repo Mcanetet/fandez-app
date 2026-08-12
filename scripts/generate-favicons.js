@@ -34,7 +34,12 @@ async function main() {
     ['icons/fundez-v3-96.png', 96],
     ['icons/fundez-v3-180.png', 180],
     ['icons/fundez-v3-192.png', 192],
-    ['icons/fundez-v3-512.png', 512]
+    ['icons/fundez-v3-512.png', 512],
+    // v4 — ámbar marca (rompe caché de iOS/Android)
+    ['icons/fundez-v4-96.png', 96],
+    ['icons/fundez-v4-180.png', 180],
+    ['icons/fundez-v4-192.png', 192],
+    ['icons/fundez-v4-512.png', 512]
   ];
 
   fs.mkdirSync(path.join(publicDir, 'icons'), { recursive: true });

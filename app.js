@@ -115,11 +115,11 @@ app.get('/site.webmanifest', (req, res) => {
     background_color: '#F4F2EE',
     theme_color: '#C45C14',
     icons: [
-      { src: `/icons/fundez-v3-96.png${q}`, sizes: '96x96', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v3-180.png${q}`, sizes: '180x180', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v3-192.png${q}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v3-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v3-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: `/icons/fundez-v4-96.png${q}`, sizes: '96x96', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v4-180.png${q}`, sizes: '180x180', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v4-192.png${q}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v4-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: `/icons/fundez-v4-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   });
 });
