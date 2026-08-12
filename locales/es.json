@@ -458,6 +458,8 @@
   "services.calderas.desc": "Mantención, calibración, bombas, quemadores y seguridad de calderas centrales.",
   "services.generadores.name": "Mantenimiento de Generadores",
   "services.generadores.desc": "Mantención preventiva, pruebas de carga, transferencia y reparación de grupos electrógenos.",
+  "services.pintura.name": "Pintura",
+  "services.pintura.desc": "Pintura de interiores, muros, techos, retoques y preparación de superficies.",
 
   "js.verification_missing": "Completa tu verificación: {{items}}",
   "js.cannot_go_online": "No se pudo activar el modo en línea",

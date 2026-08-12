@@ -458,6 +458,8 @@
   "services.calderas.desc": "Maintenance, calibration, pumps, burners and central boiler safety.",
   "services.generadores.name": "Generator maintenance",
   "services.generadores.desc": "Preventive maintenance, load tests, transfer systems and generator set repairs.",
+  "services.pintura.name": "Painting",
+  "services.pintura.desc": "Interior painting, walls, ceilings, touch-ups and surface prep.",
 
   "js.verification_missing": "Complete your verification: {{items}}",
   "js.cannot_go_online": "Could not enable online mode",

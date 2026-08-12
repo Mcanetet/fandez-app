@@ -8,7 +8,8 @@ window.FundezIcons = {
       lavavajillas: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 10h18"/><circle cx="7" cy="14" r="0.5" fill="currentColor" stroke="none"/><circle cx="12" cy="14" r="0.5" fill="currentColor" stroke="none"/><circle cx="17" cy="14" r="0.5" fill="currentColor" stroke="none"/>',
       lavadora: '<rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="1.5"/>',
       calderas: '<rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8 4V2h8v2M9 16h6"/><path d="M12 8c2 2 2 4 0 6-2-2-2-4 0-6z"/>',
-      generadores: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="3"/><path d="M15 9h3M15 12h3M15 15h2M7 3v2M17 3v2"/>'
+      generadores: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="3"/><path d="M15 9h3M15 12h3M15 15h2M7 3v2M17 3v2"/>',
+      pintura: '<path d="M18.37 2.63a2.12 2.12 0 010 3l-7.07 7.07-3.54.35.35-3.54 7.07-7.07a2.12 2.12 0 013.19 0z"/><path d="M9 15l-2.5 5.5L12 18"/><path d="M14 7l3 3"/>'
     };
     const paths = icons[icon] || '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>';
     return `<svg class="zilo-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
