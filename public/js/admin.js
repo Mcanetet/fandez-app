@@ -493,6 +493,13 @@
       const enabled = toggle.checked;
       const item = toggle.closest('.service-toggle-item');
       const statusLabel = item.querySelector('.service-status');
+      const name = item?.querySelector('.service-name, strong, span')?.textContent?.trim() || 'este servicio';
+      if (!confirm(enabled
+        ? `¿Activar «${name}»? Los clientes podrán solicitarlo.`
+        : `¿Desactivar «${name}»? Dejará de aparecer para nuevos pedidos.`)) {
+        toggle.checked = !enabled;
+        return;
+      }
 
       try {
         const res = await adminFetch('/toggle-service', {
@@ -550,6 +557,13 @@
       const enabled = toggle.checked;
       const item = toggle.closest('.module-toggle-item');
       const statusLabel = item.querySelector('.module-status');
+      const name = item?.querySelector('strong, .module-name')?.textContent?.trim() || 'este módulo';
+      if (!confirm(enabled
+        ? `¿Activar el módulo «${name}»? Se verá de inmediato en la app.`
+        : `¿Desactivar el módulo «${name}»? Dejará de estar disponible para usuarios.`)) {
+        toggle.checked = !enabled;
+        return;
+      }
 
       try {
         const res = await adminFetch('/toggle-module', {
@@ -797,6 +811,13 @@
       const item = toggle.closest('.coverage-commune-item');
       const statusLabel = item.querySelector('.coverage-status');
       const regionEl = toggle.closest('.coverage-region');
+      const name = (item?.textContent || 'esta comuna').trim().split('\n')[0].slice(0, 60);
+      if (!confirm(enabled
+        ? `¿Activar cobertura en «${name}»?`
+        : `¿Quitar cobertura en «${name}»? Los clientes de esa zona no podrán pedir.`)) {
+        toggle.checked = !enabled;
+        return;
+      }
 
       try {
         const res = await adminFetch('/toggle-coverage', {
@@ -903,10 +924,13 @@
 
   document.querySelectorAll('.btn-complaint').forEach(btn => {
     btn.addEventListener('click', async () => {
+      const status = btn.dataset.status;
+      const labels = { en_revision: 'En revisión', resuelto: 'Resuelto', abierto: 'Abierto' };
+      if (!confirm(`¿Cambiar el reclamo a «${labels[status] || status}»?`)) return;
       const res = await adminFetch(`/complaint/${btn.dataset.id}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: btn.dataset.status })
+        body: JSON.stringify({ status })
       });
       const data = await res.json();
       if (data.success) {
@@ -918,11 +942,18 @@
 
   document.querySelectorAll('.btn-mark-payout').forEach(btn => {
     btn.addEventListener('click', async () => {
+      const amount = btn.dataset.amount || '';
+      const provider = btn.dataset.provider || 'este socio';
+      if (!confirm(`¿Confirmas que ya pagaste ${amount} a ${provider}? Esta acción marca el payout como pagado.`)) return;
+      btn.disabled = true;
       const res = await adminFetch(`/payout/${btn.dataset.id}`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         FundezNotify.show(ADMIN_JS.payoutMarked, 'success');
         setTimeout(() => location.reload(), 800);
+      } else {
+        btn.disabled = false;
+        FundezNotify.show(data.error || 'No se pudo marcar', 'error');
       }
     });
   });
@@ -988,12 +1019,18 @@
 
   document.querySelectorAll('.btn-approve-transfer').forEach(btn => {
     btn.addEventListener('click', async () => {
+      const amount = btn.dataset.amount || '';
+      const client = btn.dataset.client || 'el cliente';
+      const service = btn.dataset.service || 'el servicio';
+      if (!confirm(`¿Confirmas el pago de ${amount} de ${client} (${service})?\nEl pedido pasará a búsqueda de socio.`)) return;
+      btn.disabled = true;
       const res = await adminFetch(`/transfer/${btn.dataset.id}/aprobar`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         FundezNotify.show(ADMIN_JS.transferConfirmed, 'success');
         setTimeout(() => location.reload(), 800);
       } else {
+        btn.disabled = false;
         FundezNotify.show(data.error || 'No se pudo confirmar', 'error');
       }
     });

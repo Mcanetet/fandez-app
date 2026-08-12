@@ -162,7 +162,7 @@
   "admin.pagos.commission": "Commission",
   "admin.pagos.provider_payout": "Partner",
 
-  "admin.solicitudes.title": "Route requests",
+  "admin.solicitudes.title": "Assign requests",
   "admin.solicitudes.subtitle": "Paid requests searching for a partner. Manually assign to a partner with a ready technician for that service.",
   "admin.solicitudes.empty": "No requests currently searching.",
   "admin.solicitudes.assign": "Assign",
@@ -236,7 +236,7 @@
   "admin.aland.title": "Aland AI",
   "admin.mensajes.title": "Messages",
   "admin.equipo.title": "Team & permissions",
-  "admin.seguridad.title": "Cybersecurity",
+  "admin.seguridad.title": "Access security",
   "admin.seguridad.ip_restriction": "IP restriction (production)",
   "admin.seguridad.your_ip": "Your current IP",
   "admin.seguridad.authorized_ips": "Authorized IPs",

@@ -35,6 +35,69 @@ const appModeStore = require('../lib/appModeStore');
 const { resolveAdminAccess, hasFullSystemAccess } = require('../lib/adminPermissions');
 const florencia = require('../lib/florencia');
 
+function buildAdminAttentionInbox(storeRef, locale = 'es') {
+  const inbox = [];
+  const pendingTransfers = storeRef.getAllRequests().filter((r) => r.paymentStatus === 'pending_transfer');
+  const dispatchQueue = storeRef.getAdminDispatchQueue(locale);
+  const contractStats = storeRef.getContractStats();
+  const openComplaints = (storeRef.COMPLAINTS || []).filter((c) => c.status !== 'resuelto');
+  const pendingPayouts = storeRef.getPayments().filter(
+    (p) => p.status === 'completed' && p.payoutStatus !== 'pagado' && p.payoutStatus !== 'n/a'
+  );
+
+  pendingTransfers.slice(0, 8).forEach((r) => {
+    inbox.push({
+      type: 'transfer',
+      urgency: 'high',
+      tab: 'pagos',
+      title: `Confirmar transferencia · ${r.serviceName || 'Servicio'}`,
+      body: `${r.clientName || 'Cliente'} · ${storeRef.formatCLP(r.amountDue || 0)}`,
+      actionLabel: 'Ir a Pagos'
+    });
+  });
+  dispatchQueue.slice(0, 8).forEach((r) => {
+    inbox.push({
+      type: 'dispatch',
+      urgency: 'high',
+      tab: 'solicitudes',
+      title: `Pedido sin socio · ${r.serviceName || 'Servicio'}`,
+      body: `${r.clientName || 'Cliente'} · ${(r.eligibleProviders || []).length} socio(s) elegible(s)`,
+      actionLabel: 'Asignar'
+    });
+  });
+  if ((contractStats.pending_review || 0) > 0 || (contractStats.needs_info || 0) > 0) {
+    inbox.push({
+      type: 'contracts',
+      urgency: 'medium',
+      tab: 'contratos',
+      title: 'Contratos de socios por revisar',
+      body: `${contractStats.pending_review || 0} en revisión · ${contractStats.needs_info || 0} con antecedentes pendientes`,
+      actionLabel: 'Revisar'
+    });
+  }
+  pendingPayouts.slice(0, 5).forEach((p) => {
+    inbox.push({
+      type: 'payout',
+      urgency: 'medium',
+      tab: 'proveedores',
+      title: `Marcar pago a socio · ${p.providerName || 'Socio'}`,
+      body: storeRef.formatCLP(p.providerPayout || 0),
+      actionLabel: 'Ir a Socios'
+    });
+  });
+  openComplaints.slice(0, 5).forEach((c) => {
+    inbox.push({
+      type: 'complaint',
+      urgency: 'medium',
+      tab: 'reclamos',
+      title: c.subject || 'Reclamo abierto',
+      body: `${c.clientName || 'Cliente'} · ${String(c.status || '').replace(/_/g, ' ')}`,
+      actionLabel: 'Ver reclamo'
+    });
+  });
+  return inbox;
+}
+
 router.use(adminIpAllowlist());
 router.use(attachAdminAccess);
 
@@ -331,7 +394,8 @@ router.get('/', requireRole('admin'), async (req, res) => {
     managedUsers: store.getManagedUsers({ limit: 30 }),
     florenciaConnections: florencia.connectionsStatus(),
     canAccessPanel: (panelId) => canAccessPanel(access, panelId),
-    initialTab
+    initialTab,
+    attentionInbox: buildAdminAttentionInbox(store, req.locale || 'es')
   });
   } catch (err) {
     console.error('[admin/dashboard]', err.message);
