@@ -26,6 +26,9 @@
 
   <main class="flex-1 px-5 py-5 pb-24">
     <% const attentionList = typeof attentionItems !== 'undefined' ? attentionItems : []; %>
+    <% const hasActive = activeRequests && activeRequests.length > 0; %>
+    <% const isReturning = Boolean((typeof lastCompleted !== 'undefined' && lastCompleted) || (passport && passport.entries && passport.entries.length)); %>
+
     <% if (attentionList.length) { %>
     <section class="mb-5 p-4 rounded-2xl border border-amber-400/50 bg-amber-50" id="clientAttentionBanner">
       <p class="text-xs font-semibold text-amber-900 mb-1"><%= t('client.dashboard.pending_alert') %></p>
@@ -61,7 +64,8 @@
     </section>
     <% }); %>
 
-    <% if (activeRequests && activeRequests.length > 0) { %>
+    <% if (hasActive) { %>
+    <!-- Modo visita activa: solo tracking (un trabajo por pantalla) -->
     <section class="mb-6">
       <div class="flex items-center justify-between mb-3">
         <h2 class="zilo-label !mb-0"><%= t('client.in_progress') %></h2>
@@ -83,36 +87,20 @@
           </a>
         <% }); %>
       </div>
+      <p class="text-[11px] text-zilo-muted mt-3 text-center"><%= t('client.dashboard.active_focus_hint') %></p>
     </section>
-    <% } %>
 
-    <%- include('../partials/guide-card', {
-      title: t('client.guide.card_title'),
-      summary: t('client.guide.summary'),
-      linkText: t('client.guide.link')
-    }) %>
-
-    <% if (typeof trustStats !== 'undefined') { %>
-    <div class="mb-5 mt-5 zilo-page-enter-delay-1">
-      <%- include('../partials/trust-strip', { trustStats }) %>
-    </div>
-    <% } %>
-
-    <% if (mod('client_aland') && typeof services !== 'undefined' && services.length) { %>
-    <a href="/cliente/servicio/<%= services[0].id %>?aland=1" class="block zilo-card-premium rounded-xl p-4 mb-5 border border-aland/25 aland-surface hover:border-aland/40 transition">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-aland/15 flex items-center justify-center shrink-0">
-          <svg class="w-5 h-5 text-aland-strong" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-xs font-semibold mb-0.5 text-aland-strong">Aland</p>
-          <strong class="text-sm block"><%= t('client.dashboard.aland_title') %></strong>
-          <span class="text-xs text-zilo-muted"><%= t('client.dashboard.aland_sub') %></span>
-        </div>
-        <svg class="w-5 h-5 text-aland shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
-      </div>
-    </a>
-    <% } %>
+    <% } else { %>
+    <!-- Modo calma: CTA única + servicios -->
+    <section class="mb-5">
+      <h2 class="zilo-display text-2xl leading-tight mb-1"><%= t('client.dashboard.hero_title') %></h2>
+      <p class="text-sm text-zilo-muted mb-4"><%= t('client.dashboard.hero_sub') %></p>
+      <% if (typeof trustStats !== 'undefined') { %>
+      <p class="text-[11px] text-zilo-muted mb-4">
+        ★ <%= trustStats.avgRating || '4.9' %> · <%= trustStats.verifiedProviders || 100 %>% <%= t('client.dashboard.trust_compact') %> · <%= t('trust.eta_title', { time: trustStats.responseTime || '~45 min' }) %>
+      </p>
+      <% } %>
+    </section>
 
     <% if (typeof lastCompleted !== 'undefined' && lastCompleted && mod('client_solicitar')) { %>
     <a href="/cliente/servicio/<%= lastCompleted.serviceId %>" class="block zilo-card-premium rounded-2xl p-4 mb-5 border border-emerald-500/20 bg-emerald-50/50 hover:border-emerald-500/35 transition">
@@ -130,7 +118,38 @@
     </a>
     <% } %>
 
-    <% if (typeof passport !== 'undefined' && passport && mod('client_pasaporte')) { %>
+    <% if (mod('client_solicitar')) { %>
+    <h2 class="zilo-label mb-3" data-tour="services"><%= t('client.services') %></h2>
+    <div id="servicesGrid" class="grid grid-cols-2 gap-3 mb-5">
+      <% (services || []).forEach(function(service, idx) { %>
+        <a href="/cliente/servicio/<%= service.id %>" data-service-id="<%= service.id %>"
+          class="service-item group flex flex-col items-center gap-3 p-5 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 hover:-translate-y-0.5 transition-all duration-300 <%= idx >= 6 ? 'hidden service-item--extra' : '' %>">
+          <%- include('../partials/service-icon', { icon: service.icon, size: 'lg' }) %>
+          <span class="font-medium text-sm text-center leading-tight"><%= service.name %></span>
+          <span class="w-full text-center leading-tight">
+            <span class="block text-[10px] text-zilo-muted"><%= t('client.from_price') %></span>
+            <span class="block text-xs font-medium text-zilo-muted tabular-nums"><%= formatCLP(service.averagePrice) %></span>
+          </span>
+        </a>
+      <% }); %>
+    </div>
+    <% if ((services || []).length > 6) { %>
+    <button type="button" id="btnShowMoreServices" class="w-full mb-5 py-2.5 rounded-xl zilo-btn-ghost text-sm"><%= t('client.dashboard.more_services') %></button>
+    <script>
+      document.getElementById('btnShowMoreServices')?.addEventListener('click', function () {
+        document.querySelectorAll('.service-item--extra').forEach(function (el) { el.classList.remove('hidden'); });
+        this.remove();
+      });
+    </script>
+    <% } %>
+    <% } else { %>
+      <div class="zilo-empty zilo-card-premium rounded-2xl mb-5">
+        <p class="zilo-display"><%= t('client.requests_paused') %></p>
+        <p class="text-sm"><%= t('client.requests_paused_desc') %></p>
+      </div>
+    <% } %>
+
+    <% if (isReturning && typeof passport !== 'undefined' && passport && mod('client_pasaporte')) { %>
     <a href="/cliente/hogar" data-tour="passport" class="block zilo-card-premium rounded-2xl p-4 mb-5 border border-zilo-accent/15 hover:border-zilo-accent/30 transition">
       <div class="flex items-center gap-4">
         <div class="zilo-health-ring !w-16 !h-16 shrink-0">
@@ -154,56 +173,34 @@
     </a>
     <% } %>
 
-    <% if (mod('client_promos')) { %>
-    <% const giftServiceId = (typeof services !== 'undefined' && services[0]) ? services[0].id : null; %>
-    <div data-tour="promos" class="flex gap-3 overflow-x-auto scrollbar-hide mb-5 -mx-1 px-1 pb-1">
-      <% promos.forEach(p => { %>
-        <a href="<%= p.id === 'refer' ? (mod('client_referidos') ? '/cliente/invitar' : '/cliente') : p.id === 'gift' ? (mod('client_regalo') && giftServiceId ? '/cliente/servicio/' + giftServiceId + '?gift=1' : '/cliente') : '/cliente' %>"
-          class="flex-shrink-0 w-56 p-4 rounded-2xl zilo-card-premium relative overflow-hidden hover:border-zilo-accent/25 transition">
-          <strong class="text-sm block mb-1"><%= p.title %></strong>
-          <p class="text-xs text-zilo-muted"><%= p.desc %></p>
-          <% if (p.code) { %><span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-mono text-zilo-accent border border-zilo-accent/20"><%= p.code %></span><% } %>
-        </a>
-      <% }); %>
-    </div>
-    <% } %>
-
-    <% if (typeof referral !== 'undefined' && mod('client_referidos') && mod('client_puntos')) { %>
-    <div data-tour="points" class="flex items-center justify-between p-4 mb-5 rounded-2xl zilo-card-premium">
+    <% if (isReturning && mod('client_referidos')) { %>
+    <a href="/cliente/invitar" data-tour="points" class="flex items-center justify-between p-4 mb-5 rounded-2xl zilo-card-premium border border-zilo-accent/15 hover:border-zilo-accent/30 transition">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-lg bg-zilo-accent/10 flex items-center justify-center">
           <svg class="w-4 h-4 text-zilo-accent" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
         </div>
         <div>
-          <strong class="text-sm"><%= referral.points %> <%= t('client.points') %></strong>
-          <span class="text-[10px] text-zilo-muted block"><%= t('client.points_checkout', { amount: formatCLP(referral.points * 100) }) %></span>
+          <strong class="text-sm block"><%= t('client.dashboard.refer_cta_title') %></strong>
+          <span class="text-[10px] text-zilo-muted"><%= t('client.dashboard.refer_cta_sub') %></span>
         </div>
       </div>
-      <a href="/cliente/invitar" class="text-xs text-zilo-accent font-medium"><%= t('client.invite_arrow') %></a>
-    </div>
+      <span class="text-xs text-zilo-accent font-medium"><%= t('client.invite_arrow') %></span>
+    </a>
     <% } %>
 
-    <% if (mod('client_solicitar')) { %>
-    <h2 class="zilo-label mb-3"><%= t('client.services') %></h2>
-
-    <div id="servicesGrid" data-tour="services" class="grid grid-cols-2 gap-3">
-      <% services.forEach(service => { %>
-        <a href="/cliente/servicio/<%= service.id %>" data-service-id="<%= service.id %>"
-          class="service-item group flex flex-col items-center gap-3 p-5 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 hover:-translate-y-0.5 transition-all duration-300">
-          <%- include('../partials/service-icon', { icon: service.icon, size: 'lg' }) %>
-          <span class="font-medium text-sm text-center leading-tight"><%= service.name %></span>
-          <span class="w-full text-center leading-tight">
-            <span class="block text-[10px] text-zilo-muted"><%= t('client.from_price') %></span>
-            <span class="block text-xs font-medium text-zilo-muted tabular-nums"><%= formatCLP(service.averagePrice) %></span>
-          </span>
-        </a>
-      <% }); %>
-    </div>
-    <% } else { %>
-      <div class="zilo-empty zilo-card-premium rounded-2xl">
-        <p class="zilo-display"><%= t('client.requests_paused') %></p>
-        <p class="text-sm"><%= t('client.requests_paused_desc') %></p>
+    <details class="mb-2 group">
+      <summary class="text-xs text-zilo-muted cursor-pointer list-none flex items-center gap-1 py-2">
+        <span class="group-open:hidden"><%= t('client.dashboard.more_help') %></span>
+        <span class="hidden group-open:inline"><%= t('client.dashboard.less_help') %></span>
+      </summary>
+      <div class="pt-2">
+        <%- include('../partials/guide-card', {
+          title: t('client.guide.card_title'),
+          summary: t('client.guide.summary'),
+          linkText: t('client.guide.link')
+        }) %>
       </div>
+    </details>
     <% } %>
   </main>
 
@@ -255,6 +252,7 @@
   });
   socket.on('services_updated', ({ services }) => {
     const grid = document.getElementById('servicesGrid');
+    if (!grid) return;
     const active = services.filter(s => s.enabled);
     const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
     const fmt = n => new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);

@@ -88,8 +88,14 @@
     <button type="button" data-open-aland class="w-full mb-3 py-3 rounded-xl zilo-btn-ghost text-sm font-semibold">
       Hablar con Aland IA
     </button>
-    <% } %>
+    <div class="w-full grid grid-cols-1 gap-2 mb-2">
+      <a href="/cliente/hogar" class="block py-3 rounded-xl zilo-btn-ghost text-sm font-semibold">Ver Pasaporte Hogar</a>
+      <a href="/cliente/servicio/<%= request.serviceId %>" class="block py-3 rounded-xl zilo-btn-ghost text-sm font-semibold">Repetir este servicio después</a>
+      <a href="/cliente/invitar" class="block py-3 rounded-xl zilo-btn-ghost text-sm font-semibold">Invitar y gana $5.000</a>
+    </div>
+    <% } else { %>
     <a href="/cliente/hogar" class="text-sm text-zilo-accent hover:underline">Ver Pasaporte Hogar</a>
+    <% } %>
   <% } else { %>
     <a href="/cliente" class="zilo-btn-primary">Volver al inicio</a>
   <% } %>

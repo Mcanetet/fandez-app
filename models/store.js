@@ -282,10 +282,7 @@ async function createRequest({
 
   notes = (notes || '').trim();
   if (!notes) return Promise.reject(new Error('Describe el problema para que el técnico sepa qué esperar.'));
-  if (!clientPhotoUrl) {
-    return Promise.reject(new Error('Sube una foto del problema. Es obligatoria para cotizar y enviar al socio.'));
-  }
-  const noBrand = Boolean(brandNotVisible);
+  const noBrand = Boolean(brandNotVisible) || !clientBrandPhotoUrl;
   if (!noBrand && !clientBrandPhotoUrl) {
     return Promise.reject(new Error('Sube una foto de la marca o marca «Sin marca a la vista».'));
   }

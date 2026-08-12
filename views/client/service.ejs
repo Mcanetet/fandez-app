@@ -1,11 +1,14 @@
 <%- include('../partials/head', { useMap: true }) %>
 
+<% const brandOptionalServices = ['pintura', 'cerrajero']; %>
+<% const brandOptional = brandOptionalServices.indexOf(String(service.id || '').toLowerCase()) !== -1; %>
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="servicePage"
   data-service-id="<%= service.id %>"
   data-service-name="<%= service.name %>"
   data-visit-price="<%= service.visitPrice %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
-  data-whatsapp="<%= company.whatsapp %>">
+  data-whatsapp="<%= company.whatsapp %>"
+  data-brand-optional="<%= brandOptional ? '1' : '0' %>">
 
   <%- include('../partials/back-header', {
     backUrl: '/cliente',
@@ -58,28 +61,65 @@
     </div>
 
     <% if (urgencyTiers && urgencyTiers.length) { %>
+    <%
+      const primaryUrgency = urgencyTiers.filter(function(tier) { return tier.id === 'today' || tier.id === 'immediate'; });
+      const scheduleUrgency = urgencyTiers.filter(function(tier) { return tier.id !== 'today' && tier.id !== 'immediate'; });
+      const hasToday = urgencyTiers.some(function(tier) { return tier.id === 'today'; });
+      function urgencyBadge(tier) {
+        const pct = Number(tier.surchargePercent != null ? tier.surchargePercent : tier.adjustmentPercent) || 0;
+        if (pct > 0) return { text: '+' + pct + '%', cls: 'text-amber-700' };
+        if (pct < 0) return { text: pct + '%', cls: 'text-emerald-700' };
+        return { text: t('client.service.urgency_normal'), cls: 'text-zilo-muted' };
+      }
+    %>
     <div class="p-5 rounded-2xl zilo-card-premium mb-5 zilo-page-enter-delay-1">
-      <p class="zilo-label mb-3"><%= t('client.service.when') %></p>
+      <p class="zilo-label mb-1"><%= t('client.service.when') %></p>
+      <p class="text-[11px] text-zilo-muted mb-3"><%= t('client.service.when_hint') %></p>
       <div class="space-y-2" id="urgencyOptions">
-        <% urgencyTiers.forEach((tier, i) => {
-          const isDefault = tier.id === 'scheduled' || (i === urgencyTiers.length - 1 && !urgencyTiers.some(t => t.id === 'scheduled'));
-          const pct = Number(tier.surchargePercent != null ? tier.surchargePercent : tier.adjustmentPercent) || 0;
-          let badge = t('client.service.urgency_normal');
-          let badgeClass = 'text-zilo-muted';
-          if (pct > 0) { badge = '+' + pct + '%'; badgeClass = 'text-amber-700'; }
-          else if (pct < 0) { badge = pct + '%'; badgeClass = 'text-emerald-700'; }
+        <% (primaryUrgency.length ? primaryUrgency : urgencyTiers).forEach(function(tier) {
+          const isDefault = hasToday ? tier.id === 'today' : (tier.id === 'immediate' || tier === urgencyTiers[0]);
+          const isUpgrade = tier.id === 'immediate';
+          const badge = urgencyBadge(tier);
         %>
-          <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer urgency-option <%= isDefault ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-tier="<%= tier.id %>">
+          <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer urgency-option <%= isDefault ? 'border-zilo-accent bg-zilo-accent/5' : (isUpgrade ? 'border-amber-300/70 bg-amber-50/40' : 'border-zilo-border') %>" data-tier="<%= tier.id %>">
             <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="mt-1 accent-zilo-accent" <%= isDefault ? 'checked' : '' %>>
             <div class="flex-1 min-w-0">
               <div class="flex justify-between items-start gap-2">
-                <strong class="text-sm"><%= tier.label %></strong>
-                <span class="text-xs font-medium shrink-0 urgency-pct <%= badgeClass %>"><%= badge %></span>
+                <strong class="text-sm"><%= tier.id === 'today' ? t('client.service.urgency_today') : (tier.id === 'immediate' ? t('client.service.urgency_now') : tier.label) %></strong>
+                <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
               </div>
-              <% if (tier.description) { %><p class="text-[11px] text-zilo-muted mt-0.5"><%= tier.description %></p><% } %>
+              <% if (isUpgrade) { %>
+                <p class="text-[11px] text-amber-800/80 mt-0.5"><%= t('client.service.urgency_now_hint') %></p>
+              <% } else if (tier.description) { %>
+                <p class="text-[11px] text-zilo-muted mt-0.5"><%= tier.description %></p>
+              <% } %>
             </div>
           </label>
         <% }); %>
+        <% if (scheduleUrgency.length && primaryUrgency.length) { %>
+        <details class="rounded-xl border border-zilo-border overflow-hidden" id="urgencyScheduleDetails">
+          <summary class="px-3 py-2.5 text-sm cursor-pointer text-zilo-muted hover:text-zilo-text list-none flex items-center justify-between gap-2">
+            <span><%= t('client.service.schedule_later') %></span>
+            <span class="text-[10px] uppercase tracking-wide"><%= t('client.service.schedule_later_hint') %></span>
+          </summary>
+          <div class="space-y-2 p-2 pt-0 border-t border-zilo-border">
+            <% scheduleUrgency.forEach(function(tier) {
+              const badge = urgencyBadge(tier);
+            %>
+              <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer urgency-option border-zilo-border" data-tier="<%= tier.id %>">
+                <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="mt-1 accent-zilo-accent">
+                <div class="flex-1 min-w-0">
+                  <div class="flex justify-between items-start gap-2">
+                    <strong class="text-sm"><%= tier.label %></strong>
+                    <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
+                  </div>
+                  <% if (tier.description) { %><p class="text-[11px] text-zilo-muted mt-0.5"><%= tier.description %></p><% } %>
+                </div>
+              </label>
+            <% }); %>
+          </div>
+        </details>
+        <% } %>
       </div>
     </div>
     <% } %>
@@ -172,20 +212,20 @@
 
       <div class="space-y-4">
         <div>
-          <label class="zilo-label block mb-1.5"><%= t('client.service.photo') %> *</label>
-          <p class="text-[11px] text-zilo-muted mb-2"><%= t('client.service.photo_required_hint') %></p>
+          <label class="zilo-label block mb-1.5"><%= t('client.service.photo') %> <span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span></label>
+          <p class="text-[11px] text-zilo-muted mb-2"><%= t('client.service.photo_optional_hint') %></p>
           <button type="button" id="btnPhotoHelp" class="w-full mb-3 py-2.5 px-3 rounded-xl border border-zilo-accent/30 bg-zilo-accent/10 text-zilo-accent text-xs font-semibold text-left flex items-center gap-2">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <span><%= t('client.service.photo_help_link') %></span>
           </button>
-          <input type="file" id="clientPhoto" accept="image/*" capture="environment" required class="block w-full text-xs text-zilo-muted file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent file:text-xs file:font-medium">
+          <input type="file" id="clientPhoto" accept="image/*" capture="environment" class="block w-full text-xs text-zilo-muted file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent file:text-xs file:font-medium">
           <div id="clientPhotoPreview" class="hidden mt-2">
             <img src="" alt="<%= t('client.service.preview_alt') %>" class="w-full max-h-40 object-cover rounded-xl border border-zilo-border">
           </div>
         </div>
 
-        <div id="brandPhotoBlock">
-          <label class="zilo-label block mb-1.5"><%= t('client.service.photo_brand') %> *</label>
+        <div id="brandPhotoBlock" class="<%= brandOptional ? 'hidden' : '' %>">
+          <label class="zilo-label block mb-1.5"><%= t('client.service.photo_brand') %> <span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span></label>
           <p class="text-[11px] text-zilo-muted mb-2"><%= t('client.service.photo_brand_hint') %></p>
           <input type="file" id="clientBrandPhoto" accept="image/*" capture="environment" class="block w-full text-xs text-zilo-muted file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent file:text-xs file:font-medium">
           <div id="clientBrandPhotoPreview" class="hidden mt-2">
@@ -193,8 +233,8 @@
           </div>
         </div>
 
-        <label class="flex items-start gap-2.5 p-3 rounded-xl border border-zilo-border cursor-pointer">
-          <input type="checkbox" id="brandNotVisible" class="mt-0.5 accent-zilo-accent shrink-0">
+        <label class="flex items-start gap-2.5 p-3 rounded-xl border border-zilo-border cursor-pointer <%= brandOptional ? 'hidden' : '' %>" id="brandNotVisibleLabel">
+          <input type="checkbox" id="brandNotVisible" class="mt-0.5 accent-zilo-accent shrink-0" <%= brandOptional ? 'checked' : '' %>>
           <span class="text-sm leading-snug">
             <strong class="block font-medium"><%= t('client.service.brand_not_visible') %></strong>
             <span class="text-[11px] text-zilo-muted"><%= t('client.service.brand_not_visible_hint') %></span>
@@ -278,7 +318,8 @@
 
         <p id="searchPhaseLabel" class="search-phase-pill mb-3"><%= t('client.service.search_phase_near') %></p>
         <h3 id="loaderText" class="zilo-display text-[1.35rem] mb-2 leading-snug tracking-tight"><%= t('client.service.searching') %></h3>
-        <p id="loaderSub" class="text-sm text-zilo-muted mb-5 leading-relaxed px-1"><%= t('client.service.searching_sub') %></p>
+        <p id="loaderSub" class="text-sm text-zilo-muted mb-2 leading-relaxed px-1"><%= t('client.service.searching_sub') %></p>
+        <p id="searchViewersHint" class="text-[11px] text-zilo-accent font-medium mb-5"><%= t('client.js.search_viewers', { count: '3' }) %></p>
 
         <div class="mb-5 px-1">
           <div class="flex justify-between text-[10px] text-zilo-muted mb-1.5">
@@ -422,6 +463,11 @@
         <a id="finalVoucherLink" href="#" target="_blank" class="hidden mt-3 block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm">Ver voucher del trabajo</a>
         <a id="finalProviderInvoiceLink" href="#" target="_blank" class="hidden mt-2 block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm">Ver factura o boleta del socio</a>
         <a id="finalReviewLink" href="/cliente/historial" class="mt-2 block text-center py-2.5 rounded-xl zilo-btn-primary !text-sm">Calificar y dejar un comentario</a>
+        <div class="mt-3 grid grid-cols-1 gap-2" id="completionNextActions">
+          <a href="/cliente/servicio/<%= service.id %>" class="block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.dashboard.repeat') %></a>
+          <a href="/cliente/hogar" class="block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.passport') %></a>
+          <a href="/cliente/invitar" class="block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.dashboard.refer_cta_title') %></a>
+        </div>
       </section>
       <div class="p-4 rounded-2xl zilo-card-premium mb-4" id="tripStatusHero">
         <p class="zilo-label mb-1">Estado de tu visita</p>

@@ -29,7 +29,7 @@
   let currentRequestId = trackingId || null;
   let lastProviderAlertId = null;
   let lastCompletionAlertId = null;
-  let selectedUrgencyTier = document.querySelector('input[name="urgencyTier"]:checked')?.value || 'scheduled';
+  let selectedUrgencyTier = document.querySelector('input[name="urgencyTier"]:checked')?.value || 'today';
   let geocodeTimer = null;
   let addressCovered = null;
   const socket = io();
@@ -82,6 +82,10 @@
         el.classList.toggle('bg-zilo-accent/5', active);
         el.classList.toggle('border-zilo-border', !active);
       });
+      const scheduleDetails = document.getElementById('urgencyScheduleDetails');
+      if (scheduleDetails && (selectedUrgencyTier === 'tomorrow' || selectedUrgencyTier === 'two_days' || selectedUrgencyTier === 'scheduled')) {
+        scheduleDetails.open = true;
+      }
       updatePricePreview();
     });
   });
@@ -249,14 +253,16 @@
   wirePhotoPreview(clientBrandPhotoInput, clientBrandPhotoPreview, (url) => { cachedBrandPhoto = url; });
 
   function syncBrandPhotoRequirement() {
-    const skipBrand = Boolean(brandNotVisibleCheck?.checked);
+    const brandOptional = page?.dataset.brandOptional === '1';
+    const skipBrand = Boolean(brandNotVisibleCheck?.checked) || brandOptional;
     if (brandPhotoBlock) {
-      brandPhotoBlock.classList.toggle('opacity-50', skipBrand);
+      brandPhotoBlock.classList.toggle('opacity-50', skipBrand && !brandOptional);
       brandPhotoBlock.classList.toggle('pointer-events-none', skipBrand);
+      if (brandOptional) brandPhotoBlock.classList.add('hidden');
     }
     if (clientBrandPhotoInput) {
       clientBrandPhotoInput.disabled = skipBrand;
-      clientBrandPhotoInput.required = !skipBrand;
+      clientBrandPhotoInput.required = false;
       if (skipBrand) {
         clientBrandPhotoInput.value = '';
         cachedBrandPhoto = null;
@@ -460,15 +466,33 @@
       updateSearchProgress(elapsedMs);
       return phase;
     }
+    const isFirstPaint = searchCurrentPhase == null;
     searchCurrentPhase = phase.phase;
     setSearchSteps(phase.step, { busy: phase.phase === 'busy' });
     const titleEl = document.getElementById('loaderText');
     const subEl = document.getElementById('loaderSub');
     const labelEl = document.getElementById('searchPhaseLabel');
+    const viewersEl = document.getElementById('searchViewersHint');
     if (titleEl) titleEl.textContent = t(phase.title);
     if (subEl) subEl.textContent = t(phase.sub);
     if (labelEl) labelEl.textContent = t(phase.label);
+    if (viewersEl) {
+      const mins = Math.max(1, Math.floor(elapsedMs / 60000) + 1);
+      const viewers = Math.min(12, 2 + mins);
+      viewersEl.textContent = t('client.js.search_viewers', { count: String(viewers) });
+      viewersEl.classList.remove('hidden');
+    }
     updateSearchProgress(elapsedMs);
+    if (!isFirstPaint && window.FundezAlerts) {
+      FundezAlerts.notify({
+        type: 'update',
+        title: t(phase.title),
+        body: t(phase.sub),
+        tag: 'fundez-search-' + phase.phase
+      });
+    } else if (!isFirstPaint && window.FundezNotify) {
+      FundezNotify.show(t(phase.label), 'info');
+    }
     return phase;
   }
 
@@ -513,7 +537,7 @@
         triggerSearchTimeout(currentRequestId);
       }
     }, 1000);
-    searchTipInterval = setInterval(rotateSearchTip, 7000);
+    searchTipInterval = setInterval(rotateSearchTip, 150000);
   }
 
   function showNoProviderChoice(request) {
@@ -1673,16 +1697,13 @@
       return;
     }
 
-    const brandNotVisible = Boolean(brandNotVisibleCheck?.checked);
+    const brandOptional = page?.dataset.brandOptional === '1';
+    let brandNotVisible = Boolean(brandNotVisibleCheck?.checked) || brandOptional;
     const hasProblemPhoto = Boolean(cachedProblemPhoto || clientPhotoInput?.files?.length);
-    if (!hasProblemPhoto) {
-      FundezNotify.show(t('client.js.need_photo'), 'warning');
-      return;
-    }
     const hasBrandPhoto = Boolean(cachedBrandPhoto || clientBrandPhotoInput?.files?.length);
     if (!brandNotVisible && !hasBrandPhoto) {
-      FundezNotify.show(t('client.js.need_brand_photo'), 'warning');
-      return;
+      // Foto de marca recomendada, no bloqueante: si no hay, tratamos como sin marca
+      brandNotVisible = true;
     }
 
     const continueLabel = t('client.js.continue_payment');
@@ -1707,16 +1728,19 @@
         return;
       }
 
-      const clientPhoto = await resolvePhotoDataUrl(clientPhotoInput, cachedProblemPhoto);
-      if (!clientPhoto) {
-        setBusy(false);
-        FundezNotify.show(t('client.js.need_photo'), 'warning');
-        return;
+      let clientPhoto = null;
+      if (hasProblemPhoto) {
+        clientPhoto = await resolvePhotoDataUrl(clientPhotoInput, cachedProblemPhoto);
+        if (!clientPhoto) {
+          setBusy(false);
+          FundezNotify.show(t('client.js.need_photo'), 'warning');
+          return;
+        }
+        cachedProblemPhoto = clientPhoto;
       }
-      cachedProblemPhoto = clientPhoto;
 
       let clientBrandPhoto = null;
-      if (!brandNotVisible) {
+      if (!brandNotVisible && hasBrandPhoto) {
         clientBrandPhoto = await resolvePhotoDataUrl(clientBrandPhotoInput, cachedBrandPhoto);
         if (!clientBrandPhoto) {
           setBusy(false);

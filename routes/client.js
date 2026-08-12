@@ -453,9 +453,9 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
     return res.status(403).json({ error: 'El módulo de regalos no está habilitado' });
   }
   if (!clientPhoto) {
-    return res.status(400).json({ error: 'La foto del problema es obligatoria.' });
+    // Foto recomendada; no bloquea la solicitud
   }
-  const skipBrand = brandNotVisible === true || brandNotVisible === 'true' || brandNotVisible === 1;
+  const skipBrand = brandNotVisible === true || brandNotVisible === 'true' || brandNotVisible === 1 || !clientBrandPhoto;
   if (!skipBrand && !clientBrandPhoto) {
     return res.status(400).json({ error: 'Sube la foto de la marca o marca «Sin marca a la vista».' });
   }
@@ -464,7 +464,9 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   let clientBrandPhotoUrl = null;
   try {
     const tempId = `tmp-${Date.now()}`;
-    clientPhotoUrl = saveRequestFile(tempId, 'cliente', clientPhoto);
+    if (clientPhoto) {
+      clientPhotoUrl = saveRequestFile(tempId, 'cliente', clientPhoto);
+    }
     if (!skipBrand && clientBrandPhoto) {
       clientBrandPhotoUrl = saveRequestFile(tempId, 'marca', clientBrandPhoto);
     }
@@ -484,7 +486,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
       clientPhotoUrl,
       clientBrandPhotoUrl,
       brandNotVisible: skipBrand,
-      urgencyTier: urgencyTier || 'scheduled',
+      urgencyTier: urgencyTier || 'today',
       activityId,
       customName,
       localTime,
