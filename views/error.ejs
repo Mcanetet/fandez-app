@@ -4,16 +4,28 @@
   var errCode = typeof code !== 'undefined' ? code : 404;
   var isLost = errCode === 404;
   var isSystem = errCode >= 500 || errCode === 503;
+  var isConnecting = errCode === 503;
   var variant = isLost ? 'lost' : isSystem ? 'system' : 'blocked';
-  var slogans = isLost ? [0, 1, 2, 3, 4].map(function(i) { return tt('error.lost.slogan.' + i); }) : [];
-  var tips = isLost ? [0, 1, 2, 3].map(function(i) { return tt('error.lost.tip.' + i); }) : [];
-  var waMsg = tt('error.lost.whatsapp_msg');
+  var prefix = isLost ? 'error.lost' : isSystem ? 'error.system' : 'error.blocked';
+  var showCarousel = isLost || isSystem;
+  var slogans = showCarousel
+    ? [0, 1, 2, 3, 4].map(function(i) { return tt(prefix + '.slogan.' + i); })
+    : [];
+  var tips = isLost
+    ? [0, 1, 2, 3].map(function(i) { return tt('error.lost.tip.' + i); })
+    : isSystem
+      ? [0, 1, 2, 3].map(function(i) { return tt('error.system.tip.' + i); })
+      : [];
+  var waMsg = tt(prefix + '.whatsapp_msg');
+  if (waMsg.indexOf(prefix) === 0) waMsg = tt('error.lost.whatsapp_msg');
   var waUrl = (typeof company !== 'undefined' && company.whatsappLink) ? company.whatsappLink(waMsg) : '#';
-  var badge = isLost ? tt('error.lost.badge') : isSystem ? tt('error.system.badge') : tt('error.blocked.badge');
-  var punchline = isLost ? tt('error.lost.punchline') : isSystem ? tt('error.system.punchline') : tt('error.blocked.punchline');
+  var badge = tt(prefix + '.badge');
+  var punchline = tt(prefix + '.punchline');
+  var headline = tt(prefix + '.headline');
+  var hook = tt(prefix + '.hook');
 %>
 
-<div class="fundez-error-page fundez-error-page--<%= variant %>" data-variant="<%= variant %>">
+<div class="fundez-error-page fundez-error-page--<%= variant %>" data-variant="<%= variant %>" data-code="<%= errCode %>">
   <div class="fundez-error-bg" aria-hidden="true">
     <div class="fundez-error-orb fundez-error-orb--1"></div>
     <div class="fundez-error-orb fundez-error-orb--2"></div>
@@ -36,15 +48,16 @@
       <span class="fundez-error-badge"><%= badge %></span>
     </div>
 
-    <% if (isLost) { %>
-      <p class="fundez-error-headline"><%= tt('error.lost.headline') %></p>
+    <% if (showCarousel) { %>
+      <p class="fundez-error-headline"><%= headline %></p>
       <div class="fundez-error-slogan-stage" id="errorSloganStage" aria-live="polite">
-        <p class="fundez-error-slogan is-active" id="errorSloganText"><%= slogans[0] %></p>
+        <p class="fundez-error-slogan is-active" id="errorSloganText"><%= slogans[0] || (typeof message !== 'undefined' ? message : '') %></p>
       </div>
       <p class="fundez-error-punchline"><%- punchline %></p>
-      <p class="fundez-error-hook"><%= tt('error.lost.hook') %></p>
+      <p class="fundez-error-hook"><%= hook %></p>
 
-      <div class="fundez-error-tips" id="errorTips" aria-label="Servicios Fundez">
+      <% if (tips.length) { %>
+      <div class="fundez-error-tips" id="errorTips" aria-label="Fundez">
         <% tips.forEach(function(tip, i) { %>
           <div class="fundez-error-tip <%= i === 0 ? 'is-active' : '' %>" data-tip-index="<%= i %>">
             <span class="fundez-error-tip-dot"></span>
@@ -52,22 +65,30 @@
           </div>
         <% }); %>
       </div>
+      <% } %>
     <% } else { %>
-      <h1 class="fundez-error-title"><%= title %></h1>
-      <p class="fundez-error-message"><%= message %></p>
+      <h1 class="fundez-error-title"><%= typeof title !== 'undefined' ? title : headline %></h1>
+      <p class="fundez-error-message"><%= typeof message !== 'undefined' ? message : '' %></p>
       <p class="fundez-error-punchline fundez-error-punchline--compact"><%- punchline %></p>
     <% } %>
 
     <div class="fundez-error-actions">
-      <a href="/" class="zilo-btn-primary fundez-error-btn"><%= tt('error.back_home') %></a>
       <% if (isSystem) { %>
-        <button type="button" class="zilo-btn-ghost fundez-error-btn" onclick="location.reload()"><%= tt('error.system.cta_retry') %></button>
+        <button type="button" class="zilo-btn-primary fundez-error-btn" onclick="location.reload()"><%= tt('error.system.cta_retry') %></button>
+        <a href="/" class="zilo-btn-ghost fundez-error-btn"><%= tt('error.back_home') %></a>
+      <% } else { %>
+        <a href="/" class="zilo-btn-primary fundez-error-btn"><%= tt('error.back_home') %></a>
+      <% } %>
+      <% if (isLost || isSystem) { %>
+        <a href="<%= waUrl %>" target="_blank" rel="noopener" class="zilo-btn-ghost fundez-error-btn fundez-error-btn--wa">
+          <%= tt(isLost ? 'error.lost.cta_whatsapp' : 'error.system.cta_whatsapp') %>
+        </a>
       <% } %>
       <% if (isLost) { %>
-        <a href="<%= waUrl %>" target="_blank" rel="noopener" class="zilo-btn-ghost fundez-error-btn fundez-error-btn--wa">
-          <%= tt('error.lost.cta_whatsapp') %>
-        </a>
         <a href="/registro" class="fundez-error-link-cta"><%= tt('error.lost.cta_signup') %> →</a>
+      <% } %>
+      <% if (isConnecting) { %>
+        <p class="fundez-error-autoretry" id="errorAutoRetry" aria-live="polite"><%= tt('error.system.autoretry') %></p>
       <% } %>
     </div>
 
@@ -78,11 +99,12 @@
   </main>
 </div>
 
-<% if (isLost) { %>
+<% if (showCarousel) { %>
 <script>
   window.FundezErrorPage = {
     slogans: <%- JSON.stringify(slogans) %>,
-    interval: 2800
+    interval: <%= isSystem ? 3200 : 2800 %>,
+    autoReloadMs: <%= isConnecting ? 8000 : 0 %>
   };
 </script>
 <% var pageScript = '/js/error-page.js'; %>

@@ -1966,6 +1966,13 @@
 }
 .fundez-error-link-cta:hover { text-decoration: underline; }
 
+.fundez-error-autoretry {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--zilo-muted);
+  letter-spacing: 0.01em;
+}
+
 .fundez-error-domain {
   font-size: 0.6875rem;
   letter-spacing: 0.08em;
