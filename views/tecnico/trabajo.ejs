@@ -84,7 +84,20 @@
       <% } %>
     </section>
 
-    <section id="stepTrayecto" class="zilo-card-premium rounded-2xl p-5 <%= ['aceptado','en_camino'].includes(request.techStatus) ? '' : 'hidden' %>">
+    <section id="stepConfirmarServicio" class="zilo-card-premium rounded-2xl p-5 <%= request.techStatus === 'aceptado' && request.serviceConfirmStatus === 'pending' ? '' : 'hidden' %>">
+      <p class="zilo-label mb-1">Antes de ir</p>
+      <h2 class="text-sm font-semibold mb-1">Confirma el servicio pedido</h2>
+      <p class="text-xs text-zilo-muted mb-3">
+        Solicitado: <strong><%= request.activityName || request.serviceName %></strong>.
+        Debes confirmar que es el mismo trabajo o proponer un cambio para que el cliente apruebe.
+      </p>
+      <div class="space-y-2">
+        <button type="button" id="btnConfirmServiceSame" class="w-full py-3 rounded-xl zilo-btn-primary">Es el mismo servicio</button>
+        <button type="button" id="btnShowServiceChange" class="w-full py-3 rounded-xl zilo-btn-ghost">Proponer modificación</button>
+      </div>
+    </section>
+
+    <section id="stepTrayecto" class="zilo-card-premium rounded-2xl p-5 <%= ['aceptado','en_camino'].includes(request.techStatus) && request.serviceConfirmStatus !== 'pending' && request.serviceConfirmStatus !== 'change_pending' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Trayecto</p>
       <h2 class="text-sm font-semibold mb-2"><%= request.techStatus === 'aceptado' ? '¿Listo para ir al domicilio?' : 'Confirma al llegar' %></h2>
       <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'El cliente verá que vas en camino.' : 'Confirma únicamente cuando estés en el lugar.' %></p>
@@ -113,7 +126,7 @@
     </section>
 
     <!-- Cambio de subservicio si en terreno es otra cosa -->
-    <section id="stepCambioServicio" class="zilo-card-premium rounded-2xl p-5 <%= ['diagnostico','reparando','comprando','presupuesto_pendiente','presupuesto_aprobado'].includes(request.techStatus) ? '' : 'hidden' %>">
+    <section id="stepCambioServicio" class="zilo-card-premium rounded-2xl p-5 <%= ['en_camino','en_sitio','diagnostico','reparando','comprando','presupuesto_pendiente','presupuesto_aprobado'].includes(request.techStatus) || request.serviceConfirmStatus === 'change_pending' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">¿El trabajo es distinto?</p>
       <h2 class="text-sm font-semibold mb-1">Proponer cambio de subservicio</h2>
       <p class="text-xs text-zilo-muted mb-3">

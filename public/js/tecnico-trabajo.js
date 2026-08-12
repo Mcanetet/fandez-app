@@ -52,6 +52,33 @@
     }
   });
 
+  document.getElementById('btnConfirmServiceSame')?.addEventListener('click', async (event) => {
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/tecnico/trabajo/${requestId}/confirmar-servicio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: '{}'
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo confirmar');
+      notify('Servicio confirmado', 'success');
+      location.reload();
+    } catch (err) {
+      btn.disabled = false;
+      notify(err.message || 'No se pudo confirmar', 'error');
+    }
+  });
+
+  document.getElementById('btnShowServiceChange')?.addEventListener('click', () => {
+    const change = document.getElementById('stepCambioServicio');
+    if (change) {
+      change.classList.remove('hidden');
+      change.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+
   document.getElementById('btnLlegada')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnLlegada');
     const diagnosis = document.getElementById('diagnosis').value.trim();

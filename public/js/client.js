@@ -608,15 +608,19 @@
       stopSearchExperience();
       loaderOverlay?.classList.add('hidden');
       hideScheduledPanel();
+      const fmt = (n) => '$' + Number(n || 0).toLocaleString('es-CL');
+      const okBody = data.refundAmount != null
+        ? `Retención ${fmt(data.retentionFee)}. Devolución ${fmt(data.refundAmount)}.`
+        : t('client.service.cancel_search_ok_body');
       if (window.FundezAlerts) {
         FundezAlerts.notify({
           type: 'success',
           title: t('client.service.cancel_search_ok_title'),
-          body: t('client.service.cancel_search_ok_body'),
+          body: okBody,
           toast: 'success'
         });
       } else {
-        FundezNotify.show(t('client.service.cancel_search_ok_body'), 'success');
+        FundezNotify.show(okBody, 'success');
       }
       setTimeout(() => { window.location.href = '/cliente'; }, 1000);
     } catch (err) {
@@ -1593,6 +1597,19 @@
     if (req && (!currentRequestId || req.id === currentRequestId)) {
       showNoProviderChoice(req);
     }
+  });
+
+  socket.on('client_open_request_alert', (payload) => {
+    if (!window.FundezAlerts) return;
+    FundezAlerts.notify({
+      type: 'alert',
+      title: payload?.title || 'Solicitud abierta',
+      body: payload?.body || 'Tienes una solicitud pendiente.',
+      tag: 'fundez-open-' + (payload?.requestId || currentRequestId || 'x'),
+      requireInteraction: true,
+      url: payload?.url || window.location.pathname,
+      system: true
+    });
   });
 
   document.getElementById('btnRequestSticky')?.addEventListener('click', submitRequest);

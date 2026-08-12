@@ -228,9 +228,15 @@ router.get('/', requireRole('client'), (req, res) => {
   const referralBonus = req.session.referralBonus;
   if (referralBonus) delete req.session.referralBonus;
   const timeoutMinutes = Math.max(1, parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15);
+  if (typeof store.promoteDueScheduledSearches === 'function') {
+    store.promoteDueScheduledSearches();
+  }
   if (typeof store.ensureStaleNoProviderChoicesForClient === 'function') {
     store.ensureStaleNoProviderChoicesForClient(req.session.user.id, timeoutMinutes);
   }
+  const attentionItems = typeof store.getClientAttentionItems === 'function'
+    ? store.getClientAttentionItems(req.session.user.id)
+    : [];
   res.render('client/dashboard', {
     title: 'Fundez — Servicios',
     user: req.session.user,
@@ -243,6 +249,8 @@ router.get('/', requireRole('client'), (req, res) => {
     formatCLP: store.formatCLP,
     navActive: 'inicio',
     activeRequests: store.getActiveRequestsForClient(req.session.user.id, req.locale),
+    attentionItems,
+    retentionFee: store.getVisitRetentionFeeClp(),
     lastCompleted: store.getLastCompletedRequest(req.session.user.id, req.locale),
     trustStats: store.getClientTrustStats(),
     showOnboarding: store.needsOnboarding(profile),
@@ -582,14 +590,21 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
     if (result.error) return res.status(400).json({ success: false, error: result.error });
 
     const updated = result.request;
+    const retention = updated.cancellationFeeCharged || store.getVisitRetentionFeeClp();
+    const refundAmt = updated.refundAmount != null ? updated.refundAmount : 0;
     notifications.notify({
       event: 'service.refund_requested',
       to: company.supportEmail,
       subject: `Cancelación de búsqueda — ${updated.serviceName}`,
-      text: `El cliente ${updated.clientName} canceló la ${updated.cancelReason === 'client_cancelled_scheduled' ? 'visita programada' : 'búsqueda'} de la solicitud ${updated.id}. Devolución programada: ${updated.refundScheduledDate}. Monto: ${store.formatCLP(updated.visitPricePaid || updated.amountDue || 0)}.`,
+      text: `El cliente ${updated.clientName} canceló la ${updated.cancelReason === 'client_cancelled_scheduled' ? 'visita programada' : 'búsqueda'} de la solicitud ${updated.id}. Retención tarifa base: ${store.formatCLP(retention)}. Devolución: ${store.formatCLP(refundAmt)} (fecha: ${updated.refundScheduledDate || 'n/a'}).`,
       requestId: updated.id,
       userId: updated.clientId,
-      meta: { refundScheduledDate: updated.refundScheduledDate, reason: updated.cancelReason }
+      meta: {
+        refundScheduledDate: updated.refundScheduledDate,
+        reason: updated.cancelReason,
+        retentionFee: retention,
+        refundAmount: refundAmt
+      }
     }).catch(() => {});
 
     const io = req.app.get('io');
@@ -598,11 +613,32 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
       io.to(`request_${updated.id}`).emit(`request_update_${updated.id}`, payload);
     }
 
-    return res.json({ success: true, request: payload.request });
+    return res.json({
+      success: true,
+      request: payload.request,
+      retentionFee: retention,
+      refundAmount: refundAmt
+    });
   } catch (err) {
     console.error('[cancelar-busqueda]', err.message);
     return res.status(500).json({ success: false, error: 'No se pudo cancelar la búsqueda. Intenta de nuevo.' });
   }
+});
+
+router.get('/pendientes-atencion', requireRole('client'), (req, res) => {
+  const timeoutMinutes = Math.max(1, parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15);
+  if (typeof store.promoteDueScheduledSearches === 'function') {
+    store.promoteDueScheduledSearches();
+  }
+  if (typeof store.ensureStaleNoProviderChoicesForClient === 'function') {
+    store.ensureStaleNoProviderChoicesForClient(req.session.user.id, timeoutMinutes);
+  }
+  const items = store.getClientAttentionItems(req.session.user.id);
+  res.json({
+    success: true,
+    items,
+    retentionFee: store.getVisitRetentionFeeClp()
+  });
 });
 
 router.post('/solicitud/:id/timeout-busqueda', requireRole('client'), async (req, res) => {

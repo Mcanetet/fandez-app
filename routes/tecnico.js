@@ -137,11 +137,19 @@ router.post('/status/:requestId', requireRole('tecnico'), (req, res) => {
 
   const request = store.updateTechStatus(req.params.requestId, req.session.user.id, techStatus);
   if (!request) return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
+  if (request.error) return res.status(400).json({ success: false, error: request.error });
 
   const io = req.app.get('io');
   io.emit(`request_update_${request.id}`, { request });
 
   res.json({ success: true, request: { id: request.id, status: request.status, techStatus: request.techStatus } });
+});
+
+router.post('/trabajo/:requestId/confirmar-servicio', requireRole('tecnico'), (req, res) => {
+  const result = store.confirmServiceSame(req.params.requestId, req.session.user.id);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });
+  res.json({ success: true, request: serializeJob(result.request) });
 });
 
 router.post('/trabajo/:requestId/llegada', requireRole('tecnico'), (req, res) => {

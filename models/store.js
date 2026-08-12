@@ -1072,6 +1072,9 @@ function markAdditionalPaymentApproved(requestId, paymentId) {
   } else if (charge.reason === 'activity_change' && sr.activityChange) {
     sr.activityChange.respondedAt = charge.paidAt;
     applyApprovedActivityChange(request, sr.activityChange);
+    request.serviceConfirmStatus = 'confirmed';
+    request.serviceConfirmedAt = charge.paidAt;
+    request.serviceConfirmMode = 'change';
   }
 
   repository.persist(() => repository.saveRequest(request), `pago ajuste ${requestId}`);
@@ -1130,13 +1133,62 @@ function activateRequest(requestId) {
   return beginSearchingRequest(request);
 }
 
+function getVisitRetentionFeeClp() {
+  try {
+    const pricing = getPricingConfig();
+    const fromPricing = Math.max(0, parseInt(pricing?.visitPrice, 10) || 0);
+    const fromCancel = Math.max(0, parseInt(pricing?.cancellationFee, 10) || 0);
+    return Math.max(50000, fromPricing, fromCancel);
+  } catch (_) {
+    return 50000;
+  }
+}
+
+function applyCancellationWithRetention(request, {
+  cancelReason,
+  cancelledBy = 'client'
+} = {}) {
+  const now = new Date().toISOString();
+  const paid = Math.max(0, parseInt(request.visitPricePaid || request.amountDue || request.visitTotal || 0, 10) || 0);
+  const retentionFee = Math.min(paid, getVisitRetentionFeeClp());
+  const refundAmount = Math.max(0, paid - retentionFee);
+
+  request.status = 'cancelled';
+  request.cancelledAt = now;
+  request.cancelReason = cancelReason;
+  request.cancelledBy = cancelledBy;
+  request.cancellationFeeCharged = retentionFee;
+  request.refundAmount = refundAmount;
+  request.noProviderDecisionStatus = request.noProviderDecisionStatus === 'pending' ? 'resolved' : request.noProviderDecisionStatus;
+  request.noProviderChoiceTokenHash = null;
+  if (request.noProviderDecisionStatus === 'resolved' && !request.noProviderChoice) {
+    request.noProviderChoice = 'cancelled';
+  }
+
+  if (refundAmount > 0) {
+    request.refundStatus = 'requested';
+    request.refundRequestedAt = now;
+    request.refundScheduledDate = nextBusinessDayIso(new Date());
+  } else {
+    request.refundStatus = 'not_applicable';
+    request.refundRequestedAt = now;
+    request.refundScheduledDate = null;
+  }
+  return { paid, retentionFee, refundAmount };
+}
+
 function promoteDueScheduledSearches(now = Date.now()) {
   const due = requests.filter((request) => {
     if (request.status !== 'scheduled' || request.paymentStatus !== 'approved' || request.providerId) {
       return false;
     }
     const at = Date.parse(request.scheduledSearchAt || '');
-    return Number.isFinite(at) && at <= now;
+    // Sin fecha válida pero ya programada hace rato → promover (evita visitas eternas).
+    if (!Number.isFinite(at)) {
+      const fallback = Date.parse(request.paidAt || request.createdAt || '');
+      return Number.isFinite(fallback) && now - fallback >= 2 * 3600 * 1000;
+    }
+    return at <= now;
   });
 
   const promoted = [];
@@ -1145,6 +1197,37 @@ function promoteDueScheduledSearches(now = Date.now()) {
     promoted.push(request);
   }
   return promoted;
+}
+
+/**
+ * Cierra solicitudes abiertas demasiado tiempo sin técnico asignado.
+ * Retiene la tarifa base de visita ($50.000) y reembolsa el resto.
+ */
+function expireStaleUnassignedRequests(now = Date.now(), maxOpenHours = null) {
+  const hours = Math.max(
+    6,
+    Number(maxOpenHours) || parseInt(process.env.OPEN_REQUEST_MAX_HOURS || '48', 10) || 48
+  );
+  const maxMs = hours * 3600 * 1000;
+  const expired = [];
+
+  for (const request of requests) {
+    if (!['scheduled', 'searching'].includes(request.status)) continue;
+    if (request.providerId || request.paymentStatus !== 'approved') continue;
+    const anchor = Date.parse(
+      request.scheduledSearchAt || request.searchingAt || request.paidAt || request.createdAt || ''
+    );
+    if (!Number.isFinite(anchor) || now - anchor < maxMs) continue;
+
+    applyCancellationWithRetention(request, {
+      cancelReason: 'auto_expired_unassigned',
+      cancelledBy: 'system'
+    });
+    repository.persist(() => repository.saveRequest(request), `expirar abierta ${request.id}`);
+    afterEvent((ev) => ev.onRefundRequested?.(request));
+    expired.push(request);
+  }
+  return expired;
 }
 
 function cancelClientSearch(requestId, clientId) {
@@ -1159,15 +1242,125 @@ function cancelClientSearch(requestId, clientId) {
   }
 
   const wasScheduled = request.status === 'scheduled';
-  const now = new Date().toISOString();
-  request.status = 'cancelled';
-  request.cancelledAt = now;
-  request.cancelReason = wasScheduled ? 'client_cancelled_scheduled' : 'client_cancelled_search';
-  request.refundStatus = 'requested';
-  request.refundRequestedAt = now;
-  request.refundScheduledDate = nextBusinessDayIso(new Date());
+  const money = applyCancellationWithRetention(request, {
+    cancelReason: wasScheduled ? 'client_cancelled_scheduled' : 'client_cancelled_search',
+    cancelledBy: 'client'
+  });
   repository.persist(() => repository.saveRequest(request), `cancelar búsqueda ${requestId}`);
   afterEvent((ev) => ev.onRefundRequested?.(request));
+  return { success: true, request, ...money };
+}
+
+/** Solicitudes que el cliente debe atender (banner + push del sistema). */
+function getClientAttentionItems(clientId, now = Date.now()) {
+  const items = [];
+  for (const request of requests) {
+    if (request.clientId !== clientId) continue;
+    if (!['scheduled', 'searching', 'assigned', 'in_progress'].includes(request.status)) continue;
+
+    if (request.noProviderDecisionStatus === 'pending') {
+      items.push({
+        requestId: request.id,
+        type: 'no_provider_choice',
+        urgency: 'high',
+        title: 'Elige cómo continuar',
+        body: `Aún no hay técnico para ${request.serviceName}. Puedes seguir buscando o cancelar (se retiene la tarifa base).`,
+        url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
+      });
+      continue;
+    }
+
+    const change = request.siteReport?.activityChange;
+    if (change && change.status === 'pending') {
+      items.push({
+        requestId: request.id,
+        type: 'activity_change',
+        urgency: 'high',
+        title: 'Aprueba el cambio de servicio',
+        body: `El técnico propone: ${change.toActivityName}.`,
+        url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
+      });
+      continue;
+    }
+
+    if (request.status === 'scheduled') {
+      const at = Date.parse(request.scheduledSearchAt || '');
+      const overdue = Number.isFinite(at) && at <= now;
+      items.push({
+        requestId: request.id,
+        type: overdue ? 'scheduled_overdue' : 'scheduled_open',
+        urgency: overdue ? 'high' : 'medium',
+        title: overdue ? 'Visita programada pendiente' : 'Tienes una visita programada',
+        body: overdue
+          ? `Tu visita de ${request.serviceName} ya debió iniciar búsqueda. Entra para revisar o cancelar.`
+          : `Visita de ${request.serviceName} agendada. Te avisaremos al buscar técnico.`,
+        url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
+      });
+      continue;
+    }
+
+    if (request.status === 'searching' && !request.providerId) {
+      const started = Date.parse(request.searchingAt || request.scheduledSearchAt || request.paidAt || '');
+      const ageMin = Number.isFinite(started) ? Math.floor((now - started) / 60000) : 0;
+      items.push({
+        requestId: request.id,
+        type: 'searching_open',
+        urgency: ageMin >= 15 ? 'high' : 'medium',
+        title: 'Búsqueda de técnico abierta',
+        body: ageMin >= 15
+          ? `Llevamos ${ageMin} min buscando para ${request.serviceName}. Revisa opciones en la app.`
+          : `Estamos buscando técnico para ${request.serviceName}.`,
+        url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
+      });
+      continue;
+    }
+
+    if (
+      ['assigned', 'in_progress'].includes(request.status)
+      && request.serviceConfirmStatus === 'pending'
+      && request.technicianId
+    ) {
+      const assignedAt = Date.parse(request.technicianAssignedAt || request.assignedAt || '');
+      const waitingMin = Number.isFinite(assignedAt) ? Math.floor((now - assignedAt) / 60000) : 0;
+      if (waitingMin >= 30) {
+        items.push({
+          requestId: request.id,
+          type: 'awaiting_tech_confirm',
+          urgency: waitingMin >= 120 ? 'high' : 'medium',
+          title: 'El técnico aún no confirma el servicio',
+          body: `Tu solicitud de ${request.serviceName} sigue abierta sin confirmación del técnico.`,
+          url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
+        });
+      }
+    }
+  }
+  return items;
+}
+
+function confirmServiceSame(requestId, technicianId) {
+  const request = getRequestForTechnician(requestId, technicianId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (!['aceptado', 'en_camino', 'en_sitio', 'diagnostico'].includes(request.techStatus)) {
+    return { error: 'No puedes confirmar el servicio en este estado.' };
+  }
+  if (request.serviceConfirmStatus === 'confirmed') {
+    return { success: true, already: true, request };
+  }
+  const change = request.siteReport?.activityChange;
+  if (change && ['pending', 'payment_pending'].includes(change.status)) {
+    return { error: 'Hay un cambio de servicio pendiente de aprobación del cliente.' };
+  }
+
+  request.serviceConfirmStatus = 'confirmed';
+  request.serviceConfirmedAt = new Date().toISOString();
+  request.serviceConfirmMode = 'same';
+  appendChatMessage(request, {
+    senderType: 'system',
+    senderId: null,
+    senderName: 'Fundez',
+    body: 'El técnico confirmó que el servicio solicitado es el correcto.'
+  });
+  repository.persist(() => repository.saveRequest(request), `confirmar servicio ${requestId}`);
   return { success: true, request };
 }
 
@@ -2676,6 +2869,9 @@ function tryAcceptRequest(requestId, userId) {
     request.techStatus = 'aceptado';
     request.status = 'assigned';
     request.assignedAt = new Date().toISOString();
+    request.serviceConfirmStatus = 'pending';
+    request.serviceConfirmedAt = null;
+    request.serviceConfirmMode = null;
   } else {
     return { error: 'Rol no autorizado' };
   }
@@ -2848,6 +3044,9 @@ function assignProvider(requestId, providerId, { technicianId = null, actorRole 
     request.technicianPhone = tecnico.phone || null;
     request.technicianAssignedAt = new Date().toISOString();
     request.techStatus = 'asignado';
+    request.serviceConfirmStatus = 'pending';
+    request.serviceConfirmedAt = null;
+    request.serviceConfirmMode = null;
   } else {
     request.technicianId = null;
     request.technicianName = null;
@@ -3000,6 +3199,9 @@ function assignTechnician(requestId, socioId, technicianId) {
   request.technicianPhone = tecnico.phone || null;
   request.technicianAssignedAt = new Date().toISOString();
   request.techStatus = 'asignado';
+  request.serviceConfirmStatus = 'pending';
+  request.serviceConfirmedAt = null;
+  request.serviceConfirmMode = null;
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   afterEvent((ev) => ev.onTechnicianAssigned(request));
   return { success: true, request, tecnico };
@@ -3008,6 +3210,20 @@ function assignTechnician(requestId, socioId, technicianId) {
 function updateTechStatus(requestId, technicianId, techStatus) {
   const request = requests.find(r => r.id === requestId);
   if (!request || request.technicianId !== technicianId) return null;
+  if (
+    ['en_camino', 'en_sitio'].includes(techStatus)
+    && request.serviceConfirmStatus === 'pending'
+  ) {
+    return { error: 'Primero confirma que el servicio es el mismo o propón un cambio para que el cliente apruebe.' };
+  }
+  const change = request.siteReport?.activityChange;
+  if (
+    ['en_camino', 'en_sitio'].includes(techStatus)
+    && change
+    && ['pending', 'payment_pending'].includes(change.status)
+  ) {
+    return { error: 'Espera la aprobación del cliente al cambio de servicio antes de continuar.' };
+  }
   request.techStatus = techStatus;
   const map = {
     aceptado: 'assigned',
@@ -3207,8 +3423,8 @@ function proposeActivityChange(requestId, technicianId, {
 }) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
-  if (!['diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(request.techStatus)) {
-    return { error: 'Solo puedes cambiar el subservicio cuando estás en terreno.' };
+  if (!['aceptado', 'en_camino', 'en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(request.techStatus)) {
+    return { error: 'Confirma o cambia el servicio desde que aceptas la visita.' };
   }
   if (!photoUrl) return { error: 'Sube una foto que respalde el cambio de servicio.' };
   notes = (notes || '').trim();
@@ -3279,6 +3495,8 @@ function proposeActivityChange(requestId, technicianId, {
     createdAt: new Date().toISOString(),
     respondedAt: null
   };
+  request.serviceConfirmStatus = 'change_pending';
+  request.serviceConfirmMode = 'change';
 
   repository.persist(() => repository.saveRequest(request), `cambio actividad ${requestId}`);
   afterEvent((ev) => ev.onActivityChangeProposed?.(request, sr.activityChange));
@@ -3309,9 +3527,16 @@ function respondActivityChange(requestId, clientId, approved) {
       });
       if (chargeResult.error) return chargeResult;
       additionalCharge = chargeResult.additionalCharge;
+      request.serviceConfirmStatus = 'change_pending';
     } else {
       applyApprovedActivityChange(request, change);
+      request.serviceConfirmStatus = 'confirmed';
+      request.serviceConfirmedAt = new Date().toISOString();
+      request.serviceConfirmMode = 'change';
     }
+  } else {
+    request.serviceConfirmStatus = 'pending';
+    request.serviceConfirmMode = null;
   }
 
   repository.persist(() => repository.saveRequest(request), `respuesta cambio ${requestId}`);
@@ -3671,7 +3896,9 @@ function enrichRequestForClient(request, locale = 'es') {
     ...request,
     statusLabel: getRequestStatusLabel(request, locale),
     clientTotals: clientTotals.completed ? clientTotals : null,
-    providerInvoicePlan
+    providerInvoicePlan,
+    visitRetentionFeeClp: getVisitRetentionFeeClp(),
+    canCancelWithRetention: ['scheduled', 'searching'].includes(request.status) && !request.providerId
   };
 }
 
@@ -4466,7 +4693,11 @@ module.exports = {
   markAdditionalPaymentApproved,
   activateRequest,
   promoteDueScheduledSearches,
+  expireStaleUnassignedRequests,
   cancelClientSearch,
+  getVisitRetentionFeeClp,
+  getClientAttentionItems,
+  confirmServiceSame,
   assignProvider,
   getEligibleProvidersForRequest,
   getAdminDispatchQueue,
