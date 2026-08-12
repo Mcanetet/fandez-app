@@ -112,9 +112,11 @@ router.post('/toggle-online', requireRole('provider'), requireModule('provider_o
 });
 
 router.post('/accept/:requestId', requireRole('provider'), requireModule('provider_aceptar'), (req, res) => {
-  const result = store.tryAcceptRequest(req.params.requestId, req.session.user.id);
+  const result = store.tryAcceptRequest(req.params.requestId, req.session.user.id, {
+    technicianId: req.body?.technicianId
+  });
   if (result.error) {
-    return res.status(result.code === 'taken' ? 409 : 400).json({ error: result.error });
+    return res.status(result.code === 'taken' ? 409 : 400).json({ error: result.error, success: false });
   }
 
   const request = result.request;
@@ -123,12 +125,55 @@ router.post('/accept/:requestId', requireRole('provider'), requireModule('provid
   const publicProvider = store.getPublicProviderProfile(provider);
 
   broadcastRequestTaken(io, request.id, provider.id);
-  io.emit(`request_update_${request.id}`, {
+  const payload = {
     request: store.requests.find(r => r.id === request.id),
-    provider: publicProvider
-  });
+    provider: publicProvider,
+    chatMessage: result.chatMessage || null
+  };
+  io.emit(`request_update_${request.id}`, payload);
+  if (request.technicianId) {
+    io.emit(`tecnico_assignment_${request.technicianId}`, { requestId: request.id, request: store.enrichRequestForProvider?.(request) || request });
+  }
+  const providerSocket = store.providerSockets.get(provider.id);
+  if (providerSocket) {
+    io.to(providerSocket).emit('provider_job_update', payload);
+  }
 
   res.json({ success: true, request: store.enrichRequestForProvider(request, req.locale) });
+});
+
+router.get('/tecnicos-elegibles', requireRole('provider'), (req, res) => {
+  const serviceId = req.query.serviceId || null;
+  const techs = store.getEligibleTechniciansForProvider(req.session.user.id, serviceId);
+  res.json({ success: true, technicians: techs });
+});
+
+router.post('/desertar/:requestId', requireRole('provider'), requireModule('provider_mando'), (req, res) => {
+  const result = store.providerDesertRequest(req.params.requestId, req.session.user.id);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+
+  const io = req.app.get('io');
+  const enriched = store.enrichRequestForClient(result.request, req.locale || 'es');
+  try {
+    const { notifyProvidersForRequest } = require('../lib/dispatch');
+    notifyProvidersForRequest(io, result.request);
+  } catch (_) { /* ignore */ }
+
+  io.emit(`request_update_${result.request.id}`, {
+    request: enriched,
+    providerReleased: true,
+    searching: true
+  });
+  io.to(`aland_client_${result.request.clientId}`).emit('client_open_request_alert', {
+    type: 'provider_deserted',
+    urgency: 'high',
+    title: 'Seguimos buscando un equipo',
+    body: `El socio liberó tu pedido de ${result.request.serviceName}. La app continúa buscando.`,
+    url: `/cliente/servicio/${result.request.serviceId}?tracking=${result.request.id}`,
+    request: enriched
+  });
+
+  res.json({ success: true, request: enriched });
 });
 
 router.post('/status/:requestId', requireRole('provider'), (req, res) => {

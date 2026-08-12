@@ -71,9 +71,19 @@
             <% } %>
 
             <div data-role="assign-area" class="mt-3 space-y-2">
-              <% if (r.technicianId) { %>
+              <% if (r.technicianId && r.techStatus === 'asignado') { %>
+                <div class="p-3 rounded-xl border border-amber-300 bg-amber-50 space-y-2">
+                  <p class="text-xs text-amber-900">Esperando que <strong><%= r.technicianName %></strong> acepte (máx. 10 min).</p>
+                  <p class="text-[11px] text-amber-800/80">Si no acepta, se desasigna solo y debes elegir otro técnico.</p>
+                  <a href="/proveedor/trabajo/<%= r.id %>" class="block text-center zilo-btn-ghost !py-2 !text-xs">Ver pedido</a>
+                  <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>">Desertar pedido (vuelve a búsqueda)</button>
+                </div>
+              <% } else if (r.technicianId) { %>
                 <div class="space-y-2">
                   <p class="text-xs">Técnico: <strong data-role="tech-name"><%= r.technicianName %></strong></p>
+                  <% if (typeof providerStats !== 'undefined') { %>
+                    <p class="text-[10px] text-zilo-muted">Tu adherencia se actualiza si desertas o el cliente cambia de socio.</p>
+                  <% } %>
                   <a href="/proveedor/trabajo/<%= r.id %>" class="block text-center zilo-btn-primary !py-3 !text-sm">Ver pedido en terreno</a>
                   <div class="flex gap-2">
                     <% if (r.guardianToken) { %>
@@ -81,10 +91,16 @@
                     <% } %>
                     <button type="button" class="flex-1 zilo-btn-ghost !py-2 !text-xs" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>">Chat cliente</button>
                   </div>
+                  <% if (!['en_sitio','diagnostico','reparando','comprando','presupuesto_pendiente','presupuesto_aprobado','completado'].includes(r.techStatus)) { %>
+                    <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>">Desertar pedido</button>
+                  <% } %>
                 </div>
               <% } else if (technicians.length > 0) { %>
                 <% const eligibleTechs = technicians.filter(t => Array.isArray(t.specialties) && t.specialties.includes(r.serviceId)); %>
                 <div class="space-y-2">
+                  <% if (r.awaitingProviderReassign) { %>
+                    <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2">El técnico anterior no aceptó. Asigna otro ahora o deserta.</p>
+                  <% } %>
                   <label class="zilo-label block !text-[10px]" for="tech-select-<%= r.id %>">Buscar y elegir técnico</label>
                   <select id="tech-select-<%= r.id %>" class="zilo-select-tech zilo-input text-sm" data-role="tech-select" <%= eligibleTechs.length ? '' : 'disabled' %>>
                     <option value=""><%= eligibleTechs.length ? 'Toca aquí para ver tu equipo…' : 'Sin técnico para este servicio' %></option>
@@ -93,7 +109,7 @@
                     <% }); %>
                   </select>
                   <button type="button" class="zilo-btn-primary w-full !py-3 !text-sm" data-role="assign-btn" data-id="<%= r.id %>" <%= eligibleTechs.length ? '' : 'disabled' %>>Asignar técnico</button>
-                  <a href="/proveedor/trabajo/<%= r.id %>" class="block text-center zilo-btn-ghost !py-2.5 !text-sm">Ver pedido (sin técnico aún)</a>
+                  <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>">Desertar (sin técnicos / liberar)</button>
                   <button type="button" class="w-full zilo-btn-ghost !py-2.5 !text-sm" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>">Mensajes con el cliente</button>
                   <% if (!eligibleTechs.length) { %>
                     <a href="/proveedor/equipo" class="block text-center text-[11px] text-zilo-accent underline">Activar un técnico con esta especialidad</a>
@@ -101,7 +117,7 @@
                 </div>
               <% } else { %>
                 <a href="/proveedor/equipo" class="block text-center zilo-btn-ghost !py-3 !text-sm">Agregar técnico para asignar</a>
-                <a href="/proveedor/trabajo/<%= r.id %>" class="block text-center zilo-btn-primary !py-3 !text-sm mt-2">Ver pedido</a>
+                <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold mt-2" data-role="desert-btn" data-id="<%= r.id %>">Desertar pedido</button>
                 <button type="button" class="w-full zilo-btn-ghost !py-2.5 !text-sm mt-2" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>">Mensajes con el cliente</button>
               <% } %>
             </div>

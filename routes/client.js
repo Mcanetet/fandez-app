@@ -625,6 +625,33 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
   }
 });
 
+router.post('/solicitud/:id/cambiar-socio', requireRole('client'), async (req, res) => {
+  try {
+    const result = store.clientChangeProvider(req.params.id, req.session.user.id);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
+
+    const enriched = store.enrichRequestForClient(result.request, req.locale || 'es');
+    const io = req.app.get('io');
+    try {
+      const { notifyProvidersForRequest } = require('../lib/dispatch');
+      notifyProvidersForRequest(io, result.request);
+    } catch (_) { /* ignore */ }
+
+    if (io) {
+      io.to(`request_${result.request.id}`).emit(`request_update_${result.request.id}`, {
+        request: enriched,
+        providerReleased: true,
+        searching: true
+      });
+    }
+
+    return res.json({ success: true, request: enriched });
+  } catch (err) {
+    console.error('[cambiar-socio]', err.message);
+    return res.status(500).json({ success: false, error: 'No se pudo cambiar de socio.' });
+  }
+});
+
 router.get('/pendientes-atencion', requireRole('client'), (req, res) => {
   const timeoutMinutes = Math.max(1, parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15);
   if (typeof store.promoteDueScheduledSearches === 'function') {

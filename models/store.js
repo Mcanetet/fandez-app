@@ -1591,6 +1591,39 @@ function ensureProviderFields(provider) {
   provider.providerContract = normalizeProviderContract(provider.providerContract);
   provider.verification.status = computeVerificationStatus(provider);
   provider.providerContract.status = computeContractStatus(provider.providerContract);
+  if (provider.jobsTakenCount == null) provider.jobsTakenCount = 0;
+  if (provider.desertionCount == null) provider.desertionCount = 0;
+  if (provider.clientSwitchCount == null) provider.clientSwitchCount = 0;
+  if (provider.techTimeoutCount == null) provider.techTimeoutCount = 0;
+  return provider;
+}
+
+function getProviderAdherenceStats(provider) {
+  if (!provider) {
+    return { jobsTakenCount: 0, desertionCount: 0, clientSwitchCount: 0, desertionRate: 0, adherenceRate: 100 };
+  }
+  ensureProviderFields(provider);
+  const taken = Math.max(0, parseInt(provider.jobsTakenCount, 10) || 0);
+  const desertions = Math.max(0, parseInt(provider.desertionCount, 10) || 0);
+  const switches = Math.max(0, parseInt(provider.clientSwitchCount, 10) || 0);
+  const failures = desertions + switches;
+  const rate = taken > 0 ? failures / taken : 0;
+  return {
+    jobsTakenCount: taken,
+    desertionCount: desertions,
+    clientSwitchCount: switches,
+    techTimeoutCount: Math.max(0, parseInt(provider.techTimeoutCount, 10) || 0),
+    desertionRate: Math.round(rate * 1000) / 10,
+    adherenceRate: Math.round((1 - rate) * 1000) / 10
+  };
+}
+
+function bumpProviderCounter(providerId, field, by = 1) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') return null;
+  ensureProviderFields(provider);
+  provider[field] = Math.max(0, (parseInt(provider[field], 10) || 0) + by);
+  repository.persist(() => repository.saveUser(provider), `socio contador ${providerId}`);
   return provider;
 }
 
@@ -1638,6 +1671,7 @@ function getPublicProviderProfile(provider) {
   if (provider.email?.trim()) badges.push({ id: 'email', label: 'Correo verificado' });
 
   const loc = provider.locationShare;
+  const adherence = getProviderAdherenceStats(provider);
   return {
     id: provider.id,
     name: provider.name,
@@ -1648,6 +1682,10 @@ function getPublicProviderProfile(provider) {
     bio: provider.bio,
     avatar: provider.avatar,
     reviews: provider.reviews || [],
+    adherenceRate: adherence.adherenceRate,
+    desertionRate: adherence.desertionRate,
+    jobsTakenCount: adherence.jobsTakenCount,
+    desertionCount: adherence.desertionCount,
     verification: {
       status: v.status,
       faceVerified: v.faceVerified,
@@ -2860,7 +2898,7 @@ function normalizeEtaRange(etaMinutesMin, etaMinutesMax) {
   };
 }
 
-function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax } = {}) {
+function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, technicianId } = {}) {
   const request = requests.find(r => r.id === requestId);
   if (!request || request.status !== 'searching') {
     return { error: 'Solicitud ya no está disponible', code: 'taken' };
@@ -2890,9 +2928,33 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax } = 
         error: 'Necesitas un técnico con expediente completo para este servicio antes de aceptar el pedido.'
       };
     }
+    if (!technicianId) {
+      return { error: 'Debes asignar un técnico al tomar el pedido.' };
+    }
+    const tecnico = getTechnicianForProvider(user.id, technicianId);
+    if (!tecnico) return { error: 'Técnico no válido.' };
+    if (tecnico.active === false) return { error: 'El técnico está desactivado.' };
+    const operational = canTechnicianOperate(tecnico);
+    if (!operational.ok) {
+      return { error: `Completa el expediente del técnico: ${operational.missing.join(', ')}.` };
+    }
+    if (!Array.isArray(tecnico.specialties) || !tecnico.specialties.includes(request.serviceId)) {
+      return { error: 'Este técnico no está habilitado para este servicio.' };
+    }
+
     request.providerId = user.id;
     request.status = 'assigned';
     request.assignedAt = new Date().toISOString();
+    request.technicianId = tecnico.id;
+    request.technicianName = tecnico.name;
+    request.technicianPhone = tecnico.phone || null;
+    request.technicianAssignedAt = new Date().toISOString();
+    request.techStatus = 'asignado';
+    request.serviceConfirmStatus = 'pending';
+    request.serviceConfirmedAt = null;
+    request.serviceConfirmMode = null;
+    request.awaitingProviderReassign = false;
+    bumpProviderCounter(user.id, 'jobsTakenCount', 1);
   } else if (user.role === 'tecnico') {
     if (!Array.isArray(user.specialties) || !user.specialties.includes(request.serviceId)) {
       return { error: 'No tienes esta especialidad' };
@@ -2944,11 +3006,11 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax } = 
       body: `${user.name} ha tomado tu pedido. Su hora de llegada estimada es de ${request.etaLabel}.`
     });
   } else {
-    appendChatMessage(request, {
+    acceptChatMessage = appendChatMessage(request, {
       senderType: 'system',
       senderId: null,
       senderName: 'Fundez',
-      body: `${user.name} tomó el servicio. Cuando el técnico acepte, te indicará su hora estimada de llegada.`
+      body: `${user.name} tomó tu pedido y asignó a ${request.technicianName}. El técnico tiene 10 minutos para aceptar; luego te indicará su hora de llegada.`
     });
   }
 
@@ -3288,9 +3350,144 @@ function assignTechnician(requestId, socioId, technicianId) {
   request.serviceConfirmStatus = 'pending';
   request.serviceConfirmedAt = null;
   request.serviceConfirmMode = null;
+  request.awaitingProviderReassign = false;
+  request.etaMinutesMin = null;
+  request.etaMinutesMax = null;
+  request.etaLabel = null;
+  request.etaDeclaredAt = null;
+  appendChatMessage(request, {
+    senderType: 'system',
+    senderId: null,
+    senderName: 'Fundez',
+    body: `El socio asignó a ${tecnico.name}. Tiene 10 minutos para aceptar el pedido.`
+  });
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   afterEvent((ev) => ev.onTechnicianAssigned(request));
   return { success: true, request, tecnico };
+}
+
+function clearTechnicianFromRequest(request) {
+  request.technicianId = null;
+  request.technicianName = null;
+  request.technicianPhone = null;
+  request.technicianAssignedAt = null;
+  request.techStatus = null;
+  request.serviceConfirmStatus = null;
+  request.serviceConfirmedAt = null;
+  request.serviceConfirmMode = null;
+  request.etaMinutesMin = null;
+  request.etaMinutesMax = null;
+  request.etaLabel = null;
+  request.etaDeclaredAt = null;
+}
+
+/** Técnico no aceptó en N minutos: se desasigna y el pedido vuelve al socio. */
+function releaseStaleTechnicianAssignments(timeoutMinutes = 10, now = Date.now()) {
+  const timeoutMs = Math.max(1, Number(timeoutMinutes) || 10) * 60 * 1000;
+  const released = [];
+  for (const request of requests) {
+    if (!['assigned', 'in_progress'].includes(request.status)) continue;
+    if (request.techStatus !== 'asignado' || !request.technicianId || !request.providerId) continue;
+    const at = Date.parse(request.technicianAssignedAt || '');
+    if (!Number.isFinite(at) || now - at < timeoutMs) continue;
+
+    const previousTechnicianId = request.technicianId;
+    const previousName = request.technicianName || 'El técnico';
+    clearTechnicianFromRequest(request);
+    request.awaitingProviderReassign = true;
+    request.techAcceptTimedOutAt = new Date().toISOString();
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fundez',
+      body: `${previousName} no aceptó el pedido a tiempo. El socio debe asignar otro técnico.`
+    });
+    bumpProviderCounter(request.providerId, 'techTimeoutCount', 1);
+    repository.persist(() => repository.saveRequest(request), `timeout aceptación tech ${request.id}`);
+    released.push({ request, previousTechnicianId, previousName });
+  }
+  return released;
+}
+
+function returnRequestToSearching(request, { reason, chatBody } = {}) {
+  const previousProviderId = request.providerId;
+  clearTechnicianFromRequest(request);
+  request.providerId = null;
+  request.assignedAt = null;
+  request.assignedBy = null;
+  request.awaitingProviderReassign = false;
+  request.providerDesertedAt = new Date().toISOString();
+  request.providerDesertReason = reason || 'desertion';
+  if (request.noProviderDecisionStatus === 'resolved' && request.noProviderChoice === 'assigned') {
+    request.noProviderDecisionStatus = null;
+    request.noProviderChoice = null;
+  }
+  beginSearchingRequest(request, { persist: false });
+  if (chatBody) {
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fundez',
+      body: chatBody
+    });
+  }
+  repository.persist(() => repository.saveRequest(request), `reabrir búsqueda ${request.id}`);
+  return { request, previousProviderId };
+}
+
+/** El socio deserta: el pedido vuelve al muro y el cliente sigue en búsqueda. */
+function providerDesertRequest(requestId, providerId) {
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (request.providerId !== providerId) return { error: 'No autorizado.' };
+  if (!['assigned', 'in_progress'].includes(request.status)) {
+    return { error: 'Esta solicitud ya no se puede desertar.' };
+  }
+  if (['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado', 'completado'].includes(request.techStatus)) {
+    return { error: 'El técnico ya está en terreno. No puedes desertar ahora.' };
+  }
+
+  bumpProviderCounter(providerId, 'desertionCount', 1);
+  const result = returnRequestToSearching(request, {
+    reason: 'provider_desertion',
+    chatBody: 'El socio liberó el pedido. Fundez sigue buscando otro equipo para ti.'
+  });
+  return { success: true, ...result };
+}
+
+/** Cliente pide cambio de socio (adherencia baja o mala experiencia temprana). */
+function clientChangeProvider(requestId, clientId) {
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (request.clientId !== clientId) return { error: 'No autorizado.' };
+  if (!request.providerId) return { error: 'Aún no hay un socio asignado.' };
+  if (!['assigned', 'in_progress'].includes(request.status)) {
+    return { error: 'Ya no puedes cambiar de socio en este estado.' };
+  }
+  if (['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado', 'completado'].includes(request.techStatus)) {
+    return { error: 'El técnico ya está en tu domicilio. No puedes cambiar de socio ahora.' };
+  }
+
+  const previousProviderId = request.providerId;
+  bumpProviderCounter(previousProviderId, 'clientSwitchCount', 1);
+  const result = returnRequestToSearching(request, {
+    reason: 'client_change_provider',
+    chatBody: 'Pediste cambiar de socio. Seguimos buscando otro equipo para tu servicio.'
+  });
+  return { success: true, ...result, previousProviderId };
+}
+
+function getEligibleTechniciansForProvider(providerId, serviceId) {
+  return getTechniciansByProvider(providerId)
+    .filter((t) => t.active !== false)
+    .filter((t) => canTechnicianOperate(t).ok)
+    .filter((t) => !serviceId || (Array.isArray(t.specialties) && t.specialties.includes(serviceId)))
+    .map((t) => ({
+      id: t.id,
+      name: t.name,
+      phone: t.phone || null,
+      specialties: t.specialties || []
+    }));
 }
 
 function updateTechStatus(requestId, technicianId, techStatus) {
@@ -3990,7 +4187,13 @@ function enrichRequestForClient(request, locale = 'es') {
     clientTotals: clientTotals.completed ? clientTotals : null,
     providerInvoicePlan,
     visitRetentionFeeClp: getVisitRetentionFeeClp(),
-    canCancelWithRetention: ['scheduled', 'searching'].includes(request.status) && !request.providerId
+    canCancelWithRetention: ['scheduled', 'searching'].includes(request.status) && !request.providerId,
+    canChangeProvider: Boolean(
+      request.providerId
+      && ['assigned', 'in_progress'].includes(request.status)
+      && !['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado', 'completado'].includes(request.techStatus)
+    ),
+    awaitingProviderReassign: Boolean(request.awaitingProviderReassign)
   };
 }
 
@@ -4144,6 +4347,7 @@ function getProviderDashboardStats(providerId) {
     .filter((r) => r.payoutScheduledDate === nextPayDate)
     .reduce((sum, r) => sum + computeRequestFinancials(r, getPricingConfig()).providerTotal, 0);
 
+  const adherence = getProviderAdherenceStats(provider);
   return {
     rating: provider?.rating || 0,
     reviewsCount: provider?.reviewsCount || 0,
@@ -4156,7 +4360,11 @@ function getProviderDashboardStats(providerId) {
     nextPayDate,
     nextPayDateLabel: nextPayDate ? formatPayDate(nextPayDate) : null,
     nextPayAmount,
-    online: Boolean(provider?.online)
+    online: Boolean(provider?.online),
+    adherenceRate: adherence.adherenceRate,
+    desertionRate: adherence.desertionRate,
+    desertionCount: adherence.desertionCount,
+    jobsTakenCount: adherence.jobsTakenCount
   };
 }
 
@@ -4795,6 +5003,11 @@ module.exports = {
   getAdminDispatchQueue,
   updateRequestStatus,
   assignTechnician,
+  releaseStaleTechnicianAssignments,
+  providerDesertRequest,
+  clientChangeProvider,
+  getEligibleTechniciansForProvider,
+  getProviderAdherenceStats,
   updateTechStatus,
   getRequestForTechnician,
   getRequestForProvider,

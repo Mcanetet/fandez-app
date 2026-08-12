@@ -1210,6 +1210,21 @@
     document.getElementById('providerReviews').textContent = t('client.js.reviews_count', { count: provider.reviewsCount });
     document.getElementById('providerStars').textContent = '★'.repeat(Math.round(provider.rating));
     document.getElementById('providerBio').textContent = provider.bio;
+    const adherenceEl = document.getElementById('providerAdherence');
+    if (adherenceEl) {
+      if (provider.adherenceRate != null || provider.desertionRate != null) {
+        adherenceEl.classList.remove('hidden');
+        adherenceEl.textContent = `Adherencia ${provider.adherenceRate ?? 100}% · Deserción ${provider.desertionRate ?? 0}% (${provider.jobsTakenCount || 0} pedidos)`;
+      } else {
+        adherenceEl.classList.add('hidden');
+      }
+    }
+    const changeBtn = document.getElementById('btnChangeProvider');
+    if (changeBtn) {
+      const canChange = Boolean(request?.canChangeProvider);
+      changeBtn.classList.toggle('hidden', !canChange);
+      changeBtn.dataset.requestId = request?.id || '';
+    }
     document.getElementById('providerPhone').href = `tel:${provider.phone}`;
     document.getElementById('providerPhone').textContent = t('client.js.call', { phone: provider.phone });
     const emailEl = document.getElementById('providerEmail');
@@ -1616,6 +1631,32 @@
     if (!id) return;
     if (!confirm(t('client.js.no_provider_refund_confirm'))) return;
     submitNoProviderChoice('refund', id);
+  });
+
+  document.getElementById('btnChangeProvider')?.addEventListener('click', async () => {
+    const id = document.getElementById('btnChangeProvider')?.dataset?.requestId || currentRequestId;
+    if (!id) return;
+    if (!confirm('¿Cambiar de socio? Seguiremos buscando otro equipo. Esto afecta la tasa de adherencia del socio actual.')) return;
+    const btn = document.getElementById('btnChangeProvider');
+    if (btn) btn.disabled = true;
+    try {
+      const response = await fetch(`/cliente/solicitud/${encodeURIComponent(id)}/cambiar-socio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        credentials: 'same-origin',
+        body: '{}'
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) throw new Error(data.error || 'No se pudo cambiar de socio');
+      FundezNotify.show('Buscando otro socio para tu pedido…', 'info');
+      hideNoProviderChoice();
+      providerCard?.classList.add('hidden');
+      loaderOverlay?.classList.remove('hidden');
+      startTracking(id);
+    } catch (err) {
+      if (btn) btn.disabled = false;
+      FundezNotify.show(err.message || 'No se pudo cambiar de socio', 'error');
+    }
   });
 
   socket.on('no_provider_choice_required', (payload) => {

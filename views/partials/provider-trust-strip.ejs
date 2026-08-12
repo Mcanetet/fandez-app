@@ -21,4 +21,11 @@
       <span><%= stats.reviewsCount || 0 %> reseñas</span>
     </div>
   </div>
+  <div class="trust-strip-item">
+    <span class="trust-strip-icon" aria-hidden="true">📈</span>
+    <div>
+      <strong><%= typeof stats.adherenceRate === 'number' ? stats.adherenceRate + '%' : '100%' %></strong>
+      <span>Adherencia · deserción <%= typeof stats.desertionRate === 'number' ? stats.desertionRate + '%' : '0%' %></span>
+    </div>
+  </div>
 </div>

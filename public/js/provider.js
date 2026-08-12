@@ -386,9 +386,64 @@
     currentRequest = null;
   }
 
+  async function askTechnicianId(serviceId) {
+    const res = await fetch(`/proveedor/tecnicos-elegibles?serviceId=${encodeURIComponent(serviceId || '')}`);
+    const data = await res.json().catch(() => ({}));
+    const techs = data.technicians || [];
+    if (!techs.length) {
+      FundezNotify.show('No tienes técnicos elegibles para este servicio. Agrégalos en Mi equipo.', 'warning');
+      return null;
+    }
+    return new Promise((resolve) => {
+      const existing = document.getElementById('providerTechModal');
+      if (existing) existing.remove();
+      const modal = document.createElement('div');
+      modal.id = 'providerTechModal';
+      modal.className = 'fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-4 bg-black/50';
+      modal.innerHTML = `
+        <div class="w-full max-w-md rounded-2xl bg-zilo-surface border border-zilo-border p-5 shadow-xl">
+          <p class="text-xs font-semibold text-zilo-accent mb-1">Al tomar el pedido</p>
+          <h3 class="text-base font-semibold mb-1">Asigna un técnico ahora</h3>
+          <p class="text-xs text-zilo-muted mb-4">Tendrá 10 minutos para aceptar. Si no responde, el pedido vuelve a ti.</p>
+          <div class="space-y-2" data-role="tech-options"></div>
+          <button type="button" data-role="tech-cancel" class="mt-3 w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm">Cancelar</button>
+        </div>`;
+      const box = modal.querySelector('[data-role="tech-options"]');
+      techs.forEach((tech) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-full py-3 px-3 rounded-xl border border-zilo-border text-sm font-semibold text-left hover:border-zilo-accent';
+        btn.textContent = tech.name;
+        btn.addEventListener('click', () => {
+          modal.remove();
+          resolve(tech.id);
+        });
+        box.appendChild(btn);
+      });
+      modal.querySelector('[data-role="tech-cancel"]').addEventListener('click', () => {
+        modal.remove();
+        resolve(null);
+      });
+      document.body.appendChild(modal);
+    });
+  }
+
   async function acceptRequest(requestId, btn) {
     if (btn) btn.disabled = true;
-    const res = await fetch(`/proveedor/accept/${requestId}`, { method: 'POST' });
+    const serviceId = currentRequest?.service?.id
+      || currentRequest?.request?.serviceId
+      || wallItems.get(requestId)?.service?.id
+      || wallItems.get(requestId)?.request?.serviceId;
+    const technicianId = await askTechnicianId(serviceId);
+    if (!technicianId) {
+      if (btn) btn.disabled = false;
+      return;
+    }
+    const res = await fetch(`/proveedor/accept/${requestId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ technicianId })
+    });
     const data = await res.json();
 
     if (!data.success) {
@@ -434,6 +489,25 @@
 
   socket.on('request_taken', ({ requestId }) => {
     removeWallItem(requestId);
+  });
+
+  socket.on('provider_reassign_required', (payload) => {
+    if (window.FundezAlerts) {
+      FundezAlerts.notify({
+        type: 'alert',
+        title: payload?.title || 'Reasigna técnico',
+        body: payload?.body || 'Un técnico no aceptó a tiempo.',
+        tag: 'fundez-reassign-' + (payload?.requestId || 'x'),
+        requireInteraction: true,
+        system: true,
+        url: payload?.url || '/proveedor/mando'
+      });
+    } else {
+      FundezNotify.show(payload?.body || 'Debes reasignar un técnico', 'warning');
+    }
+    setTimeout(() => {
+      if (window.location.pathname.includes('/proveedor/mando')) location.reload();
+    }, 1200);
   });
 
   function sendLocation(lat, lng) {

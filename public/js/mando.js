@@ -129,15 +129,32 @@
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'Error');
 
-        const name = data.request.technicianName;
-        card.querySelector('[data-role="assign-area"]').innerHTML =
-          `<p class="text-xs">Técnico: <strong>${escapeHtml(name)}</strong></p>`;
-        const statusEl = card.querySelector('[data-role="status"]');
-        if (statusEl) statusEl.textContent = 'Técnico asignado';
-        notify(`Asignado a ${name}`, 'success');
+        notify(`Asignado a ${data.request.technicianName}. Tiene 10 min para aceptar.`, 'success');
+        setTimeout(() => location.reload(), 700);
       } catch (err) {
         btn.disabled = false;
         notify(err.message || 'No se pudo asignar', 'error');
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-role="desert-btn"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Desertar este pedido? Volverá a búsqueda para otros socios y sumará a tu tasa de deserción.')) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/proveedor/desertar/${btn.dataset.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: '{}'
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo desertar');
+        notify('Pedido liberado. El cliente sigue en búsqueda.', 'info');
+        setTimeout(() => location.reload(), 800);
+      } catch (err) {
+        btn.disabled = false;
+        notify(err.message || 'No se pudo desertar', 'error');
       }
     });
   });
