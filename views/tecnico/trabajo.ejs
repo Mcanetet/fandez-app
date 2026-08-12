@@ -100,7 +100,12 @@
     <section id="stepTrayecto" class="zilo-card-premium rounded-2xl p-5 <%= ['aceptado','en_camino'].includes(request.techStatus) && request.serviceConfirmStatus !== 'pending' && request.serviceConfirmStatus !== 'change_pending' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Trayecto</p>
       <h2 class="text-sm font-semibold mb-2"><%= request.techStatus === 'aceptado' ? '¿Listo para ir al domicilio?' : 'Confirma al llegar' %></h2>
-      <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'El cliente verá que vas en camino.' : 'Confirma únicamente cuando estés en el lugar.' %></p>
+      <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'El cliente verá que vas en camino y tu ubicación en vivo.' : 'Confirma únicamente cuando estés en el lugar.' %></p>
+      <% if (request.coords && request.coords.lat != null && request.techStatus === 'aceptado') { %>
+        <a href="https://www.google.com/maps/dir/?api=1&destination=<%= request.coords.lat %>,<%= request.coords.lng %>"
+          target="_blank" rel="noopener"
+          class="block w-full mb-2 py-3 rounded-xl zilo-btn-ghost text-center !text-sm">Abrir en Google Maps</a>
+      <% } %>
       <button type="button" id="btnTrayecto" data-next-status="<%= request.techStatus === 'aceptado' ? 'en_camino' : 'en_sitio' %>"
         class="w-full py-3 rounded-xl zilo-btn-primary"><%= request.techStatus === 'aceptado' ? 'Iniciar viaje' : 'Ya llegué' %></button>
     </section>

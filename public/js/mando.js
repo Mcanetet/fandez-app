@@ -159,6 +159,26 @@
     });
   });
 
+  function tickAcceptCountdowns() {
+    document.querySelectorAll('[data-accept-deadline]').forEach((box) => {
+      const el = box.querySelector('[data-role="accept-countdown"]');
+      if (!el) return;
+      const start = Date.parse(box.dataset.acceptDeadline || '');
+      const mins = Math.max(1, parseInt(box.dataset.acceptTimeoutMin || '10', 10) || 10);
+      if (!Number.isFinite(start)) {
+        el.textContent = `${mins}:00`;
+        return;
+      }
+      const left = Math.max(0, start + mins * 60000 - Date.now());
+      const mm = String(Math.floor(left / 60000)).padStart(2, '0');
+      const ss = String(Math.floor((left % 60000) / 1000)).padStart(2, '0');
+      el.textContent = left <= 0 ? '00:00 · reasignar' : `${mm}:${ss}`;
+      el.classList.toggle('text-red-700', left <= 60000);
+    });
+  }
+  tickAcceptCountdowns();
+  setInterval(tickAcceptCountdowns, 1000);
+
   document.querySelectorAll('[data-role="open-chat"]').forEach((btn) => {
     btn.addEventListener('click', () => openChat(btn.dataset.id, btn.dataset.client));
   });

@@ -692,23 +692,55 @@
 
   function advanceTripStep(step) {
     document.querySelectorAll('.trip-step').forEach(el => {
-      el.classList.remove('active');
-      const ds = el.dataset.step;
-      if (ds === 'paid' || ds === 'assigned') el.classList.add('done');
-      else el.classList.remove('done');
+      el.classList.remove('active', 'done');
     });
-    const order = ['paid', 'assigned', 'enroute', 'arrived'];
+    const order = ['paid', 'assigned', 'enroute', 'arrived', 'working', 'done'];
     const idx = order.indexOf(step);
-    order.slice(0, idx).forEach(s => {
+    order.forEach((s, i) => {
       const el = document.querySelector(`.trip-step[data-step="${s}"]`);
-      if (el) el.classList.add('done');
+      if (!el) return;
+      if (i < idx) el.classList.add('done');
+      else if (i === idx) el.classList.add('active');
     });
-    const current = document.querySelector(`.trip-step[data-step="${step}"]`);
-    if (current) { current.classList.add('active'); current.classList.remove('done'); }
     const etaEl = document.getElementById('tripEta');
     if (!etaEl) return;
     if (step === 'enroute') etaEl.textContent = t('client.js.enroute_home');
     if (step === 'arrived') etaEl.textContent = t('client.js.arrived');
+    if (step === 'working') etaEl.textContent = 'En trabajo';
+    if (step === 'done') etaEl.textContent = 'Completado';
+  }
+
+  function updateTripStatusHero(request, step) {
+    const title = document.getElementById('tripStatusTitle');
+    const sub = document.getElementById('tripStatusSub');
+    const call = document.getElementById('tripHeroCall');
+    if (!title || !sub) return;
+    const tech = request?.technicianName || 'Tu técnico';
+    const map = {
+      paid: ['Pago confirmado', 'Estamos conectándote con un equipo Fundez.'],
+      assigned: [
+        request?.techStatus === 'asignado' ? 'Esperando aceptación del técnico' : 'Equipo asignado',
+        request?.etaLabel
+          ? `${tech} · llegada estimada ${request.etaLabel}`
+          : 'Te avisamos cuando acepte y salga hacia ti.'
+      ],
+      enroute: [`${tech} va en camino`, request?.etaLabel ? `ETA ${request.etaLabel}` : 'Sigue su ubicación en el mapa.'],
+      arrived: [`${tech} llegó`, 'Puede iniciar el diagnóstico en tu domicilio.'],
+      working: ['Trabajo en curso', 'Diagnóstico, presupuesto o reparación según lo acordado.'],
+      done: ['Servicio completado', 'Revisa el resumen y califica tu experiencia.']
+    };
+    const pair = map[step] || map.assigned;
+    title.textContent = pair[0];
+    sub.textContent = pair[1];
+    if (call) {
+      const phone = request?.technicianPhone;
+      if (phone) {
+        call.href = `tel:${phone}`;
+        call.classList.remove('hidden');
+      } else {
+        call.classList.add('hidden');
+      }
+    }
   }
 
   let lastTripStepAlert = null;
@@ -836,7 +868,11 @@
     if (request.urgencyTier) page.dataset.urgencyTier = request.urgencyTier;
     const ts = request.techStatus;
     let step = 'assigned';
-    if (['diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado', 'completado', 'en_sitio'].includes(ts)) {
+    if (request.status === 'completed' || ts === 'completado') {
+      step = 'done';
+    } else if (['diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(ts)) {
+      step = 'working';
+    } else if (ts === 'en_sitio') {
       step = 'arrived';
     } else if (ts === 'en_camino') {
       step = 'enroute';
@@ -846,6 +882,7 @@
       return;
     }
     advanceTripStep(step);
+    updateTripStatusHero(request, step);
     updateLiveTrackBanner(request);
 
     if (lastTripStepAlert === step) return;
@@ -1621,6 +1658,12 @@
   }
 
   btnRequest.addEventListener('click', submitRequest);
+
+  document.getElementById('tripHeroChat')?.addEventListener('click', () => {
+    document.getElementById('openJobChatBtn')?.click();
+    document.getElementById('jobChatPanel')?.classList.remove('hidden');
+    document.getElementById('jobChatPanel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
 
   document.getElementById('btnNoProviderContinue')?.addEventListener('click', () => {
     const id = document.getElementById('noProviderChoicePanel')?.dataset?.requestId || currentRequestId;

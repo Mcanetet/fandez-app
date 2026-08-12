@@ -399,6 +399,11 @@
     } else if (status === 'aceptado') {
       startSharing(card);
       addBtn(t('tecnico.js.head_out'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) => transition(b, 'en_camino', t('tecnico.js.sharing_location')));
+      const lat = card.dataset.lat;
+      const lng = card.dataset.lng;
+      if (lat && lng) {
+        addLink('Abrir mapa', `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lat + ',' + lng)}`);
+      }
     } else if (status === 'en_camino') {
       const info = document.createElement('span');
       info.className = 'flex-1 py-2.5 text-xs text-zilo-success flex items-center gap-1.5';
@@ -493,6 +498,27 @@
   setInterval(() => {
     if (onlineToggle?.checked) loadWorkWall();
   }, 15000);
+
+  function tickTechAcceptCountdowns() {
+    document.querySelectorAll('#jobList [data-job-id]').forEach((card) => {
+      if (card.dataset.techStatus !== 'asignado') return;
+      const el = card.querySelector('[data-role="accept-countdown"]');
+      if (!el) return;
+      const start = Date.parse(card.dataset.assignedAt || '');
+      const mins = 10;
+      if (!Number.isFinite(start)) {
+        el.textContent = `Tienes ${mins}:00 para aceptar`;
+        return;
+      }
+      const left = Math.max(0, start + mins * 60000 - Date.now());
+      const mm = String(Math.floor(left / 60000)).padStart(2, '0');
+      const ss = String(Math.floor((left % 60000) / 1000)).padStart(2, '0');
+      el.textContent = left <= 0 ? 'Tiempo agotado · se reasignará' : `Tienes ${mm}:${ss} para aceptar`;
+      el.classList.toggle('text-red-700', left <= 60000);
+    });
+  }
+  tickTechAcceptCountdowns();
+  setInterval(tickTechAcceptCountdowns, 1000);
 
   document.querySelectorAll('#jobList [data-job-id]').forEach(render);
 })();

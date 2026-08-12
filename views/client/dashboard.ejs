@@ -25,33 +25,6 @@
   </header>
 
   <main class="flex-1 px-5 py-5 pb-24">
-    <%- include('../partials/guide-card', {
-      summary: t('client.guide.summary'),
-      linkText: t('client.guide.link')
-    }) %>
-
-    <% if (typeof trustStats !== 'undefined') { %>
-    <div class="mb-5 zilo-page-enter-delay-1">
-      <%- include('../partials/trust-strip', { trustStats }) %>
-    </div>
-    <% } %>
-
-    <% if (mod('client_aland') && typeof services !== 'undefined' && services.length) { %>
-    <a href="/cliente/servicio/<%= services[0].id %>?aland=1" class="block zilo-card-premium rounded-xl p-4 mb-5 border border-aland/25 aland-surface hover:border-aland/40 transition">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-aland/15 flex items-center justify-center shrink-0">
-          <svg class="w-5 h-5 text-aland-strong" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-xs font-semibold mb-0.5 text-aland-strong">Aland</p>
-          <strong class="text-sm block"><%= t('client.dashboard.aland_title') %></strong>
-          <span class="text-xs text-zilo-muted"><%= t('client.dashboard.aland_sub') %></span>
-        </div>
-        <svg class="w-5 h-5 text-aland shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
-      </div>
-    </a>
-    <% } %>
-
     <% const attentionList = typeof attentionItems !== 'undefined' ? attentionItems : []; %>
     <% if (attentionList.length) { %>
     <section class="mb-5 p-4 rounded-2xl border border-amber-400/50 bg-amber-50" id="clientAttentionBanner">
@@ -73,17 +46,79 @@
     <% const pendingNoProvider = (activeRequests || []).filter(function(item) { return item.noProviderDecisionStatus === 'pending'; }); %>
     <% pendingNoProvider.forEach(function(item) { %>
     <section class="mb-5 p-4 rounded-2xl border border-amber-300 bg-amber-50" data-no-provider-card="<%= item.id %>">
-      <p class="text-xs font-semibold text-aland-strong mb-1">Aland</p>
+      <p class="text-xs font-semibold text-aland-strong mb-1">Acción requerida</p>
       <strong class="text-sm block mb-1">Aún no encontramos un socio para <%= item.serviceName %></strong>
-      <p class="text-xs text-amber-900 mb-3">Han pasado 15 minutos. ¿Seguir buscando o cancelar? Al cancelar se retiene la tarifa base ($50.000) y se devuelve el resto.</p>
+      <p class="text-xs text-amber-900 mb-3">Han pasado 15 minutos. ¿Seguir buscando o cancelar? Al cancelar se retiene la tarifa base (<%= typeof formatCLP === 'function' ? formatCLP(typeof retentionFee !== 'undefined' ? retentionFee : 50000) : '$50.000' %>) y se devuelve el resto.</p>
       <div class="grid grid-cols-2 gap-2">
         <button type="button" data-no-provider-choice="continue" data-request-id="<%= item.id %>"
           class="py-2.5 px-2 rounded-xl bg-zilo-accent text-white text-xs font-semibold">Sí, seguir buscando</button>
         <button type="button" data-no-provider-choice="refund" data-request-id="<%= item.id %>"
-          class="py-2.5 px-2 rounded-xl bg-white border border-red-300 text-red-700 text-xs font-semibold">Solicitar devolución</button>
+          class="py-2.5 px-2 rounded-xl bg-white border border-red-300 text-red-700 text-xs font-semibold">Cancelar con tarifa base</button>
       </div>
     </section>
     <% }); %>
+
+    <% if (activeRequests && activeRequests.length > 0) { %>
+    <section class="mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="zilo-label !mb-0"><%= t('client.in_progress') %></h2>
+        <span class="text-[10px] font-semibold text-zilo-accent"><%= activeRequests.length %> activo<%= activeRequests.length === 1 ? '' : 's' %></span>
+      </div>
+      <div class="space-y-2">
+        <% activeRequests.forEach(function(req) { %>
+          <%
+            var sub = req.statusLabel || req.status;
+            if (req.status === 'searching') sub = 'Buscando técnico…';
+            else if (req.status === 'scheduled') sub = 'Visita programada';
+            else if (req.techStatus === 'en_camino') sub = 'Técnico en camino';
+            else if (req.techStatus === 'en_sitio' || req.techStatus === 'diagnostico') sub = 'Técnico en tu domicilio';
+            else if (req.techStatus === 'aceptado') sub = (req.technicianName || 'Técnico') + ' aceptó · ETA ' + (req.etaLabel || 'por confirmar');
+            else if (req.techStatus === 'asignado') sub = 'Esperando que el técnico acepte';
+            else if (req.etaLabel) sub = 'Llegada estimada: ' + req.etaLabel;
+          %>
+          <a href="/cliente/servicio/<%= req.serviceId %>?tracking=<%= req.id %>"
+            class="flex items-center gap-3 p-4 rounded-2xl zilo-card-premium border border-zilo-accent/20 hover:border-zilo-accent/40 transition">
+            <div class="w-11 h-11 rounded-xl bg-zilo-accent/10 text-zilo-accent flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <strong class="text-sm block truncate"><%= req.serviceName %></strong>
+              <% if (req.isGift) { %><span class="text-[10px] text-zilo-accent"><%= t('client.dashboard.gift_badge') %> · <%= req.beneficiaryName %></span><% } %>
+              <span class="text-xs text-zilo-muted block mt-0.5 truncate"><%= sub %></span>
+            </div>
+            <span class="text-[11px] font-semibold text-zilo-accent shrink-0">Seguir</span>
+          </a>
+        <% }); %>
+      </div>
+    </section>
+    <% } %>
+
+    <%- include('../partials/guide-card', {
+      summary: t('client.guide.summary'),
+      linkText: t('client.guide.link')
+    }) %>
+
+    <% if (typeof trustStats !== 'undefined') { %>
+    <div class="mb-5 mt-5 zilo-page-enter-delay-1">
+      <%- include('../partials/trust-strip', { trustStats }) %>
+    </div>
+    <% } %>
+
+    <% if (mod('client_aland') && typeof services !== 'undefined' && services.length) { %>
+    <a href="/cliente/servicio/<%= services[0].id %>?aland=1" class="block zilo-card-premium rounded-xl p-4 mb-5 border border-aland/25 aland-surface hover:border-aland/40 transition">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-aland/15 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5 text-aland-strong" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-semibold mb-0.5 text-aland-strong">Aland</p>
+          <strong class="text-sm block"><%= t('client.dashboard.aland_title') %></strong>
+          <span class="text-xs text-zilo-muted"><%= t('client.dashboard.aland_sub') %></span>
+        </div>
+        <svg class="w-5 h-5 text-aland shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </a>
+    <% } %>
 
     <% if (typeof lastCompleted !== 'undefined' && lastCompleted && mod('client_solicitar')) { %>
     <a href="/cliente/servicio/<%= lastCompleted.serviceId %>" class="block zilo-card-premium rounded-2xl p-4 mb-5 border border-emerald-500/20 bg-emerald-50/50 hover:border-emerald-500/35 transition">
@@ -175,24 +210,6 @@
         <p class="zilo-display"><%= t('client.requests_paused') %></p>
         <p class="text-sm"><%= t('client.requests_paused_desc') %></p>
       </div>
-    <% } %>
-
-    <% if (activeRequests.length > 0) { %>
-    <section class="mt-8">
-      <h2 class="zilo-label mb-3"><%= t('client.in_progress') %></h2>
-      <div class="space-y-2">
-        <% activeRequests.forEach(req => { %>
-          <a href="/cliente/servicio/<%= req.serviceId %>?tracking=<%= req.id %>" class="flex justify-between items-center p-4 rounded-xl zilo-card-premium hover:border-zilo-accent/20 transition">
-            <div>
-              <strong class="text-sm block"><%= req.serviceName %></strong>
-              <% if (req.isGift) { %><span class="text-[10px] text-zilo-accent"><%= t('client.dashboard.gift_badge') %> · <%= req.beneficiaryName %></span><% } %>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-zilo-accent/10 text-zilo-accent inline-block mt-1"><%= req.statusLabel || req.status %></span>
-            </div>
-            <svg class="w-5 h-5 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
-          </a>
-        <% }); %>
-      </div>
-    </section>
     <% } %>
   </main>
 

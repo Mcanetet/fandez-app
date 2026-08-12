@@ -410,6 +410,15 @@
         <a id="finalProviderInvoiceLink" href="#" target="_blank" class="hidden mt-2 block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm">Ver factura o boleta del socio</a>
         <a id="finalReviewLink" href="/cliente/historial" class="mt-2 block text-center py-2.5 rounded-xl zilo-btn-primary !text-sm">Calificar y dejar un comentario</a>
       </section>
+      <div class="p-4 rounded-2xl zilo-card-premium mb-4" id="tripStatusHero">
+        <p class="zilo-label mb-1">Estado de tu visita</p>
+        <strong id="tripStatusTitle" class="text-base block text-zilo-text">Conectando con tu equipo…</strong>
+        <p id="tripStatusSub" class="text-sm text-zilo-muted mt-1 leading-relaxed">Te avisamos en cuanto el técnico acepte y salga hacia ti.</p>
+        <div class="flex gap-2 mt-3">
+          <button type="button" id="tripHeroChat" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-xs">Mensajes</button>
+          <a id="tripHeroCall" href="tel:" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-center hidden">Llamar</a>
+        </div>
+      </div>
       <div class="p-4 rounded-2xl zilo-card-premium">
         <div class="flex justify-between items-center mb-4">
           <p class="zilo-label"><%= t('client.service.tracking') %></p>
@@ -420,6 +429,8 @@
           <div class="trip-step active" data-step="assigned"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.assigned') %></strong><p class="text-[10px] text-zilo-muted" id="tripProviderLabel"><%= t('client.service.connecting_dots') %></p></div></div>
           <div class="trip-step" data-step="enroute"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_way') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.enroute_sub') %></p></div></div>
           <div class="trip-step" data-step="arrived"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_site') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.onsite_sub') %></p></div></div>
+          <div class="trip-step" data-step="working"><span class="trip-dot"></span><div><strong class="text-xs">En trabajo</strong><p class="text-[10px] text-zilo-muted">Diagnóstico o reparación</p></div></div>
+          <div class="trip-step" data-step="done"><span class="trip-dot"></span><div><strong class="text-xs">Completado</strong><p class="text-[10px] text-zilo-muted">Listo para calificar</p></div></div>
         </div>
       </div>
 
