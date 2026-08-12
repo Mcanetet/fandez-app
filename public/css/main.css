@@ -2022,7 +2022,36 @@
   color: var(--zilo-text);
   margin-bottom: 0.125rem;
 }
-.trust-strip-icon { font-size: 1rem; line-height: 1; flex-shrink: 0; }
+.trust-strip-icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.625rem;
+  background: rgba(13, 148, 136, 0.1);
+  color: var(--zilo-accent);
+  font-size: 0;
+  line-height: 0;
+}
+.trust-strip-icon svg {
+  display: block;
+}
+.ui-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  line-height: 0;
+}
+.ui-icon svg { display: block; }
+.ui-icon--lg {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: rgba(13, 148, 136, 0.1);
+}
 
 .checkout-progress { margin-bottom: 1rem; }
 .checkout-progress-track {

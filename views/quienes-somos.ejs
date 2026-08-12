@@ -49,12 +49,12 @@
 
       <section class="grid sm:grid-cols-3 gap-4">
         <% [
-          { icon: '⏱', title: t('about.pillar_time_title'), body: t('about.pillar_time_body') },
-          { icon: '✦', title: t('about.pillar_quality_title'), body: t('about.pillar_quality_body') },
-          { icon: '♥', title: t('about.pillar_community_title'), body: t('about.pillar_community_body') }
+          { icon: 'clock', title: t('about.pillar_time_title'), body: t('about.pillar_time_body') },
+          { icon: 'spark', title: t('about.pillar_quality_title'), body: t('about.pillar_quality_body') },
+          { icon: 'heart', title: t('about.pillar_community_title'), body: t('about.pillar_community_body') }
         ].forEach(function(pillar) { %>
           <div class="zilo-card-premium rounded-2xl p-5 text-center sm:text-left">
-            <span class="text-2xl text-zilo-accent block mb-2" aria-hidden="true"><%= pillar.icon %></span>
+            <%- include('partials/ui-icon', { name: pillar.icon, size: 22, className: 'ui-icon--lg text-zilo-accent mb-2 inline-flex' }) %>
             <h3 class="font-semibold text-zilo-text text-sm mb-1.5"><%= pillar.title %></h3>
             <p class="text-xs sm:text-sm leading-relaxed"><%= pillar.body %></p>
           </div>
@@ -67,7 +67,7 @@
         <ul class="space-y-2.5">
           <% ['promise_1', 'promise_2', 'promise_3', 'promise_4'].forEach(function(key) { %>
             <li class="flex gap-3 items-start">
-              <span class="text-zilo-accent mt-0.5 shrink-0">◆</span>
+              <%- include('partials/ui-icon', { name: 'check', size: 16, className: 'text-zilo-accent mt-0.5 shrink-0' }) %>
               <span><%= t('about.' + key) %></span>
             </li>
           <% }); %>
