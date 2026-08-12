@@ -112,8 +112,8 @@ app.get('/site.webmanifest', (req, res) => {
     lang: 'es-CL',
     start_url: `/?v=${encodeURIComponent(v)}`,
     display: 'standalone',
-    background_color: '#F3F5F7',
-    theme_color: '#0D9488',
+    background_color: '#F4F2EE',
+    theme_color: '#C45C14',
     icons: [
       { src: `/icons/fundez-v3-96.png${q}`, sizes: '96x96', type: 'image/png', purpose: 'any' },
       { src: `/icons/fundez-v3-180.png${q}`, sizes: '180x180', type: 'image/png', purpose: 'any' },

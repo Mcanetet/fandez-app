@@ -1,10 +1,12 @@
 <%- include('partials/head') %>
 
-<div class="min-h-screen relative">
+<div class="min-h-screen relative fundez-landing">
+  <div class="fundez-landing-atmosphere" aria-hidden="true"></div>
+
   <header class="relative z-10 flex items-center justify-between px-5 py-5 max-w-lg mx-auto">
     <div class="flex items-center gap-3">
-      <%- include('partials/logo', { className: 'w-11 h-11', logoId: 'landing' }) %>
-      <span class="zilo-display text-3xl tracking-tight"><%= t('app.name') %></span>
+      <%- include('partials/logo', { className: 'w-11 h-12', logoId: 'landing', logoVariant: 'amber' }) %>
+      <span class="fundez-wordmark text-3xl"><%= t('app.name') %></span>
     </div>
     <div class="flex items-center gap-2">
       <%- include('partials/lang-switcher') %>
@@ -12,8 +14,9 @@
     </div>
   </header>
 
-  <main class="relative z-10 px-5 pt-4 pb-12 max-w-lg mx-auto">
-    <h1 class="zilo-display text-[2.55rem] leading-[1.12] mb-4">
+  <main class="relative z-10 px-5 pt-2 pb-12 max-w-lg mx-auto">
+    <p class="zilo-label mb-3"><%= t('landing.hero.eyebrow') %></p>
+    <h1 class="zilo-display text-[2.65rem] leading-[1.08] mb-4">
       <%= t('landing.hero.title1') %><br>
       <span class="text-zilo-accent"><%= t('landing.hero.title2') %></span>
     </h1>
@@ -22,7 +25,7 @@
     </p>
 
     <% if (typeof referralBanner !== 'undefined' && referralBanner) { %>
-      <div class="mb-6 p-4 rounded-xl zilo-card-premium border border-zilo-accent/20">
+      <div class="mb-6 p-4 rounded-xl zilo-card-premium border border-zilo-accent/20 bg-zilo-accent-soft/40">
         <p class="text-sm font-medium text-zilo-accent"><%= t('landing.invite.received') %></p>
         <p class="text-xs text-zilo-muted mt-1"><%- t('landing.invite.credit', { code: referralBanner }) %></p>
       </div>
@@ -37,7 +40,7 @@
       <a href="/login" class="text-zilo-accent font-semibold hover:underline"><%= t('landing.cta.login') %></a>
     </p>
 
-    <div class="mb-8 border-y border-zilo-border py-4">
+    <div class="mb-8 rounded-2xl border border-zilo-border bg-white/80 backdrop-blur-sm py-4 px-2">
       <div class="grid grid-cols-3 gap-2 text-center">
         <div>
           <strong class="zilo-display text-lg text-zilo-accent block">4.9</strong>
@@ -55,19 +58,31 @@
     </div>
 
     <div class="mb-8">
-      <p class="text-sm font-semibold text-zilo-text mb-3"><%= t('landing.only_fundez') %></p>
+      <p class="fundez-wordmark text-lg mb-3"><%= t('landing.only_fundez') %></p>
       <ul class="space-y-2.5 text-sm text-zilo-muted">
-        <li class="flex gap-2.5"><span class="text-zilo-accent font-bold" aria-hidden="true">—</span> <%= t('landing.feature.passport') %></li>
-        <li class="flex gap-2.5"><span class="text-zilo-accent font-bold" aria-hidden="true">—</span> <%= t('landing.feature.card') %></li>
-        <li class="flex gap-2.5"><span class="text-zilo-accent font-bold" aria-hidden="true">—</span> <%= t('landing.feature.guardian') %></li>
-        <li class="flex gap-2.5"><span class="text-zilo-accent font-bold" aria-hidden="true">—</span> <%= t('landing.feature.gift') %></li>
+        <li class="flex gap-2.5 items-start">
+          <%- include('partials/ui-icon', { name: 'home', size: 16, className: 'text-zilo-accent mt-0.5 shrink-0' }) %>
+          <%= t('landing.feature.passport') %>
+        </li>
+        <li class="flex gap-2.5 items-start">
+          <%- include('partials/ui-icon', { name: 'wallet', size: 16, className: 'text-zilo-accent mt-0.5 shrink-0' }) %>
+          <%= t('landing.feature.card') %>
+        </li>
+        <li class="flex gap-2.5 items-start">
+          <%- include('partials/ui-icon', { name: 'shield', size: 16, className: 'text-zilo-accent mt-0.5 shrink-0' }) %>
+          <%= t('landing.feature.guardian') %>
+        </li>
+        <li class="flex gap-2.5 items-start">
+          <%- include('partials/ui-icon', { name: 'spark', size: 16, className: 'text-zilo-accent mt-0.5 shrink-0' }) %>
+          <%= t('landing.feature.gift') %>
+        </li>
       </ul>
     </div>
 
-    <a href="/registro?role=provider" class="group block rounded-xl p-5 mb-8 border border-zilo-border bg-white hover:border-zilo-accent/35 transition">
+    <a href="/registro?role=provider" class="group block rounded-2xl p-5 mb-8 border border-zilo-border bg-white hover:border-zilo-accent/40 transition">
       <div class="flex items-start gap-4">
-        <div class="w-11 h-11 rounded-xl bg-zilo-success/10 border border-zilo-success/20 flex items-center justify-center shrink-0">
-          <svg class="w-5 h-5 text-zilo-success" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        <div class="w-11 h-11 rounded-xl bg-zilo-accent-soft border border-zilo-accent/20 flex items-center justify-center shrink-0 text-zilo-accent">
+          <%- include('partials/ui-icon', { name: 'wallet', size: 20 }) %>
         </div>
         <div class="flex-1 min-w-0">
           <h2 class="zilo-display text-xl text-zilo-text mb-1"><%= t('landing.partner_title') %></h2>

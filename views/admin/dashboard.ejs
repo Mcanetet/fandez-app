@@ -462,10 +462,10 @@ function hasPerm(key) {
           <textarea name="notes" id="crmNotes" rows="2" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm" placeholder="Notas internas"></textarea>
         </div>
         <div class="flex flex-wrap gap-4 text-sm">
-          <label class="inline-flex items-center gap-2"><input type="checkbox" name="trainingDone" id="crmTraining" value="true" class="accent-[#0D9488]"> <%= t('admin.crm.training_done') %></label>
-          <label class="inline-flex items-center gap-2"><input type="checkbox" name="docsReceived" id="crmDocs" value="true" class="accent-[#0D9488]"> <%= t('admin.crm.docs_received') %></label>
-          <label class="inline-flex items-center gap-2"><input type="checkbox" name="contractSent" id="crmContractSent" value="true" class="accent-[#0D9488]"> <%= t('admin.crm.contract_sent') %></label>
-          <label class="inline-flex items-center gap-2"><input type="checkbox" name="contractSigned" id="crmContractSigned" value="true" class="accent-[#0D9488]"> <%= t('admin.crm.contract_signed') %></label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" name="trainingDone" id="crmTraining" value="true" class="accent-[#C45C14]"> <%= t('admin.crm.training_done') %></label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" name="docsReceived" id="crmDocs" value="true" class="accent-[#C45C14]"> <%= t('admin.crm.docs_received') %></label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" name="contractSent" id="crmContractSent" value="true" class="accent-[#C45C14]"> <%= t('admin.crm.contract_sent') %></label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" name="contractSigned" id="crmContractSigned" value="true" class="accent-[#C45C14]"> <%= t('admin.crm.contract_signed') %></label>
         </div>
         <div class="flex gap-2">
           <button type="submit" class="zilo-btn-primary !py-2.5 !px-4 !w-auto text-sm"><%= t('admin.crm.save') %></button>
@@ -794,7 +794,7 @@ function hasPerm(key) {
           </div>
           <div>
             <label class="text-[10px] text-gray-500 uppercase block mb-1">Color</label>
-            <input type="text" name="color" id="promoColor" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm" value="#0D9488" placeholder="#0D9488">
+            <input type="text" name="color" id="promoColor" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm" value="#C45C14" placeholder="#C45C14">
           </div>
         </div>
         <div>
@@ -802,9 +802,9 @@ function hasPerm(key) {
           <input type="text" name="desc" id="promoDesc" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm" placeholder="Texto corto para el inicio del cliente">
         </div>
         <div class="flex flex-wrap gap-4 text-sm">
-          <label class="inline-flex items-center gap-2"><input type="checkbox" name="showBanner" id="promoShowBanner" class="accent-[#0D9488]" checked> Mostrar banner</label>
-          <label class="inline-flex items-center gap-2"><input type="checkbox" name="checkoutEnabled" id="promoCheckout" class="accent-[#0D9488]" checked> Usar en checkout</label>
-          <label class="inline-flex items-center gap-2"><input type="checkbox" name="enabled" id="promoEnabled" class="accent-[#0D9488]" checked> Activa</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" name="showBanner" id="promoShowBanner" class="accent-[#C45C14]" checked> Mostrar banner</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" name="checkoutEnabled" id="promoCheckout" class="accent-[#C45C14]" checked> Usar en checkout</label>
+          <label class="inline-flex items-center gap-2"><input type="checkbox" name="enabled" id="promoEnabled" class="accent-[#C45C14]" checked> Activa</label>
         </div>
         <div class="flex gap-2">
           <button type="submit" class="zilo-btn-primary !py-2.5 !px-4 !w-auto text-sm">Guardar promoción</button>
@@ -835,7 +835,7 @@ function hasPerm(key) {
                   data-title="<%= p.title %>"
                   data-desc="<%= p.desc || '' %>"
                   data-code="<%= p.code || '' %>"
-                  data-color="<%= p.color || '#0D9488' %>"
+                  data-color="<%= p.color || '#C45C14' %>"
                   data-discount="<%= p.discountPercent == null ? '' : p.discountPercent %>"
                   data-banner="<%= p.showBanner !== false ? '1' : '0' %>"
                   data-checkout="<%= (p.checkoutEnabled || p.discountPercent) ? '1' : '0' %>"
