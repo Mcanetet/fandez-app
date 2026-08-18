@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="<%= typeof locale !== 'undefined' ? locale : 'es' %>" class="h-full">
+<html lang="<%= typeof locale !== 'undefined' ? locale : 'es' %>" class="h-full" style="color-scheme:light only;background:#FFFFFF">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#C45C14">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FFFFFF">
   <meta name="application-name" content="Fundez">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -29,14 +33,14 @@
         extend: {
           colors: {
             zilo: {
-              bg: '#F4F2EE',
+              bg: '#FFFFFF',
               surface: '#FFFFFF',
               card: '#FFFFFF',
-              elevated: '#EBE6DF',
+              elevated: '#F4F2EE',
               border: '#E6E0D8',
-              accent: '#C45C14',
-              'accent-soft': '#F3E6D8',
-              'accent-strong': '#9A3F0A',
+              accent: '#E07020',
+              'accent-soft': '#FBE8D8',
+              'accent-strong': '#C45C14',
               text: '#1A1814',
               muted: '#6B635A',
               success: '#2F6B4F',
@@ -91,7 +95,7 @@
   <style>
     #fundezSplash{
       position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
-      background:#F4F2EE;transition:opacity .38s ease,visibility .38s ease;
+      background:#FFFFFF;transition:opacity .38s ease,visibility .38s ease;
     }
     #fundezSplash.fundez-splash--out{opacity:0;visibility:hidden;pointer-events:none}
     #fundezSplash .fundez-splash__mark{

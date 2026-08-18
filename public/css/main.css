@@ -1,14 +1,15 @@
-/* Fundez — Identidad v2: carbón + ámbar de herramienta (Manual de marca) */
-/* Aland (asistente) = teal aparte; CTA y marca = ámbar #C45C14 */
+/* Fundez — Identidad clara: fondo blanco + naranja (nunca modo oscuro) */
+/* Aland (asistente) = teal aparte; CTA = naranja #E07020 */
 /* Legacy: brand/v1-azul/ · brand/v2-ambar/ */
 :root {
-  --zilo-bg: #F4F2EE;
+  color-scheme: light only;
+  --zilo-bg: #FFFFFF;
   --zilo-surface: #FFFFFF;
   --zilo-card: #FFFFFF;
-  --zilo-elevated: #EBE6DF;
-  --zilo-accent: #C45C14;
-  --zilo-accent-soft: #F3E6D8;
-  --zilo-accent-strong: #9A3F0A;
+  --zilo-elevated: #F4F2EE;
+  --zilo-accent: #E07020;
+  --zilo-accent-soft: #FBE8D8;
+  --zilo-accent-strong: #C45C14;
   --zilo-text: #1A1814;
   --zilo-muted: #6B635A;
   --zilo-border: #E6E0D8;
@@ -21,6 +22,18 @@
   --zilo-radius-card: 1rem;
   --zilo-shadow: 0 1px 2px rgba(26, 24, 20, 0.05);
   --zilo-shadow-md: 0 1px 2px rgba(26, 24, 20, 0.04), 0 6px 16px rgba(26, 24, 20, 0.06);
+}
+
+html {
+  color-scheme: light only;
+  background-color: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  html, body, :root {
+    color-scheme: light only;
+    background-color: #FFFFFF;
+  }
 }
 
 /* Aland — asistente (teal, no violeta “IA”) */
@@ -42,10 +55,9 @@
 }
 
 .zilo-body {
-  background-color: var(--zilo-bg);
-  background-image:
-    radial-gradient(ellipse 90% 55% at 100% -10%, rgba(196, 92, 20, 0.12), transparent 55%),
-    linear-gradient(180deg, #F7F4EF 0%, var(--zilo-bg) 32%, var(--zilo-bg) 100%);
+  color-scheme: light only;
+  background-color: #FFFFFF;
+  background-image: none;
 }
 
 .fundez-wordmark {
@@ -141,14 +153,14 @@
   font-weight: 600;
   font-size: 0.9375rem;
   color: #FFFFFF;
-  background: var(--zilo-accent);
-  border: 1px solid var(--zilo-accent-strong);
+  background: #E07020;
+  border: 1px solid #E07020;
   box-shadow: none;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .zilo-btn-primary:hover:not(:disabled) {
-  background: var(--zilo-accent-strong);
-  border-color: var(--zilo-accent-strong);
+  background: #C45C14;
+  border-color: #C45C14;
 }
 .zilo-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
 
@@ -2323,14 +2335,12 @@
 }
 
 
+.fundez-landing {
+  color-scheme: light only;
+  background: #FFFFFF;
+}
 .fundez-landing-atmosphere {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse 70% 45% at 85% 0%, rgba(196, 92, 20, 0.16), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 0% 100%, rgba(26, 24, 20, 0.05), transparent 55%);
+  display: none;
 }
 
 /* PWA — banner instalar app (móvil) */

@@ -2,7 +2,7 @@
   <% Object.values(locales || { es: { code: 'es', flag: 'ES' }, en: { code: 'en', flag: 'EN' } }).forEach(function(loc) {
     const active = locale === loc.code;
   %>
-    <a href="#" class="lang-switch-link px-2.5 py-1.5 transition <%= active ? 'bg-zilo-accent text-white' : 'text-zilo-muted hover:text-zilo-text hover:bg-zilo-bg' %>" data-lang="<%= loc.code %>" lang="<%= loc.code %>" hreflang="<%= loc.code %>" <%= active ? 'aria-current="true"' : '' %>><%= loc.flag %></a>
+    <a href="#" class="lang-switch-link px-2.5 py-1.5 transition <%= active ? 'bg-zilo-accent-soft text-zilo-accent' : 'text-zilo-muted hover:text-zilo-text hover:bg-zilo-bg' %>" data-lang="<%= loc.code %>" lang="<%= loc.code %>" hreflang="<%= loc.code %>" <%= active ? 'aria-current="true"' : '' %>><%= loc.flag %></a>
   <% }); %>
 </div>
 <script>
