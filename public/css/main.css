@@ -1,19 +1,21 @@
-/* Fundez — Identidad clara: fondo blanco + naranja (nunca modo oscuro) */
-/* Aland (asistente) = teal aparte; CTA = naranja #E07020 */
+/* Fundez — UI clara (nunca dark). Papel cálido + ámbar de herramienta. */
+/* Aland (asistente) = teal; peligro = solo errores, nunca CTA */
 /* Legacy: brand/v1-azul/ · brand/v2-ambar/ */
 :root {
   color-scheme: light only;
-  --zilo-bg: #FFFFFF;
+  --zilo-bg: #FAF8F4;
   --zilo-surface: #FFFFFF;
   --zilo-card: #FFFFFF;
-  --zilo-elevated: #F4F2EE;
-  --zilo-accent: #E07020;
-  --zilo-accent-soft: #FBE8D8;
-  --zilo-accent-strong: #C45C14;
+  --zilo-elevated: #F3EEE6;
+  --zilo-accent: #C45C14;
+  --zilo-accent-rgb: 196, 92, 20;
+  --zilo-accent-soft: #F6E6D4;
+  --zilo-accent-strong: #A84E10;
   --zilo-text: #1A1814;
   --zilo-muted: #6B635A;
   --zilo-border: #E6E0D8;
   --zilo-success: #2F6B4F;
+  --zilo-warning: #B47814;
   --zilo-danger: #B83A2E;
   --aland: #2A6A5B;
   --aland-soft: #E4F0EC;
@@ -26,13 +28,13 @@
 
 html {
   color-scheme: light only;
-  background-color: #FFFFFF;
+  background-color: var(--zilo-bg);
 }
 
 @media (prefers-color-scheme: dark) {
   html, body, :root {
     color-scheme: light only;
-    background-color: #FFFFFF;
+    background-color: var(--zilo-bg);
   }
 }
 
@@ -56,7 +58,7 @@ html {
 
 .zilo-body {
   color-scheme: light only;
-  background-color: #FFFFFF;
+  background-color: var(--zilo-bg);
   background-image: none;
 }
 
@@ -153,14 +155,13 @@ html {
   font-weight: 600;
   font-size: 0.9375rem;
   color: #FFFFFF;
-  background: #E07020;
-  border: 1px solid #E07020;
+  background: var(--zilo-accent);
+  border: 1px solid transparent;
   box-shadow: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 .zilo-btn-primary:hover:not(:disabled) {
-  background: #C45C14;
-  border-color: #C45C14;
+  background: var(--zilo-accent-strong);
 }
 .zilo-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
 
@@ -179,7 +180,7 @@ html {
 }
 .zilo-btn-ghost:hover {
   color: var(--zilo-accent);
-  border-color: rgba(196, 92, 20, 0.35);
+  border-color: rgba(var(--zilo-accent-rgb), 0.35);
   background: var(--zilo-accent-soft);
 }
 
@@ -193,11 +194,11 @@ html {
   font-size: 0.875rem;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.zilo-input::placeholder { color: #94A3B8; }
+.zilo-input::placeholder { color: #9A9288; }
 .zilo-input:focus {
   outline: none;
-  border-color: rgba(196, 92, 20, 0.55);
-  box-shadow: 0 0 0 3px rgba(196, 92, 20, 0.12);
+  border-color: rgba(var(--zilo-accent-rgb), 0.55);
+  box-shadow: 0 0 0 3px rgba(var(--zilo-accent-rgb), 0.12);
 }
 
 .password-field-input {
@@ -234,8 +235,8 @@ html {
   min-width: 0;
   min-height: 3rem;
   padding: 0.75rem 2.5rem 0.75rem 1rem;
-  border: 1.5px solid rgba(196, 92, 20, 0.3);
-  background-color: #F7FAFC;
+  border: 1.5px solid rgba(var(--zilo-accent-rgb), 0.3);
+  background-color: #FFFFFF;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23C45C14' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
@@ -391,8 +392,8 @@ html {
   min-width: 5.5rem;
   padding: 0.7rem 1rem;
   border-radius: 0.85rem;
-  border: 1px solid #9A3F0A;
-  background: #C45C14;
+  border: 1px solid transparent;
+  background: var(--zilo-accent);
   color: #FFFFFF;
   font-size: 0.875rem;
   font-weight: 700;
@@ -724,9 +725,9 @@ html {
 
 /* Especialidades — pills minimalistas */
 .zilo-icon-hero {
-  background: #F2F4F7;
+  background: var(--zilo-elevated);
   border-color: transparent;
-  color: #374151;
+  color: var(--zilo-text);
 }
 
 .zilo-specialty-pill {
@@ -751,8 +752,8 @@ html {
   height: 1.75rem;
   border-radius: 0.5rem;
   border-color: transparent;
-  background: #F2F4F7;
-  color: #6B7280;
+  background: var(--zilo-elevated);
+  color: var(--zilo-muted);
 }
 .zilo-specialty-pill:hover .zilo-icon-wrap {
   background: var(--zilo-accent-soft);
@@ -2337,10 +2338,14 @@ html {
 
 .fundez-landing {
   color-scheme: light only;
-  background: #FFFFFF;
+  background: var(--zilo-bg);
 }
 .fundez-landing-atmosphere {
-  display: none;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(ellipse 75% 42% at 100% -8%, rgba(var(--zilo-accent-rgb), 0.07), transparent 58%);
 }
 
 /* PWA — banner instalar app (móvil) */

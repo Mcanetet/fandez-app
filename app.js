@@ -117,8 +117,8 @@ app.get('/site.webmanifest', (req, res) => {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait-primary',
-    background_color: '#FFFFFF',
-    theme_color: '#FFFFFF',
+    background_color: '#FAF8F4',
+    theme_color: '#FAF8F4',
     icons: [
       { src: `/icons/fundez-v5-96.png${q}`, sizes: '96x96', type: 'image/png', purpose: 'any' },
       { src: `/icons/fundez-v5-180.png${q}`, sizes: '180x180', type: 'image/png', purpose: 'any' },
