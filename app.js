@@ -101,8 +101,6 @@ app.use((req, res, next) => {
 
 // Manifest PWA dinámico: iconos v5 + ?v= (Hostinger CDN cachea paths viejos 1 año)
 app.get('/site.webmanifest', (req, res) => {
-  const v = getAssetVersion();
-  const q = `?v=${encodeURIComponent(v)}`;
   res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
   res.setHeader('CDN-Cache-Control', 'no-store');
@@ -120,11 +118,9 @@ app.get('/site.webmanifest', (req, res) => {
     background_color: '#FAF8F4',
     theme_color: '#FAF8F4',
     icons: [
-      { src: `/icons/fundez-v5-96.png${q}`, sizes: '96x96', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v5-180.png${q}`, sizes: '180x180', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v5-192.png${q}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v5-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: `/icons/fundez-v5-512.png${q}`, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: '/icons/fundez-v5-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fundez-v5-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fundez-v5-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   });
 });
