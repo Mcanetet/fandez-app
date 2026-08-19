@@ -27,6 +27,7 @@ const langRoutes = require('./routes/lang');
 const alandRoutes = require('./routes/aland');
 const aland = require('./lib/aland');
 const unassignedRequestWatcher = require('./lib/unassignedRequestWatcher');
+const { getRequestTimeouts } = require('./lib/requestTimeouts');
 const { localizeServices } = require('./lib/i18n-admin');
 const { buildPageMeta, getSiteUrl } = require('./lib/seo');
 const seoRoutes = require('./routes/seo');
@@ -71,7 +72,7 @@ app.get('/health', async (req, res) => {
   const mode = appMode.getPublicStatus();
   const payload = {
     ok: store.isReady() && dbOk,
-    app: 'fundez',
+    app: 'fandez',
     version: version.version,
     mode: mode.mode,
     ready: store.isReady(),
@@ -88,7 +89,7 @@ app.get('/health', async (req, res) => {
 
 app.use(securityHeaders);
 app.use(rateLimitSimple(150));
-// Evita //ruta (p. ej. fundez.cl//ops-.../login) que no matchea el panel admin
+// Evita //ruta (p. ej. fandez.cl//ops-.../login) que no matchea el panel admin
 app.use((req, res, next) => {
   if (!req.url || !req.url.includes('//')) return next();
   const qIdx = req.url.indexOf('?');
@@ -107,8 +108,8 @@ app.get('/site.webmanifest', (req, res) => {
   res.setHeader('Surrogate-Control', 'no-store');
   res.json({
     id: '/',
-    name: 'Fundez — Hogares y oficinas a tiempo',
-    short_name: 'Fundez',
+    name: 'Fandez — Hogares y oficinas a tiempo',
+    short_name: 'Fandez',
     description: 'Oficinas y hogares en Santiago: técnicos verificados, seguimiento en tiempo real y Pasaporte Hogar digital.',
     lang: 'es-CL',
     start_url: '/',
@@ -118,9 +119,9 @@ app.get('/site.webmanifest', (req, res) => {
     background_color: '#FAF8F4',
     theme_color: '#FAF8F4',
     icons: [
-      { src: '/icons/fundez-v5-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fundez-v5-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fundez-v5-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: '/icons/fandez-v5-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-v5-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-v5-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   });
 });
@@ -148,11 +149,16 @@ function sendBrandAsset(res, relativePath) {
   ['/apple-touch-icon.png', 'apple-touch-icon.png'],
   ['/icon-192.png', 'icon-192.png'],
   ['/icon-512.png', 'icon-512.png'],
-  ['/icons/fundez-v5-96.png', 'icons/fundez-v5-96.png'],
-  ['/icons/fundez-v5-180.png', 'icons/fundez-v5-180.png'],
-  ['/icons/fundez-v5-192.png', 'icons/fundez-v5-192.png'],
-  ['/icons/fundez-v5-512.png', 'icons/fundez-v5-512.png'],
-  ['/icons/fundez-v5.ico', 'icons/fundez-v5.ico']
+  ['/icons/fandez-v5-96.png', 'icons/fandez-v5-96.png'],
+  ['/icons/fandez-v5-180.png', 'icons/fandez-v5-180.png'],
+  ['/icons/fandez-v5-192.png', 'icons/fandez-v5-192.png'],
+  ['/icons/fandez-v5-512.png', 'icons/fandez-v5-512.png'],
+  ['/icons/fandez-v5.ico', 'icons/fandez-v5.ico'],
+  ['/icons/fundez-v5-96.png', 'icons/fandez-v5-96.png'],
+  ['/icons/fundez-v5-180.png', 'icons/fandez-v5-180.png'],
+  ['/icons/fundez-v5-192.png', 'icons/fandez-v5-192.png'],
+  ['/icons/fundez-v5-512.png', 'icons/fandez-v5-512.png'],
+  ['/icons/fundez-v5.ico', 'icons/fandez-v5.ico']
 ].forEach(([route, file]) => {
   app.get(route, (req, res) => sendBrandAsset(res, file));
 });
@@ -169,7 +175,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
     if (/\.(js|css)$/.test(filePath)) {
       res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     }
-    if (/(favicon|apple-touch-icon|icon-\d+|icons\/fundez|logo-plunger|logo(-mark)?\.svg|site\.webmanifest|\/sw\.js)/i.test(filePath)) {
+    if (/(favicon|apple-touch-icon|icon-\d+|icons\/fandez|logo-plunger|logo(-mark)?\.svg|site\.webmanifest|\/sw\.js)/i.test(filePath)) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
       res.setHeader('CDN-Cache-Control', 'no-store');
       res.setHeader('Surrogate-Control', 'no-store');
@@ -189,7 +195,7 @@ const sessionMiddleware = session({
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
-  name: 'fundez.sid',
+  name: 'fandez.sid',
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -225,6 +231,7 @@ app.use((req, res, next) => {
   res.locals.adminBase = ADMIN_BASE;
   res.locals.adminUrl = appMode.adminUrl;
   res.locals.appModeStatus = appMode.getPublicStatus();
+  res.locals.requestTimeouts = getRequestTimeouts();
   // Evita que Safari/Chrome en móvil reutilicen HTML viejo (colores/logo antiguos)
   const accept = req.get('accept') || '';
   if (accept.includes('text/html')) {
@@ -258,7 +265,7 @@ app.get('/', (req, res) => {
 
 app.get('/quienes-somos', (req, res) => {
   res.render('quienes-somos', {
-    title: req.t('about.page_title') + ' — Fundez',
+    title: req.t('about.page_title') + ' — Fandez',
     seo: buildPageMeta('about', req)
   });
 });
@@ -407,7 +414,7 @@ async function initDatabase() {
       require('./lib/aland/journey').bind({ store, io });
       aland.startEscalationWatcher(store, io);
       unassignedRequestWatcher.start(store, io, {
-        timeoutMinutes: parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15
+        timeoutMinutes: getRequestTimeouts().unassignedNoticeMinutes
       });
       backup.startBackupScheduler(store, (event, detail) => {
         store.logSecurityEvent(event, detail, null);

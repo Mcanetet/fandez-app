@@ -9,7 +9,7 @@ function requireModule(moduleId) {
       }
       return res.status(403).render('error', {
         title: 'No disponible',
-        message: 'Esta función no está habilitada en este momento. Escribe a soporte@fundez.cl si necesitas ayuda.',
+        message: 'Esta función no está habilitada en este momento. Escribe a soporte@fandez.cl si necesitas ayuda.',
         code: 403
       });
     }

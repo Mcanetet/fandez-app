@@ -1,4 +1,4 @@
-# Informe de pruebas — Fundez
+# Informe de pruebas — Fandez
 
 | Campo | Valor |
 |--------|--------|
@@ -6,13 +6,13 @@
 | **Versión app** | 1.3.3 |
 | **Commit en producción** | `400c43c` (al momento del informe) |
 | **Resultado global** | **PASS — 46 / 46** |
-| **Entorno E2E** | `https://www.fundez.cl` |
+| **Entorno E2E** | `https://www.fandez.cl` |
 
 ---
 
 ## 1. Resumen ejecutivo
 
-Se ejecutó la suite completa de pruebas automatizadas de Fundez:
+Se ejecutó la suite completa de pruebas automatizadas de Fandez:
 
 - **Unitarias** (Jest) sobre verificación de correo  
 - **Integración** (Jest + Supertest) sobre endpoints `/verificar-email`  
@@ -79,7 +79,7 @@ Se ejecutó la suite completa de pruebas automatizadas de Fundez:
 **Comando (producción):**
 
 ```bash
-BASE_URL=https://www.fundez.cl npm run test:e2e
+BASE_URL=https://www.fandez.cl npm run test:e2e
 ```
 
 **Comando (local, app + MySQL levantados):**
@@ -93,10 +93,10 @@ npm run test:e2e   # terminal 2
 
 | Spec | Flujo | Resultado |
 |------|-------|-----------|
-| `login-cliente.spec.js` | Login `cliente@fundez.cl` / `cliente123` → `/cliente` o `/verificar-email` | PASS |
+| `login-cliente.spec.js` | Login `cliente@fandez.cl` / `cliente123` → `/cliente` o `/verificar-email` | PASS |
 | `login-cliente.spec.js` | Credenciales inválidas → permanece en `/login` con error | PASS |
 | `login-cliente.spec.js` | Campos vacíos → validación HTML `required` | PASS |
-| `login-socio.spec.js` | Login `pedro@fundez.cl` / `proveedor123` → `/proveedor` o verificación | PASS |
+| `login-socio.spec.js` | Login `pedro@fandez.cl` / `proveedor123` → `/proveedor` o verificación | PASS |
 
 **Observación E2E:** en producción, la cuenta demo cliente puede redirigir a `/verificar-email` si el correo no está marcado como verificado. La prueba acepta ambos destinos válidos post-login.
 
@@ -106,14 +106,14 @@ npm run test:e2e   # terminal 2
 
 ## 6. Salud del entorno de producción
 
-Consulta: `GET https://fundez.cl/health?smtp=1`
+Consulta: `GET https://fandez.cl/health?smtp=1`
 
 | Check | Estado |
 |-------|--------|
 | App | OK · versión 1.3.3 |
 | Base de datos | `connected` |
 | SMTP | `configured: true`, `verified: true` (`smtp.hostinger.com`) |
-| Remitente | `soporte@fundez.cl` |
+| Remitente | `soporte@fandez.cl` |
 
 ---
 
@@ -130,10 +130,10 @@ npm run test:unit
 npm run test:integration
 
 # E2E contra producción
-BASE_URL=https://www.fundez.cl npm run test:e2e
+BASE_URL=https://www.fandez.cl npm run test:e2e
 
 # E2E con UI de Playwright
-BASE_URL=https://www.fundez.cl npm run test:e2e:ui
+BASE_URL=https://www.fandez.cl npm run test:e2e:ui
 ```
 
 ### Dependencias de test (dev)
@@ -187,4 +187,4 @@ playwright.config.js
 ---
 
 *Documento generado automáticamente a partir de la ejecución de pruebas del 19/07/2026.*  
-*Proyecto: Fundez App · Frameworks: Jest, Supertest, Playwright*
+*Proyecto: Fandez App · Frameworks: Jest, Supertest, Playwright*

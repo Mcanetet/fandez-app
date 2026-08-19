@@ -1,4 +1,4 @@
-window.FundezIcons = {
+window.FandezIcons = {
   svg(icon, size = 24) {
     const icons = {
       electrico: '<path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>',
@@ -19,3 +19,5 @@ window.FundezIcons = {
     return `<span class="zilo-icon-wrap ${sizeClass} rounded-xl flex items-center justify-center shrink-0">${this.svg(icon, iconSize)}</span>`;
   }
 };
+
+window.FundezIcons = window.FandezIcons;

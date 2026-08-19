@@ -26,7 +26,7 @@
       <p class="zilo-label text-aland-strong mb-1">Mensaje de Aland IA</p>
       <h1 class="text-xl font-semibold mb-3">Los técnicos cercanos están ocupados</h1>
       <p class="text-sm text-zilo-muted leading-relaxed mb-5">
-        Han pasado más de 15 minutos y todavía nadie ha tomado tu solicitud de
+        Han pasado más de <%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15 %> minutos y todavía nadie ha tomado tu solicitud de
         <strong><%= request.serviceName %></strong>. ¿Quieres que sigamos buscando?
       </p>
 

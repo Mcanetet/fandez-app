@@ -14,7 +14,7 @@ async function main() {
     connectTimeout: 8000
   };
 
-  console.log('=== Prueba de conexión MySQL (Fundez) ===');
+  console.log('=== Prueba de conexión MySQL (Fandez) ===');
   console.log('Usuario :', base.user || '(no definido)');
   console.log('Base    :', base.database || '(no definido)');
   console.log('Puerto  :', base.port);

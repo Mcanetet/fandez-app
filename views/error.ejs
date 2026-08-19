@@ -1,4 +1,4 @@
-<%- include('partials/head', { bodyClass: 'fundez-error-body' }) %>
+<%- include('partials/head', { bodyClass: 'fandez-error-body' }) %>
 <%
   var tt = typeof t !== 'undefined' ? t : function(k) { return k; };
   var errCode = typeof code !== 'undefined' ? code : 404;
@@ -25,75 +25,75 @@
   var hook = tt(prefix + '.hook');
 %>
 
-<div class="fundez-error-page fundez-error-page--<%= variant %>" data-variant="<%= variant %>" data-code="<%= errCode %>">
-  <div class="fundez-error-bg" aria-hidden="true">
-    <div class="fundez-error-orb fundez-error-orb--1"></div>
-    <div class="fundez-error-orb fundez-error-orb--2"></div>
-    <div class="fundez-error-grid"></div>
+<div class="fandez-error-page fandez-error-page--<%= variant %>" data-variant="<%= variant %>" data-code="<%= errCode %>">
+  <div class="fandez-error-bg" aria-hidden="true">
+    <div class="fandez-error-orb fandez-error-orb--1"></div>
+    <div class="fandez-error-orb fandez-error-orb--2"></div>
+    <div class="fandez-error-grid"></div>
   </div>
 
-  <header class="fundez-error-header">
-    <a href="/" class="fundez-error-brand">
+  <header class="fandez-error-header">
+    <a href="/" class="fandez-error-brand">
       <%- include('partials/logo', { className: 'w-9 h-9', logoId: 'error' }) %>
-      <span class="fundez-wordmark text-lg"><%= tt('app.name') %></span>
+      <span class="fandez-wordmark text-lg"><%= tt('app.name') %></span>
     </a>
     <% if (typeof locales !== 'undefined') { %>
       <%- include('partials/lang-switcher') %>
     <% } %>
   </header>
 
-  <main class="fundez-error-main zilo-page-enter">
-    <div class="fundez-error-code-wrap">
-      <span class="fundez-error-code fundez-error-glitch" data-text="<%= errCode %>"><%= errCode %></span>
-      <span class="fundez-error-badge"><%= badge %></span>
+  <main class="fandez-error-main zilo-page-enter">
+    <div class="fandez-error-code-wrap">
+      <span class="fandez-error-code fandez-error-glitch" data-text="<%= errCode %>"><%= errCode %></span>
+      <span class="fandez-error-badge"><%= badge %></span>
     </div>
 
     <% if (showCarousel) { %>
-      <p class="fundez-error-headline"><%= headline %></p>
-      <div class="fundez-error-slogan-stage" id="errorSloganStage" aria-live="polite">
-        <p class="fundez-error-slogan is-active" id="errorSloganText"><%= slogans[0] || (typeof message !== 'undefined' ? message : '') %></p>
+      <p class="fandez-error-headline"><%= headline %></p>
+      <div class="fandez-error-slogan-stage" id="errorSloganStage" aria-live="polite">
+        <p class="fandez-error-slogan is-active" id="errorSloganText"><%= slogans[0] || (typeof message !== 'undefined' ? message : '') %></p>
       </div>
-      <p class="fundez-error-punchline"><%- punchline %></p>
-      <p class="fundez-error-hook"><%= hook %></p>
+      <p class="fandez-error-punchline"><%- punchline %></p>
+      <p class="fandez-error-hook"><%= hook %></p>
 
       <% if (tips.length) { %>
-      <div class="fundez-error-tips" id="errorTips" aria-label="Fundez">
+      <div class="fandez-error-tips" id="errorTips" aria-label="Fandez">
         <% tips.forEach(function(tip, i) { %>
-          <div class="fundez-error-tip <%= i === 0 ? 'is-active' : '' %>" data-tip-index="<%= i %>">
-            <span class="fundez-error-tip-dot"></span>
+          <div class="fandez-error-tip <%= i === 0 ? 'is-active' : '' %>" data-tip-index="<%= i %>">
+            <span class="fandez-error-tip-dot"></span>
             <span><%= tip %></span>
           </div>
         <% }); %>
       </div>
       <% } %>
     <% } else { %>
-      <h1 class="fundez-error-title"><%= typeof title !== 'undefined' ? title : headline %></h1>
-      <p class="fundez-error-message"><%= typeof message !== 'undefined' ? message : '' %></p>
-      <p class="fundez-error-punchline fundez-error-punchline--compact"><%- punchline %></p>
+      <h1 class="fandez-error-title"><%= typeof title !== 'undefined' ? title : headline %></h1>
+      <p class="fandez-error-message"><%= typeof message !== 'undefined' ? message : '' %></p>
+      <p class="fandez-error-punchline fandez-error-punchline--compact"><%- punchline %></p>
     <% } %>
 
-    <div class="fundez-error-actions">
+    <div class="fandez-error-actions">
       <% if (isSystem) { %>
-        <button type="button" class="zilo-btn-primary fundez-error-btn" onclick="location.reload()"><%= tt('error.system.cta_retry') %></button>
-        <a href="/" class="zilo-btn-ghost fundez-error-btn"><%= tt('error.back_home') %></a>
+        <button type="button" class="zilo-btn-primary fandez-error-btn" onclick="location.reload()"><%= tt('error.system.cta_retry') %></button>
+        <a href="/" class="zilo-btn-ghost fandez-error-btn"><%= tt('error.back_home') %></a>
       <% } else { %>
-        <a href="/" class="zilo-btn-primary fundez-error-btn"><%= tt('error.back_home') %></a>
+        <a href="/" class="zilo-btn-primary fandez-error-btn"><%= tt('error.back_home') %></a>
       <% } %>
       <% if (isLost || isSystem) { %>
-        <a href="<%= waUrl %>" target="_blank" rel="noopener" class="zilo-btn-ghost fundez-error-btn fundez-error-btn--wa">
+        <a href="<%= waUrl %>" target="_blank" rel="noopener" class="zilo-btn-ghost fandez-error-btn fandez-error-btn--wa">
           <%= tt(isLost ? 'error.lost.cta_whatsapp' : 'error.system.cta_whatsapp') %>
         </a>
       <% } %>
       <% if (isLost) { %>
-        <a href="/registro" class="fundez-error-link-cta"><%= tt('error.lost.cta_signup') %> →</a>
+        <a href="/registro" class="fandez-error-link-cta"><%= tt('error.lost.cta_signup') %> →</a>
       <% } %>
       <% if (isConnecting) { %>
-        <p class="fundez-error-autoretry" id="errorAutoRetry" aria-live="polite"><%= tt('error.system.autoretry') %></p>
+        <p class="fandez-error-autoretry" id="errorAutoRetry" aria-live="polite"><%= tt('error.system.autoretry') %></p>
       <% } %>
     </div>
 
-    <p class="fundez-error-domain">
-      <a href="https://fundez.cl" class="fundez-error-domain-link">fundez.cl</a>
+    <p class="fandez-error-domain">
+      <a href="https://fandez.cl" class="fandez-error-domain-link">fandez.cl</a>
       <span>· Santiago, Chile</span>
     </p>
   </main>
@@ -101,7 +101,7 @@
 
 <% if (showCarousel) { %>
 <script>
-  window.FundezErrorPage = {
+  window.FandezErrorPage = {
     slogans: <%- JSON.stringify(slogans) %>,
     interval: <%= isSystem ? 3200 : 2800 %>,
     autoReloadMs: <%= isConnecting ? 8000 : 0 %>

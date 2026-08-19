@@ -62,7 +62,7 @@
 
     <section class="p-5 rounded-2xl zilo-card-premium space-y-3">
       <p class="zilo-label mb-1">También soy cliente</p>
-      <p class="text-xs text-zilo-muted">Puedes pedir servicios Fundez con la misma cuenta, además de ofrecerlos como socio.</p>
+      <p class="text-xs text-zilo-muted">Puedes pedir servicios Fandez con la misma cuenta, además de ofrecerlos como socio.</p>
       <% if (provider.clientEnabled) { %>
         <button type="button" id="btnSwitchClient" class="zilo-btn-primary !py-3">Ir al portal cliente</button>
       <% } else { %>
@@ -232,8 +232,8 @@
     if (data.success) {
       document.getElementById('nameDisplay').textContent = data.user.name;
       document.getElementById('avatarDisplay').textContent = data.user.avatar;
-      FundezNotify.show('Datos actualizados', 'success');
-    } else FundezNotify.show('Error al guardar', 'error');
+      FandezNotify.show('Datos actualizados', 'success');
+    } else FandezNotify.show('Error al guardar', 'error');
   });
 
   async function switchToClientMode() {
@@ -243,7 +243,7 @@
       window.location.href = data.redirect;
       return;
     }
-    FundezNotify.show(data.error || 'No se pudo cambiar al modo cliente', 'error');
+    FandezNotify.show(data.error || 'No se pudo cambiar al modo cliente', 'error');
   }
   document.getElementById('btnSwitchClient')?.addEventListener('click', switchToClientMode);
   document.getElementById('btnEnableClient')?.addEventListener('click', switchToClientMode);

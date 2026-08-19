@@ -10,4 +10,4 @@ const dirs = [
 ];
 
 dirs.forEach((dir) => fs.mkdirSync(dir, { recursive: true }));
-console.log('Fundez build OK — carpetas de datos listas');
+console.log('Fandez build OK — carpetas de datos listas');

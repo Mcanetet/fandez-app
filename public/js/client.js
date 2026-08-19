@@ -3,7 +3,7 @@
   if (!page) return;
 
   function t(key, vars) {
-    return typeof FundezI18n !== 'undefined' ? FundezI18n.t(key, vars) : key;
+    return typeof FandezI18n !== 'undefined' ? FandezI18n.t(key, vars) : key;
   }
 
   const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
@@ -37,8 +37,8 @@
   const SANTIAGO = { lat: -33.4489, lng: -70.6693 };
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (typeof FundezMap !== 'undefined') {
-      FundezMap.init(document.getElementById('addressMap'), {
+    if (typeof FandezMap !== 'undefined') {
+      FandezMap.init(document.getElementById('addressMap'), {
         lat: SANTIAGO.lat, lng: SANTIAGO.lng, label: 'Santiago, Chile', zoom: 12
       });
     }
@@ -232,14 +232,14 @@
         return;
       }
       if (file.size > 12 * 1024 * 1024) {
-        FundezNotify.show(t('client.js.photo_too_large'), 'warning');
+        FandezNotify.show(t('client.js.photo_too_large'), 'warning');
         input.value = '';
         onReady?.(null);
         return;
       }
       const dataUrl = await compressImageFile(file);
       if (!dataUrl) {
-        FundezNotify.show(t('client.js.need_photo'), 'warning');
+        FandezNotify.show(t('client.js.need_photo'), 'warning');
         onReady?.(null);
         return;
       }
@@ -294,7 +294,7 @@
     const file = input?.files?.[0];
     if (!file) return null;
     if (file.size > 12 * 1024 * 1024) {
-      FundezNotify.show(t('client.js.photo_too_large'), 'warning');
+      FandezNotify.show(t('client.js.photo_too_large'), 'warning');
       return null;
     }
     return compressImageFile(file);
@@ -340,7 +340,7 @@
       if (data.success) {
         latInput.value = data.coords.lat;
         lngInput.value = data.coords.lng;
-        FundezMap.update('addressMap', data.coords.lat, data.coords.lng, data.displayName || address);
+        FandezMap.update('addressMap', data.coords.lat, data.coords.lng, data.displayName || address);
         if (data.coverage?.covered) {
           mapStatus.textContent = data.displayName || t('client.js.location_found');
         } else {
@@ -356,14 +356,19 @@
     }
   }
 
-  const SEARCH_TIMEOUT_MS = 15 * 60 * 1000;
+  const searchExperienceEl = document.getElementById('searchExperience');
+  const SEARCH_TIMEOUT_MS = Math.max(
+    60 * 1000,
+    parseInt(searchExperienceEl?.dataset.timeoutMs || '', 10)
+      || ((window.FANDEZ_TIMEOUTS?.unassignedNoticeMinutes || 15) * 60 * 1000)
+  );
   const SEARCH_POLL_MS = 2000;
   const SEARCH_RING_CIRCUMFERENCE = 2 * Math.PI * 52;
   const SEARCH_TIMEOUT_MINUTES = Math.round(SEARCH_TIMEOUT_MS / 60000);
   const SEARCH_PHASES = [
-    { untilMs: 3 * 60 * 1000, step: 'step1', phase: 'near', title: 'client.js.search_title_near', sub: 'client.js.search_sub_near', label: 'client.js.search_phase_near' },
-    { untilMs: 7 * 60 * 1000, step: 'step2', phase: 'expand', title: 'client.js.search_title_expand', sub: 'client.js.search_sub_expand', label: 'client.js.search_phase_expand' },
-    { untilMs: 12 * 60 * 1000, step: 'step3', phase: 'notify', title: 'client.js.search_title_notify', sub: 'client.js.search_sub_notify', label: 'client.js.search_phase_notify' },
+    { untilMs: Math.round(SEARCH_TIMEOUT_MS * 0.2), step: 'step1', phase: 'near', title: 'client.js.search_title_near', sub: 'client.js.search_sub_near', label: 'client.js.search_phase_near' },
+    { untilMs: Math.round(SEARCH_TIMEOUT_MS * 0.47), step: 'step2', phase: 'expand', title: 'client.js.search_title_expand', sub: 'client.js.search_sub_expand', label: 'client.js.search_phase_expand' },
+    { untilMs: Math.round(SEARCH_TIMEOUT_MS * 0.8), step: 'step3', phase: 'notify', title: 'client.js.search_title_notify', sub: 'client.js.search_sub_notify', label: 'client.js.search_phase_notify' },
     { untilMs: SEARCH_TIMEOUT_MS, step: 'step3', phase: 'final', title: 'client.js.search_title_final', sub: 'client.js.search_sub_final', label: 'client.js.search_phase_final' },
     { untilMs: Infinity, step: 'step4', phase: 'busy', title: 'client.js.search_title_busy', sub: 'client.js.search_sub_busy', label: 'client.js.search_phase_busy' }
   ];
@@ -399,7 +404,7 @@
       }
       // Si el servidor aún no abre la decisión, no mostrar UI local engañosa.
       searchTimeoutTriggered = false;
-      if (data.error) FundezNotify.show(data.error, 'info');
+      if (data.error) FandezNotify.show(data.error, 'info');
     } catch (_) {
       searchTimeoutTriggered = false;
     }
@@ -452,7 +457,10 @@
     if (barEl) barEl.style.width = `${Math.round(ratio * 100)}%`;
     if (labelEl) {
       const mins = Math.min(SEARCH_TIMEOUT_MINUTES, Math.floor(capped / 60000));
-      labelEl.textContent = t('client.js.search_progress', { elapsed: String(mins) });
+      labelEl.textContent = t('client.js.search_progress', {
+        elapsed: String(mins),
+        total: String(SEARCH_TIMEOUT_MINUTES)
+      });
     }
     if (ringEl) {
       ringEl.style.strokeDasharray = String(SEARCH_RING_CIRCUMFERENCE);
@@ -483,15 +491,15 @@
       viewersEl.classList.remove('hidden');
     }
     updateSearchProgress(elapsedMs);
-    if (!isFirstPaint && window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (!isFirstPaint && window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'update',
         title: t(phase.title),
         body: t(phase.sub),
-        tag: 'fundez-search-' + phase.phase
+        tag: 'fandez-search-' + phase.phase
       });
-    } else if (!isFirstPaint && window.FundezNotify) {
-      FundezNotify.show(t(phase.label), 'info');
+    } else if (!isFirstPaint && window.FandezNotify) {
+      FandezNotify.show(t(phase.label), 'info');
     }
     return phase;
   }
@@ -500,7 +508,7 @@
     const tipEl = document.getElementById('searchTipText');
     if (!tipEl || !SEARCH_TIPS.length) return;
     searchTipIndex = (searchTipIndex + 1) % SEARCH_TIPS.length;
-    tipEl.textContent = t(SEARCH_TIPS[searchTipIndex]);
+    tipEl.textContent = t(SEARCH_TIPS[searchTipIndex], { minutes: String(SEARCH_TIMEOUT_MINUTES) });
   }
 
   function stopSearchExperience() {
@@ -528,7 +536,7 @@
     if (!searchStartedAt) searchStartedAt = Date.now();
     searchTipIndex = 0;
     const tipEl = document.getElementById('searchTipText');
-    if (tipEl) tipEl.textContent = t(SEARCH_TIPS[0]);
+    if (tipEl) tipEl.textContent = t(SEARCH_TIPS[0], { minutes: String(SEARCH_TIMEOUT_MINUTES) });
     applySearchPhase(Date.now() - searchStartedAt);
     searchTimerInterval = setInterval(() => {
       const elapsed = Date.now() - searchStartedAt;
@@ -552,12 +560,12 @@
     if (nameEl) nameEl.textContent = request.serviceName || '';
     panel.dataset.requestId = request.id;
     panel.classList.remove('hidden');
-    if (window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'alert',
         title: t('client.js.no_provider_title'),
-        body: t('client.js.no_provider_body'),
-        tag: 'fundez-no-provider-' + request.id,
+        body: t('client.js.no_provider_body', { minutes: String(SEARCH_TIMEOUT_MINUTES) }),
+        tag: 'fandez-no-provider-' + request.id,
         requireInteraction: true
       });
     }
@@ -662,7 +670,7 @@
       });
     } catch (err) {
       closeCancelModal();
-      FundezNotify.show(err.message || t('client.service.cancel_search_error'), 'error');
+      FandezNotify.show(err.message || t('client.service.cancel_search_error'), 'error');
     }
   }
 
@@ -672,11 +680,11 @@
     const reasonCode = select?.value;
     const reasonText = document.getElementById('cancelReasonText')?.value.trim() || '';
     if (!reasonCode) {
-      FundezNotify.show(t('client.service.cancel_reason_label'), 'warning');
+      FandezNotify.show(t('client.service.cancel_reason_label'), 'warning');
       return;
     }
     if (reasonCode === 'other' && !reasonText) {
-      FundezNotify.show(t('client.service.cancel_reason_other'), 'warning');
+      FandezNotify.show(t('client.service.cancel_reason_other'), 'warning');
       return;
     }
     const btn = document.getElementById('cancelModalConfirm');
@@ -710,22 +718,22 @@
         : (data.refundAmount > 0
           ? `Devolución completa ${fmt(data.refundAmount)}.`
           : t('client.service.cancel_search_ok_body'));
-      if (window.FundezAlerts) {
-        FundezAlerts.notify({
+      if (window.FandezAlerts) {
+        FandezAlerts.notify({
           type: 'success',
           title: t('client.service.cancel_search_ok_title'),
           body: okBody,
           toast: 'success'
         });
       } else {
-        FundezNotify.show(okBody, 'success');
+        FandezNotify.show(okBody, 'success');
       }
       setTimeout(() => { window.location.href = '/cliente'; }, 1000);
     } catch (err) {
       if (btn) btn.disabled = false;
       if (btnSearch) btnSearch.disabled = false;
       if (btnScheduled) btnScheduled.disabled = false;
-      FundezNotify.show(err.message || t('client.service.cancel_search_error'), 'error');
+      FandezNotify.show(err.message || t('client.service.cancel_search_error'), 'error');
     }
   }
 
@@ -773,28 +781,28 @@
         const body = data.already
           ? (data.message || t('client.js.refund_requested_body'))
           : t('client.js.refund_requested_body');
-        if (window.FundezAlerts) FundezAlerts.notify({
+        if (window.FandezAlerts) FandezAlerts.notify({
           type: 'success',
           title: t('client.js.refund_requested_title'),
           body,
           toast: 'success'
         });
-        else FundezNotify.show(body, 'success');
+        else FandezNotify.show(body, 'success');
         setTimeout(() => { window.location.href = '/cliente'; }, 1200);
       } else {
-        if (window.FundezAlerts) FundezAlerts.notify({
+        if (window.FandezAlerts) FandezAlerts.notify({
           type: 'update',
           title: t('client.js.keep_searching_title'),
           body: t('client.js.keep_searching_body'),
           toast: 'info'
         });
-        else FundezNotify.show(t('client.js.keep_searching_body'), 'info');
+        else FandezNotify.show(t('client.js.keep_searching_body'), 'info');
         loaderOverlay?.classList.remove('hidden');
         startTracking(requestId);
       }
     } catch (err) {
       buttons.forEach((b) => { b.disabled = false; });
-      FundezNotify.show(err.message || t('client.js.no_provider_error'), 'error');
+      FandezNotify.show(err.message || t('client.js.no_provider_error'), 'error');
     }
   }
 
@@ -828,14 +836,19 @@
     const stickyCall = document.getElementById('stickyTrackCall');
     if (!title || !sub) return;
     const tech = request?.technicianName || 'Tu técnico';
+    const reassigning = Boolean(request?.awaitingProviderReassign && !request?.technicianId);
     const map = {
-      paid: ['Pago confirmado', 'Estamos conectándote con un equipo Fundez.', 'Buscando equipo'],
+      paid: ['Pago confirmado', 'Estamos conectándote con un equipo Fandez.', 'Buscando equipo'],
       assigned: [
-        request?.techStatus === 'asignado' ? 'Esperando aceptación del técnico' : 'Equipo asignado',
-        request?.etaLabel
-          ? `${tech} · llegada estimada ${request.etaLabel}`
-          : 'Te avisamos cuando acepte y salga hacia ti.',
-        request?.techStatus === 'asignado' ? 'Esperando técnico' : 'Equipo listo'
+        reassigning
+          ? 'El socio está asignando otro técnico'
+          : (request?.techStatus === 'asignado' ? 'Esperando aceptación del técnico' : 'Equipo asignado'),
+        reassigning
+          ? 'El técnico anterior no aceptó a tiempo. El socio debe elegir a otra persona.'
+          : (request?.etaLabel
+            ? `${tech} · llegada estimada ${request.etaLabel}`
+            : 'Te avisamos cuando acepte y salga hacia ti.'),
+        reassigning ? 'Reasignando' : (request?.techStatus === 'asignado' ? 'Esperando técnico' : 'Equipo listo')
       ],
       enroute: [`${tech} va en camino`, request?.etaLabel ? `ETA ${request.etaLabel}` : 'Sigue su ubicación en el mapa.', 'En camino'],
       arrived: [`${tech} llegó`, 'Puede iniciar el diagnóstico en tu domicilio.', 'En tu domicilio'],
@@ -847,6 +860,10 @@
     sub.textContent = pair[1];
     if (stickyStatus) stickyStatus.textContent = pair[0];
     if (stickyLabel) stickyLabel.textContent = pair[2] || 'Tu visita';
+    const tripLabel = document.getElementById('tripProviderLabel');
+    if (tripLabel && request?.awaitingProviderReassign && !request?.technicianId) {
+      tripLabel.textContent = 'El socio está asignando otro técnico';
+    }
 
     const phone = request?.technicianPhone
       || request?.providerPhone
@@ -964,7 +981,7 @@
   }
 
   function ensureTrackingMap(request, provider) {
-    if (!request?.coords || typeof FundezMap === 'undefined') return;
+    if (!request?.coords || typeof FandezMap === 'undefined') return;
     const shell = document.getElementById('liveTrackShell');
     const tMap = document.getElementById('trackingMap');
     if (!shell || !tMap) return;
@@ -975,8 +992,8 @@
     const prov = provider?.location;
     const showLivePin = isLiveTrackingActive(request) && prov?.lat != null;
 
-    if (!FundezMap.maps.trackingMap) {
-      FundezMap.initTracking(tMap, {
+    if (!FandezMap.maps.trackingMap) {
+      FandezMap.initTracking(tMap, {
         destLat: request.coords.lat,
         destLng: request.coords.lng,
         destLabel: request.address,
@@ -984,9 +1001,9 @@
         providerLng: showLivePin ? prov.lng : null
       });
     } else if (showLivePin) {
-      FundezMap.updateProviderLocation('trackingMap', prov.lat, prov.lng, request.coords.lat, request.coords.lng);
+      FandezMap.updateProviderLocation('trackingMap', prov.lat, prov.lng, request.coords.lat, request.coords.lng);
     }
-    setTimeout(() => FundezMap.maps.trackingMap?.invalidateSize?.(), 200);
+    setTimeout(() => FandezMap.maps.trackingMap?.invalidateSize?.(), 200);
   }
 
   function syncTripFromRequest(request) {
@@ -1019,20 +1036,20 @@
       if (step === 'enroute') {
         const name = request.technicianName || document.getElementById('providerName')?.textContent || '';
         const body = t('client.js.enroute_alert_body', { name: name || 'Tu técnico' });
-        if (window.FundezAlerts) {
-          FundezAlerts.notify({
+        if (window.FandezAlerts) {
+          FandezAlerts.notify({
             type: 'alert',
             title: t('client.js.enroute_alert_title'),
             body,
-            tag: 'fundez-enroute-' + (request.id || '')
+            tag: 'fandez-enroute-' + (request.id || '')
           });
         } else {
-          FundezNotify.show(body, 'info');
+          FandezNotify.show(body, 'info');
         }
         document.getElementById('liveTrackShell')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
-        if (window.FundezAlerts) FundezAlerts.notify({ type: 'update', title: t('client.js.arrived_alert_title'), body: t('client.js.arrived'), tag: 'fundez-arrived' });
-        else FundezNotify.show(t('client.js.arrived'), 'info');
+        if (window.FandezAlerts) FandezAlerts.notify({ type: 'update', title: t('client.js.arrived_alert_title'), body: t('client.js.arrived'), tag: 'fandez-arrived' });
+        else FandezNotify.show(t('client.js.arrived'), 'info');
       }
     }
   }
@@ -1122,12 +1139,12 @@
     document.getElementById('budgetBannerText').textContent =
       t('client.js.budget_sent', { amount: fmtCLP(sr.budgetAmount), desc: sr.budgetDescription || '' });
     banner.classList.remove('hidden');
-    if (wasHidden && window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (wasHidden && window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'payment',
         title: t('client.js.budget_alert_title'),
         body: t('client.js.budget_sent', { amount: fmtCLP(sr.budgetAmount), desc: sr.budgetDescription || '' }),
-        tag: 'fundez-budget-' + (request.id || currentRequestId)
+        tag: 'fandez-budget-' + (request.id || currentRequestId)
       });
     }
   }
@@ -1152,12 +1169,12 @@
       photo.classList.add('hidden');
     }
     banner.classList.remove('hidden');
-    if (wasHidden && window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (wasHidden && window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'alert',
         title: t('client.js.activity_change_alert_title'),
         body: `${label}: ${change.fromActivityName || '—'} → ${change.toActivityName || '—'}`,
-        tag: 'fundez-activity-' + (request.id || currentRequestId),
+        tag: 'fandez-activity-' + (request.id || currentRequestId),
         requireInteraction: true
       });
     }
@@ -1176,12 +1193,12 @@
       `${charge.description || 'Ajuste de servicio'} · ${fmtCLP(charge.amountDue || 0)}`;
     document.getElementById('additionalPaymentLink').href = `/pagos/ajuste?ref=${request.id}`;
     banner.classList.remove('hidden');
-    if (wasHidden && window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (wasHidden && window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'payment',
         title: t('client.js.additional_payment_alert_title'),
         body: `${charge.description || 'Ajuste de servicio'} · ${fmtCLP(charge.amountDue || 0)}`,
-        tag: 'fundez-addpay-' + (request.id || currentRequestId),
+        tag: 'fandez-addpay-' + (request.id || currentRequestId),
         requireInteraction: true
       });
     }
@@ -1196,10 +1213,10 @@
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
-      FundezNotify.show(data.error || t('client.js.respond_error'), 'error');
+      FandezNotify.show(data.error || t('client.js.respond_error'), 'error');
       return;
     }
-    FundezNotify.show(
+    FandezNotify.show(
       approved ? t('client.js.budget_approved') : t('client.js.budget_rejected'),
       approved ? 'success' : 'info'
     );
@@ -1216,10 +1233,10 @@
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
-      FundezNotify.show(data.error || t('client.js.respond_error'), 'error');
+      FandezNotify.show(data.error || t('client.js.respond_error'), 'error');
       return;
     }
-    FundezNotify.show(
+    FandezNotify.show(
       approved ? t('client.js.activity_change_ok') : t('client.js.activity_change_no'),
       approved ? 'success' : 'info'
     );
@@ -1252,7 +1269,7 @@
     if (senderType === 'provider') return 'Socio';
     if (senderType === 'tecnico') return 'Técnico';
     if (senderType === 'client') return 'Cliente';
-    return 'Fundez';
+    return 'Fandez';
   }
 
   function displayChatName(msg) {
@@ -1260,7 +1277,7 @@
     const role = roleLabelChat(msg.senderType);
     if (!raw) return role;
     if (raw.includes('·')) return raw.split('·')[0].trim() || role;
-    if (/^(socio|técnico|tecnico|cliente|fundez)/i.test(raw)) return raw;
+    if (/^(socio|técnico|tecnico|cliente|fandez)/i.test(raw)) return raw;
     return raw;
   }
 
@@ -1344,7 +1361,7 @@
         if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo enviar');
         appendJobChatMessage(data.message);
       } catch (err) {
-        FundezNotify.show(err.message || 'No se pudo enviar', 'error');
+        FandezNotify.show(err.message || 'No se pudo enviar', 'error');
       }
     });
 
@@ -1457,16 +1474,16 @@
     hideNoProviderChoice();
     stopSearchExperience();
     const providerReqId = request?.id || currentRequestId;
-    if (window.FundezAlerts && lastProviderAlertId !== providerReqId) {
+    if (window.FandezAlerts && lastProviderAlertId !== providerReqId) {
       lastProviderAlertId = providerReqId;
-      FundezAlerts.notify({
+      FandezAlerts.notify({
         type: 'order',
         title: t('client.js.provider_found'),
         body: provider?.name ? t('client.js.provider_found_body', { name: provider.name }) : t('client.js.provider_found'),
-        tag: 'fundez-provider-' + providerReqId
+        tag: 'fandez-provider-' + providerReqId
       });
     } else {
-      FundezNotify.show(t('client.js.provider_found'), 'success');
+      FandezNotify.show(t('client.js.provider_found'), 'success');
     }
   }
 
@@ -1520,7 +1537,7 @@
 
   function startTracking(requestId) {
     currentRequestId = requestId;
-    if (window.FundezAlerts) FundezAlerts.ensurePermission();
+    if (window.FandezAlerts) FandezAlerts.ensurePermission();
     // Estado inicial: se define al primer poll / socket.
     fetch(`/cliente/solicitud/${requestId}`)
       .then((r) => r.json())
@@ -1546,8 +1563,8 @@
 
     const joinRoom = () => socket.emit('register_client', requestId);
     joinRoom();
-    if (!socket.__fundezClientReconnectBound) {
-      socket.__fundezClientReconnectBound = true;
+    if (!socket.__fandezClientReconnectBound) {
+      socket.__fandezClientReconnectBound = true;
       socket.on('connect', () => {
         if (currentRequestId) socket.emit('register_client', currentRequestId);
       });
@@ -1568,6 +1585,8 @@
       if (payload.request?.status === 'searching') {
         const wasHidden = loaderOverlay?.classList.contains('hidden');
         hideScheduledPanel();
+        hideNoProviderChoice();
+        providerCard?.classList.add('hidden');
         loaderOverlay?.classList.remove('hidden');
         if (wasHidden || !searchTimerInterval) startSearchExperience(payload.request);
       }
@@ -1598,11 +1617,11 @@
         const completed = payload.request.status === 'completed' || payload.request.techStatus === 'completado';
         if (completed && lastCompletionAlertId !== requestId) {
           lastCompletionAlertId = requestId;
-          if (window.FundezAlerts) FundezAlerts.notify({
+          if (window.FandezAlerts) FandezAlerts.notify({
             type: 'success',
             title: t('client.js.service_completed_title'),
             body: t('client.js.service_completed_body'),
-            tag: 'fundez-complete-' + requestId
+            tag: 'fandez-complete-' + requestId
           });
           loadCompletionSummary(requestId);
         } else if (completed) {
@@ -1616,10 +1635,10 @@
       const destLng = parseFloat(page.dataset.destLng);
       const shell = document.getElementById('liveTrackShell');
       shell?.classList.remove('hidden');
-      if (!FundezMap.maps.trackingMap && !isNaN(destLat)) {
+      if (!FandezMap.maps.trackingMap && !isNaN(destLat)) {
         const tMap = document.getElementById('trackingMap');
         if (tMap) {
-          FundezMap.initTracking(tMap, {
+          FandezMap.initTracking(tMap, {
             destLat,
             destLng,
             destLabel: '',
@@ -1627,8 +1646,8 @@
             providerLng: payload.lng
           });
         }
-      } else if (!isNaN(destLat) && typeof FundezMap !== 'undefined') {
-        FundezMap.updateProviderLocation('trackingMap', payload.lat, payload.lng, destLat, destLng);
+      } else if (!isNaN(destLat) && typeof FandezMap !== 'undefined') {
+        FandezMap.updateProviderLocation('trackingMap', payload.lat, payload.lng, destLat, destLng);
       }
       const locStatus = document.getElementById('providerLocationStatus');
       if (locStatus) {
@@ -1658,7 +1677,7 @@
     const address = addressInput.value.trim();
     if (!address) {
       addressInput.focus();
-      FundezNotify.show(t('client.js.address_required'), 'warning');
+      FandezNotify.show(t('client.js.address_required'), 'warning');
       return;
     }
 
@@ -1668,7 +1687,7 @@
       const name = document.getElementById('giftName')?.value.trim();
       const phone = document.getElementById('giftPhone')?.value.trim();
       if (!name) {
-        FundezNotify.show(t('client.js.beneficiary_required'), 'warning');
+        FandezNotify.show(t('client.js.beneficiary_required'), 'warning');
         return;
       }
       gift = {
@@ -1682,17 +1701,17 @@
     const customName = document.getElementById('customActivityName')?.value.trim() || '';
     const notes = document.getElementById('notes')?.value.trim() || '';
     if (document.getElementById('activityId') && !activityId) {
-      FundezNotify.show(t('client.js.need_subservice'), 'warning');
+      FandezNotify.show(t('client.js.need_subservice'), 'warning');
       document.getElementById('activityId')?.focus();
       return;
     }
     if (activityId === 'otro' && customName.length < 4) {
-      FundezNotify.show('En Otro, describe el servicio que necesitas', 'warning');
+      FandezNotify.show('En Otro, describe el servicio que necesitas', 'warning');
       document.getElementById('customActivityName')?.focus();
       return;
     }
     if (!notes) {
-      FundezNotify.show(t('client.js.need_notes'), 'warning');
+      FandezNotify.show(t('client.js.need_notes'), 'warning');
       document.getElementById('notes')?.focus();
       return;
     }
@@ -1724,7 +1743,7 @@
       if (!latInput.value) await geocodeAddress();
       if (addressCovered === false) {
         setBusy(false);
-        FundezNotify.show(t('client.js.coverage_blocked'), 'warning');
+        FandezNotify.show(t('client.js.coverage_blocked'), 'warning');
         return;
       }
 
@@ -1733,7 +1752,7 @@
         clientPhoto = await resolvePhotoDataUrl(clientPhotoInput, cachedProblemPhoto);
         if (!clientPhoto) {
           setBusy(false);
-          FundezNotify.show(t('client.js.need_photo'), 'warning');
+          FandezNotify.show(t('client.js.need_photo'), 'warning');
           return;
         }
         cachedProblemPhoto = clientPhoto;
@@ -1744,7 +1763,7 @@
         clientBrandPhoto = await resolvePhotoDataUrl(clientBrandPhotoInput, cachedBrandPhoto);
         if (!clientBrandPhoto) {
           setBusy(false);
-          FundezNotify.show(t('client.js.need_brand_photo'), 'warning');
+          FandezNotify.show(t('client.js.need_brand_photo'), 'warning');
           return;
         }
         cachedBrandPhoto = clientBrandPhoto;
@@ -1780,7 +1799,7 @@
       window.location.href = `/pagos/checkout?ref=${data.request.id}`;
     } catch (err) {
       setBusy(false);
-      FundezNotify.show(err.message || t('client.js.process_error'), 'error');
+      FandezNotify.show(err.message || t('client.js.process_error'), 'error');
     }
   }
 
@@ -1825,14 +1844,14 @@
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success) throw new Error(data.error || 'No se pudo cambiar de socio');
-      FundezNotify.show('Buscando otro socio para tu pedido…', 'info');
+      FandezNotify.show('Buscando otro socio para tu pedido…', 'info');
       hideNoProviderChoice();
       providerCard?.classList.add('hidden');
       loaderOverlay?.classList.remove('hidden');
       startTracking(id);
     } catch (err) {
       if (btn) btn.disabled = false;
-      FundezNotify.show(err.message || 'No se pudo cambiar de socio', 'error');
+      FandezNotify.show(err.message || 'No se pudo cambiar de socio', 'error');
     }
   });
 
@@ -1844,12 +1863,12 @@
   });
 
   socket.on('client_open_request_alert', (payload) => {
-    if (!window.FundezAlerts) return;
-    FundezAlerts.notify({
+    if (!window.FandezAlerts) return;
+    FandezAlerts.notify({
       type: 'alert',
       title: payload?.title || 'Solicitud abierta',
       body: payload?.body || 'Tienes una solicitud pendiente.',
-      tag: 'fundez-open-' + (payload?.requestId || currentRequestId || 'x'),
+      tag: 'fandez-open-' + (payload?.requestId || currentRequestId || 'x'),
       requireInteraction: true,
       url: payload?.url || window.location.pathname,
       system: true

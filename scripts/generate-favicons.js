@@ -27,24 +27,24 @@ async function main() {
     ['icon-192.png', 192],
     ['icon-512.png', 512],
     // Rutas nuevas para PWA / pantalla de inicio (evitar caché de iOS)
-    ['icons/fundez-96.png', 96],
-    ['icons/fundez-180.png', 180],
-    ['icons/fundez-192.png', 192],
-    ['icons/fundez-512.png', 512],
-    ['icons/fundez-v3-96.png', 96],
-    ['icons/fundez-v3-180.png', 180],
-    ['icons/fundez-v3-192.png', 192],
-    ['icons/fundez-v3-512.png', 512],
+    ['icons/fandez-96.png', 96],
+    ['icons/fandez-180.png', 180],
+    ['icons/fandez-192.png', 192],
+    ['icons/fandez-512.png', 512],
+    ['icons/fandez-v3-96.png', 96],
+    ['icons/fandez-v3-180.png', 180],
+    ['icons/fandez-v3-192.png', 192],
+    ['icons/fandez-v3-512.png', 512],
     // v4 — ámbar marca (rompe caché de iOS/Android)
-    ['icons/fundez-v4-96.png', 96],
-    ['icons/fundez-v4-180.png', 180],
-    ['icons/fundez-v4-192.png', 192],
-    ['icons/fundez-v4-512.png', 512],
+    ['icons/fandez-v4-96.png', 96],
+    ['icons/fandez-v4-180.png', 180],
+    ['icons/fandez-v4-192.png', 192],
+    ['icons/fandez-v4-512.png', 512],
     // v5 — rutas nuevas (Hostinger CDN cachea 1 año; path distinto = cache miss)
-    ['icons/fundez-v5-96.png', 96],
-    ['icons/fundez-v5-180.png', 180],
-    ['icons/fundez-v5-192.png', 192],
-    ['icons/fundez-v5-512.png', 512]
+    ['icons/fandez-v5-96.png', 96],
+    ['icons/fandez-v5-180.png', 180],
+    ['icons/fandez-v5-192.png', 192],
+    ['icons/fandez-v5-512.png', 512]
   ];
 
   fs.mkdirSync(path.join(publicDir, 'icons'), { recursive: true });

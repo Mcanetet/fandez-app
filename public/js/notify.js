@@ -1,4 +1,4 @@
-window.FundezNotify = {
+window.FandezNotify = {
   container: null,
   DURATION: {
     info: 3400,
@@ -56,18 +56,18 @@ window.FundezNotify = {
 };
 
 // ---------------------------------------------------------------------------
-// FundezAlerts: motor central de alertas del dispositivo (sonido + vibración +
+// FandezAlerts: motor central de alertas del dispositivo (sonido + vibración +
 // notificación del sistema). Se carga en toda la app vía footer.ejs.
 // Estándar de mercado para apps web sobre WebSockets: Web Audio API (sonido),
 // navigator.vibrate (háptica en Android/Chrome), y Notification API (aviso del
 // sistema cuando la pestaña está en segundo plano).
 // ---------------------------------------------------------------------------
-window.FundezAlerts = {
+window.FandezAlerts = {
   _ctx: null,
   _unlocked: false,
   _lastKey: {},
   _primed: false,
-  PREFS_KEY: 'fundez_alert_prefs',
+  PREFS_KEY: 'fandez_alert_prefs',
 
   // Secuencias de tonos (Web Audio) por tipo de evento
   SOUNDS: {
@@ -184,11 +184,11 @@ window.FundezAlerts = {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return null;
     const { type = 'default', tag, requireInteraction = false, onClick, url } = opts;
     try {
-      const n = new Notification(title || 'Fundez', {
+      const n = new Notification(title || 'Fandez', {
         body: body || '',
-        icon: '/icons/fundez-v5-192.png',
-        badge: '/icons/fundez-v5-96.png',
-        tag: tag || ('fundez-' + type),
+        icon: '/icons/fandez-v5-192.png',
+        badge: '/icons/fandez-v5-96.png',
+        tag: tag || ('fandez-' + type),
         renotify: true,
         vibrate: this.VIBRATE[type] || this.VIBRATE.default,
         requireInteraction: !!requireInteraction
@@ -209,7 +209,7 @@ window.FundezAlerts = {
   // opts: { title, body, type, toast, system, tag, dedupeKey, requireInteraction, onClick, url, force }
   notify(opts = {}) {
     const {
-      title = 'Fundez',
+      title = 'Fandez',
       body = '',
       type = 'default',
       tag,
@@ -225,9 +225,9 @@ window.FundezAlerts = {
     if (!force && this._lastKey[key] && nowMs - this._lastKey[key] < 1500) return;
     this._lastKey[key] = nowMs;
 
-    if (opts.toast !== false && window.FundezNotify) {
+    if (opts.toast !== false && window.FandezNotify) {
       const toastType = typeof opts.toast === 'string' ? opts.toast : (this.TOAST_TYPE[type] || 'info');
-      FundezNotify.show(body || title, toastType);
+      FandezNotify.show(body || title, toastType);
     }
 
     this.playSound(type);
@@ -238,4 +238,7 @@ window.FundezAlerts = {
   }
 };
 
-FundezAlerts.init();
+FandezAlerts.init();
+
+window.FundezNotify = window.FandezNotify;
+window.FundezAlerts = window.FandezAlerts;

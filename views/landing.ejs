@@ -1,12 +1,12 @@
 <%- include('partials/head') %>
 
-<div class="min-h-screen relative fundez-landing">
-  <div class="fundez-landing-atmosphere" aria-hidden="true"></div>
+<div class="min-h-screen relative fandez-landing">
+  <div class="fandez-landing-atmosphere" aria-hidden="true"></div>
 
   <header class="relative z-10 flex items-center justify-between px-5 py-5 max-w-lg mx-auto">
     <div class="flex items-center gap-3">
       <%- include('partials/logo', { className: 'w-11 h-12', logoId: 'landing', logoVariant: 'amber' }) %>
-      <span class="fundez-wordmark text-3xl"><%= t('app.name') %></span>
+      <span class="fandez-wordmark text-3xl"><%= t('app.name') %></span>
     </div>
     <div class="flex items-center gap-2">
       <%- include('partials/lang-switcher') %>
@@ -35,7 +35,7 @@
       <%= t('landing.cta.signup') %>
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
-    <button type="button" data-install-app class="zilo-btn-ghost mb-3 fundez-install-entry">
+    <button type="button" data-install-app class="zilo-btn-ghost mb-3 fandez-install-entry">
       <svg class="w-5 h-5 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 3v12m0 0l4-4m-4 4l-4-4"/><path d="M5 19h14"/></svg>
       <%= t('landing.install_cta') %>
     </button>
@@ -62,7 +62,7 @@
     </div>
 
     <div class="mb-8">
-      <p class="fundez-wordmark text-lg mb-3"><%= t('landing.only_fundez') %></p>
+      <p class="fandez-wordmark text-lg mb-3"><%= t('landing.only_fandez') %></p>
       <ul class="space-y-2.5 text-sm text-zilo-muted">
         <li class="flex gap-2.5 items-start">
           <%- include('partials/ui-icon', { name: 'home', size: 16, className: 'text-zilo-accent mt-0.5 shrink-0' }) %>

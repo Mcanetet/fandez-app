@@ -17,7 +17,7 @@
     const cb = document.getElementById('consentKyc');
     if (!cb) return true;
     if (cb.checked || cb.disabled) return true;
-    FundezNotify.show('Debes autorizar el tratamiento de datos sensibles (KYC) antes de subir documentos.', 'warning');
+    FandezNotify.show('Debes autorizar el tratamiento de datos sensibles (KYC) antes de subir documentos.', 'warning');
     return false;
   }
 
@@ -25,7 +25,7 @@
     if (!file) return;
     if (['idFront', 'idBack'].includes(type) && !kycConsentOk()) return;
     if (file.size > 6 * 1024 * 1024) {
-      FundezNotify.show('El archivo no puede superar 6 MB', 'warning');
+      FandezNotify.show('El archivo no puede superar 6 MB', 'warning');
       return;
     }
     const data = await fileToBase64(file);
@@ -41,10 +41,10 @@
     });
     const json = await res.json();
     if (json.success) {
-      FundezNotify.show('Documento guardado', 'success');
+      FandezNotify.show('Documento guardado', 'success');
       updateVerificationUI(json.verification);
       if (json.url && json.url !== 'demo') previewDoc(type, json.url);
-    } else FundezNotify.show(json.error || 'Error al subir', 'error');
+    } else FandezNotify.show(json.error || 'Error al subir', 'error');
   }
 
   function previewDoc(type, url) {
@@ -143,7 +143,7 @@
       }
     } catch (err) {
       console.warn('Camera error:', err?.name, err?.message);
-      FundezNotify.show(cameraErrorMessage(err), 'error');
+      FandezNotify.show(cameraErrorMessage(err), 'error');
       if (statusEl) statusEl.textContent = '';
       closeFaceModal();
     }
@@ -164,7 +164,7 @@
   document.getElementById('btnCaptureFace')?.addEventListener('click', async () => {
     if (!faceVideo || !faceCanvas) return;
     if (!faceVideo.videoWidth) {
-      FundezNotify.show('Espera a que la cámara cargue o sube una foto', 'warning');
+      FandezNotify.show('Espera a que la cámara cargue o sube una foto', 'warning');
       return;
     }
     const ctx = faceCanvas.getContext('2d');
@@ -190,7 +190,7 @@
     if (btn) btn.disabled = false;
 
     if (json.success) {
-      FundezNotify.show(json.faceResult?.message || 'Identidad verificada', 'success');
+      FandezNotify.show(json.faceResult?.message || 'Identidad verificada', 'success');
       updateVerificationUI(json.verification);
       const preview = document.getElementById('preview-selfie');
       if (preview && json.url) {
@@ -198,7 +198,7 @@
       }
       closeFaceModal();
     } else {
-      FundezNotify.show(json.error || 'Verificación fallida', 'error');
+      FandezNotify.show(json.error || 'Verificación fallida', 'error');
     }
   }
 
@@ -206,7 +206,7 @@
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 6 * 1024 * 1024) {
-      FundezNotify.show('La foto no puede superar 6 MB', 'warning');
+      FandezNotify.show('La foto no puede superar 6 MB', 'warning');
       return;
     }
     const data = await fileToBase64(file);
@@ -217,7 +217,7 @@
   // ——— Ubicación ———
   document.getElementById('btnLocationConsent')?.addEventListener('click', async () => {
     if (!navigator.geolocation) {
-      FundezNotify.show('Tu navegador no soporta geolocalización', 'error');
+      FandezNotify.show('Tu navegador no soporta geolocalización', 'error');
       return;
     }
 
@@ -236,11 +236,11 @@
         });
         document.getElementById('locationStatus').textContent = 'Ubicación activa — los clientes verán tu recorrido';
         document.getElementById('check-location')?.classList.add('text-zilo-success');
-        FundezNotify.show('Permiso de ubicación concedido', 'success');
+        FandezNotify.show('Permiso de ubicación concedido', 'success');
         updateVerificationUI(json.verification);
       }
     }, () => {
-      FundezNotify.show('Debes permitir la ubicación para trabajar con Fundez', 'warning');
+      FandezNotify.show('Debes permitir la ubicación para trabajar con Fandez', 'warning');
     }, { enableHighAccuracy: true, timeout: 15000 });
   });
 
@@ -254,7 +254,7 @@
     if (json.success) {
       document.getElementById('locationStatus').textContent = 'Ubicación desactivada';
       document.getElementById('check-location')?.classList.remove('text-zilo-success');
-      FundezNotify.show('Ubicación desactivada', 'info');
+      FandezNotify.show('Ubicación desactivada', 'info');
       updateVerificationUI(json.verification);
     }
   });

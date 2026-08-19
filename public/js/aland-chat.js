@@ -52,12 +52,12 @@
           appendMessage(payload.message);
           const msg = payload.message;
           const panelHidden = !panel || panel.classList.contains('hidden');
-          if (msg.senderType && msg.senderType !== 'client' && msg.senderType !== 'system' && window.FundezAlerts) {
-            FundezAlerts.notify({
+          if (msg.senderType && msg.senderType !== 'client' && msg.senderType !== 'system' && window.FandezAlerts) {
+            FandezAlerts.notify({
               type: 'message',
               title: msg.senderName || 'Aland IA',
               body: msg.body || 'Tienes un mensaje nuevo',
-              tag: 'fundez-aland-msg',
+              tag: 'fandez-aland-msg',
               system: panelHidden || document.hidden
             });
           }
@@ -82,7 +82,7 @@
         toggleBtn.disabled = true;
         await startChat();
       } catch (err) {
-        if (window.FundezNotify) FundezNotify.show(err.message, 'error');
+        if (window.FandezNotify) FandezNotify.show(err.message, 'error');
       } finally {
         toggleBtn.disabled = false;
       }
@@ -116,17 +116,17 @@
         appendMessage({
           senderType: 'system',
           senderName: 'Sistema',
-          body: 'Consulta derivada al equipo de pagos de Fundez. La revisarán en la plataforma.'
+          body: 'Consulta derivada al equipo de pagos de Fandez. La revisarán en la plataforma.'
         });
       } else if (data.escalated) {
         appendMessage({
           senderType: 'system',
           senderName: 'Sistema',
-          body: 'Caso derivado al equipo del servicio. Si no responden a tiempo, administración Fundez lo retoma.'
+          body: 'Caso derivado al equipo del servicio. Si no responden a tiempo, administración Fandez lo retoma.'
         });
       }
     } catch (err) {
-      if (window.FundezNotify) FundezNotify.show(err.message, 'error');
+      if (window.FandezNotify) FandezNotify.show(err.message, 'error');
     } finally {
       input.disabled = false;
       input.focus();

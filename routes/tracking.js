@@ -24,8 +24,8 @@ router.get('/:token', (req, res) => {
   if (request.providerId) provider = store.getUserById(request.providerId);
 
   res.render('tracking/guardian', {
-    title: 'Modo Guardián — Fundez',
-    request,
+    title: 'Modo Guardián — Fandez',
+    request: store.enrichRequestForClient(request, req.locale || 'es') || request,
     provider,
     formatCLP: store.formatCLP,
     company
@@ -53,6 +53,8 @@ router.get('/:token/estado', (req, res) => {
       status: request.status,
       techStatus: request.techStatus,
       urgencyTier: request.urgencyTier,
+      awaitingProviderReassign: Boolean(request.awaitingProviderReassign),
+      technicianId: request.technicianId || null,
       technicianName: request.technicianName,
       beneficiaryName: request.beneficiaryName,
       isGift: request.isGift,

@@ -7,7 +7,7 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       </a>
       <div>
-        <p class="zilo-label !text-[9px]">Socio Fundez</p>
+        <p class="zilo-label !text-[9px]">Socio Fandez</p>
         <h1 class="text-base font-semibold">Mis trabajos</h1>
       </div>
     </div>
@@ -75,9 +75,9 @@
               <% if (r.technicianId && r.techStatus === 'asignado') { %>
                 <div class="p-3 rounded-xl border border-amber-300 bg-amber-50 space-y-2"
                   data-accept-deadline="<%= r.technicianAssignedAt || '' %>"
-                  data-accept-timeout-min="10">
+                  data-accept-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>">
                   <p class="text-xs text-amber-900">Esperando que <strong><%= r.technicianName %></strong> acepte.</p>
-                  <p class="text-sm font-semibold text-amber-950 tabular-nums" data-role="accept-countdown">10:00</p>
+                  <p class="text-sm font-semibold text-amber-950 tabular-nums" data-role="accept-countdown"><%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>:00</p>
                   <p class="text-[11px] text-amber-800/80">Si no acepta, se desasigna solo y debes elegir otro técnico.</p>
                   <a href="/proveedor/trabajo/<%= r.id %>" class="block text-center zilo-btn-ghost !py-2 !text-xs">Ver pedido</a>
                   <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>">Liberar pedido (vuelve a búsqueda)</button>
@@ -104,6 +104,10 @@
                 <div class="space-y-2">
                   <% if (r.awaitingProviderReassign) { %>
                     <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2">El técnico anterior no aceptó. Asigna otro ahora o libera el pedido.</p>
+                    <p class="text-xs font-semibold text-amber-900 tabular-nums"
+                      data-reassign-deadline="<%= r.techAcceptTimedOutAt || '' %>"
+                      data-reassign-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.providerReassignMinutes : 10 %>"
+                      data-role="reassign-countdown"></p>
                   <% } %>
                   <label class="zilo-label block !text-[10px]" for="tech-select-<%= r.id %>">Buscar y elegir técnico</label>
                   <select id="tech-select-<%= r.id %>" class="zilo-select-tech zilo-input text-sm" data-role="tech-select" <%= eligibleTechs.length ? '' : 'disabled' %>>

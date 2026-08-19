@@ -9,6 +9,7 @@ const { getPhotoTips } = require('../lib/photoTips');
 const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
 const { requireModule } = require('../middleware/modules');
 const unassignedRequestWatcher = require('../lib/unassignedRequestWatcher');
+const { getRequestTimeouts } = require('../lib/requestTimeouts');
 const aland = require('../lib/aland');
 const notifications = require('../lib/notifications');
 
@@ -37,7 +38,7 @@ function respondAlreadyNoProvider(req, res, request, choice = 'refund') {
     });
   }
   return res.render('client/no-provider-choice', {
-    title: 'Respuesta recibida — Fundez',
+    title: 'Respuesta recibida — Fandez',
     request,
     token: '',
     selectedChoice: request.noProviderChoice || choice,
@@ -66,7 +67,7 @@ function canOpenNoProviderDecision(req, request) {
 }
 
 function noProviderTimeoutMinutes() {
-  return Math.max(1, parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15);
+  return getRequestTimeouts().unassignedNoticeMinutes;
 }
 
 /** Cliente dueño: abre (o reabre) la decisión pendiente antes de responder. */
@@ -112,7 +113,7 @@ router.get('/solicitud/:id/sin-socio', (req, res) => {
     });
   }
   res.render('client/no-provider-choice', {
-    title: 'Elige cómo continuar — Fundez',
+    title: 'Elige cómo continuar — Fandez',
     request,
     token: String(req.query.token || ''),
     selectedChoice: ['refund', 'continue'].includes(req.query.choice) ? req.query.choice : null
@@ -209,7 +210,7 @@ router.post('/solicitud/:id/sin-socio', async (req, res) => {
     return res.json({ success: true, choice: result.choice, request: payload.request });
   }
   res.render('client/no-provider-choice', {
-    title: 'Respuesta recibida — Fundez',
+    title: 'Respuesta recibida — Fandez',
     request: updated,
     token: '',
     selectedChoice: result.choice,
@@ -227,7 +228,7 @@ router.get('/', requireRole('client'), (req, res) => {
   const profile = store.getUserById(req.session.user.id);
   const referralBonus = req.session.referralBonus;
   if (referralBonus) delete req.session.referralBonus;
-  const timeoutMinutes = Math.max(1, parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15);
+  const timeoutMinutes = noProviderTimeoutMinutes();
   if (typeof store.promoteDueScheduledSearches === 'function') {
     store.promoteDueScheduledSearches();
   }
@@ -277,7 +278,7 @@ router.get('/perfil', requireRole('client'), (req, res) => {
     servicesCount: profile?.servicesCount || 0
   };
   res.render('client/profile', {
-    title: 'Mi perfil — Fundez',
+    title: 'Mi perfil — Fandez',
     user: req.session.user,
     profile,
     referral,
@@ -320,7 +321,7 @@ router.post('/facturacion', requireRole('client'), (req, res) => {
 router.get('/hogar', requireRole('client'), requireModule('client_pasaporte'), (req, res) => {
   const passport = store.getHomePassport(req.session.user.id);
   res.render('client/hogar', {
-    title: 'Pasaporte Hogar — Fundez',
+    title: 'Pasaporte Hogar — Fandez',
     user: req.session.user,
     passport,
     formatCLP: store.formatCLP,
@@ -333,7 +334,7 @@ router.get('/historial', requireRole('client'), requireModule('client_historial'
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .map(r => store.enrichRequestForClient(r, req.locale));
   res.render('client/historial', {
-    title: 'Historial — Fundez',
+    title: 'Historial — Fandez',
     user: req.session.user,
     requests,
     formatCLP: store.formatCLP,
@@ -347,7 +348,7 @@ router.get('/invitar', requireRole('client'), requireModule('client_referidos'),
   const shareUrl = `${company.appUrl}/?ref=${referral.code}`;
   const giftService = store.getActiveServices()[0] || null;
   res.render('client/invitar', {
-    title: 'Invitar amigos — Fundez',
+    title: 'Invitar amigos — Fandez',
     user: req.session.user,
     profile,
     referral,
@@ -381,7 +382,7 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
   const activities = store.getActivitiesForService(serviceRaw.id);
   const catalogServices = localizeServices(store.getActiveServices(), req.t);
   res.render('client/service', {
-    title: `${service.name} — Fundez`,
+    title: `${service.name} — Fandez`,
     user: req.session.user,
     profile,
     service,
@@ -702,7 +703,7 @@ router.post('/solicitud/:id/cambiar-socio', requireRole('client'), async (req, r
 });
 
 router.get('/pendientes-atencion', requireRole('client'), (req, res) => {
-  const timeoutMinutes = Math.max(1, parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15);
+  const timeoutMinutes = noProviderTimeoutMinutes();
   if (typeof store.promoteDueScheduledSearches === 'function') {
     store.promoteDueScheduledSearches();
   }
@@ -720,7 +721,7 @@ router.get('/pendientes-atencion', requireRole('client'), (req, res) => {
 router.post('/solicitud/:id/timeout-busqueda', requireRole('client'), async (req, res) => {
   try {
     const result = store.ensureNoProviderChoiceForClient(req.params.id, req.session.user.id, {
-      minWaitMinutes: Math.max(12, (parseInt(process.env.UNASSIGNED_REQUEST_TIMEOUT_MINUTES || '15', 10) || 15) - 1)
+      minWaitMinutes: Math.max(0, noProviderTimeoutMinutes() - 1)
     });
     if (result.error) return res.status(400).json({ success: false, error: result.error });
     const payload = { request: store.enrichRequestForClient(result.request, req.locale || 'es') };

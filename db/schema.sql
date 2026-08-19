@@ -1,4 +1,4 @@
--- Fundez — esquema MySQL (Hostinger)
+-- Fandez — esquema MySQL (Hostinger)
 
 CREATE TABLE IF NOT EXISTS services (
   id VARCHAR(64) PRIMARY KEY,

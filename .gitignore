@@ -14,6 +14,9 @@ data/uploads/requests/*
 !data/uploads/requests/.gitkeep
 zilo-hostinger.zip
 
+# Capturas y artefactos locales de prueba
+tmp/
+
 # Playwright
 /test-results/
 /playwright-report/

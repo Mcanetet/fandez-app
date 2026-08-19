@@ -5,9 +5,9 @@ describe('Florencia IA', () => {
     test('solo incluye clientes con consentimiento de marketing vigente', () => {
       const store = {
         USERS: [
-          { id: 'c1', role: 'client', email: 'uno@fundez.cl', active: true },
-          { id: 'c2', role: 'client', email: 'dos@fundez.cl', active: true },
-          { id: 'p1', role: 'provider', email: 'socio@fundez.cl', active: true }
+          { id: 'c1', role: 'client', email: 'uno@fandez.cl', active: true },
+          { id: 'c2', role: 'client', email: 'dos@fandez.cl', active: true },
+          { id: 'p1', role: 'provider', email: 'socio@fandez.cl', active: true }
         ],
         consentRecords: [
           { userId: 'c1', type: 'marketing', granted: true, createdAt: '2026-01-01T00:00:00Z' },
@@ -20,7 +20,7 @@ describe('Florencia IA', () => {
 
     test('respeta revocación o decisión posterior', () => {
       const store = {
-        USERS: [{ id: 'c1', role: 'client', email: 'uno@fundez.cl', active: true }],
+        USERS: [{ id: 'c1', role: 'client', email: 'uno@fandez.cl', active: true }],
         consentRecords: [
           { userId: 'c1', type: 'marketing', granted: true, createdAt: '2026-01-01T00:00:00Z' },
           { userId: 'c1', type: 'marketing', granted: false, createdAt: '2026-02-01T00:00:00Z' }

@@ -3,10 +3,10 @@
   if (!page) return;
 
   const tecnicoId = page.dataset.tecnicoId;
-  const notify = (msg, type) => { if (window.FundezNotify) window.FundezNotify.show(msg, type); };
+  const notify = (msg, type) => { if (window.FandezNotify) window.FandezNotify.show(msg, type); };
 
   function t(key, vars) {
-    return typeof FundezI18n !== 'undefined' ? FundezI18n.t(key, vars) : key;
+    return typeof FandezI18n !== 'undefined' ? FandezI18n.t(key, vars) : key;
   }
 
   const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
@@ -73,10 +73,10 @@
 
   function startRepeatingAlert() {
     stopRepeatingAlert();
-    if (window.FundezAlerts) FundezAlerts.vibrate('order');
+    if (window.FandezAlerts) FandezAlerts.vibrate('order');
     alertInterval = setInterval(() => {
       playAlertSound();
-      if (window.FundezAlerts) FundezAlerts.vibrate('order');
+      if (window.FandezAlerts) FandezAlerts.vibrate('order');
     }, 2500);
   }
 
@@ -88,12 +88,12 @@
   }
 
   function pushBrowserNotification(title, body) {
-    if (window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'order',
         title: title || t('tecnico.js.push_title'),
         body: body || '',
-        tag: 'fundez-tech-wall',
+        tag: 'fandez-tech-wall',
         requireInteraction: true,
         system: true,
         url: '/tecnico'
@@ -103,7 +103,7 @@
     if (typeof Notification === 'undefined') return;
     if (Notification.permission === 'granted') {
       try {
-        new Notification(title, { body, icon: '/favicon-32.png', requireInteraction: true, tag: 'fundez-tech-wall' });
+        new Notification(title, { body, icon: '/favicon-32.png', requireInteraction: true, tag: 'fandez-tech-wall' });
       } catch (_) {
         new Notification(title, { body, icon: '/favicon-32.png' });
       }
@@ -436,7 +436,7 @@
       const title = t('tecnico.js.push_title');
       const body = `${data.service?.name || 'Servicio'} · ${data.request?.address || ''}`.trim();
       pushBrowserNotification(title, body);
-      if (window.FundezAlerts) FundezAlerts.ensurePermission();
+      if (window.FandezAlerts) FandezAlerts.ensurePermission();
     });
 
     socket.on('request_taken', ({ requestId }) => {
@@ -444,11 +444,11 @@
     });
 
     socket.on(`tecnico_assignment_${tecnicoId}`, () => {
-      if (window.FundezAlerts) FundezAlerts.notify({
+      if (window.FandezAlerts) FandezAlerts.notify({
         type: 'order',
         title: t('tecnico.js.push_title'),
         body: t('tecnico.js.assignment_body'),
-        tag: 'fundez-tec-assignment'
+        tag: 'fandez-tec-assignment'
       });
       setTimeout(() => location.reload(), 900);
     });
@@ -472,7 +472,7 @@
       statusDot.className = 'w-3 h-3 rounded-full bg-zilo-success shadow-lg shadow-zilo-success/40 animate-pulse';
       statusText.textContent = t('tecnico.online');
       statusSub.textContent = t('tecnico.online_sub');
-      if (window.FundezAlerts) FundezAlerts.ensurePermission();
+      if (window.FandezAlerts) FandezAlerts.ensurePermission();
       else if (typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission();
       loadWorkWall();
       notify(data.synced > 0 ? t('provider.js.new_on_wall', { count: data.synced }) : t('tecnico.js.online_activated'), 'success');
@@ -505,7 +505,7 @@
       const el = card.querySelector('[data-role="accept-countdown"]');
       if (!el) return;
       const start = Date.parse(card.dataset.assignedAt || '');
-      const mins = 10;
+      const mins = Math.max(1, parseInt(card.dataset.acceptTimeoutMin || window.FANDEZ_TIMEOUTS?.techAcceptMinutes || '10', 10) || 10);
       if (!Number.isFinite(start)) {
         el.textContent = `Tienes ${mins}:00 para aceptar`;
         return;

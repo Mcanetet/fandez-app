@@ -1,4 +1,4 @@
-window.FundezRut = {
+window.FandezRut = {
   clean(rut) {
     return String(rut || '').replace(/[^0-9kK]/g, '').toUpperCase();
   },
@@ -32,3 +32,5 @@ window.FundezRut = {
     return dv === expected;
   }
 };
+
+window.FundezRut = window.FandezRut;

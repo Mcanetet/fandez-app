@@ -167,7 +167,7 @@
     }
 
     if (!skipped) {
-      FundezNotify?.show('¡Tour completado! Ya conoces Fundez', 'success');
+      FandezNotify?.show('¡Tour completado! Ya conoces Fandez', 'success');
     }
   }
 
@@ -207,7 +207,7 @@
     document.addEventListener('keydown', keyHandler);
   }
 
-  window.FundezOnboarding = { start };
+  window.FandezOnboarding = { start };
 
   document.addEventListener('DOMContentLoaded', () => {
     const cfgEl = document.getElementById('ziloOnboardingConfig');
@@ -215,10 +215,10 @@
     try {
       const config = JSON.parse(cfgEl.textContent);
       document.querySelectorAll('[data-restart-tour]').forEach(btn => {
-        btn.addEventListener('click', () => FundezOnboarding.start({ ...config, autoStart: false }));
+        btn.addEventListener('click', () => FandezOnboarding.start({ ...config, autoStart: false }));
       });
       if (config.autoStart) {
-        setTimeout(() => FundezOnboarding.start(config), 700);
+        setTimeout(() => FandezOnboarding.start(config), 700);
       }
     } catch (_) {}
   });

@@ -27,7 +27,7 @@ router.post('/client/start', requireRole('client'), requireModule('client_aland'
 
     if (isSupport) {
       serviceId = 'soporte-general';
-      serviceName = 'Soporte Fundez';
+      serviceName = 'Soporte Fandez';
     } else {
       serviceId = String(req.body.serviceId || '').trim();
       const service = store.getServiceById(serviceId);
@@ -96,7 +96,7 @@ router.post('/client/start', requireRole('client'), requireModule('client_aland'
     const greetingTemplate = isSupport
       ? (config.supportGreeting
         || aland.DEFAULT_CONFIG.supportGreeting
-        || 'Hola, soy Aland IA, soporte de Fundez. Dime si tu consulta es de servicio, pagos o una solicitud en curso y te indico el siguiente paso.')
+        || 'Hola, soy Aland IA, soporte de Fandez. Dime si tu consulta es de servicio, pagos o una solicitud en curso y te indico el siguiente paso.')
       : (config.greetingMessage || config.greeting || aland.DEFAULT_CONFIG.greetingMessage);
 
     const greeting = String(greetingTemplate).replace('{service}', serviceName);

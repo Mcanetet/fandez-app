@@ -1,11 +1,11 @@
--- Fundez full export (schema + demo data)
+-- Fandez full export (schema + demo data)
 -- Idempotent import for existing Hostinger databases
 -- Generated automatically
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Fundez — esquema MySQL (Hostinger)
+-- Fandez — esquema MySQL (Hostinger)
 
 CREATE TABLE IF NOT EXISTS services (
   id VARCHAR(64) PRIMARY KEY,
@@ -172,19 +172,19 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- ============================
 
 -- ============================================================
--- Fundez — Datos demo para MySQL (Hostinger)
+-- Fandez — Datos demo para MySQL (Hostinger)
 -- ============================================================
 -- Cómo usar en Hostinger:
---   1. hPanel -> Bases de datos -> phpMyAdmin de tu base (u482073296_fundezapp_bd)
+--   1. hPanel -> Bases de datos -> phpMyAdmin de tu base (u482073296_fandezapp_bd)
 --   2. Pestaña "Importar" -> Selecciona este archivo -> Continuar
 --   3. Se crean las tablas (si faltan) y se cargan los usuarios demo.
 --
 -- Se puede re-importar sin duplicar (usa ON DUPLICATE KEY / INSERT IGNORE).
 --
 -- Credenciales demo:
---   Cliente:   cliente@fundez.cl   / cliente123
---   Proveedor: pedro@fundez.cl     / proveedor123
---   Admin:     admin@fundez.cl     / admin123
+--   Cliente:   cliente@fandez.cl   / cliente123
+--   Proveedor: pedro@fandez.cl     / proveedor123
+--   Admin:     admin@fandez.cl     / admin123
 -- ============================================================
 
 SET NAMES utf8mb4;
@@ -388,9 +388,9 @@ INSERT INTO pricing_config (id, config) VALUES ('default', JSON_OBJECT(
     'bankName', 'Banco de Chile',
     'accountType', 'Cuenta corriente',
     'accountNumber', '1234567890',
-    'holderName', 'Fundez SpA',
+    'holderName', 'Fandez SpA',
     'holderRut', '77.777.777-7',
-    'email', 'pagos@fundez.cl'
+    'email', 'pagos@fandez.cl'
   ),
   'paymentGateways', JSON_OBJECT(
     'transbank', JSON_OBJECT('enabled', true, 'sortOrder', 1),
@@ -416,13 +416,13 @@ INSERT INTO users (
   specialties, rating, reviews_count, online, avatar, bio, reviews, verification, location_share
 ) VALUES
 (
-  'client-1', 'cliente@fundez.cl', 'cliente123', 'María González', 'client',
+  'client-1', 'cliente@fandez.cl', 'cliente123', 'María González', 'client',
   '+56 9 8765 4321', 'Av. Providencia 2650, Providencia, Santiago', 'MARIA2026',
   350, 5000, 2, 4, 0, 0, '2025-11-01', 0, NULL,
   '[]', NULL, 0, 0, NULL, NULL, '[]', NULL, NULL
 ),
 (
-  'provider-pedro', 'pedro@fundez.cl', 'proveedor123', 'Pedro Gómez', 'provider',
+  'provider-pedro', 'pedro@fandez.cl', 'proveedor123', 'Pedro Gómez', 'provider',
   '+56 9 2234 5678', NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, 0, NULL,
   '["gasfiter"]', 4.80, 94, 0, 'PG',
   'Gásfiter maestro con 10 años de experiencia en edificios y hogares de Santiago.',
@@ -431,7 +431,7 @@ INSERT INTO users (
   '{"consent":true,"consentAt":"2025-10-01T12:00:00.000Z","lat":-33.442,"lng":-70.654,"updatedAt":"2025-10-01T12:00:00.000Z"}'
 ),
 (
-  'provider-marta', 'marta@fundez.cl', 'proveedor123', 'Marta Quiroz', 'provider',
+  'provider-marta', 'marta@fandez.cl', 'proveedor123', 'Marta Quiroz', 'provider',
   '+56 9 3345 6789', NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, 0, NULL,
   '["electrico"]', 4.90, 112, 0, 'MQ',
   'Electricista certificada SEC. Especialista en instalaciones residenciales y comerciales.',
@@ -440,7 +440,7 @@ INSERT INTO users (
   '{"consent":false,"consentAt":null,"lat":null,"lng":null,"updatedAt":null}'
 ),
 (
-  'provider-juan', 'juancarlos@fundez.cl', 'proveedor123', 'Juan Carlos', 'provider',
+  'provider-juan', 'juancarlos@fandez.cl', 'proveedor123', 'Juan Carlos', 'provider',
   '+56 9 4456 7890', NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, 0, NULL,
   '["cerrajero"]', 4.70, 78, 0, 'JC',
   'Cerrajero profesional 24/7. Apertura sin daños y cambio de cerraduras de seguridad.',
@@ -449,7 +449,7 @@ INSERT INTO users (
   '{"consent":false,"consentAt":null,"lat":null,"lng":null,"updatedAt":null}'
 ),
 (
-  'provider-ana', 'ana@fundez.cl', 'proveedor123', 'Ana Rojas', 'provider',
+  'provider-ana', 'ana@fandez.cl', 'proveedor123', 'Ana Rojas', 'provider',
   '+56 9 5567 8901', NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, 0, NULL,
   '["termos","lavavajillas","lavadora"]', 4.90, 67, 0, 'AR',
   'Técnica certificada en electrodomésticos. Especialista en termos, lavadoras y lavavajillas.',
@@ -458,7 +458,7 @@ INSERT INTO users (
   '{"consent":false,"consentAt":null,"lat":null,"lng":null,"updatedAt":null}'
 ),
 (
-  'admin-1', 'admin@fundez.cl', 'admin123', 'Admin Fundez', 'admin',
+  'admin-1', 'admin@fandez.cl', 'admin123', 'Admin Fandez', 'admin',
   '+56 9 0000 0000', NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, 0, NULL,
   '[]', NULL, 0, 0, NULL, NULL, '[]', NULL, NULL
 )
@@ -504,8 +504,8 @@ INSERT IGNORE INTO consent_records (id, user_id, ip, type, granted, version, use
 -- ---------- Registros de seguridad ----------
 
 INSERT IGNORE INTO security_logs (id, event, detail, `user`, ip, created_at) VALUES
-('sec-1', 'login_ok', NULL, 'admin@fundez.cl', '10.0.0.1', '2026-06-30 08:00:00'),
-('sec-2', 'login_ok', NULL, 'cliente@fundez.cl', '10.0.0.2', '2026-06-30 09:30:00'),
+('sec-1', 'login_ok', NULL, 'admin@fandez.cl', '10.0.0.1', '2026-06-30 08:00:00'),
+('sec-2', 'login_ok', NULL, 'cliente@fandez.cl', '10.0.0.2', '2026-06-30 09:30:00'),
 ('sec-3', 'pago_demo', 'Pago simulado aprobado', NULL, '10.0.0.2', '2026-06-30 10:00:00');
 
 SET FOREIGN_KEY_CHECKS = 1;

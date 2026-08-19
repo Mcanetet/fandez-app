@@ -112,7 +112,7 @@
 
     <!-- Descuentos -->
     <section class="zilo-card-premium rounded-2xl p-5 space-y-4">
-      <h2 class="zilo-label">Beneficios Fundez</h2>
+      <h2 class="zilo-label">Beneficios Fandez</h2>
 
       <% if (mod('client_puntos') && referral.creditsCLP > 0) { %>
       <label class="flex items-center justify-between gap-3 cursor-pointer">
@@ -127,7 +127,7 @@
       <% if (mod('client_puntos') && referral.points > 0) { %>
       <label class="flex items-center justify-between gap-3 cursor-pointer pt-3 border-t border-gray-200">
         <div>
-          <strong class="text-sm block">Canjear Puntos Fundez</strong>
+          <strong class="text-sm block">Canjear Puntos Fandez</strong>
           <span class="text-xs text-zilo-muted"><%= referral.points %> pts = <%= formatCLP(referral.points * pointsValue) %></span>
         </div>
         <input type="checkbox" id="usePoints" class="w-5 h-5 rounded accent-[#C45C14]">
@@ -170,7 +170,7 @@
           <span id="linePromo" class="checkout-discount">—</span>
         </div>
         <div class="flex justify-between checkout-line pb-2 hidden" id="lineCreditsRow">
-          <span class="text-zilo-muted">Crédito Fundez</span>
+          <span class="text-zilo-muted">Crédito Fandez</span>
           <span id="lineCredits" class="checkout-discount">—</span>
         </div>
         <div class="flex justify-between checkout-line pb-2 hidden" id="linePointsRow">
@@ -190,7 +190,7 @@
     </p>
     <% } else if (cardGateway && (summary.paymentMethod || 'card') === 'card') { %>
     <p class="text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg/50 text-center">
-      Pago seguro con <strong><%= cardGateway.label %></strong>. Fundez no almacena datos de tu tarjeta.
+      Pago seguro con <strong><%= cardGateway.label %></strong>. Fandez no almacena datos de tu tarjeta.
     </p>
     <% } %>
 
@@ -316,7 +316,7 @@
         promoFeedback.classList.remove('hidden', 'text-zilo-success');
         promoFeedback.classList.add('text-red-600');
       }
-      FundezNotify.show(data.error || 'Error al calcular', 'warning');
+      FandezNotify.show(data.error || 'Error al calcular', 'warning');
       return;
     }
     if (promoFeedback) {
@@ -389,7 +389,7 @@
     btnPay.disabled = false;
     document.getElementById('btnPaySticky')?.removeAttribute('disabled');
     if (!data.success) {
-      FundezNotify.show(data.error || 'Error', 'error');
+      FandezNotify.show(data.error || 'Error', 'error');
       return;
     }
     if (data.free) window.location.href = data.redirect;

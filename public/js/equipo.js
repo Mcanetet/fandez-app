@@ -1,6 +1,6 @@
 (function () {
   const notify = (msg, type) => {
-    if (window.FundezNotify) window.FundezNotify.show(msg, type);
+    if (window.FandezNotify) window.FandezNotify.show(msg, type);
   };
 
   function collectEnabledServices() {

@@ -68,12 +68,12 @@
           appendMessage(payload.message);
         }
         openPanel(true);
-        if (window.FundezAlerts && payload?.message) {
-          FundezAlerts.notify({
+        if (window.FandezAlerts && payload?.message) {
+          FandezAlerts.notify({
             type: 'message',
             title: 'Aland IA',
             body: payload.message.body || 'Actualización de tu servicio',
-            tag: 'fundez-journey',
+            tag: 'fandez-journey',
             toast: false
           });
         }
@@ -92,12 +92,12 @@
 
   function notifyIncoming(msg, panelHidden) {
     if (!msg || msg.senderType === 'client' || msg.senderType === 'system') return;
-    if (!window.FundezAlerts) return;
-    FundezAlerts.notify({
+    if (!window.FandezAlerts) return;
+    FandezAlerts.notify({
       type: 'message',
       title: msg.senderName || 'Aland IA',
       body: msg.body || 'Tienes un mensaje nuevo',
-      tag: 'fundez-aland-msg',
+      tag: 'fandez-aland-msg',
       system: panelHidden || document.hidden
     });
   }
@@ -160,12 +160,12 @@
 
   async function openPanel(skipStart) {
     panel.classList.remove('hidden');
-    if (window.FundezAlerts) FundezAlerts.ensurePermission();
+    if (window.FandezAlerts) FandezAlerts.ensurePermission();
     if (!conversationId && !skipStart) {
       try {
         await startSupportChat();
       } catch (err) {
-        if (window.FundezNotify) FundezNotify.show(err.message, 'error');
+        if (window.FandezNotify) FandezNotify.show(err.message, 'error');
         else appendMessage({ senderType: 'system', senderName: 'Sistema', body: err.message });
       }
     }
@@ -196,7 +196,7 @@
       try {
         await startSupportChat();
       } catch (err) {
-        if (window.FundezNotify) FundezNotify.show(err.message, 'error');
+        if (window.FandezNotify) FandezNotify.show(err.message, 'error');
         return;
       }
     }
@@ -214,7 +214,7 @@
       if (data.alandMessage) appendMessage(data.alandMessage);
       if (data.handoffMessage) appendMessage(data.handoffMessage);
     } catch (err) {
-      if (window.FundezNotify) FundezNotify.show(err.message, 'error');
+      if (window.FandezNotify) FandezNotify.show(err.message, 'error');
     }
   });
 
@@ -229,5 +229,5 @@
     setTimeout(() => openPanel(), 300);
   }
 
-  window.FundezOpenAland = openPanel;
+  window.FandezOpenAland = openPanel;
 })();

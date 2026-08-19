@@ -4,7 +4,7 @@
   if (!form || !addressInput) return;
 
   function t(key, vars) {
-    return typeof FundezI18n !== 'undefined' ? FundezI18n.t(key, vars) : key;
+    return typeof FandezI18n !== 'undefined' ? FandezI18n.t(key, vars) : key;
   }
 
   const communeSelect = document.getElementById('address_commune');
@@ -97,27 +97,27 @@
   function enablePinAdjustment(label) {
     if (mapActions) mapActions.classList.remove('hidden');
     setMapStatus(t('register.address_map_tap_hint'));
-    if (typeof FundezMap !== 'undefined') {
-      FundezMap.enableMapPick('registerAddressMap', onPinDrag, {
+    if (typeof FandezMap !== 'undefined') {
+      FandezMap.enableMapPick('registerAddressMap', onPinDrag, {
         draggable: true,
         onMarkerDrag: onPinDrag
       });
     }
     if (label) {
-      const marker = FundezMap?.markers?.registerAddressMap?.destination;
+      const marker = FandezMap?.markers?.registerAddressMap?.destination;
       if (marker) marker.bindPopup(label);
     }
   }
 
   function disablePinAdjustment() {
     if (mapActions) mapActions.classList.add('hidden');
-    if (typeof FundezMap !== 'undefined') {
-      FundezMap.disableMapPick('registerAddressMap');
+    if (typeof FandezMap !== 'undefined') {
+      FandezMap.disableMapPick('registerAddressMap');
     }
   }
 
   function showMapAt(lat, lng, label, zoom, { draggable = false } = {}) {
-    if (typeof FundezMap === 'undefined' || typeof L === 'undefined') return;
+    if (typeof FandezMap === 'undefined' || typeof L === 'undefined') return;
     const mapEl = document.getElementById('registerAddressMap');
     if (!mapEl) return;
 
@@ -132,8 +132,8 @@
       onMarkerDrag: draggable ? onPinDrag : null
     };
 
-    if (!FundezMap.maps.registerAddressMap) {
-      FundezMap.init(mapEl, {
+    if (!FandezMap.maps.registerAddressMap) {
+      FandezMap.init(mapEl, {
         lat: latitude,
         lng: longitude,
         label: label || '',
@@ -143,7 +143,7 @@
         onMarkerDrag: draggable ? onPinDrag : null
       });
     } else {
-      FundezMap.update('registerAddressMap', latitude, longitude, label || '', markerOptions);
+      FandezMap.update('registerAddressMap', latitude, longitude, label || '', markerOptions);
     }
   }
 
@@ -539,8 +539,8 @@
         submitBtn.textContent = submitBtn.dataset.originalLabel || t('register.submit') || 'Crear cuenta';
         delete submitBtn.dataset.submitting;
         setMapStatus(t('register.error_address_timeout') || 'La creación está tardando. Intenta de nuevo.');
-        if (typeof FundezNotify !== 'undefined') {
-          FundezNotify.show(t('register.error_address_timeout') || 'La creación está tardando. Intenta de nuevo.', 'warning');
+        if (typeof FandezNotify !== 'undefined') {
+          FandezNotify.show(t('register.error_address_timeout') || 'La creación está tardando. Intenta de nuevo.', 'warning');
         }
       }, 45000);
     }

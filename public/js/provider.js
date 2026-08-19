@@ -17,7 +17,7 @@
   const socket = io();
 
   function t(key, vars) {
-    return typeof FundezI18n !== 'undefined' ? FundezI18n.t(key, vars) : key;
+    return typeof FandezI18n !== 'undefined' ? FandezI18n.t(key, vars) : key;
   }
 
   const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
@@ -71,10 +71,10 @@
 
   function startRepeatingAlert() {
     stopRepeatingAlert();
-    if (window.FundezAlerts) FundezAlerts.vibrate('order');
+    if (window.FandezAlerts) FandezAlerts.vibrate('order');
     alertInterval = setInterval(() => {
       playAlertSound();
-      if (window.FundezAlerts) FundezAlerts.vibrate('order');
+      if (window.FandezAlerts) FandezAlerts.vibrate('order');
     }, 2500);
   }
 
@@ -86,12 +86,12 @@
   }
 
   function pushBrowserNotification(title, body) {
-    if (window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'order',
-        title: title || 'Nuevo pedido Fundez',
+        title: title || 'Nuevo pedido Fandez',
         body: body || '',
-        tag: 'fundez-work-wall',
+        tag: 'fandez-work-wall',
         requireInteraction: true,
         system: true,
         url: '/proveedor'
@@ -105,7 +105,7 @@
           body,
           icon: '/favicon-32.png',
           requireInteraction: true,
-          tag: 'fundez-work-wall'
+          tag: 'fandez-work-wall'
         });
       } catch (_) {
         new Notification(title, { body, icon: '/favicon-32.png' });
@@ -260,7 +260,7 @@
 
   function fillModal(data) {
     currentRequest = data.request;
-    document.getElementById('modalServiceIcon').innerHTML = FundezIcons.wrap(data.service.icon, data.service.color, 'w-12 h-12', 28);
+    document.getElementById('modalServiceIcon').innerHTML = FandezIcons.wrap(data.service.icon, data.service.color, 'w-12 h-12', 28);
     document.getElementById('modalServiceName').textContent = data.service.name;
     document.getElementById('modalClient').textContent = data.client.name;
     document.getElementById('modalAddress').textContent = data.request.address;
@@ -268,9 +268,9 @@
       data.request.coords ? `${data.request.coords.lat}, ${data.request.coords.lng}` : '-33.4489, -70.6693';
 
     const mapEl = document.getElementById('modalMap');
-    if (data.request.coords && typeof FundezMap !== 'undefined') {
+    if (data.request.coords && typeof FandezMap !== 'undefined') {
       setTimeout(() => {
-        FundezMap.init(mapEl, {
+        FandezMap.init(mapEl, {
           lat: data.request.coords.lat,
           lng: data.request.coords.lng,
           label: data.request.address,
@@ -395,7 +395,7 @@
     const data = await res.json().catch(() => ({}));
     const techs = data.technicians || [];
     if (!techs.length) {
-      FundezNotify.show('No tienes técnicos listos para este servicio. Activa «Yo hago el servicio» o agrega un técnico en Mi equipo.', 'warning');
+      FandezNotify.show('No tienes técnicos listos para este servicio. Activa «Yo hago el servicio» o agrega un técnico en Mi equipo.', 'warning');
       return null;
     }
     if (techs.length === 1) return techs[0].id;
@@ -411,7 +411,7 @@
         <div class="w-full max-w-md rounded-2xl bg-zilo-surface border border-zilo-border p-5 shadow-xl">
           <p class="text-xs font-semibold text-zilo-accent mb-1">Al tomar el pedido</p>
           <h3 class="text-base font-semibold mb-1">¿Quién va a la visita?</h3>
-          <p class="text-xs text-zilo-muted mb-4">Si eliges a otra persona, tendrá 10 minutos para aceptar. Si vas tú, entras directo a la visita.</p>
+          <p class="text-xs text-zilo-muted mb-4">Si eliges a otra persona, tendrá ${window.FANDEZ_TIMEOUTS?.techAcceptMinutes || 10} minutos para aceptar. Si vas tú, entras directo a la visita.</p>
           <div class="space-y-2" data-role="tech-options"></div>
           <button type="button" data-role="tech-cancel" class="mt-3 w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm">Cancelar</button>
         </div>`;
@@ -455,7 +455,7 @@
 
     if (!data.success) {
       if (btn) btn.disabled = false;
-      FundezNotify.show(data.error || t('provider.js.take_error'), 'warning');
+      FandezNotify.show(data.error || t('provider.js.take_error'), 'warning');
       if (res.status === 409) removeWallItem(requestId);
       return;
     }
@@ -464,7 +464,7 @@
     closeModal();
 
     if (data.selfOperator) {
-      FundezNotify.show('Pedido tomado. Entrando a la visita…', 'success');
+      FandezNotify.show('Pedido tomado. Entrando a la visita…', 'success');
       try {
         const enter = await fetch('/proveedor/entrar-terreno', {
           method: 'POST',
@@ -480,7 +480,7 @@
 
     activeRequestId = requestId;
     startLocationWatch();
-    FundezNotify.show(t('provider.js.job_taken_chat'), 'success');
+    FandezNotify.show(t('provider.js.job_taken_chat'), 'success');
     setTimeout(() => {
       window.location.href = `/proveedor/mando?chat=${encodeURIComponent(requestId)}`;
     }, 700);
@@ -515,18 +515,18 @@
   });
 
   socket.on('provider_reassign_required', (payload) => {
-    if (window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'alert',
         title: payload?.title || 'Reasigna técnico',
         body: payload?.body || 'Un técnico no aceptó a tiempo.',
-        tag: 'fundez-reassign-' + (payload?.requestId || 'x'),
+        tag: 'fandez-reassign-' + (payload?.requestId || 'x'),
         requireInteraction: true,
         system: true,
         url: payload?.url || '/proveedor/mando'
       });
     } else {
-      FundezNotify.show(payload?.body || 'Debes reasignar un técnico', 'warning');
+      FandezNotify.show(payload?.body || 'Debes reasignar un técnico', 'warning');
     }
     setTimeout(() => {
       if (window.location.pathname.includes('/proveedor/mando')) location.reload();
@@ -586,42 +586,42 @@
     if (!data.success) {
       onlineToggle.checked = false;
       const msg = data.missing?.length
-        ? FundezI18n.t('js.verification_missing', { items: data.missing.join(', ') })
-        : (data.error || FundezI18n.t('js.cannot_go_online'));
-      FundezNotify.show(msg, 'warning');
+        ? FandezI18n.t('js.verification_missing', { items: data.missing.join(', ') })
+        : (data.error || FandezI18n.t('js.cannot_go_online'));
+      FandezNotify.show(msg, 'warning');
       if (data.redirect) setTimeout(() => { window.location.href = data.redirect; }, 1800);
       return;
     }
 
     if (online) {
       statusDot.className = 'w-3 h-3 rounded-full bg-zilo-success animate-pulse';
-      statusText.textContent = FundezI18n.t('provider.online');
-      statusSub.textContent = FundezI18n.t('provider.status_online_sub');
-      FundezNotify.show(data.dispatched > 0 ? FundezI18n.t('js.requests_on_wall', { count: data.dispatched }) : FundezI18n.t('js.online_activated'), 'success');
+      statusText.textContent = FandezI18n.t('provider.online');
+      statusSub.textContent = FandezI18n.t('provider.status_online_sub');
+      FandezNotify.show(data.dispatched > 0 ? FandezI18n.t('js.requests_on_wall', { count: data.dispatched }) : FandezI18n.t('js.online_activated'), 'success');
       startLocationWatch();
       loadWorkWall();
       syncStickyBar();
-      if (window.FundezAlerts) FundezAlerts.ensurePermission();
+      if (window.FandezAlerts) FandezAlerts.ensurePermission();
       else if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
         Notification.requestPermission();
       }
     } else {
       statusDot.className = 'w-3 h-3 rounded-full bg-zilo-muted/40';
-      statusText.textContent = FundezI18n.t('provider.offline');
-      statusSub.textContent = FundezI18n.t('provider.status_offline_sub');
+      statusText.textContent = FandezI18n.t('provider.offline');
+      statusSub.textContent = FandezI18n.t('provider.status_offline_sub');
       wallItems.clear();
       renderWorkWall();
       closeModal();
       stopLocationWatch();
       syncStickyBar();
-      FundezNotify.show(FundezI18n.t('js.offline_mode'), 'info');
+      FandezNotify.show(FandezI18n.t('js.offline_mode'), 'info');
     }
   });
 
   document.getElementById('btnRefreshWall')?.addEventListener('click', () => {
     loadWorkWall();
     workWall?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    FundezNotify.show(t('provider.js.wall_updated'), 'info');
+    FandezNotify.show(t('provider.js.wall_updated'), 'info');
   });
 
   document.getElementById('btnAccept')?.addEventListener('click', () => {
@@ -631,7 +631,7 @@
   document.getElementById('btnDecline')?.addEventListener('click', () => {
     closeModal();
     workWall?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    FundezNotify.show(FundezI18n.t('js.still_on_wall'), 'info');
+    FandezNotify.show(FandezI18n.t('js.still_on_wall'), 'info');
   });
 
   document.querySelectorAll('[data-role="register-invoice"]').forEach((button) => {
@@ -651,11 +651,11 @@
         });
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo registrar');
-        FundezNotify.show('Documento tributario registrado', 'success');
+        FandezNotify.show('Documento tributario registrado', 'success');
         setTimeout(() => location.reload(), 500);
       } catch (err) {
         button.disabled = false;
-        FundezNotify.show(err.message || 'No se pudo registrar', 'error');
+        FandezNotify.show(err.message || 'No se pudo registrar', 'error');
       }
     });
   });

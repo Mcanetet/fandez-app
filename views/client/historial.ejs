@@ -138,10 +138,10 @@
     const data = await res.json();
     submitBtn.disabled = false;
     if (!data.success) {
-      FundezNotify.show(data.error || (typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.historial.submit_error') : 'Error al enviar'), 'error');
+      FandezNotify.show(data.error || (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.historial.submit_error') : 'Error al enviar'), 'error');
       return;
     }
-    FundezNotify.show(typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.historial.thanks') : '¡Gracias!', 'success');
+    FandezNotify.show(typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.historial.thanks') : '¡Gracias!', 'success');
     closeReview();
     setTimeout(() => location.reload(), 800);
   });

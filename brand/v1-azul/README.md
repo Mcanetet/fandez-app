@@ -1,4 +1,4 @@
-# Marca Fundez v1 — azul (legacy)
+# Marca Fandez v1 — azul (legacy)
 
 Snapshot de la marca anterior (azul `#1C64B4` + casita/llave) por si quieres volver.
 

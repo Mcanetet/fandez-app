@@ -73,6 +73,7 @@
                data-job-id="<%= j.id %>"
                data-tech-status="<%= j.techStatus %>"
                data-assigned-at="<%= j.technicianAssignedAt || '' %>"
+               data-accept-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>"
                <% if (j.coords) { %>data-lat="<%= j.coords.lat %>" data-lng="<%= j.coords.lng %>"<% } %>>
             <div class="flex justify-between items-start mb-2">
               <div class="min-w-0">
@@ -84,7 +85,7 @@
               <span class="zilo-badge zilo-badge-muted shrink-0" data-role="status"><%= techLabels[j.techStatus] || j.techStatus %></span>
             </div>
             <% if (j.techStatus === 'asignado') { %>
-              <p class="text-xs font-semibold text-amber-800 mb-2 tabular-nums" data-role="accept-countdown">Tienes 10:00 para aceptar</p>
+              <p class="text-xs font-semibold text-amber-800 mb-2 tabular-nums" data-role="accept-countdown">Tienes <%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>:00 para aceptar</p>
             <% } %>
 
             <p class="text-xs text-zilo-muted/90 mb-2 flex items-start gap-1">
@@ -118,7 +119,7 @@
 
 <%- include('../partials/guide-modal', {
   role: 'tecnico',
-  title: 'Procedimiento de atención Fundez',
+  title: 'Procedimiento de atención Fandez',
   steps: [
     { title: 'Disponibilidad', body: 'Activa el modo en línea para ver trabajos disponibles. Sin estar en línea no recibes pedidos nuevos.', tip: 'Activa notificaciones del navegador (sonido y vibración).' },
     { title: 'Tomar un trabajo', body: 'Revisa dirección, notas y fotos del cliente. El primero que acepta se queda con el servicio.', tip: 'No aceptes si no puedes llegar a tiempo.' },
@@ -127,7 +128,7 @@
   ],
   extras: [
     { title: 'Sin sesgos', body: 'Trata cada caso por los hechos. No asumas capacidad de pago ni urgencias inventadas.' },
-    { title: 'Calidad', body: 'El estándar Fundez es el de un servicio europeo: respeto al hogar, claridad y cierre limpio.' }
+    { title: 'Calidad', body: 'El estándar Fandez es el de un servicio europeo: respeto al hogar, claridad y cierre limpio.' }
   ]
 }) %>
 
@@ -142,7 +143,7 @@
     const res = await fetch('/tecnico/volver-socio', { method: 'POST', headers: { Accept: 'application/json' } });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.success) {
-      if (window.FundezNotify) FundezNotify.show(data.error || 'No se pudo volver', 'error');
+      if (window.FandezNotify) FandezNotify.show(data.error || 'No se pudo volver', 'error');
       return;
     }
     window.location.href = data.redirect || '/proveedor';

@@ -54,7 +54,7 @@
     <section class="mb-5 p-4 rounded-2xl border border-amber-300 bg-amber-50" data-no-provider-card="<%= item.id %>">
       <p class="text-xs font-semibold text-aland-strong mb-1"><%= t('client.dashboard.action_required') %></p>
       <strong class="text-sm block mb-1"><%= t('client.dashboard.no_provider_title', { service: item.serviceName }) %></strong>
-      <p class="text-xs text-amber-900 mb-3"><%= t('client.dashboard.no_provider_body') %></p>
+      <p class="text-xs text-amber-900 mb-3"><%= t('client.dashboard.no_provider_body', { minutes: (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) }) %></p>
       <div class="grid grid-cols-2 gap-2">
         <button type="button" data-no-provider-choice="continue" data-request-id="<%= item.id %>"
           class="py-2.5 px-2 rounded-xl bg-zilo-accent text-white text-xs font-semibold"><%= t('client.js.no_provider_continue') %></button>
@@ -267,10 +267,10 @@
   const socket = io();
   <% if (typeof referralBonus !== 'undefined' && referralBonus) { %>
   document.addEventListener('DOMContentLoaded', () => {
-    const bonusMsg = (typeof FundezI18n !== 'undefined')
-      ? FundezI18n.t('client.js.referral_bonus', { amount: '<%= referralBonus.toLocaleString(locale === "en" ? "en-US" : "es-CL") %>' })
+    const bonusMsg = (typeof FandezI18n !== 'undefined')
+      ? FandezI18n.t('client.js.referral_bonus', { amount: '<%= referralBonus.toLocaleString(locale === "en" ? "en-US" : "es-CL") %>' })
       : '¡$<%= referralBonus.toLocaleString("es-CL") %> de crédito por invitación!';
-    FundezNotify.show(bonusMsg, 'success');
+    FandezNotify.show(bonusMsg, 'success');
   });
   <% } %>
   socket.on('modules_updated', ({ modules }) => {
@@ -282,15 +282,15 @@
     const active = services.filter(s => s.enabled);
     const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
     const fmt = n => new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
-    const averageLabel = (typeof FundezI18n !== 'undefined') ? FundezI18n.t('client.js.from_price') : 'promedio';
-    const noServices = (typeof FundezI18n !== 'undefined') ? FundezI18n.t('client.js.no_services') : 'No hay servicios disponibles.';
+    const averageLabel = (typeof FandezI18n !== 'undefined') ? FandezI18n.t('client.js.from_price') : 'promedio';
+    const noServices = (typeof FandezI18n !== 'undefined') ? FandezI18n.t('client.js.no_services') : 'No hay servicios disponibles.';
     if (active.length === 0) {
       grid.innerHTML = `<div class="col-span-2 text-center py-16 text-zilo-muted"><p class="text-sm">${noServices}</p></div>`;
       return;
     }
     grid.innerHTML = active.map(s => `
       <a href="/cliente/servicio/${s.id}" class="group flex flex-col items-center gap-3 p-5 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 transition-all">
-        ${FundezIcons.wrap(s.icon, null, 'w-14 h-14', 28)}
+        ${FandezIcons.wrap(s.icon, null, 'w-14 h-14', 28)}
         <span class="font-medium text-sm text-center">${s.name}</span>
         <span class="w-full text-center leading-tight">
           <span class="block text-[10px] text-zilo-muted">${averageLabel}</span>
@@ -303,15 +303,15 @@
   socket.emit('aland_join', { clientId: '<%= user.id %>' });
 
   (function refreshAttentionAlerts() {
-    if (!window.FundezAlerts) return;
-    FundezAlerts.ensurePermission();
+    if (!window.FandezAlerts) return;
+    FandezAlerts.ensurePermission();
     const items = <%- JSON.stringify((typeof attentionItems !== 'undefined' ? attentionItems : []).filter(function(i){ return i.urgency === 'high'; }).slice(0, 2)) %>;
     items.forEach(function(item) {
-      FundezAlerts.notify({
+      FandezAlerts.notify({
         type: 'alert',
         title: item.title,
         body: item.body,
-        tag: 'fundez-attention-' + item.requestId + '-' + item.type,
+        tag: 'fandez-attention-' + item.requestId + '-' + item.type,
         requireInteraction: true,
         url: item.url,
         system: true
@@ -320,30 +320,30 @@
   })();
 
   socket.on('client_open_request_alert', (payload) => {
-    if (window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'alert',
-        title: payload?.title || (typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.js.open_request_title') : 'Open request'),
-        body: payload?.body || (typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.js.open_request_body') : 'You have a pending request in Fundez.'),
-        tag: 'fundez-open-' + (payload?.requestId || 'x'),
+        title: payload?.title || (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.open_request_title') : 'Open request'),
+        body: payload?.body || (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.open_request_body') : 'You have a pending request in Fandez.'),
+        tag: 'fandez-open-' + (payload?.requestId || 'x'),
         requireInteraction: true,
         url: payload?.url || '/cliente',
         system: true
       });
     } else {
-      FundezNotify.show(payload?.body || (typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.js.open_request_body') : 'You have a pending request'), 'warning');
+      FandezNotify.show(payload?.body || (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.open_request_body') : 'You have a pending request'), 'warning');
     }
   });
 
   socket.on('no_provider_choice_required', () => {
-    if (window.FundezAlerts) FundezAlerts.notify({
+    if (window.FandezAlerts) FandezAlerts.notify({
       type: 'alert',
-      title: typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.dashboard.action_required') : 'Action required',
-      body: typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.js.no_provider_notify_body') : 'Aland needs you to choose how to continue.',
-      tag: 'fundez-no-provider',
+      title: typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.dashboard.action_required') : 'Action required',
+      body: typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_notify_body') : 'Aland needs you to choose how to continue.',
+      tag: 'fandez-no-provider',
       requireInteraction: true
     });
-    else FundezNotify.show(typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.js.no_provider_notify_body') : 'Aland needs you to choose how to continue.', 'warning');
+    else FandezNotify.show(typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_notify_body') : 'Aland needs you to choose how to continue.', 'warning');
     setTimeout(() => location.reload(), 1200);
   });
 
@@ -351,7 +351,7 @@
     button.addEventListener('click', async () => {
       const choice = button.dataset.noProviderChoice;
       const requestId = button.dataset.requestId;
-      const confirmRefund = typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.js.no_provider_refund_confirm') : 'Request a refund for the next business day?';
+      const confirmRefund = typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_refund_confirm') : 'Request a refund for the next business day?';
       if (choice === 'refund' && !confirm(confirmRefund)) return;
       const buttons = button.closest('[data-no-provider-card]')?.querySelectorAll('button') || [];
       buttons.forEach((item) => { item.disabled = true; });
@@ -369,20 +369,20 @@
           body: JSON.stringify({ choice })
         });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.success) throw new Error(data.error || (typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.js.no_provider_error') : 'Could not save your choice'));
+        if (!response.ok || !data.success) throw new Error(data.error || (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_error') : 'Could not save your choice'));
         const refundDone = choice === 'refund' || data.choice === 'refund';
-        FundezNotify.show(
+        FandezNotify.show(
           data.already && data.message
             ? data.message
             : (refundDone
-              ? (typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.js.refund_requested_body') : 'Refund scheduled for the next business day.')
-              : (typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.js.keep_searching_body') : "We'll keep searching.")),
+              ? (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.refund_requested_body') : 'Refund scheduled for the next business day.')
+              : (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.keep_searching_body') : "We'll keep searching.")),
           'success'
         );
         setTimeout(() => location.reload(), 700);
       } catch (error) {
         buttons.forEach((item) => { item.disabled = false; });
-        FundezNotify.show(error.message || (typeof FundezI18n !== 'undefined' ? FundezI18n.t('client.js.no_provider_error') : 'Could not save your choice'), 'error');
+        FandezNotify.show(error.message || (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_error') : 'Could not save your choice'), 'error');
       }
     });
   });

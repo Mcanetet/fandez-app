@@ -27,9 +27,9 @@
         });
         const result = await res.json();
         if (!res.ok || !result.success) throw new Error(result.error || 'No se pudo guardar');
-        FundezNotify.show('Especialidades actualizadas', 'success');
+        FandezNotify.show('Especialidades actualizadas', 'success');
       } catch (err) {
-        FundezNotify.show(err.message || 'No se pudo guardar', 'error');
+        FandezNotify.show(err.message || 'No se pudo guardar', 'error');
       } finally {
         saveSpecsBtn.disabled = false;
       }
@@ -51,11 +51,11 @@
         });
         const result = await res.json();
         if (!res.ok || !result.success) throw new Error(result.error || 'No se pudo guardar');
-        FundezNotify.show('Documento guardado', 'success');
+        FandezNotify.show('Documento guardado', 'success');
         setTimeout(() => location.reload(), 500);
       } catch (err) {
         button.disabled = false;
-        FundezNotify.show(err.message || 'No se pudo subir', 'error');
+        FandezNotify.show(err.message || 'No se pudo subir', 'error');
       }
     });
   });

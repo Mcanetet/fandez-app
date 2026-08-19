@@ -54,7 +54,7 @@
 
     <details class="mt-6 pt-4 border-t border-zilo-border text-xs text-zilo-muted">
       <summary class="cursor-pointer font-medium text-zilo-text"><%= t('verify.law_title') %></summary>
-      <p class="mt-2 leading-relaxed">Al verificar tu correo confirmas que puedes acceder a esta cuenta. Fundez trata tus datos según nuestra <a href="/legal/privacidad" class="text-zilo-accent underline">Política de Privacidad</a>. Puedes ejercer tus derechos ARCO+ escribiendo a <a href="mailto:<%= company.dpoEmail %>" class="text-zilo-accent underline"><%= company.dpoEmail %></a> o en <a href="/legal/mis-datos" class="text-zilo-accent underline">Mis datos personales</a>.</p>
+      <p class="mt-2 leading-relaxed">Al verificar tu correo confirmas que puedes acceder a esta cuenta. Fandez trata tus datos según nuestra <a href="/legal/privacidad" class="text-zilo-accent underline">Política de Privacidad</a>. Puedes ejercer tus derechos ARCO+ escribiendo a <a href="mailto:<%= company.dpoEmail %>" class="text-zilo-accent underline"><%= company.dpoEmail %></a> o en <a href="/legal/mis-datos" class="text-zilo-accent underline">Mis datos personales</a>.</p>
     </details>
   </div>
 </div>
@@ -84,16 +84,16 @@
       const res = await fetch('/verificar-email/reenviar', { method: 'POST', headers: { Accept: 'application/json' } });
       const data = await res.json();
       if (!data.success) {
-        FundezNotify?.show(data.error || 'No se pudo reenviar', 'warning');
+        FandezNotify?.show(data.error || 'No se pudo reenviar', 'warning');
         cooldown = data.cooldown || 60;
         tick();
         return;
       }
-      FundezNotify?.show(data.demo ? 'Código reenviado (modo demo — revisa consola)' : 'Código reenviado a tu correo', 'success');
+      FandezNotify?.show(data.demo ? 'Código reenviado (modo demo — revisa consola)' : 'Código reenviado a tu correo', 'success');
       cooldown = 60;
       tick();
     } catch (_) {
-      FundezNotify?.show('Error de conexión', 'error');
+      FandezNotify?.show('Error de conexión', 'error');
       btn.disabled = false;
     }
   });

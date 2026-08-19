@@ -21,7 +21,7 @@
 
     <% if (summary.canOperate) { %>
       <div class="p-5 rounded-2xl zilo-card-premium text-center">
-        <p class="text-sm font-semibold text-emerald-600 mb-2">Contrato aprobado — puedes operar en Fundez</p>
+        <p class="text-sm font-semibold text-emerald-600 mb-2">Contrato aprobado — puedes operar en Fandez</p>
         <p class="text-xs text-zilo-muted">Vigente hasta <%= contract.expiresAt ? new Date(contract.expiresAt).toLocaleDateString('es-CL') : '—' %></p>
       </div>
     <% } else if (summary.status === 'pending_review') { %>
@@ -112,7 +112,7 @@
         </div>
         <label class="flex items-start gap-2 text-xs cursor-pointer">
           <input type="checkbox" id="acceptContract" <%= contract.signature?.accepted ? 'checked' : '' %>>
-          <span>Acepto el contrato de prestación de servicios v<%= templateVersion %> y autorizo el tratamiento de mis antecedentes para fines de cumplimiento legal y operación de la plataforma Fundez.</span>
+          <span>Acepto el contrato de prestación de servicios v<%= templateVersion %> y autorizo el tratamiento de mis antecedentes para fines de cumplimiento legal y operación de la plataforma Fandez.</span>
         </label>
       </section>
 

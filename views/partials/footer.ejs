@@ -1,7 +1,10 @@
   <script src="/socket.io/socket.io.js"></script>
+  <script>
+    window.FANDEZ_TIMEOUTS = <%- JSON.stringify(typeof requestTimeouts !== 'undefined' ? requestTimeouts : { unassignedNoticeMinutes: 15, techAcceptMinutes: 10, providerReassignMinutes: 10, openRequestMaxHours: 24 }) %>;
+  </script>
   <script src="<%= asset('/js/i18n.js') %>"></script>
   <% if (typeof clientI18n !== 'undefined') { %>
-  <script>window.FundezI18n.strings = <%- JSON.stringify(clientI18n) %>;</script>
+  <script>window.FandezI18n.strings = <%- JSON.stringify(clientI18n) %>;</script>
   <% } %>
   <script src="<%= asset('/js/notify.js') %>"></script>
   <script src="<%= asset('/js/icons.js') %>"></script>

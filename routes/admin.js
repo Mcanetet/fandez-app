@@ -147,7 +147,7 @@ router.get('/login', (req, res) => {
   }
   const expired = req.query.expired === '1';
   res.render('admin/login', {
-    title: 'Admin — Fundez',
+    title: 'Admin — Fandez',
     error: expired ? 'La verificación MFA expiró. Ingresa nuevamente.' : null
   });
 });
@@ -160,7 +160,7 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
   if (result.error === 'wrong_portal') {
     store.logSecurityEvent('admin_login_wrong_role', email, req);
     return res.render('admin/login', {
-      title: 'Admin — Fundez',
+      title: 'Admin — Fandez',
       error: 'Credenciales no válidas para administración.'
     });
   }
@@ -168,7 +168,7 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
   if (result.error === 'blocked') {
     store.logSecurityEvent('admin_login_blocked', email, req);
     return res.render('admin/login', {
-      title: 'Admin — Fundez',
+      title: 'Admin — Fandez',
       error: 'Esta cuenta está desactivada.'
     });
   }
@@ -176,7 +176,7 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
   if (result.error) {
     store.logSecurityEvent('admin_login_fail', email, req);
     return res.render('admin/login', {
-      title: 'Admin — Fundez',
+      title: 'Admin — Fandez',
       error: 'Credenciales incorrectas.'
     });
   }
@@ -218,7 +218,7 @@ router.get('/mfa', (req, res) => {
     return res.redirect(adminUrl('/login'));
   }
   res.render('admin/mfa', {
-    title: 'Verificación MFA — Fundez',
+    title: 'Verificación MFA — Fandez',
     email: pending.email,
     error: null
   });
@@ -234,7 +234,7 @@ router.post('/mfa', rateLimitLogin(6), async (req, res) => {
   if (!(await store.verifyMfaCode(pending.userId, code))) {
     store.logSecurityEvent('admin_mfa_fail', pending.email, req);
     return res.render('admin/mfa', {
-      title: 'Verificación MFA — Fundez',
+      title: 'Verificación MFA — Fandez',
       email: pending.email,
       error: 'Código incorrecto o expirado.'
     });
@@ -265,7 +265,7 @@ router.get('/mfa/setup', requireRole('admin'), async (req, res) => {
 
   const qr = await qrDataUrl(setup.otpauthUrl);
   res.render('admin/mfa-setup', {
-    title: 'Activar MFA — Fundez',
+    title: 'Activar MFA — Fandez',
     qrDataUrl: qr,
     secret: setup.secret,
     email: req.session.user.email,
@@ -277,7 +277,7 @@ router.post('/mfa/setup', requireRole('admin'), async (req, res) => {
   const result = await store.confirmMfaSetup(req.session.user.id, req.body.code);
   if (result.error) {
     return res.status(400).render('admin/mfa-setup', {
-      title: 'Activar MFA — Fundez',
+      title: 'Activar MFA — Fandez',
       qrDataUrl: null,
       secret: null,
       email: req.session.user.email,
@@ -340,7 +340,7 @@ router.get('/', requireRole('admin'), async (req, res) => {
   };
 
   res.render('admin/dashboard', {
-    title: 'Fundez — Admin',
+    title: 'Fandez — Admin',
     user: req.session.user,
     stats,
     services: localizeServices(store.SERVICES, req.t),
@@ -738,7 +738,7 @@ router.get('/finanzas/export.csv', requireRole('admin'), requireAdminPermission(
   lines.push('Resumen');
   lines.push(`Visitas cobradas,${report.summary.visitsCollected}`);
   lines.push(`Recargos tarjeta,${report.summary.cardSurcharges}`);
-  lines.push(`Comisión Fundez,${report.summary.appCommission}`);
+  lines.push(`Comisión Fandez,${report.summary.appCommission}`);
   lines.push(`Pendiente socios,${report.summary.providerPending}`);
   lines.push(`Transferencias pendientes,${report.summary.pendingTransferCount}`);
 
@@ -755,7 +755,7 @@ router.get('/finanzas/export.csv', requireRole('admin'), requireAdminPermission(
 
   store.logSecurityEvent('finanzas_export', `${payments.length} filas`, req);
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="fundez-finanzas.csv"');
+  res.setHeader('Content-Disposition', 'attachment; filename="fandez-finanzas.csv"');
   res.send('\uFEFF' + lines.join('\n'));
 });
 
@@ -774,7 +774,7 @@ router.get('/finanzas/balance.csv', requireRole('admin'), requireAdminPermission
 
   store.logSecurityEvent('finanzas_balance_export', `${pack.accountBalances.length} cuentas`, req);
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="fundez-balance.csv"');
+  res.setHeader('Content-Disposition', 'attachment; filename="fandez-balance.csv"');
   res.send('\uFEFF' + lines.join('\n'));
 });
 
@@ -1072,7 +1072,7 @@ router.get('/backups/:id/download', requireRole('admin'), async (req, res) => {
   if (!item) return res.status(404).json({ error: 'Backup no encontrado' });
 
   const ver = item.appVersion || 'backup';
-  const filename = `fundez-backup-v${ver}-${String(item.createdAt).slice(0, 10)}.json`;
+  const filename = `fandez-backup-v${ver}-${String(item.createdAt).slice(0, 10)}.json`;
   const snapshotPath = item.folderPath ? path.join(item.folderPath, 'snapshot.json') : null;
 
   if (snapshotPath && fs.existsSync(snapshotPath)) {
@@ -1121,7 +1121,7 @@ router.get('/precios', requireRole('admin'), requireAdminPermission('precios.vie
   const pricing = store.getPricingConfig();
   const gateways = require('../lib/payments/gateways');
   res.render('admin/precios', {
-    title: 'Configuración de precios — Fundez Admin',
+    title: 'Configuración de precios — Fandez Admin',
     user: req.session.user,
     pricing,
     serviceCatalog: store.getServiceCatalog(),

@@ -3,21 +3,21 @@
  *
  * Flujo:
  * 1. Entrar a /login
- * 2. Escribir correo 'cliente@fundez.cl' y contraseña 'cliente123'
+ * 2. Escribir correo 'cliente@fandez.cl' y contraseña 'cliente123'
  * 3. Clic en "Ingresar"
  * 4. Según estado de verificación:
  *    - verificado → /cliente con saludo "Bienvenida" + nombre
  *    - sin verificar → /verificar-email mostrando el correo
  *
  * Ejecutar:
- *   BASE_URL=https://www.fundez.cl npm run test:e2e -- e2e/login-cliente.spec.js
+ *   BASE_URL=https://www.fandez.cl npm run test:e2e -- e2e/login-cliente.spec.js
  *   # o con app local + MySQL:
  *   E2E_START_SERVER=1 npm run test:e2e -- e2e/login-cliente.spec.js
  */
 const { test, expect } = require('@playwright/test');
 
 const DEMO_CLIENT = {
-  email: 'cliente@fundez.cl',
+  email: 'cliente@fandez.cl',
   password: 'cliente123',
   firstName: 'María'
 };

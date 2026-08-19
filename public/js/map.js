@@ -1,4 +1,4 @@
-window.FundezMap = {
+window.FandezMap = {
   maps: {},
   markers: {},
 
@@ -17,9 +17,9 @@ window.FundezMap = {
   },
 
   _techHtml() {
-    return `<div class="fundez-tech-marker" aria-hidden="true">
-      <span class="fundez-tech-marker__pulse"></span>
-      <span class="fundez-tech-marker__dot">
+    return `<div class="fandez-tech-marker" aria-hidden="true">
+      <span class="fandez-tech-marker__pulse"></span>
+      <span class="fandez-tech-marker__dot">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 11h18"/><path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/>
           <circle cx="7.5" cy="15.5" r="1.5"/><circle cx="16.5" cy="15.5" r="1.5"/>
@@ -31,7 +31,7 @@ window.FundezMap = {
 
   _destIcon() {
     return L.divIcon({
-      className: 'fundez-map-pin',
+      className: 'fandez-map-pin',
       html: this._pinHtml('#C45C14'),
       iconSize: [32, 42],
       iconAnchor: [16, 42],
@@ -41,7 +41,7 @@ window.FundezMap = {
 
   _providerIcon() {
     return L.divIcon({
-      className: 'fundez-map-pin fundez-tech-pin',
+      className: 'fandez-map-pin fandez-tech-pin',
       html: this._techHtml(),
       iconSize: [44, 44],
       iconAnchor: [22, 22],
@@ -228,3 +228,5 @@ window.FundezMap = {
     setTimeout(() => map.invalidateSize(), 80);
   }
 };
+
+window.FundezMap = window.FandezMap;

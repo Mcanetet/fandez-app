@@ -1,5 +1,5 @@
 (function () {
-  const notify = (msg, type) => { if (window.FundezNotify) window.FundezNotify.show(msg, type); };
+  const notify = (msg, type) => { if (window.FandezNotify) window.FandezNotify.show(msg, type); };
   const myRole = 'provider';
   let activeChatId = null;
 
@@ -31,7 +31,7 @@
     if (senderType === 'provider') return 'Socio';
     if (senderType === 'tecnico') return 'Técnico';
     if (senderType === 'client') return 'Cliente';
-    return 'Fundez';
+    return 'Fandez';
   }
 
   function displayName(msg) {
@@ -39,7 +39,7 @@
     const role = roleLabel(msg.senderType);
     if (!raw) return role;
     if (raw.includes('·')) return raw.split('·')[0].trim() || role;
-    if (/^(socio|técnico|tecnico|cliente|fundez)/i.test(raw)) return raw;
+    if (/^(socio|técnico|tecnico|cliente|fandez)/i.test(raw)) return raw;
     return raw;
   }
 
@@ -88,13 +88,13 @@
         chatThread.scrollTop = chatThread.scrollHeight;
       }
       if (typeof io !== 'undefined') {
-        const socket = window.__fundezMandoSocket || io();
-        window.__fundezMandoSocket = socket;
+        const socket = window.__fandezMandoSocket || io();
+        window.__fandezMandoSocket = socket;
         socket.emit('register_client', requestId);
         const event = `request_chat_${requestId}`;
-        if (!socket.__fundezChatHandlers) socket.__fundezChatHandlers = new Set();
-        if (!socket.__fundezChatHandlers.has(event)) {
-          socket.__fundezChatHandlers.add(event);
+        if (!socket.__fandezChatHandlers) socket.__fandezChatHandlers = new Set();
+        if (!socket.__fandezChatHandlers.has(event)) {
+          socket.__fandezChatHandlers.add(event);
           socket.on(event, (payload) => {
             if (payload?.message && activeChatId === requestId) appendMessage(payload.message);
           });
@@ -179,6 +179,26 @@
   tickAcceptCountdowns();
   setInterval(tickAcceptCountdowns, 1000);
 
+  function tickReassignCountdowns() {
+    document.querySelectorAll('[data-role="reassign-countdown"]').forEach((el) => {
+      const start = Date.parse(el.dataset.reassignDeadline || '');
+      const mins = Math.max(1, parseInt(el.dataset.reassignTimeoutMin || '10', 10) || 10);
+      if (!Number.isFinite(start)) {
+        el.textContent = `Quedan ${mins}:00 para asignar otro técnico`;
+        return;
+      }
+      const left = Math.max(0, start + mins * 60000 - Date.now());
+      const mm = String(Math.floor(left / 60000)).padStart(2, '0');
+      const ss = String(Math.floor((left % 60000) / 1000)).padStart(2, '0');
+      el.textContent = left <= 0
+        ? '00:00 · el pedido vuelve a búsqueda'
+        : `Quedan ${mm}:${ss} para asignar otro técnico`;
+      el.classList.toggle('text-red-700', left <= 60000);
+    });
+  }
+  tickReassignCountdowns();
+  setInterval(tickReassignCountdowns, 1000);
+
   document.querySelectorAll('[data-role="open-chat"]').forEach((btn) => {
     btn.addEventListener('click', () => openChat(btn.dataset.id, btn.dataset.client));
   });
@@ -215,7 +235,7 @@
 
   if (typeof io !== 'undefined') {
     const socket = io();
-    window.__fundezMandoSocket = socket;
+    window.__fandezMandoSocket = socket;
     socket.on('connect', () => {
       document.querySelectorAll('[data-request-id]').forEach(card => {
         socket.emit('register_client', card.dataset.requestId);
@@ -241,13 +261,13 @@
           completado: 'Completado'
         };
         if (statusEl && labels[ts]) statusEl.textContent = labels[ts];
-        if (ts && ts !== lastStatus && labels[ts] && window.FundezAlerts) {
+        if (ts && ts !== lastStatus && labels[ts] && window.FandezAlerts) {
           const isDone = ts === 'completado';
-          FundezAlerts.notify({
+          FandezAlerts.notify({
             type: isDone ? 'success' : 'update',
             title: 'Actualización del servicio',
             body: labels[ts],
-            tag: 'fundez-track-' + requestId
+            tag: 'fandez-track-' + requestId
           });
           lastStatus = ts;
         } else if (ts) {

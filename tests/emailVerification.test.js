@@ -12,7 +12,7 @@ jest.mock('../lib/mailer', () => ({
 }));
 
 jest.mock('../lib/seo', () => ({
-  getSiteUrl: jest.fn(() => 'https://www.fundez.cl')
+  getSiteUrl: jest.fn(() => 'https://www.fandez.cl')
 }));
 
 const mailer = require('../lib/mailer');
@@ -33,7 +33,7 @@ describe('lib/emailVerification', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.SESSION_SECRET = 'test-secret-fundez';
+    process.env.SESSION_SECRET = 'test-secret-fandez';
   });
 
   // ─────────────────────────────────────────────
@@ -217,19 +217,19 @@ describe('lib/emailVerification', () => {
     };
 
     it('happy path: envía correo y retorna hash + fechas + mailResult', async () => {
-      mailer.sendMail.mockResolvedValue({ messageId: '<abc@fundez.cl>', to: baseUser.email });
+      mailer.sendMail.mockResolvedValue({ messageId: '<abc@fandez.cl>', to: baseUser.email });
 
       const result = await sendVerificationEmail(baseUser, { locale: 'es' });
 
       expect(mailer.sendMail).toHaveBeenCalledTimes(1);
       const payload = mailer.sendMail.mock.calls[0][0];
       expect(payload.to).toBe(baseUser.email);
-      expect(payload.subject).toMatch(/verificación|Fundez/i);
+      expect(payload.subject).toMatch(/verificación|Fandez/i);
       expect(payload.text).toContain(baseUser.name);
       expect(result.codeHash).toMatch(/^[a-f0-9]{64}$/);
       expect(new Date(result.expiresAt).getTime()).toBeGreaterThan(Date.now());
       expect(new Date(result.expiresAt).getTime()).toBeLessThanOrEqual(Date.now() + CODE_TTL_MS + 1000);
-      expect(result.mailResult.messageId).toBe('<abc@fundez.cl>');
+      expect(result.mailResult.messageId).toBe('<abc@fandez.cl>');
     });
 
     it('happy path: locale en genera asunto en inglés', async () => {

@@ -1,4 +1,4 @@
-window.FundezI18n = window.FundezI18n || {
+window.FandezI18n = window.FandezI18n || {
   strings: {},
   t(key, vars) {
     let str = this.strings[key] || key;
@@ -8,3 +8,5 @@ window.FundezI18n = window.FundezI18n || {
     return str;
   }
 };
+
+window.FundezI18n = window.FandezI18n;

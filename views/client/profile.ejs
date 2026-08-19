@@ -148,8 +148,8 @@
       body: JSON.stringify(Object.fromEntries(fd))
     });
     const data = await res.json();
-    if (data.success) FundezNotify.show('Perfil actualizado', 'success');
-    else FundezNotify.show(data.error || 'Error', 'error');
+    if (data.success) FandezNotify.show('Perfil actualizado', 'success');
+    else FandezNotify.show(data.error || 'Error', 'error');
   });
 
   const billingForm = document.getElementById('billingForm');
@@ -187,8 +187,8 @@
       })
     });
     const data = await res.json();
-    if (data.success) FundezNotify.show('Datos de facturación guardados', 'success');
-    else FundezNotify.show(data.error || 'Error', 'error');
+    if (data.success) FandezNotify.show('Datos de facturación guardados', 'success');
+    else FandezNotify.show(data.error || 'Error', 'error');
   });
 
   document.getElementById('btnSwitchProvider')?.addEventListener('click', async () => {
@@ -198,7 +198,7 @@
       window.location.href = data.redirect;
       return;
     }
-    FundezNotify.show(data.error || 'No se pudo volver al panel socio', 'error');
+    FandezNotify.show(data.error || 'No se pudo volver al panel socio', 'error');
   });
 </script>
 

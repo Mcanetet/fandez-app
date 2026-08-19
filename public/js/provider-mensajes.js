@@ -79,17 +79,17 @@
             threadEl.scrollTop = threadEl.scrollHeight;
           }
           const msg = payload.message;
-          if (msg && msg.senderType === 'client' && window.FundezAlerts) {
-            FundezAlerts.notify({
+          if (msg && msg.senderType === 'client' && window.FandezAlerts) {
+            FandezAlerts.notify({
               type: 'message',
               title: msg.senderName || 'Mensaje del cliente',
               body: msg.body || 'Nuevo mensaje',
-              tag: 'fundez-provider-msg',
+              tag: 'fandez-provider-msg',
               system: payload.conversationId !== activeId || document.hidden
             });
           }
         });
-        socket.on('aland_escalated', () => { if (window.FundezAlerts) FundezAlerts.notify({ type: 'alert', title: 'Caso derivado', body: 'Un caso fue derivado a tu bandeja.', tag: 'fundez-escalated' }); loadList(); });
+        socket.on('aland_escalated', () => { if (window.FandezAlerts) FandezAlerts.notify({ type: 'alert', title: 'Caso derivado', body: 'Un caso fue derivado a tu bandeja.', tag: 'fandez-escalated' }); loadList(); });
       }
       socket.emit('aland_join', { conversationId: id });
     }
@@ -117,7 +117,7 @@
       input.value = '';
       loadList();
     } catch (err) {
-      if (window.FundezNotify) FundezNotify.show(err.message, 'error');
+      if (window.FandezNotify) FandezNotify.show(err.message, 'error');
     } finally {
       input.disabled = false;
     }

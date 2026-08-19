@@ -1,9 +1,9 @@
 (function () {
-  const cfg = window.FundezErrorPage;
+  const cfg = window.FandezErrorPage;
   if (!cfg || !cfg.slogans || !cfg.slogans.length) return;
 
   const sloganEl = document.getElementById('errorSloganText');
-  const tips = document.querySelectorAll('.fundez-error-tip');
+  const tips = document.querySelectorAll('.fandez-error-tip');
   if (!sloganEl) return;
 
   let sloganIdx = 0;

@@ -2,10 +2,10 @@
 const { defineConfig, devices } = require('@playwright/test');
 
 /**
- * E2E Fundez (Playwright)
+ * E2E Fandez (Playwright)
  *
  * Opciones:
- *   BASE_URL=https://www.fundez.cl npm run test:e2e   → contra entorno remoto
+ *   BASE_URL=https://www.fandez.cl npm run test:e2e   → contra entorno remoto
  *   E2E_START_SERVER=1 npm run test:e2e             → levanta node index.js (requiere MySQL)
  *   npm start  +  npm run test:e2e                  → reutiliza servidor local en :3000
  */

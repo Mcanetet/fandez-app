@@ -1,8 +1,8 @@
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'soporte@fundez.cl';
-const DPO_EMAIL = process.env.DPO_EMAIL || 'privacidad@fundez.cl';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'soporte@fandez.cl';
+const DPO_EMAIL = process.env.DPO_EMAIL || 'privacidad@fandez.cl';
 
 module.exports = {
-  name: 'Fundez SpA',
+  name: 'Fandez SpA',
   rut: '77.777.777-7',
   supportEmail: SUPPORT_EMAIL,
   email: SUPPORT_EMAIL,
@@ -15,7 +15,7 @@ module.exports = {
 
   whatsappLink(message) {
     const num = this.whatsapp.replace(/\D/g, '');
-    const text = encodeURIComponent(message || 'Hola Fundez, necesito ayuda con un servicio.');
+    const text = encodeURIComponent(message || 'Hola Fandez, necesito ayuda con un servicio.');
     return `https://wa.me/${num}?text=${text}`;
   },
 
@@ -26,8 +26,8 @@ module.exports = {
     const trackUrl = `${this.appUrl}/seguimiento/${request.guardianToken}`;
     const from = request.clientName;
     const msg = request.isGift
-      ? `¡Hola ${request.beneficiaryName}! ${from} te regaló una visita técnica de ${request.serviceName} en Fundez.${request.giftMessage ? ` Mensaje: "${request.giftMessage}"` : ''} Dirección: ${request.address}. Sigue el servicio en vivo: ${trackUrl}`
-      : `Hola ${request.beneficiaryName}, tu servicio Fundez de ${request.serviceName} está confirmado. Sigue el estado: ${trackUrl}`;
+      ? `¡Hola ${request.beneficiaryName}! ${from} te regaló una visita técnica de ${request.serviceName} en Fandez.${request.giftMessage ? ` Mensaje: "${request.giftMessage}"` : ''} Dirección: ${request.address}. Sigue el servicio en vivo: ${trackUrl}`
+      : `Hola ${request.beneficiaryName}, tu servicio Fandez de ${request.serviceName} está confirmado. Sigue el estado: ${trackUrl}`;
     return `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`;
   },
 

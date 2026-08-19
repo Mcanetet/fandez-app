@@ -10,6 +10,7 @@ const repository = require('./repository');
 const { toServingUrl } = require('../lib/uploads');
 const { getAppVersionInfo } = require('../lib/version');
 const { t: translate } = require('../lib/i18n');
+const { getRequestTimeouts } = require('../lib/requestTimeouts');
 const { verifyPassword, hashPassword } = require('../lib/password');
 const { resolvePayoutSchedule, formatPayDate, nextBusinessDayIso } = require('../lib/payoutSchedule');
 const {
@@ -911,7 +912,7 @@ function getHomePassport(clientId) {
         date: r.completedAt || r.createdAt,
         note: r.notes || `Servicio ${r.serviceName} completado`,
         healthImpact: 8,
-        providerName: r.providerId ? getUserById(r.providerId)?.name : 'Técnico Fundez'
+        providerName: r.providerId ? getUserById(r.providerId)?.name : 'Técnico Fandez'
       }))
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -961,7 +962,7 @@ function addLogbookEntryFromRequest(request) {
     date: (request.completedAt || new Date().toISOString()).slice(0, 10),
     note: request.notes || `Mantenimiento ${request.serviceName}`,
     healthImpact: 10,
-    providerName: request.providerId ? getUserById(request.providerId)?.name : 'Técnico Fundez'
+    providerName: request.providerId ? getUserById(request.providerId)?.name : 'Técnico Fandez'
   };
   homeLogbook.unshift(entry);
   repository.persist(() => repository.saveLogbookEntry(entry), `logbook ${entry.id}`);
@@ -1239,7 +1240,7 @@ function promoteDueScheduledSearches(now = Date.now()) {
 function expireStaleUnassignedRequests(now = Date.now(), maxOpenHours = null) {
   const hours = Math.max(
     4,
-    Number(maxOpenHours) || parseInt(process.env.OPEN_REQUEST_MAX_HOURS || '24', 10) || 24
+    Number(maxOpenHours) || getRequestTimeouts().openRequestMaxHours
   );
   const maxMs = hours * 3600 * 1000;
   const expired = [];
@@ -1363,7 +1364,7 @@ function getClientAttentionItems(clientId, now = Date.now()) {
         type: 'no_provider_choice',
         urgency: 'high',
         title: 'Elige cómo continuar',
-        body: `Aún no hay técnico para ${request.serviceName}. Puedes seguir buscando o cancelar (se retiene la tarifa base).`,
+        body: `Aún no hay técnico para ${request.serviceName}. Puedes seguir buscando o cancelar (devolución completa si nadie aceptó).`,
         url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
       });
       continue;
@@ -1401,14 +1402,31 @@ function getClientAttentionItems(clientId, now = Date.now()) {
     if (request.status === 'searching' && !request.providerId) {
       const started = Date.parse(request.searchingAt || request.scheduledSearchAt || request.paidAt || '');
       const ageMin = Number.isFinite(started) ? Math.floor((now - started) / 60000) : 0;
+      const noticeMin = getRequestTimeouts().unassignedNoticeMinutes;
       items.push({
         requestId: request.id,
         type: 'searching_open',
-        urgency: ageMin >= 15 ? 'high' : 'medium',
+        urgency: ageMin >= noticeMin ? 'high' : 'medium',
         title: 'Búsqueda de técnico abierta',
-        body: ageMin >= 15
+        body: ageMin >= noticeMin
           ? `Llevamos ${ageMin} min buscando para ${request.serviceName}. Revisa opciones en la app.`
           : `Estamos buscando técnico para ${request.serviceName}.`,
+        url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
+      });
+      continue;
+    }
+
+    if (
+      ['assigned', 'in_progress'].includes(request.status)
+      && request.awaitingProviderReassign
+      && !request.technicianId
+    ) {
+      items.push({
+        requestId: request.id,
+        type: 'provider_reassigning',
+        urgency: 'medium',
+        title: 'El socio está asignando otro técnico',
+        body: `El técnico anterior no aceptó a tiempo. El socio debe asignar a otra persona para ${request.serviceName}.`,
         url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
       });
       continue;
@@ -1456,7 +1474,7 @@ function confirmServiceSame(requestId, technicianId) {
   appendChatMessage(request, {
     senderType: 'system',
     senderId: null,
-    senderName: 'Fundez',
+    senderName: 'Fandez',
     body: 'El técnico confirmó que el servicio solicitado es el correcto.'
   });
   repository.persist(() => repository.saveRequest(request), `confirmar servicio ${requestId}`);
@@ -1752,7 +1770,7 @@ function canProviderGoOnline(provider) {
   const contractSummary = getContractSummary(provider.providerContract);
   if (!contractSummary.canOperate) {
     if (contractSummary.status === 'pending_review') missing.push('contrato en revisión legal');
-    else if (contractSummary.status === 'rejected') missing.push('contrato rechazado — escribe a soporte@fundez.cl');
+    else if (contractSummary.status === 'rejected') missing.push('contrato rechazado — escribe a soporte@fandez.cl');
     else if (contractSummary.status === 'needs_info') missing.push('contrato — antecedentes pendientes');
     else if (contractSummary.status === 'expired') missing.push('contrato vencido — renovar');
     else missing.push('contrato de socio firmado y aprobado');
@@ -2586,7 +2604,7 @@ async function enableSelfOperator(providerId) {
   }
 
   const hashedPassword = await hashPassword(`self-${providerId}-${uuidv4()}`);
-  const email = `self.${String(providerId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 28)}@fundez.self`;
+  const email = `self.${String(providerId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 28)}@fandez.self`;
   if (getUserByEmail(email)) {
     return { error: 'Ya existe un perfil operativo. Recarga la página.' };
   }
@@ -3217,15 +3235,15 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
     acceptChatMessage = appendChatMessage(request, {
       senderType: 'system',
       senderId: null,
-      senderName: 'Fundez',
+      senderName: 'Fandez',
       body: `${request.technicianName || user.name} ha tomado tu pedido. Su hora de llegada estimada es de ${request.etaLabel}.`
     });
   } else {
     acceptChatMessage = appendChatMessage(request, {
       senderType: 'system',
       senderId: null,
-      senderName: 'Fundez',
-      body: `${user.name} tomó tu pedido y asignó a ${request.technicianName}. El técnico tiene 10 minutos para aceptar; luego te indicará su hora de llegada.`
+      senderName: 'Fandez',
+      body: `${user.name} tomó tu pedido y asignó a ${request.technicianName}. El técnico tiene ${getRequestTimeouts().techAcceptMinutes} minutos para aceptar; luego te indicará su hora de llegada.`
     });
   }
 
@@ -3259,7 +3277,7 @@ function setTechnicianEta(requestId, technicianId, { etaMinutesMin, etaMinutesMa
   const message = appendChatMessage(request, {
     senderType: 'system',
     senderId: null,
-    senderName: 'Fundez',
+    senderName: 'Fandez',
     body: wasFirstEta
       ? `${techName} ha tomado tu pedido. Su hora de llegada estimada es de ${request.etaLabel}.`
       : `${techName} actualizó su hora de llegada estimada: ${request.etaLabel}.`
@@ -3307,15 +3325,15 @@ function chatRoleLabel(senderType) {
   if (senderType === 'tecnico') return 'Técnico';
   if (senderType === 'client') return 'Cliente';
   if (senderType === 'system') return 'Sistema';
-  return 'Fundez';
+  return 'Fandez';
 }
 
 function chatDisplayName(senderType, userName) {
   const role = chatRoleLabel(senderType);
   const name = String(userName || '').trim();
-  if (senderType === 'system') return 'Fundez';
+  if (senderType === 'system') return 'Fandez';
   if (name && name.toLowerCase() !== role.toLowerCase()) return `${name} · ${role}`;
-  return role === 'Socio' ? 'Socio Fundez' : (role === 'Técnico' ? 'Técnico Fundez' : role);
+  return role === 'Socio' ? 'Socio Fandez' : (role === 'Técnico' ? 'Técnico Fandez' : role);
 }
 
 function getRequestChat(requestId, user) {
@@ -3328,7 +3346,7 @@ function getRequestChat(requestId, user) {
     requestId: request.id,
     messages: request.chatMessages,
     peerName: user.role === 'client'
-      ? (request.technicianId ? 'Equipo Fundez (socio y técnico)' : 'Socio Fundez')
+      ? (request.technicianId ? 'Equipo Fandez (socio y técnico)' : 'Socio Fandez')
       : (getUserById(request.clientId)?.name || request.clientName || 'Cliente'),
     youAre: chatRoleLabel(user.role === 'client' ? 'client' : (user.role === 'tecnico' ? 'tecnico' : 'provider'))
   };
@@ -3578,8 +3596,8 @@ function assignTechnician(requestId, socioId, technicianId) {
   appendChatMessage(request, {
     senderType: 'system',
     senderId: null,
-    senderName: 'Fundez',
-    body: `El socio asignó a ${tecnico.name}. Tiene 10 minutos para aceptar el pedido.`
+    senderName: 'Fandez',
+    body: `El socio asignó a ${tecnico.name}. Tiene ${getRequestTimeouts().techAcceptMinutes} minutos para aceptar el pedido.`
   });
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   afterEvent((ev) => ev.onTechnicianAssigned(request));
@@ -3602,8 +3620,8 @@ function clearTechnicianFromRequest(request) {
 }
 
 /** Técnico no aceptó en N minutos: se desasigna y el pedido vuelve al socio. */
-function releaseStaleTechnicianAssignments(timeoutMinutes = 10, now = Date.now()) {
-  const timeoutMs = Math.max(1, Number(timeoutMinutes) || 10) * 60 * 1000;
+function releaseStaleTechnicianAssignments(timeoutMinutes = null, now = Date.now()) {
+  const timeoutMs = Math.max(1, Number(timeoutMinutes) || getRequestTimeouts().techAcceptMinutes) * 60 * 1000;
   const released = [];
   for (const request of requests) {
     if (!['assigned', 'in_progress'].includes(request.status)) continue;
@@ -3619,12 +3637,34 @@ function releaseStaleTechnicianAssignments(timeoutMinutes = 10, now = Date.now()
     appendChatMessage(request, {
       senderType: 'system',
       senderId: null,
-      senderName: 'Fundez',
+      senderName: 'Fandez',
       body: `${previousName} no aceptó el pedido a tiempo. El socio debe asignar otro técnico.`
     });
     bumpProviderCounter(request.providerId, 'techTimeoutCount', 1);
     repository.persist(() => repository.saveRequest(request), `timeout aceptación tech ${request.id}`);
     released.push({ request, previousTechnicianId, previousName });
+  }
+  return released;
+}
+
+/** Socio no reasignó tras el timeout del técnico: el pedido vuelve al muro. */
+function releaseStaleProviderReassignments(timeoutMinutes = null, now = Date.now()) {
+  const timeoutMs = Math.max(1, Number(timeoutMinutes) || getRequestTimeouts().providerReassignMinutes) * 60 * 1000;
+  const released = [];
+  for (const request of requests) {
+    if (!request.awaitingProviderReassign) continue;
+    if (!['assigned', 'in_progress'].includes(request.status)) continue;
+    if (request.technicianId || !request.providerId) continue;
+    const at = Date.parse(request.techAcceptTimedOutAt || request.assignedAt || '');
+    if (!Number.isFinite(at) || now - at < timeoutMs) continue;
+
+    const previousProviderId = request.providerId;
+    bumpProviderCounter(previousProviderId, 'desertionCount', 1);
+    returnRequestToSearching(request, {
+      reason: 'provider_reassign_timeout',
+      chatBody: 'El socio no asignó otro técnico a tiempo. Fandez volvió a buscar un equipo para ti.'
+    });
+    released.push({ request, previousProviderId });
   }
   return released;
 }
@@ -3647,7 +3687,7 @@ function returnRequestToSearching(request, { reason, chatBody } = {}) {
     appendChatMessage(request, {
       senderType: 'system',
       senderId: null,
-      senderName: 'Fundez',
+      senderName: 'Fandez',
       body: chatBody
     });
   }
@@ -3670,7 +3710,7 @@ function providerDesertRequest(requestId, providerId) {
   bumpProviderCounter(providerId, 'desertionCount', 1);
   const result = returnRequestToSearching(request, {
     reason: 'provider_desertion',
-    chatBody: 'El socio liberó el pedido. Fundez sigue buscando otro equipo para ti.'
+    chatBody: 'El socio liberó el pedido. Fandez sigue buscando otro equipo para ti.'
   });
   return { success: true, ...result };
 }
@@ -3779,7 +3819,7 @@ function getLiveTrackingLocation(request) {
         lng: tech.locationShare.lng,
         updatedAt: tech.locationShare.updatedAt || null,
         actor: 'tecnico',
-        label: 'Técnico Fundez'
+        label: 'Técnico Fandez'
       };
     }
   }
@@ -3791,7 +3831,7 @@ function getLiveTrackingLocation(request) {
         lng: provider.locationShare.lng,
         updatedAt: provider.locationShare.updatedAt || null,
         actor: 'provider',
-        label: 'Socio Fundez'
+        label: 'Socio Fandez'
       };
     }
   }
@@ -4112,7 +4152,7 @@ function addSiteMaterial(requestId, technicianId, {
       approved: true,
       confidence: 1,
       reason: catalogItem
-        ? `Precio de mercado Fundez (${catalogItem.unit || 'unidad'}).`
+        ? `Precio de mercado Fandez (${catalogItem.unit || 'unidad'}).`
         : 'Material de stock del técnico.',
       reviewedAt: new Date().toISOString()
     };
@@ -4301,8 +4341,8 @@ function getRequestsByClient(clientId) {
   return requests.filter(r => r.clientId === clientId);
 }
 
-function getUnassignedRequestsAwaitingNotice(timeoutMinutes = 15, now = Date.now()) {
-  const timeoutMs = Math.max(1, Number(timeoutMinutes) || 15) * 60 * 1000;
+function getUnassignedRequestsAwaitingNotice(timeoutMinutes = null, now = Date.now()) {
+  const timeoutMs = Math.max(1, Number(timeoutMinutes) || getRequestTimeouts().unassignedNoticeMinutes) * 60 * 1000;
   return requests.filter((request) => {
     if (request.status !== 'searching' || request.paymentStatus !== 'approved' || request.providerId) return false;
     // Ya esperando respuesta del cliente: no reenviar aviso.
@@ -4395,7 +4435,7 @@ function respondNoProviderChoice(requestId, { clientId, tokenHash, choice } = {}
   return { success: true, choice: normalizedChoice, request };
 }
 
-function ensureNoProviderChoiceForClient(requestId, clientId, { minWaitMinutes = 14, force = false } = {}) {
+function ensureNoProviderChoiceForClient(requestId, clientId, { minWaitMinutes = null, force = false } = {}) {
   const request = requests.find((item) => item.id === requestId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (request.clientId !== clientId) return { error: 'No autorizado.' };
@@ -4410,7 +4450,10 @@ function ensureNoProviderChoiceForClient(requestId, clientId, { minWaitMinutes =
     return { success: true, request, already: true };
   }
   const startedAt = Date.parse(request.searchingAt || request.paidAt || request.createdAt || '');
-  const minMs = Math.max(0, Number(minWaitMinutes) || 0) * 60 * 1000;
+  const waitMin = minWaitMinutes == null
+    ? Math.max(0, getRequestTimeouts().unassignedNoticeMinutes - 1)
+    : Number(minWaitMinutes);
+  const minMs = Math.max(0, waitMin || 0) * 60 * 1000;
   if (!force && minMs > 0 && (!Number.isFinite(startedAt) || Date.now() - startedAt < minMs)) {
     return { error: 'Aún estamos buscando un técnico. Espera un momento más.' };
   }
@@ -4426,8 +4469,8 @@ function getPendingNoProviderRequestForClient(clientId) {
 }
 
 /** Al volver a la app: abre decisión en búsquedas ya vencidas sin pending. */
-function ensureStaleNoProviderChoicesForClient(clientId, timeoutMinutes = 15) {
-  const timeoutMs = Math.max(1, Number(timeoutMinutes) || 15) * 60 * 1000;
+function ensureStaleNoProviderChoicesForClient(clientId, timeoutMinutes = null) {
+  const timeoutMs = Math.max(1, Number(timeoutMinutes) || getRequestTimeouts().unassignedNoticeMinutes) * 60 * 1000;
   const now = Date.now();
   const opened = [];
   for (const request of requests) {
@@ -4437,7 +4480,7 @@ function ensureStaleNoProviderChoicesForClient(clientId, timeoutMinutes = 15) {
     const startedAt = Date.parse(request.searchingAt || request.paidAt || request.createdAt || '');
     if (!Number.isFinite(startedAt) || now - startedAt < timeoutMs) continue;
     const result = ensureNoProviderChoiceForClient(request.id, clientId, {
-      minWaitMinutes: Math.max(0, (Number(timeoutMinutes) || 15) - 1)
+      minWaitMinutes: Math.max(0, (Number(timeoutMinutes) || getRequestTimeouts().unassignedNoticeMinutes) - 1)
     });
     if (result.success && result.request) opened.push(result.request);
   }
@@ -4471,6 +4514,9 @@ function getRequestStatusLabel(request, locale = 'es') {
   if (request.techStatus === 'reparando') return translate(locale, 'status.tech.reparando');
   if (request.techStatus === 'comprando' || request.techStatus === 'comprando_materiales') {
     return translate(locale, 'status.tech.comprando');
+  }
+  if (request.awaitingProviderReassign && !request.technicianId) {
+    return translate(locale, 'client.request.reassigning');
   }
   if (request.techStatus === 'aceptado') {
     const name = request.technicianName || translate(locale, 'client.request.technician');
@@ -4577,7 +4623,7 @@ function submitClientReview(requestId, clientId, { rating, text }) {
     requestId,
     author,
     rating: stars,
-    text: reviewText || 'Servicio completado vía Fundez',
+    text: reviewText || 'Servicio completado vía Fandez',
     date: new Date().toISOString().slice(0, 10)
   };
   const applyReview = (user, label) => {
@@ -4610,7 +4656,7 @@ function submitClientReview(requestId, clientId, { rating, text }) {
 function getTechStatusLabel(techStatus, locale = 'es') {
   const map = {
     aceptado: 'status.tech.aceptado',
-    asignado: 'status.request.assigned',
+    asignado: 'status.tech.asignado',
     en_camino: 'status.tech.en_camino',
     en_sitio: 'status.tech.en_sitio',
     diagnostico: 'status.tech.diagnostico_label',
@@ -4634,7 +4680,9 @@ function enrichRequestForProvider(request, locale = 'es') {
     clientPhotoUrl: toServingUrl(safe.clientPhotoUrl) || null,
     clientBrandPhotoUrl: toServingUrl(safe.clientBrandPhotoUrl) || null,
     statusLabel: getRequestStatusLabel(request, locale),
-    techStatusLabel: getTechStatusLabel(request.techStatus, locale) || getRequestStatusLabel(request, locale),
+    techStatusLabel: request.awaitingProviderReassign && !request.technicianId
+      ? translate(locale, 'provider.request.reassigning')
+      : (getTechStatusLabel(request.techStatus, locale) || getRequestStatusLabel(request, locale)),
     payoutScheduledLabel: request.payoutScheduledDate ? formatPayDate(request.payoutScheduledDate, locale === 'en' ? 'en-US' : 'es-CL') : null,
     financials: request.status === 'completed' ? computeRequestFinancials(request, pricing) : undefined,
     financialsVisible: visible,
@@ -5175,7 +5223,7 @@ async function exportDataSnapshot({ includeSecurityLogs = true } = {}) {
   return {
     schemaVersion: 3,
     exportedAt: new Date().toISOString(),
-    app: 'fundez',
+    app: 'fandez',
     appVersion: versionInfo.version,
     appVersionLabel: versionInfo.label,
     gitCommit: versionInfo.gitCommit,
@@ -5343,6 +5391,7 @@ module.exports = {
   updateRequestStatus,
   assignTechnician,
   releaseStaleTechnicianAssignments,
+  releaseStaleProviderReassignments,
   providerDesertRequest,
   clientChangeProvider,
   getEligibleTechniciansForProvider,

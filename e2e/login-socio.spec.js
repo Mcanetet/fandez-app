@@ -4,7 +4,7 @@
 const { test, expect } = require('@playwright/test');
 
 const DEMO_PROVIDER = {
-  email: 'pedro@fundez.cl',
+  email: 'pedro@fandez.cl',
   password: 'proveedor123'
 };
 

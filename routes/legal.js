@@ -47,7 +47,7 @@ function buildConsentDashboard(userId) {
 
 router.get('/privacidad', (req, res) => {
   res.render('legal/privacidad', {
-    title: 'Política de Privacidad — Fundez',
+    title: 'Política de Privacidad — Fandez',
     seo: buildPageMeta('privacy', req),
     company,
     lastUpdated: '11 de julio de 2026',
@@ -57,7 +57,7 @@ router.get('/privacidad', (req, res) => {
 
 router.get('/terminos', (req, res) => {
   res.render('legal/terminos', {
-    title: 'Términos y Condiciones — Fundez',
+    title: 'Términos y Condiciones — Fandez',
     seo: buildPageMeta('terms', req),
     company,
     lastUpdated: '11 de julio de 2026'
@@ -66,7 +66,7 @@ router.get('/terminos', (req, res) => {
 
 router.get('/cookies', (req, res) => {
   res.render('legal/cookies', {
-    title: 'Política de Cookies — Fundez',
+    title: 'Política de Cookies — Fandez',
     seo: buildPageMeta('cookies', req),
     company,
     lastUpdated: '11 de julio de 2026'
@@ -76,7 +76,7 @@ router.get('/cookies', (req, res) => {
 router.get('/mis-datos', requireAuth, (req, res) => {
   const consents = buildConsentDashboard(req.session.user.id);
   res.render('legal/mis-datos', {
-    title: 'Mis datos personales — Fundez',
+    title: 'Mis datos personales — Fandez',
     company,
     user: req.session.user,
     consents,

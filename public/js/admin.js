@@ -2,7 +2,7 @@
   const dashboard = document.getElementById('adminDashboard');
   if (!dashboard) return;
 
-  const PANEL_TITLES = (window.FundezAdminI18n && window.FundezAdminI18n.panels) || {
+  const PANEL_TITLES = (window.FandezAdminI18n && window.FandezAdminI18n.panels) || {
     resumen: 'Resumen',
     finanzas: 'Finanzas',
     crm: 'CRM socios',
@@ -29,8 +29,8 @@
     seguridad: 'Seguridad'
   };
 
-  const ADMIN_JS = (window.FundezAdminI18n && window.FundezAdminI18n.js) || {};
-  const ADMIN_BASE = window.FundezAdminBase || '/admin';
+  const ADMIN_JS = (window.FandezAdminI18n && window.FandezAdminI18n.js) || {};
+  const ADMIN_BASE = window.FandezAdminBase || '/admin';
   function adminFetch(path, options) {
     const url = path.startsWith('http') ? path : `${ADMIN_BASE}${path.startsWith('/') ? path : '/' + path}`;
     return fetch(url, options);
@@ -40,7 +40,7 @@
   }
 
 
-  const ADMIN_STATUS = (window.FundezAdminI18n && window.FundezAdminI18n.status) || { on: 'ON', off: 'OFF', active: 'ACTIVA', inactive: 'INACTIVA' };
+  const ADMIN_STATUS = (window.FandezAdminI18n && window.FandezAdminI18n.status) || { on: 'ON', off: 'OFF', active: 'ACTIVA', inactive: 'INACTIVA' };
 
   function adminMsg(template, vars) {
     if (!template) return '';
@@ -223,13 +223,13 @@
       });
       const data = await res.json();
       if (!data.success) {
-        FundezNotify.show(data.error || 'No se pudo guardar el perfil', 'error');
+        FandezNotify.show(data.error || 'No se pudo guardar el perfil', 'error');
         return;
       }
-      FundezNotify.show('Perfil guardado', 'success');
+      FandezNotify.show('Perfil guardado', 'success');
       setTimeout(() => { window.location.href = ADMIN_BASE + '?tab=equipo'; }, 700);
     } catch (_) {
-      FundezNotify.show('Error al guardar perfil', 'error');
+      FandezNotify.show('Error al guardar perfil', 'error');
     }
   });
 
@@ -240,13 +240,13 @@
         const res = await adminFetch(`/profiles/${btn.dataset.id}/delete`, { method: 'POST' });
         const data = await res.json();
         if (!data.success) {
-          FundezNotify.show(data.error || 'No se pudo eliminar', 'error');
+          FandezNotify.show(data.error || 'No se pudo eliminar', 'error');
           return;
         }
-        FundezNotify.show('Perfil eliminado', 'success');
+        FandezNotify.show('Perfil eliminado', 'success');
         setTimeout(() => { window.location.href = ADMIN_BASE + '?tab=equipo'; }, 700);
       } catch (_) {
-        FundezNotify.show('Error al eliminar', 'error');
+        FandezNotify.show('Error al eliminar', 'error');
       }
     });
   });
@@ -297,10 +297,10 @@
         const data = await res.json();
         if (!data.success) {
           toggle.checked = !toggle.checked;
-          FundezNotify.show(data.error || 'No se pudo actualizar', 'error');
+          FandezNotify.show(data.error || 'No se pudo actualizar', 'error');
           return;
         }
-        FundezNotify.show(toggle.checked ? 'Usuario activado' : 'Usuario desactivado', 'success');
+        FandezNotify.show(toggle.checked ? 'Usuario activado' : 'Usuario desactivado', 'success');
       };
     });
     document.querySelectorAll('.managed-user-verify').forEach((btn) => {
@@ -313,10 +313,10 @@
         });
         const data = await res.json();
         if (data.success) {
-          FundezNotify.show('Email verificado', 'success');
+          FandezNotify.show('Email verificado', 'success');
           refreshManagedUsers();
         } else {
-          FundezNotify.show(data.error || 'No se pudo verificar', 'error');
+          FandezNotify.show(data.error || 'No se pudo verificar', 'error');
         }
       };
     });
@@ -388,7 +388,7 @@
       } else {
         body.email = document.getElementById('adminFormEmail').value;
         if (!password) {
-          FundezNotify.show('La contraseña es obligatoria para nuevos administradores', 'error');
+          FandezNotify.show('La contraseña es obligatoria para nuevos administradores', 'error');
           return;
         }
         res = await adminFetch('/team', {
@@ -399,13 +399,13 @@
       }
       const data = await res.json();
       if (data.success) {
-        FundezNotify.show(adminId ? 'Administrador actualizado' : 'Administrador creado', 'success');
+        FandezNotify.show(adminId ? 'Administrador actualizado' : 'Administrador creado', 'success');
         setTimeout(() => location.reload(), 800);
       } else {
-        FundezNotify.show(data.error || 'No se pudo guardar', 'error');
+        FandezNotify.show(data.error || 'No se pudo guardar', 'error');
       }
     } catch (_) {
-      FundezNotify.show('Error de conexión', 'error');
+      FandezNotify.show('Error de conexión', 'error');
     }
   });
 
@@ -421,14 +421,14 @@
         });
         const data = await res.json();
         if (data.success) {
-          FundezNotify.show(`Cuenta ${active ? 'activada' : 'desactivada'}`, active ? 'success' : 'warning');
+          FandezNotify.show(`Cuenta ${active ? 'activada' : 'desactivada'}`, active ? 'success' : 'warning');
         } else {
           toggle.checked = !active;
-          FundezNotify.show(data.error || 'Error', 'error');
+          FandezNotify.show(data.error || 'Error', 'error');
         }
       } catch (_) {
         toggle.checked = !active;
-        FundezNotify.show('Error de conexión', 'error');
+        FandezNotify.show('Error de conexión', 'error');
       }
     });
   });
@@ -455,16 +455,16 @@
       });
       const data = await res.json();
       if (data.success) {
-        FundezNotify.show(
+        FandezNotify.show(
           action === 'approve' ? 'Socio aprobado para operar' :
           action === 'reject' ? 'Contrato rechazado' :
           action === 'suspend' ? 'Socio suspendido' : 'Solicitud enviada al socio',
           action === 'approve' ? 'success' : action === 'reject' ? 'warning' : 'info'
         );
         setTimeout(() => location.reload(), 800);
-      } else FundezNotify.show(data.error || 'Error', 'error');
+      } else FandezNotify.show(data.error || 'Error', 'error');
     } catch (_) {
-      FundezNotify.show('Error de conexión', 'error');
+      FandezNotify.show('Error de conexión', 'error');
     }
   }
 
@@ -512,11 +512,11 @@
           item.classList.toggle('opacity-50', !enabled);
           statusLabel.textContent = enabled ? ADMIN_STATUS.on : ADMIN_STATUS.off;
           statusLabel.className = `service-status text-[10px] font-bold uppercase ${enabled ? 'text-emerald-600' : 'text-red-600'}`;
-          FundezNotify.show(adminMsg(enabled ? ADMIN_JS.serviceEnabled : ADMIN_JS.serviceDisabled, { name: data.service.name }), enabled ? 'success' : 'warning');
+          FandezNotify.show(adminMsg(enabled ? ADMIN_JS.serviceEnabled : ADMIN_JS.serviceDisabled, { name: data.service.name }), enabled ? 'success' : 'warning');
         }
       } catch (_) {
         toggle.checked = !enabled;
-        FundezNotify.show(ADMIN_JS.updateError, 'error');
+        FandezNotify.show(ADMIN_JS.updateError, 'error');
       }
     });
   });
@@ -539,14 +539,14 @@
           item.classList.toggle('opacity-50', !active);
           statusLabel.textContent = active ? ADMIN_STATUS.active : ADMIN_STATUS.inactive;
           statusLabel.className = `demo-status text-[10px] font-bold uppercase ${active ? 'text-emerald-600' : 'text-red-600'}`;
-          FundezNotify.show(active ? ADMIN_JS.demoEnabled : ADMIN_JS.demoDisabled, active ? 'success' : 'warning');
+          FandezNotify.show(active ? ADMIN_JS.demoEnabled : ADMIN_JS.demoDisabled, active ? 'success' : 'warning');
         } else {
           toggle.checked = !active;
-          FundezNotify.show(data.error || 'No se pudo actualizar', 'error');
+          FandezNotify.show(data.error || 'No se pudo actualizar', 'error');
         }
       } catch (_) {
         toggle.checked = !active;
-        FundezNotify.show('Error al actualizar la cuenta', 'error');
+        FandezNotify.show('Error al actualizar la cuenta', 'error');
       }
     });
   });
@@ -576,14 +576,14 @@
           item.classList.toggle('opacity-50', !enabled);
           statusLabel.textContent = enabled ? ADMIN_STATUS.on : ADMIN_STATUS.off;
           statusLabel.className = `module-status text-[10px] font-bold uppercase ${enabled ? 'text-emerald-600' : 'text-red-600'}`;
-          FundezNotify.show(adminMsg(enabled ? ADMIN_JS.moduleEnabled : ADMIN_JS.moduleDisabled, { name: data.module.name }), enabled ? 'success' : 'warning');
+          FandezNotify.show(adminMsg(enabled ? ADMIN_JS.moduleEnabled : ADMIN_JS.moduleDisabled, { name: data.module.name }), enabled ? 'success' : 'warning');
         } else {
           toggle.checked = !enabled;
-          FundezNotify.show(data.error || 'No se pudo actualizar', 'error');
+          FandezNotify.show(data.error || 'No se pudo actualizar', 'error');
         }
       } catch (_) {
         toggle.checked = !enabled;
-        FundezNotify.show('Error al actualizar módulo', 'error');
+        FandezNotify.show('Error al actualizar módulo', 'error');
       }
     });
   });
@@ -622,13 +622,13 @@
       });
       const data = await res.json();
       if (!data.success) {
-        FundezNotify.show(data.error || 'No se pudo guardar', 'error');
+        FandezNotify.show(data.error || 'No se pudo guardar', 'error');
         return;
       }
-      FundezNotify.show('Promoción guardada', 'success');
+      FandezNotify.show('Promoción guardada', 'success');
       window.location.href = ADMIN_BASE + '?tab=promos';
     } catch (_) {
-      FundezNotify.show('Error al guardar promoción', 'error');
+      FandezNotify.show('Error al guardar promoción', 'error');
     }
   });
 
@@ -699,13 +699,13 @@
       });
       const data = await res.json();
       if (!data.success) {
-        FundezNotify.show(data.error || 'No se pudo guardar', 'error');
+        FandezNotify.show(data.error || 'No se pudo guardar', 'error');
         return;
       }
-      FundezNotify.show(ADMIN_JS.crmSaved || 'Contacto CRM guardado', 'success');
+      FandezNotify.show(ADMIN_JS.crmSaved || 'Contacto CRM guardado', 'success');
       window.location.href = ADMIN_BASE + '?tab=crm';
     } catch (_) {
-      FundezNotify.show('Error al guardar CRM', 'error');
+      FandezNotify.show('Error al guardar CRM', 'error');
     }
   });
 
@@ -748,13 +748,13 @@
         const res = await adminFetch(`/crm/${btn.dataset.id}/delete`, { method: 'POST' });
         const data = await res.json();
         if (!data.success) {
-          FundezNotify.show(data.error || 'No se pudo eliminar', 'error');
+          FandezNotify.show(data.error || 'No se pudo eliminar', 'error');
           return;
         }
-        FundezNotify.show(ADMIN_JS.crmDeleted || 'Contacto eliminado', 'success');
+        FandezNotify.show(ADMIN_JS.crmDeleted || 'Contacto eliminado', 'success');
         window.location.href = ADMIN_BASE + '?tab=crm';
       } catch (_) {
-        FundezNotify.show('Error al eliminar', 'error');
+        FandezNotify.show('Error al eliminar', 'error');
       }
     });
   });
@@ -771,15 +771,15 @@
         const data = await res.json();
         if (!data.success) {
           toggle.checked = !enabled;
-          FundezNotify.show(data.error || 'No se pudo actualizar', 'error');
+          FandezNotify.show(data.error || 'No se pudo actualizar', 'error');
           return;
         }
         const item = toggle.closest('.promo-item');
         item?.classList.toggle('opacity-50', !enabled);
-        FundezNotify.show(enabled ? 'Promoción activada' : 'Promoción desactivada', enabled ? 'success' : 'warning');
+        FandezNotify.show(enabled ? 'Promoción activada' : 'Promoción desactivada', enabled ? 'success' : 'warning');
       } catch (_) {
         toggle.checked = !enabled;
-        FundezNotify.show('Error al actualizar promoción', 'error');
+        FandezNotify.show('Error al actualizar promoción', 'error');
       }
     });
   });
@@ -791,13 +791,13 @@
         const res = await adminFetch(`/promos/${btn.dataset.id}/delete`, { method: 'POST' });
         const data = await res.json();
         if (!data.success) {
-          FundezNotify.show(data.error || 'No se pudo eliminar', 'error');
+          FandezNotify.show(data.error || 'No se pudo eliminar', 'error');
           return;
         }
-        FundezNotify.show('Promoción eliminada', 'success');
+        FandezNotify.show('Promoción eliminada', 'success');
         window.location.href = ADMIN_BASE + '?tab=promos';
       } catch (_) {
-        FundezNotify.show('Error al eliminar promoción', 'error');
+        FandezNotify.show('Error al eliminar promoción', 'error');
       }
     });
   });
@@ -832,14 +832,14 @@
           item.classList.toggle('opacity-70', !enabled);
           updateCoverageRegionCount(regionEl);
           updateCoverageStatsLabel(data.stats);
-          FundezNotify.show(adminMsg(enabled ? ADMIN_JS.communeEnabled : ADMIN_JS.communeDisabled, { name: data.commune.communeName }), enabled ? 'success' : 'warning');
+          FandezNotify.show(adminMsg(enabled ? ADMIN_JS.communeEnabled : ADMIN_JS.communeDisabled, { name: data.commune.communeName }), enabled ? 'success' : 'warning');
         } else {
           toggle.checked = !enabled;
-          FundezNotify.show(data.error || ADMIN_JS.updateError, 'error');
+          FandezNotify.show(data.error || ADMIN_JS.updateError, 'error');
         }
       } catch (_) {
         toggle.checked = !enabled;
-        FundezNotify.show(ADMIN_JS.coverageError, 'error');
+        FandezNotify.show(ADMIN_JS.coverageError, 'error');
       }
     });
   });
@@ -908,16 +908,16 @@
         const data = await res.json();
         if (!data.success) {
           toggle.checked = !enabled;
-          FundezNotify.show(data.error || 'No se pudo actualizar la región', 'error');
+          FandezNotify.show(data.error || 'No se pudo actualizar la región', 'error');
           return;
         }
 
         updateCoverageRegionUi(regionEl, enabled);
         updateCoverageStatsLabel(data.stats);
-        FundezNotify.show(adminMsg(enabled ? ADMIN_JS.regionEnabled : ADMIN_JS.regionDisabled, { name: data.region.regionName }), enabled ? 'success' : 'warning');
+        FandezNotify.show(adminMsg(enabled ? ADMIN_JS.regionEnabled : ADMIN_JS.regionDisabled, { name: data.region.regionName }), enabled ? 'success' : 'warning');
       } catch (_) {
         toggle.checked = !enabled;
-        FundezNotify.show(ADMIN_JS.regionError, 'error');
+        FandezNotify.show(ADMIN_JS.regionError, 'error');
       }
     });
   });
@@ -934,7 +934,7 @@
       });
       const data = await res.json();
       if (data.success) {
-        FundezNotify.show(ADMIN_JS.complaintUpdated, 'success');
+        FandezNotify.show(ADMIN_JS.complaintUpdated, 'success');
         setTimeout(() => location.reload(), 800);
       }
     });
@@ -949,11 +949,11 @@
       const res = await adminFetch(`/payout/${btn.dataset.id}`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        FundezNotify.show(ADMIN_JS.payoutMarked, 'success');
+        FandezNotify.show(ADMIN_JS.payoutMarked, 'success');
         setTimeout(() => location.reload(), 800);
       } else {
         btn.disabled = false;
-        FundezNotify.show(data.error || 'No se pudo marcar', 'error');
+        FandezNotify.show(data.error || 'No se pudo marcar', 'error');
       }
     });
   });
@@ -971,10 +971,10 @@
       });
       const data = await res.json();
       if (data.success) {
-        FundezNotify.show(ADMIN_JS.purchaseSaved || 'Compra registrada', 'success');
+        FandezNotify.show(ADMIN_JS.purchaseSaved || 'Compra registrada', 'success');
         setTimeout(() => location.reload(), 700);
       } else {
-        FundezNotify.show(data.error || 'No se pudo registrar', 'error');
+        FandezNotify.show(data.error || 'No se pudo registrar', 'error');
       }
     });
   }
@@ -992,10 +992,10 @@
       });
       const data = await res.json();
       if (data.success) {
-        FundezNotify.show(ADMIN_JS.bankSaved || 'Movimiento bancario guardado', 'success');
+        FandezNotify.show(ADMIN_JS.bankSaved || 'Movimiento bancario guardado', 'success');
         setTimeout(() => location.reload(), 700);
       } else {
-        FundezNotify.show(data.error || 'No se pudo guardar', 'error');
+        FandezNotify.show(data.error || 'No se pudo guardar', 'error');
       }
     });
   }
@@ -1004,17 +1004,17 @@
     const res = await adminFetch('/finanzas/conciliar', { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      FundezNotify.show(adminMsg(ADMIN_JS.reconciled || 'Conciliados: {{count}}', { count: data.matched }), 'success');
+      FandezNotify.show(adminMsg(ADMIN_JS.reconciled || 'Conciliados: {{count}}', { count: data.matched }), 'success');
       setTimeout(() => location.reload(), 800);
     } else {
-      FundezNotify.show(data.error || 'Sin coincidencias', 'error');
+      FandezNotify.show(data.error || 'Sin coincidencias', 'error');
     }
   });
 
   document.getElementById('btnSiiSync')?.addEventListener('click', async () => {
     const res = await adminFetch('/finanzas/compras/sync-sii', { method: 'POST' });
     const data = await res.json();
-    FundezNotify.show(data.error || data.message || (data.success ? 'Sync OK' : 'Sync pendiente de API'), data.success ? 'success' : 'info');
+    FandezNotify.show(data.error || data.message || (data.success ? 'Sync OK' : 'Sync pendiente de API'), data.success ? 'success' : 'info');
   });
 
   document.querySelectorAll('.btn-approve-transfer').forEach(btn => {
@@ -1027,11 +1027,11 @@
       const res = await adminFetch(`/transfer/${btn.dataset.id}/aprobar`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        FundezNotify.show(ADMIN_JS.transferConfirmed, 'success');
+        FandezNotify.show(ADMIN_JS.transferConfirmed, 'success');
         setTimeout(() => location.reload(), 800);
       } else {
         btn.disabled = false;
-        FundezNotify.show(data.error || 'No se pudo confirmar', 'error');
+        FandezNotify.show(data.error || 'No se pudo confirmar', 'error');
       }
     });
   });
@@ -1066,7 +1066,7 @@
       const providerId = card?.querySelector('[data-role="provider-select"]')?.value;
       const technicianId = card?.querySelector('[data-role="tech-select"]')?.value || null;
       if (!providerId) {
-        FundezNotify.show('Selecciona un socio', 'warning');
+        FandezNotify.show('Selecciona un socio', 'warning');
         return;
       }
       btn.disabled = true;
@@ -1078,13 +1078,13 @@
         });
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo canalizar');
-        FundezNotify.show(ADMIN_JS.dispatchSuccess || 'Solicitud canalizada al socio', 'success');
+        FandezNotify.show(ADMIN_JS.dispatchSuccess || 'Solicitud canalizada al socio', 'success');
         card.remove();
         const queue = document.getElementById('adminDispatchQueue');
         if (queue && !queue.children.length) location.reload();
       } catch (err) {
         btn.disabled = false;
-        FundezNotify.show(err.message || 'No se pudo canalizar', 'error');
+        FandezNotify.show(err.message || 'No se pudo canalizar', 'error');
       }
     });
   });
@@ -1094,7 +1094,7 @@
   async function adminVerifyAction(path, successType) {
     const email = (adminVerifyEmail?.value || '').trim();
     if (!email) {
-      FundezNotify.show('Ingresa el correo del usuario', 'warning');
+      FandezNotify.show('Ingresa el correo del usuario', 'warning');
       return;
     }
     try {
@@ -1105,13 +1105,13 @@
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo completar');
-      FundezNotify.show(data.message || 'Listo', successType || 'success');
+      FandezNotify.show(data.message || 'Listo', successType || 'success');
       if (adminVerifyFeedback) {
         adminVerifyFeedback.textContent = data.message || 'OK';
         adminVerifyFeedback.classList.remove('hidden');
       }
     } catch (err) {
-      FundezNotify.show(err.message || 'Error', 'error');
+      FandezNotify.show(err.message || 'Error', 'error');
     }
   }
   document.getElementById('btnAdminResendVerify')?.addEventListener('click', () => {
@@ -1124,32 +1124,32 @@
 
   const socket = io();
   socket.emit('aland_join', { admin: true });
-  if (window.FundezAlerts) FundezAlerts.ensurePermission();
+  if (window.FandezAlerts) FandezAlerts.ensurePermission();
   socket.on('aland_security_alert', (payload) => {
     const preview = (payload?.preview || '').slice(0, 80);
-    if (window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'alert',
         title: `Alerta Aland IA (${payload?.type || 'seguridad'})`,
         body: preview || payload?.conversationId || 'Nueva alerta de seguridad',
-        tag: 'fundez-admin-security',
+        tag: 'fandez-admin-security',
         requireInteraction: true
       });
-    } else if (window.FundezNotify) {
-      FundezNotify.show(`Alerta Aland IA (${payload?.type || 'seguridad'}): ${preview || payload?.conversationId || ''}`, 'warning');
+    } else if (window.FandezNotify) {
+      FandezNotify.show(`Alerta Aland IA (${payload?.type || 'seguridad'}): ${preview || payload?.conversationId || ''}`, 'warning');
     }
   });
   socket.on('aland_payment_alert', (payload) => {
     const preview = (payload?.preview || '').slice(0, 60);
-    if (window.FundezAlerts) {
-      FundezAlerts.notify({
+    if (window.FandezAlerts) {
+      FandezAlerts.notify({
         type: 'payment',
         title: 'Pagos Aland IA',
         body: `${preview || 'Nueva consulta de pagos'} — revisa Mensajes`,
-        tag: 'fundez-admin-payment'
+        tag: 'fandez-admin-payment'
       });
-    } else if (window.FundezNotify) {
-      FundezNotify.show(`Pagos Aland: ${preview || 'Nueva consulta'} — revisa Mensajes`, 'warning');
+    } else if (window.FandezNotify) {
+      FandezNotify.show(`Pagos Aland: ${preview || 'Nueva consulta'} — revisa Mensajes`, 'warning');
     }
   });
   socket.on('services_updated', ({ services }) => {
@@ -1202,9 +1202,9 @@
       });
       const data = await res.json();
       if (data.success) {
-        FundezNotify.show('Configuración de backups guardada', 'success');
+        FandezNotify.show('Configuración de backups guardada', 'success');
         setTimeout(() => location.reload(), 900);
-      } else FundezNotify.show(data.error || 'Error al guardar', 'error');
+      } else FandezNotify.show(data.error || 'Error al guardar', 'error');
     });
   }
 
@@ -1217,9 +1217,9 @@
     btn.disabled = false;
     btn.textContent = ADMIN_JS.generateBackup || 'Generar backup ahora';
     if (data.success) {
-      FundezNotify.show(`Backup creado v${data.backup.appVersion || '?'} (${data.backup.stats?.totalBytes ? Math.round(data.backup.stats.totalBytes / 1024) + ' KB' : 'ok'})`, 'success');
+      FandezNotify.show(`Backup creado v${data.backup.appVersion || '?'} (${data.backup.stats?.totalBytes ? Math.round(data.backup.stats.totalBytes / 1024) + ' KB' : 'ok'})`, 'success');
       setTimeout(() => location.reload(), 900);
-    } else FundezNotify.show(data.error || 'Error al generar backup', 'error');
+    } else FandezNotify.show(data.error || 'Error al generar backup', 'error');
   });
 
   document.getElementById('btnApplyRetention')?.addEventListener('click', async () => {
@@ -1227,10 +1227,10 @@
     const data = await res.json();
     if (data.success) {
       if (data.skipped) {
-        FundezNotify.show(data.message || 'El historial se conserva', 'info');
+        FandezNotify.show(data.message || 'El historial se conserva', 'info');
         return;
       }
-      FundezNotify.show(data.removed ? `${data.removed} backup(s) antiguo(s) eliminado(s)` : 'No había backups por eliminar', 'info');
+      FandezNotify.show(data.removed ? `${data.removed} backup(s) antiguo(s) eliminado(s)` : 'No había backups por eliminar', 'info');
       setTimeout(() => location.reload(), 900);
     }
   });
@@ -1261,7 +1261,7 @@
 
   function isValidImportSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== 'object') return false;
-    if (snapshot.app === 'fundez') return true;
+    if (snapshot.app === 'fandez') return true;
     return Array.isArray(snapshot.users)
       || Array.isArray(snapshot.services)
       || Array.isArray(snapshot.requests);
@@ -1292,7 +1292,7 @@
     if (!file) return;
 
     if (file.size > 25 * 1024 * 1024) {
-      FundezNotify.show('El archivo supera 25 MB', 'error');
+      FandezNotify.show('El archivo supera 25 MB', 'error');
       importFileInput.value = '';
       return;
     }
@@ -1303,17 +1303,17 @@
         const parsed = JSON.parse(String(reader.result || '').replace(/^\uFEFF/, ''));
         const snapshot = normalizeImportSnapshot(parsed);
         if (!isValidImportSnapshot(snapshot)) {
-          throw new Error('No parece un backup de Fundez');
+          throw new Error('No parece un backup de Fandez');
         }
         pendingImportSnapshot = snapshot;
         showImportPreview(snapshot);
         setImportButtonsEnabled(true);
       } catch (err) {
-        FundezNotify.show(err.message || 'No se pudo leer el JSON', 'error');
+        FandezNotify.show(err.message || 'No se pudo leer el JSON', 'error');
         importFileInput.value = '';
       }
     };
-    reader.onerror = () => FundezNotify.show('No se pudo leer el archivo', 'error');
+    reader.onerror = () => FandezNotify.show('No se pudo leer el archivo', 'error');
     reader.readAsText(file);
   });
 
@@ -1333,15 +1333,15 @@
       });
       const data = await parseJsonResponse(res);
       if (data.success) {
-        FundezNotify.show('Backup importado al historial', 'success');
+        FandezNotify.show('Backup importado al historial', 'success');
         setTimeout(() => location.reload(), 900);
       } else {
-        FundezNotify.show(data.error || 'Error al importar', 'error');
+        FandezNotify.show(data.error || 'Error al importar', 'error');
         btnImportHistory.disabled = false;
         btnImportHistory.textContent = 'Agregar al historial';
       }
     } catch (err) {
-      FundezNotify.show(err.message || 'Error de conexión', 'error');
+      FandezNotify.show(err.message || 'Error de conexión', 'error');
       btnImportHistory.disabled = false;
       btnImportHistory.textContent = 'Agregar al historial';
     }
@@ -1355,7 +1355,7 @@
 
     const confirmText = prompt('Escribe RESTAURAR para confirmar:');
     if (confirmText !== 'RESTAURAR') {
-      FundezNotify.show('Restauración cancelada', 'info');
+      FandezNotify.show('Restauración cancelada', 'info');
       return;
     }
 
@@ -1373,15 +1373,15 @@
       });
       const data = await parseJsonResponse(res);
       if (data.success) {
-        FundezNotify.show(`Backup restaurado (copia previa: ${data.preRestoreBackupId?.slice(0, 8)}…)`, 'success');
+        FandezNotify.show(`Backup restaurado (copia previa: ${data.preRestoreBackupId?.slice(0, 8)}…)`, 'success');
         setTimeout(() => location.reload(), 1200);
       } else {
-        FundezNotify.show(data.error || 'Error al restaurar', 'error');
+        FandezNotify.show(data.error || 'Error al restaurar', 'error');
         btnImportRestore.disabled = false;
         btnImportRestore.textContent = 'Importar y restaurar';
       }
     } catch (err) {
-      FundezNotify.show(err.message || 'Error de conexión al restaurar', 'error');
+      FandezNotify.show(err.message || 'Error de conexión al restaurar', 'error');
       btnImportRestore.disabled = false;
       btnImportRestore.textContent = 'Importar y restaurar';
     }
@@ -1394,7 +1394,7 @@
       const data = await res.json();
       if (data.success) {
         btn.closest('.backup-item')?.remove();
-        FundezNotify.show('Backup eliminado', 'success');
+        FandezNotify.show('Backup eliminado', 'success');
       }
     });
   });
@@ -1407,7 +1407,7 @@
 
       const confirmText = prompt('Escribe RESTAURAR para confirmar:');
       if (confirmText !== 'RESTAURAR') {
-        FundezNotify.show('Restauración cancelada', 'info');
+        FandezNotify.show('Restauración cancelada', 'info');
         return;
       }
 
@@ -1425,15 +1425,15 @@
         });
         const data = await parseJsonResponse(res);
         if (data.success) {
-          FundezNotify.show(`Datos restaurados (backup previo: ${data.preRestoreBackupId?.slice(0, 8)}…)`, 'success');
+          FandezNotify.show(`Datos restaurados (backup previo: ${data.preRestoreBackupId?.slice(0, 8)}…)`, 'success');
           setTimeout(() => location.reload(), 1200);
         } else {
-          FundezNotify.show(data.error || 'Error al restaurar', 'error');
+          FandezNotify.show(data.error || 'Error al restaurar', 'error');
           btn.disabled = false;
           btn.textContent = 'Restaurar';
         }
       } catch (err) {
-        FundezNotify.show(err.message || 'Error de conexión al restaurar', 'error');
+        FandezNotify.show(err.message || 'Error de conexión al restaurar', 'error');
         btn.disabled = false;
         btn.textContent = 'Restaurar';
       }
@@ -1516,10 +1516,10 @@
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo eliminar');
-          FundezNotify.show('Entrada eliminada', 'success');
+          FandezNotify.show('Entrada eliminada', 'success');
           renderAlandKb(data.knowledge || []);
         } catch (err) {
-          FundezNotify.show(err.message || 'Error', 'error');
+          FandezNotify.show(err.message || 'Error', 'error');
         }
       });
     });
@@ -1572,8 +1572,8 @@
       body: JSON.stringify(body)
     });
     const data = await res.json();
-    if (data.success) FundezNotify.show('Aland IA actualizado', 'success');
-    else FundezNotify.show(data.error || 'Error', 'error');
+    if (data.success) FandezNotify.show('Aland IA actualizado', 'success');
+    else FandezNotify.show(data.error || 'Error', 'error');
   });
 
   btnAlandSync?.addEventListener('click', async () => {
@@ -1582,9 +1582,9 @@
     const data = await res.json();
     btnAlandSync.disabled = false;
     if (data.success) {
-      FundezNotify.show(`${data.synced} entradas sincronizadas`, 'success');
+      FandezNotify.show(`${data.synced} entradas sincronizadas`, 'success');
       renderAlandKb(data.knowledge);
-    } else FundezNotify.show(data.error || 'Error', 'error');
+    } else FandezNotify.show(data.error || 'Error', 'error');
   });
 
   alandKbForm?.addEventListener('submit', async (e) => {
@@ -1631,7 +1631,7 @@
       if (!res.ok || !data.success) {
         throw new Error(data.error || `No se pudo guardar (${res.status})`);
       }
-      FundezNotify.show(editId ? 'Conocimiento actualizado' : 'Conocimiento agregado', 'success');
+      FandezNotify.show(editId ? 'Conocimiento actualizado' : 'Conocimiento agregado', 'success');
       alandKbForm.reset();
       if (idEl) idEl.value = '';
       if (btn) btn.textContent = 'Agregar conocimiento';
@@ -1643,7 +1643,7 @@
         errEl.textContent = err.message || 'Error al guardar';
         errEl.classList.remove('hidden');
       }
-      FundezNotify.show(err.message || 'Error al guardar conocimiento', 'error');
+      FandezNotify.show(err.message || 'Error al guardar conocimiento', 'error');
     } finally {
       if (btn) btn.disabled = false;
     }
@@ -1949,8 +1949,8 @@
         adminAlandSocket.on('aland_escalated', () => loadMensajesList());
         adminAlandSocket.on('aland_security_alert', (payload) => {
           const preview = (payload?.preview || '').slice(0, 80);
-          if (window.FundezNotify) {
-            FundezNotify.show(
+          if (window.FandezNotify) {
+            FandezNotify.show(
               `Alerta Aland IA (${payload?.type || 'seguridad'}): ${preview || payload?.conversationId || ''}`,
               'warning'
             );
@@ -1979,7 +1979,7 @@
         mensajesThread.insertAdjacentHTML('beforeend', renderMensajeMsg(data.message));
         mensajesThread.scrollTop = mensajesThread.scrollHeight;
       }
-    } else FundezNotify.show(data.error || 'Error', 'error');
+    } else FandezNotify.show(data.error || 'Error', 'error');
   });
 
   if (document.getElementById('alandConfigForm') || document.getElementById('alandMonitor') || document.getElementById('mensajesList')) {
@@ -2126,10 +2126,10 @@
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo generar');
-      FundezNotify.show(`Florencia creó ${data.items?.length || 0} piezas para aprobación`, 'success');
+      FandezNotify.show(`Florencia creó ${data.items?.length || 0} piezas para aprobación`, 'success');
       await loadFlorenciaAgenda();
     } catch (err) {
-      FundezNotify.show(err.message || 'Error al generar el plan', 'error');
+      FandezNotify.show(err.message || 'Error al generar el plan', 'error');
     } finally {
       button.disabled = false;
       button.textContent = 'Generar estrategia y agenda';
@@ -2161,7 +2161,7 @@
       const cta = card?.querySelector('[data-role="florencia-cta"]')?.textContent || '';
       const tags = card?.querySelector('[data-role="florencia-hashtags"]')?.textContent || '';
       return [
-        'Florencia IA · Fundez',
+        'Florencia IA · Fandez',
         channel ? `Canal: ${channel}` : '',
         `Título: ${title}`,
         '',
@@ -2175,9 +2175,9 @@
       button.disabled = true;
       try {
         await downloadBlob(button.dataset.url, button.dataset.filename || 'florencia.png');
-        FundezNotify.show('Imagen descargada', 'success');
+        FandezNotify.show('Imagen descargada', 'success');
       } catch (err) {
-        FundezNotify.show(err.message || 'No se pudo descargar la imagen', 'error');
+        FandezNotify.show(err.message || 'No se pudo descargar la imagen', 'error');
       } finally {
         button.disabled = false;
       }
@@ -2196,7 +2196,7 @@
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
-      FundezNotify.show('Texto descargado', 'success');
+      FandezNotify.show('Texto descargado', 'success');
       return;
     }
 
@@ -2205,9 +2205,9 @@
       const pack = buildCopyPack(card);
       try {
         await navigator.clipboard.writeText(pack);
-        FundezNotify.show('Texto copiado al portapapeles', 'success');
+        FandezNotify.show('Texto copiado al portapapeles', 'success');
       } catch (_) {
-        FundezNotify.show('No se pudo copiar. Usa Descargar texto.', 'warning');
+        FandezNotify.show('No se pudo copiar. Usa Descargar texto.', 'warning');
       }
       return;
     }
@@ -2243,7 +2243,7 @@
         if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo editar');
         await loadFlorenciaAgenda();
       } catch (err) {
-        FundezNotify.show(err.message, 'error');
+        FandezNotify.show(err.message, 'error');
         button.disabled = false;
       }
       return;
@@ -2274,10 +2274,10 @@
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo completar');
-      FundezNotify.show(endpoint === 'publish' ? 'Pieza publicada' : 'Pieza actualizada', 'success');
+      FandezNotify.show(endpoint === 'publish' ? 'Pieza publicada' : 'Pieza actualizada', 'success');
       await loadFlorenciaAgenda();
     } catch (err) {
-      FundezNotify.show(err.message, 'error');
+      FandezNotify.show(err.message, 'error');
       button.disabled = false;
       button.textContent = original;
     }
@@ -2376,10 +2376,10 @@
         const bits = [];
         if (data.applied?.length) bits.push('copy/imagen actualizados');
         if (data.regenerated) bits.push('nueva imagen generada');
-        FundezNotify.show(bits.length ? `Florencia: ${bits.join(' · ')}` : 'Florencia respondió', 'success');
+        FandezNotify.show(bits.length ? `Florencia: ${bits.join(' · ')}` : 'Florencia respondió', 'success');
       }
     } catch (err) {
-      FundezNotify.show(err.message, 'error');
+      FandezNotify.show(err.message, 'error');
     } finally {
       button.disabled = false;
       button.textContent = original;
@@ -2518,14 +2518,14 @@
         });
         const data = await res.json();
         if (data.success) {
-          FundezNotify.show('Documento reemitido', 'success');
+          FandezNotify.show('Documento reemitido', 'success');
           setTimeout(() => location.reload(), 800);
         } else {
-          FundezNotify.show(data.error || 'Error al emitir', 'error');
+          FandezNotify.show(data.error || 'Error al emitir', 'error');
           btn.disabled = false;
         }
       } catch (_) {
-        FundezNotify.show('Error de conexión', 'error');
+        FandezNotify.show('Error de conexión', 'error');
         btn.disabled = false;
       }
     });
@@ -2545,13 +2545,13 @@
         });
         const data = await res.json();
         if (!data.success) {
-          FundezNotify.show(data.error || 'No se pudo cambiar el modo', 'error');
+          FandezNotify.show(data.error || 'No se pudo cambiar el modo', 'error');
           return;
         }
-        FundezNotify.show('Modo: ' + data.label, 'success');
+        FandezNotify.show('Modo: ' + data.label, 'success');
         setTimeout(() => location.reload(), 700);
       } catch (_) {
-        FundezNotify.show('Error al cambiar modo', 'error');
+        FandezNotify.show('Error al cambiar modo', 'error');
       }
     });
   });

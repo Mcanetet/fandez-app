@@ -88,7 +88,7 @@ router.post('/login', rateLimitLogin(12), async (req, res) => {
   if (result.error === 'blocked') {
     store.logSecurityEvent('login_blocked', email, req);
     return res.render('login', loginRenderOptions(req, {
-      error: 'Esta cuenta está desactivada. Escribe a soporte@fundez.cl para reactivarla.'
+      error: 'Esta cuenta está desactivada. Escribe a soporte@fandez.cl para reactivarla.'
     }));
   }
 
@@ -458,7 +458,7 @@ router.get('/verificar-email', (req, res) => {
   }
 
   res.render('verificar-email', {
-    title: 'Verificar correo — Fundez',
+    title: 'Verificar correo — Fandez',
     email: user.email,
     company,
     error,
@@ -480,7 +480,7 @@ router.post('/verificar-email', async (req, res) => {
   const result = await store.verifyEmailCode(user.id, code);
   if (result.error) {
     return res.render('verificar-email', {
-      title: 'Verificar correo — Fundez',
+      title: 'Verificar correo — Fandez',
       email: user.email,
       company,
       error: result.error,

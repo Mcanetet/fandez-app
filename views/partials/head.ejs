@@ -8,21 +8,21 @@
   <meta name="theme-color" content="#FAF8F4" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#FAF8F4" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#FAF8F4">
-  <meta name="application-name" content="Fundez">
+  <meta name="application-name" content="Fandez">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Fundez">
+  <meta name="apple-mobile-web-app-title" content="Fandez">
   <meta name="mobile-web-app-capable" content="yes">
   <% var favBase = (typeof siteUrl !== 'undefined' && siteUrl) ? String(siteUrl).replace(/\/$/, '') : ''; %>
   <% var favV = typeof assetVersion !== 'undefined' ? assetVersion : '1'; %>
   <!-- v5: paths nuevos — Hostinger CDN y Safari ignoran ?v= en favicon.ico -->
   <link rel="icon" href="<%= favBase %>/favicon.svg?v=<%= favV %>" type="image/svg+xml">
-  <link rel="icon" type="image/png" sizes="48x48" href="<%= favBase %>/icons/fundez-v5-96.png?v=<%= favV %>">
-  <link rel="icon" type="image/png" sizes="96x96" href="<%= favBase %>/icons/fundez-v5-96.png?v=<%= favV %>">
-  <link rel="icon" type="image/png" sizes="192x192" href="<%= favBase %>/icons/fundez-v5-192.png?v=<%= favV %>">
-  <link rel="shortcut icon" href="<%= favBase %>/icons/fundez-v5.ico?v=<%= favV %>">
-  <link rel="icon" href="<%= favBase %>/icons/fundez-v5.ico?v=<%= favV %>" sizes="any">
-  <link rel="apple-touch-icon" sizes="180x180" href="<%= favBase %>/icons/fundez-v5-180.png?v=<%= favV %>">
+  <link rel="icon" type="image/png" sizes="48x48" href="<%= favBase %>/icons/fandez-v5-96.png?v=<%= favV %>">
+  <link rel="icon" type="image/png" sizes="96x96" href="<%= favBase %>/icons/fandez-v5-96.png?v=<%= favV %>">
+  <link rel="icon" type="image/png" sizes="192x192" href="<%= favBase %>/icons/fandez-v5-192.png?v=<%= favV %>">
+  <link rel="shortcut icon" href="<%= favBase %>/icons/fandez-v5.ico?v=<%= favV %>">
+  <link rel="icon" href="<%= favBase %>/icons/fandez-v5.ico?v=<%= favV %>" sizes="any">
+  <link rel="apple-touch-icon" sizes="180x180" href="<%= favBase %>/icons/fandez-v5-180.png?v=<%= favV %>">
   <link rel="manifest" href="/site.webmanifest?v=<%= favV %>">
   <title><%= title %></title>
   <%- include('seo-meta', { seo: typeof seo !== 'undefined' ? seo : null }) %>
@@ -93,54 +93,54 @@
 <body class="bg-zilo-bg text-zilo-text font-sans min-h-full antialiased zilo-body <%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
   <!-- Splash propio (el del SO no anima): logo ámbar palpita como Tinder al abrir la app -->
   <style>
-    #fundezSplash{
+    #fandezSplash{
       position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
       background:#FAF8F4;transition:opacity .38s ease,visibility .38s ease;
     }
-    #fundezSplash.fundez-splash--out{opacity:0;visibility:hidden;pointer-events:none}
-    #fundezSplash .fundez-splash__mark{
+    #fandezSplash.fandez-splash--out{opacity:0;visibility:hidden;pointer-events:none}
+    #fandezSplash .fandez-splash__mark{
       width:112px;height:112px;border-radius:26px;display:block;
-      animation:fundezSplashPulse 1.15s ease-in-out infinite;
+      animation:fandezSplashPulse 1.15s ease-in-out infinite;
       transform-origin:center center;
       will-change:transform;
       box-shadow:0 10px 28px rgba(196,92,20,.22);
     }
-    @keyframes fundezSplashPulse{
+    @keyframes fandezSplashPulse{
       0%,100%{transform:scale(1)}
       50%{transform:scale(1.12)}
     }
     @media (prefers-reduced-motion:reduce){
-      #fundezSplash .fundez-splash__mark{animation:none}
+      #fandezSplash .fandez-splash__mark{animation:none}
     }
     @media (min-width:901px){
-      html:not(.fundez-standalone) #fundezSplash{display:none !important}
+      html:not(.fandez-standalone) #fandezSplash{display:none !important}
     }
   </style>
   <script>
     (function(){
       try{
         if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true){
-          document.documentElement.classList.add('fundez-standalone');
+          document.documentElement.classList.add('fandez-standalone');
         }
       }catch(e){}
     })();
   </script>
-  <div id="fundezSplash" role="presentation" aria-hidden="true">
-    <img class="fundez-splash__mark" src="<%= favBase %>/icons/fundez-v5-192.png?v=<%= favV %>" width="192" height="192" alt="" decoding="async" fetchpriority="high">
+  <div id="fandezSplash" role="presentation" aria-hidden="true">
+    <img class="fandez-splash__mark" src="<%= favBase %>/icons/fandez-v5-192.png?v=<%= favV %>" width="192" height="192" alt="" decoding="async" fetchpriority="high">
   </div>
   <script>
     (function(){
-      var el=document.getElementById('fundezSplash');
+      var el=document.getElementById('fandezSplash');
       if(!el)return;
       var desktop=false;
-      try{desktop=window.matchMedia('(min-width:901px)').matches&&!document.documentElement.classList.contains('fundez-standalone');}catch(e){}
+      try{desktop=window.matchMedia('(min-width:901px)').matches&&!document.documentElement.classList.contains('fandez-standalone');}catch(e){}
       if(desktop){el.remove();return;}
       var minMs=1100;
       var t0=Date.now();
       function hide(){
         var wait=Math.max(0,minMs-(Date.now()-t0));
         setTimeout(function(){
-          el.classList.add('fundez-splash--out');
+          el.classList.add('fandez-splash--out');
           setTimeout(function(){el.remove();},420);
         },wait);
       }

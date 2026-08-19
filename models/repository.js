@@ -122,7 +122,7 @@ function demoServiceIds() {
 const SEED_USERS = [
   {
     id: 'client-1',
-    email: 'cliente@fundez.cl',
+    email: 'cliente@fandez.cl',
     password: 'cliente123',
     name: 'María González',
     role: 'client',
@@ -141,12 +141,12 @@ const SEED_USERS = [
       legalName: 'María González',
       giro: '',
       fiscalAddress: 'Av. Providencia 2650, Providencia, Santiago',
-      invoiceEmail: 'cliente@fundez.cl'
+      invoiceEmail: 'cliente@fandez.cl'
     }
   },
   {
     id: 'provider-pedro',
-    email: 'pedro@fundez.cl',
+    email: 'pedro@fandez.cl',
     password: 'proveedor123',
     name: 'Pedro Gómez',
     role: 'provider',
@@ -157,7 +157,7 @@ const SEED_USERS = [
     reviewsCount: 94,
     online: false,
     avatar: 'PG',
-    bio: 'Socio demo Fundez con cobertura de prueba en todos los servicios del catálogo.',
+    bio: 'Socio demo Fandez con cobertura de prueba en todos los servicios del catálogo.',
     reviews: [
       { author: 'Camila T.', rating: 5, text: 'Excelente disposición, solucionó la filtración del lavaplatos muy rápido', date: '2025-05-18' },
       { author: 'Diego M.', rating: 5, text: 'Muy puntual y dejó todo limpio después del trabajo.', date: '2025-04-30' },
@@ -169,7 +169,7 @@ const SEED_USERS = [
   },
   {
     id: 'tecnico-pedro-demo',
-    email: 'tecnico.pedro@fundez.cl',
+    email: 'tecnico.pedro@fandez.cl',
     password: 'tecnico123',
     name: 'Luis Demo',
     role: 'tecnico',
@@ -191,7 +191,7 @@ const SEED_USERS = [
   },
   {
     id: 'provider-marta',
-    email: 'marta@fundez.cl',
+    email: 'marta@fandez.cl',
     password: 'proveedor123',
     name: 'Marta Quiroz',
     role: 'provider',
@@ -213,7 +213,7 @@ const SEED_USERS = [
   },
   {
     id: 'provider-juan',
-    email: 'juancarlos@fundez.cl',
+    email: 'juancarlos@fandez.cl',
     password: 'proveedor123',
     name: 'Juan Carlos',
     role: 'provider',
@@ -235,7 +235,7 @@ const SEED_USERS = [
   },
   {
     id: 'provider-ana',
-    email: 'ana@fundez.cl',
+    email: 'ana@fandez.cl',
     password: 'proveedor123',
     name: 'Ana Rojas',
     role: 'provider',
@@ -256,9 +256,9 @@ const SEED_USERS = [
   },
   {
     id: 'admin-1',
-    email: 'admin@fundez.cl',
+    email: 'admin@fandez.cl',
     password: 'admin123',
-    name: 'Admin Fundez',
+    name: 'Admin Fandez',
     role: 'admin',
     phone: '+56 9 0000 0000',
     adminAccess: { profileId: 'superadmin', isSuperAdmin: true, permissions: [] }
@@ -290,8 +290,8 @@ const SEED_CONSENTS = [
 ];
 
 const SEED_SECURITY_LOGS = [
-  { id: 'sec-1', event: 'login_ok', user: 'admin@fundez.cl', ip: '10.0.0.1', createdAt: '2026-06-30T08:00:00.000Z' },
-  { id: 'sec-2', event: 'login_ok', user: 'cliente@fundez.cl', ip: '10.0.0.2', createdAt: '2026-06-30T09:30:00.000Z' },
+  { id: 'sec-1', event: 'login_ok', user: 'admin@fandez.cl', ip: '10.0.0.1', createdAt: '2026-06-30T08:00:00.000Z' },
+  { id: 'sec-2', event: 'login_ok', user: 'cliente@fandez.cl', ip: '10.0.0.2', createdAt: '2026-06-30T09:30:00.000Z' },
   { id: 'sec-3', event: 'pago_demo', detail: 'Pago simulado aprobado', ip: '10.0.0.2', createdAt: '2026-06-30T10:00:00.000Z' }
 ];
 
@@ -372,7 +372,7 @@ function rowToUser(row) {
     }
     if (row.role === 'tecnico') {
       user.isSelfOperator = Boolean(user.verification?.isSelfOperator)
-        || String(user.email || '').endsWith('@fundez.self');
+        || String(user.email || '').endsWith('@fandez.self');
     }
   }
 
@@ -722,9 +722,9 @@ function getAdminSeedConfig() {
   }
   return {
     id: 'admin-1',
-    email: (process.env.ADMIN_EMAIL || 'admin@fundez.cl').trim().toLowerCase(),
+    email: (process.env.ADMIN_EMAIL || 'admin@fandez.cl').trim().toLowerCase(),
     password: password || cryptoRandomTemp(),
-    name: process.env.ADMIN_NAME || 'Admin Fundez',
+    name: process.env.ADMIN_NAME || 'Admin Fandez',
     phone: '+56 9 0000 0000',
     adminAccess: { profileId: 'superadmin', isSuperAdmin: true, permissions: [] }
   };
@@ -856,7 +856,7 @@ async function syncDemoProviderCoverage() {
     pedro.providerContract = demoApprovedContract('Pedro Gómez', '12.345.678-9');
     pedro.active = true;
     pedro.emailVerifiedAt = pedro.emailVerifiedAt || verifiedAt;
-    pedro.bio = pedro.bio || 'Socio demo Fundez con cobertura de prueba en todos los servicios del catálogo.';
+    pedro.bio = pedro.bio || 'Socio demo Fandez con cobertura de prueba en todos los servicios del catálogo.';
     await saveUser(pedro);
   }
 

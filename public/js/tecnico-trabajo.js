@@ -4,7 +4,7 @@
 
   const requestId = page.dataset.requestId;
   const returnUrl = page.dataset.returnUrl || '/tecnico';
-  const notify = (msg, type) => { if (window.FundezNotify) window.FundezNotify.show(msg, type); };
+  const notify = (msg, type) => { if (window.FandezNotify) window.FandezNotify.show(msg, type); };
 
   function fileToBase64(input) {
     return new Promise((resolve, reject) => {
@@ -364,7 +364,7 @@
       if (!el.checked) missing += 1;
     });
     if (missing > 0) {
-      const ok = confirm(`Faltan ${missing} ítem(s) del Procedimiento de atención Fundez. ¿Completar de todos modos?`);
+      const ok = confirm(`Faltan ${missing} ítem(s) del Procedimiento de atención Fandez. ¿Completar de todos modos?`);
       if (!ok) return;
     }
 
@@ -406,7 +406,7 @@
     set('setCharged', fmt(s.grandTotal));
     set('setCardLabel', `Tarjeta y administración ${s.merchantCardFeePercent || 0}%`);
     set('setCard', `−${fmt(s.cardFee)}`);
-    set('setAppLabel', `Comisión Fundez ${Math.round((s.laborCommissionRate || 0) * 100)}%`);
+    set('setAppLabel', `Comisión Fandez ${Math.round((s.laborCommissionRate || 0) * 100)}%`);
     set('setApp', `−${fmt(s.laborCommission)}`);
     if (s.materialsTotal) {
       set('setMaterialsKeep', fmt(s.materialsTotal));
@@ -433,11 +433,11 @@
   socket.on(`request_update_${requestId}`, (payload) => {
     const r = payload.request;
     if (r?.siteReport?.budgetStatus === 'approved' && r.techStatus === 'presupuesto_aprobado') {
-      if (window.FundezAlerts) FundezAlerts.notify({
+      if (window.FandezAlerts) FandezAlerts.notify({
         type: 'payment',
         title: 'Presupuesto aprobado',
         body: 'El cliente aprobó el presupuesto. Puedes continuar el trabajo.',
-        tag: 'fundez-budget-approved-' + requestId
+        tag: 'fandez-budget-approved-' + requestId
       });
       else notify('¡El cliente aprobó el presupuesto!', 'success');
       setTimeout(() => location.reload(), 900);
@@ -474,7 +474,7 @@
     if (senderType === 'provider') return 'Socio';
     if (senderType === 'tecnico') return 'Técnico';
     if (senderType === 'client') return 'Cliente';
-    return 'Fundez';
+    return 'Fandez';
   }
 
   function displayName(msg) {
@@ -482,7 +482,7 @@
     const role = roleLabel(msg.senderType);
     if (!raw) return role;
     if (raw.includes('·')) return raw.split('·')[0].trim() || role;
-    if (/^(socio|técnico|tecnico|cliente|fundez)/i.test(raw)) return raw;
+    if (/^(socio|técnico|tecnico|cliente|fandez)/i.test(raw)) return raw;
     return raw;
   }
 
@@ -578,8 +578,8 @@
   const destLng = parseFloat(page.dataset.destLng);
   const mapEl = document.getElementById('fieldMap');
   const liveBadge = document.getElementById('fieldLiveBadge');
-  if (mapEl && typeof FundezMap !== 'undefined' && !isNaN(destLat) && !isNaN(destLng)) {
-    FundezMap.initTracking(mapEl, {
+  if (mapEl && typeof FandezMap !== 'undefined' && !isNaN(destLat) && !isNaN(destLng)) {
+    FandezMap.initTracking(mapEl, {
       destLat,
       destLng,
       destLabel: 'Domicilio',
@@ -594,11 +594,11 @@
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         if (liveBadge) {
-          liveBadge.textContent = 'En vivo · Técnico Fundez';
+          liveBadge.textContent = 'En vivo · Técnico Fandez';
           liveBadge.className = 'text-[10px] text-zilo-success font-medium';
         }
-        if (typeof FundezMap !== 'undefined' && !isNaN(destLat)) {
-          FundezMap.updateProviderLocation('fieldMap', lat, lng, destLat, destLng);
+        if (typeof FandezMap !== 'undefined' && !isNaN(destLat)) {
+          FandezMap.updateProviderLocation('fieldMap', lat, lng, destLat, destLng);
         }
         fetch('/tecnico/ubicacion', {
           method: 'POST',
@@ -623,8 +623,8 @@
         : 'En vivo';
       liveBadge.className = 'text-[10px] text-zilo-success font-medium';
     }
-    if (typeof FundezMap !== 'undefined' && !isNaN(destLat)) {
-      FundezMap.updateProviderLocation('fieldMap', payload.lat, payload.lng, destLat, destLng);
+    if (typeof FandezMap !== 'undefined' && !isNaN(destLat)) {
+      FandezMap.updateProviderLocation('fieldMap', payload.lat, payload.lng, destLat, destLng);
     }
   });
   socket.emit('register_client', requestId);

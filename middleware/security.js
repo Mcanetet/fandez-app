@@ -4,7 +4,7 @@ function securityHeaders(req, res, next) {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(self), microphone=(self), camera=(self)');
-  res.setHeader('X-Powered-By', 'Fundez');
+  res.setHeader('X-Powered-By', 'Fandez');
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }

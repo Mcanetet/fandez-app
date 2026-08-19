@@ -50,10 +50,10 @@
     });
     const data = await res.json();
     if (!data.success) {
-      FundezNotify?.show(data.error || 'No se pudo actualizar', 'error');
+      FandezNotify?.show(data.error || 'No se pudo actualizar', 'error');
       return;
     }
-    FundezNotify?.show(granted ? 'Consentimiento activado' : 'Consentimiento revocado', 'success');
+    FandezNotify?.show(granted ? 'Consentimiento activado' : 'Consentimiento revocado', 'success');
     setTimeout(() => location.reload(), 600);
   }
 

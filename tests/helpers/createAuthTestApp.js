@@ -18,10 +18,10 @@ function createAuthTestApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(
     session({
-      secret: 'fundez-test-secret',
+      secret: 'fandez-test-secret',
       resave: false,
       saveUninitialized: true,
-      name: 'fundez.test.sid',
+      name: 'fandez.test.sid',
       cookie: { secure: false, httpOnly: true }
     })
   );
@@ -33,7 +33,7 @@ function createAuthTestApp() {
     res.locals.assetVersion = 'test';
     res.locals.asset = (url) => url;
     res.locals.mod = () => true;
-    res.locals.siteUrl = 'https://www.fundez.cl';
+    res.locals.siteUrl = 'https://www.fandez.cl';
     next();
   });
 

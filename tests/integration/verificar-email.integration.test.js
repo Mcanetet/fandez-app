@@ -12,7 +12,7 @@
  */
 
 process.env.NODE_ENV = 'test';
-process.env.SESSION_SECRET = 'fundez-test-secret';
+process.env.SESSION_SECRET = 'fandez-test-secret';
 
 jest.mock('../../models/repository', () => ({
   saveUser: jest.fn(async (user) => user),
@@ -30,7 +30,7 @@ jest.mock('../../models/repository', () => ({
 
 jest.mock('../../lib/mailer', () => ({
   sendMail: jest.fn(async ({ to, subject }) => ({
-    messageId: `<test-${Date.now()}@fundez.cl>`,
+    messageId: `<test-${Date.now()}@fandez.cl>`,
     to,
     subject,
     accepted: [to],
@@ -42,19 +42,19 @@ jest.mock('../../lib/mailer', () => ({
     configured: true,
     host: 'smtp.test',
     port: 587,
-    user: 'sop***@fundez.cl',
-    from: 'soporte@fundez.cl'
+    user: 'sop***@fandez.cl',
+    from: 'soporte@fandez.cl'
   })),
   verifySmtp: jest.fn(async () => ({ ok: true })),
   resetTransporter: jest.fn(),
-  formatFromAddress: jest.fn(() => '"Fundez" <soporte@fundez.cl>'),
+  formatFromAddress: jest.fn(() => '"Fandez" <soporte@fandez.cl>'),
   stripHtml: jest.fn((html) => String(html || '').replace(/<[^>]+>/g, ' '))
 }));
 
 jest.mock('../../lib/seo', () => ({
-  getSiteUrl: jest.fn(() => 'https://www.fundez.cl'),
+  getSiteUrl: jest.fn(() => 'https://www.fandez.cl'),
   buildPageMeta: jest.fn(() => ({ title: 'Test', description: '' })),
-  absoluteUrl: jest.fn((p) => `https://www.fundez.cl${p || '/'}`)
+  absoluteUrl: jest.fn((p) => `https://www.fandez.cl${p || '/'}`)
 }));
 
 const request = require('supertest');
@@ -116,7 +116,7 @@ describe('Integración — /verificar-email', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mailer.sendMail.mockResolvedValue({
-      messageId: '<ok@fundez.cl>',
+      messageId: '<ok@fandez.cl>',
       accepted: ['integracion@gmail.com'],
       rejected: []
     });

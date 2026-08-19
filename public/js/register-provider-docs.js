@@ -3,7 +3,7 @@
   if (!form) return;
 
   function t(key) {
-    return typeof FundezI18n !== 'undefined' ? FundezI18n.t(key) : key;
+    return typeof FandezI18n !== 'undefined' ? FandezI18n.t(key) : key;
   }
 
   function isProviderRole() {
@@ -17,8 +17,8 @@
     const specialties = form.querySelectorAll('input[name="specialties"]:checked');
     if (!specialties.length) {
       event.preventDefault();
-      if (typeof FundezNotify !== 'undefined') {
-        FundezNotify.show(t('register.error_specialties'), 'warning');
+      if (typeof FandezNotify !== 'undefined') {
+        FandezNotify.show(t('register.error_specialties'), 'warning');
       } else {
         alert(t('register.error_specialties'));
       }

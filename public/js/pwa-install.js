@@ -1,16 +1,16 @@
 /**
- * Instalar Fundez en el celular (PWA).
+ * Instalar Fandez en el celular (PWA).
  * Android/Chrome: beforeinstallprompt. iOS Safari: Añadir a pantalla de inicio.
  * El botón de la landing siempre puede reabrir la guía, aunque se haya cerrado el aviso.
  */
 (function () {
-  const DISMISS_KEY = 'fundez_install_dismissed_v6';
+  const DISMISS_KEY = 'fandez_install_dismissed_v6';
   const DISMISS_MS = 3 * 24 * 60 * 60 * 1000;
 
   function t(key, fallback) {
     try {
-      if (window.FundezI18n && typeof FundezI18n.t === 'function') {
-        const v = FundezI18n.t(key);
+      if (window.FandezI18n && typeof FandezI18n.t === 'function') {
+        const v = FandezI18n.t(key);
         if (v && v !== key) return v;
       }
     } catch (_) { /* ignore */ }
@@ -61,9 +61,9 @@
   function hide() {
     if (bannerEl) {
       bannerEl.classList.add('hidden');
-      bannerEl.classList.remove('fundez-install-banner--forced');
+      bannerEl.classList.remove('fandez-install-banner--forced');
     }
-    document.body.classList.remove('fundez-install-visible');
+    document.body.classList.remove('fandez-install-visible');
   }
 
   function setCopy(mode) {
@@ -85,7 +85,7 @@
       return;
     }
     if (mode === 'ios') {
-      if (title) title.textContent = t('pwa.install_title', 'Instala Fundez en tu celular');
+      if (title) title.textContent = t('pwa.install_title', 'Instala Fandez en tu celular');
       if (body) body.textContent = t('pwa.install_ios_body', 'En Safari: toca Compartir y luego “Añadir a pantalla de inicio”.');
       if (cta) {
         cta.textContent = t('pwa.install_ios_cta', 'Ver cómo');
@@ -93,7 +93,7 @@
       }
       return;
     }
-    if (title) title.textContent = t('pwa.install_title', 'Instala Fundez en tu celular');
+    if (title) title.textContent = t('pwa.install_title', 'Instala Fandez en tu celular');
     if (body) {
       body.textContent = deferredPrompt
         ? t('pwa.install_android_body', 'Instálala como app: acceso rápido, sin ocupar la tienda.')
@@ -117,12 +117,12 @@
     if (mode === 'inapp') {
       if (s1) s1.textContent = t('pwa.inapp_step1', 'Toca los tres puntos ⋯ o Compartir arriba a la derecha.');
       if (s2) s2.textContent = t('pwa.inapp_step2', 'Elige “Abrir en Safari” (iPhone) o “Abrir en Chrome” (Android).');
-      if (s3) s3.textContent = t('pwa.inapp_step3', 'Ahí verás el botón para instalar Fundez en tu pantalla de inicio.');
+      if (s3) s3.textContent = t('pwa.inapp_step3', 'Ahí verás el botón para instalar Fandez en tu pantalla de inicio.');
       return;
     }
     if (s1) s1.textContent = t('pwa.ios_step1', 'Toca el botón Compartir en la barra de Safari.');
     if (s2) s2.textContent = t('pwa.ios_step2', 'Desplázate y elige “Añadir a pantalla de inicio”.');
-    if (s3) s3.textContent = t('pwa.ios_step3', 'Confirma “Añadir”. Fundez quedará como app.');
+    if (s3) s3.textContent = t('pwa.ios_step3', 'Confirma “Añadir”. Fandez quedará como app.');
   }
 
   function show(options) {
@@ -139,8 +139,8 @@
 
     setCopy(mode);
     bannerEl.classList.remove('hidden');
-    bannerEl.classList.toggle('fundez-install-banner--forced', force);
-    document.body.classList.add('fundez-install-visible');
+    bannerEl.classList.toggle('fandez-install-banner--forced', force);
+    document.body.classList.add('fandez-install-visible');
     if (force && (mode === 'ios' || mode === 'inapp')) showSteps(true);
   }
 
@@ -163,7 +163,7 @@
       const s3 = bannerEl.querySelector('[data-ios-step3]');
       if (s1) s1.textContent = t('pwa.android_step1', 'Toca el menú ⋮ arriba a la derecha en Chrome.');
       if (s2) s2.textContent = t('pwa.android_step2', 'Elige “Instalar app” o “Añadir a la pantalla de inicio”.');
-      if (s3) s3.textContent = t('pwa.android_step3', 'Confirma. Fundez quedará como las demás apps.');
+      if (s3) s3.textContent = t('pwa.android_step3', 'Confirma. Fandez quedará como las demás apps.');
       return;
     }
     deferredPrompt.prompt();
@@ -174,28 +174,28 @@
   }
 
   function ensureBanner() {
-    bannerEl = document.getElementById('fundezInstallBanner');
+    bannerEl = document.getElementById('fandezInstallBanner');
     if (bannerEl) return bannerEl;
 
     bannerEl = document.createElement('div');
-    bannerEl.id = 'fundezInstallBanner';
-    bannerEl.className = 'fundez-install-banner hidden';
+    bannerEl.id = 'fandezInstallBanner';
+    bannerEl.className = 'fandez-install-banner hidden';
     bannerEl.setAttribute('role', 'dialog');
     bannerEl.setAttribute('aria-live', 'polite');
     bannerEl.innerHTML = `
-      <div class="fundez-install-banner__card">
-        <img class="fundez-install-banner__icon" src="/icons/fundez-v5-96.png" width="48" height="48" alt="">
-        <div class="fundez-install-banner__text">
-          <p class="fundez-install-banner__title" data-install-title></p>
-          <p class="fundez-install-banner__body" data-install-body></p>
+      <div class="fandez-install-banner__card">
+        <img class="fandez-install-banner__icon" src="/icons/fandez-v5-96.png" width="48" height="48" alt="">
+        <div class="fandez-install-banner__text">
+          <p class="fandez-install-banner__title" data-install-title></p>
+          <p class="fandez-install-banner__body" data-install-body></p>
         </div>
-        <button type="button" class="fundez-install-banner__close" data-install-dismiss aria-label="Cerrar">×</button>
+        <button type="button" class="fandez-install-banner__close" data-install-dismiss aria-label="Cerrar">×</button>
       </div>
-      <div class="fundez-install-banner__actions">
-        <button type="button" class="fundez-install-banner__cta" data-install-cta></button>
-        <button type="button" class="fundez-install-banner__later" data-install-dismiss-later></button>
+      <div class="fandez-install-banner__actions">
+        <button type="button" class="fandez-install-banner__cta" data-install-cta></button>
+        <button type="button" class="fandez-install-banner__later" data-install-dismiss-later></button>
       </div>
-      <div class="fundez-install-banner__ios hidden" data-install-ios-steps>
+      <div class="fandez-install-banner__ios hidden" data-install-ios-steps>
         <ol>
           <li data-ios-step1></li>
           <li data-ios-step2></li>
@@ -277,7 +277,7 @@
     });
   }
 
-  window.FundezPwa = {
+  window.FandezPwa = {
     show: function () { show({ force: true }); },
     prompt: function () {
       show({ force: true });

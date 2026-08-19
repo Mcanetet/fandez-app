@@ -30,7 +30,7 @@
     <% if (isObserver) { %>
       <div class="p-3 rounded-2xl border border-zilo-accent/25 bg-zilo-accent/5">
         <p class="text-sm font-semibold text-zilo-accent">Modo supervisión</p>
-        <p class="text-xs text-zilo-muted mt-0.5">Ves lo mismo que el técnico en terreno. Puedes chatear con el cliente como <strong>Socio Fundez</strong>. Las acciones de visita las ejecuta el técnico.</p>
+        <p class="text-xs text-zilo-muted mt-0.5">Ves lo mismo que el técnico en terreno. Puedes chatear con el cliente como <strong>Socio Fandez</strong>. Las acciones de visita las ejecuta el técnico.</p>
         <% if (request.technicianName) { %>
           <p class="text-[11px] text-zilo-muted mt-2">Técnico asignado: <strong><%= request.technicianName %></strong></p>
         <% } else { %>
@@ -361,7 +361,7 @@
       <h2 class="text-sm font-semibold mb-3">Resumen de la visita</h2>
       <div class="space-y-3">
         <details id="attentionChecklistBox" class="rounded-xl border border-zilo-border bg-zilo-bg/60 p-3" open>
-          <summary class="text-sm font-semibold cursor-pointer text-zilo-accent">Procedimiento de atención Fundez</summary>
+          <summary class="text-sm font-semibold cursor-pointer text-zilo-accent">Procedimiento de atención Fandez</summary>
           <p class="text-[11px] text-zilo-muted mt-2 mb-2">Marca lo realizado. No bloquea el cierre, pero si faltan ítems te avisaremos.</p>
           <div class="space-y-2" id="attentionChecklist">
             <% (typeof attentionChecklist !== 'undefined' ? attentionChecklist : []).forEach(function(item) { %>
@@ -405,7 +405,7 @@
             <span id="setCard">—</span>
           </div>
           <div class="flex justify-between text-zilo-muted">
-            <span id="setAppLabel">Comisión Fundez 20%</span>
+            <span id="setAppLabel">Comisión Fandez 20%</span>
             <span id="setApp">—</span>
           </div>
           <div class="flex justify-between text-zilo-success" id="setMaterialsKeepRow">
@@ -426,7 +426,7 @@
           </div>
         </div>
       </details>
-      <p class="text-[11px] text-zilo-muted/80">De la mano de obra: 5% tarjeta/admin y 20% comisión Fundez. Los materiales son 100% tuyos.</p>
+      <p class="text-[11px] text-zilo-muted/80">De la mano de obra: 5% tarjeta/admin y 20% comisión Fandez. Los materiales son 100% tuyos.</p>
       <a href="<%= typeof returnUrl !== 'undefined' ? returnUrl : '/tecnico' %>" class="mt-4 block w-full text-center py-3 rounded-xl zilo-btn-primary">Volver al panel</a>
     </section>
   </main>

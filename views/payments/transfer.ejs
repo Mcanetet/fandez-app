@@ -23,11 +23,11 @@
     <section class="zilo-card-premium rounded-2xl p-5">
       <p class="zilo-label mb-3">Monto a transferir</p>
       <p class="text-3xl font-bold text-zilo-accent mb-1"><%= formatCLP(summary.amountDue) %></p>
-      <p class="text-xs text-zilo-muted">Referencia: <strong class="font-mono">FUNDEZ-<%= request.id.slice(0, 8).toUpperCase() %></strong></p>
+      <p class="text-xs text-zilo-muted">Referencia: <strong class="font-mono">FANDEZ-<%= request.id.slice(0, 8).toUpperCase() %></strong></p>
     </section>
 
     <section class="zilo-card-premium rounded-2xl p-5 space-y-3">
-      <p class="zilo-label">Datos bancarios Fundez</p>
+      <p class="zilo-label">Datos bancarios Fandez</p>
       <div class="text-sm space-y-2">
         <div class="flex justify-between"><span class="text-zilo-muted">Banco</span><strong><%= bank.bankName %></strong></div>
         <div class="flex justify-between"><span class="text-zilo-muted">Tipo cuenta</span><strong><%= bank.accountType %></strong></div>
@@ -54,7 +54,7 @@
       </button>
     <% } else { %>
       <div class="p-4 rounded-2xl bg-zilo-accent/5 border border-zilo-accent/20 text-center text-sm">
-        Esperando confirmación del equipo Fundez
+        Esperando confirmación del equipo Fandez
       </div>
     <% } %>
 
@@ -75,7 +75,7 @@ document.getElementById('btnConfirmTransfer')?.addEventListener('click', async (
   if (data.success) window.location.href = data.redirect;
   else {
     el.disabled = false;
-    FundezNotify.show(data.error || 'Error', 'error');
+    FandezNotify.show(data.error || 'Error', 'error');
   }
 });
 </script>

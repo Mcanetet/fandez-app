@@ -25,7 +25,7 @@ const { ATTENTION_CHECKLIST } = require('../lib/onboarding');
 function equipoViewLocals(req, provider, extra = {}) {
   const onlineGate = store.canProviderGoOnline(provider);
   return {
-    title: 'Mi equipo — Fundez',
+    title: 'Mi equipo — Fandez',
     user: req.session.user,
     provider,
     technicians: store.getTechniciansByProvider(provider.id).map((tecnico) => ({
@@ -47,7 +47,7 @@ router.use(requireRole('provider'), requireVerifiedEmail);
 
 router.get('/mensajes', requireRole('provider'), requireModule('provider_mensajes'), (req, res) => {
   res.render('provider/mensajes', {
-    title: 'Mensajes — Fundez',
+    title: 'Mensajes — Fandez',
     user: req.session.user,
     providerId: req.session.user.id
   });
@@ -67,7 +67,7 @@ router.get('/', requireRole('provider'), (req, res) => {
   const providerStats = store.getProviderDashboardStats(req.session.user.id);
 
   res.render('provider/dashboard', {
-    title: 'Fundez — Panel Proveedor',
+    title: 'Fandez — Panel Proveedor',
     user: req.session.user,
     provider,
     verificationCheck,
@@ -228,7 +228,7 @@ router.get('/perfil', requireRole('provider'), requireModule('provider_perfil'),
     (c) => c.type === 'datos_sensibles_kyc' && c.granted
   );
   res.render('provider/profile', {
-    title: 'Mi perfil — Fundez',
+    title: 'Mi perfil — Fandez',
     user: req.session.user,
     provider,
     verificationCheck,
@@ -550,7 +550,7 @@ router.get('/mando', requireRole('provider'), requireModule('provider_mando'), (
   const active = store.getActiveRequestsForProvider(provider.id, req.locale);
 
   res.render('provider/mando', {
-    title: 'Mis trabajos — Fundez',
+    title: 'Mis trabajos — Fandez',
     user: req.session.user,
     provider,
     technicians,
@@ -580,7 +580,7 @@ router.get('/trabajo/:requestId', requireRole('provider'), requireModule('provid
   };
 
   res.render('tecnico/trabajo', {
-    title: 'Pedido en terreno — Fundez',
+    title: 'Pedido en terreno — Fandez',
     user: req.session.user,
     tecnico: request.technicianId ? store.getUserById(request.technicianId) : null,
     request: serializeFieldJob(store, request),
@@ -667,7 +667,7 @@ router.get('/contrato', requireRole('provider'), requireModule('provider_contrat
   const contract = store.getProviderContract(provider.id);
   const summary = getContractSummary(contract);
   res.render('provider/contrato', {
-    title: 'Contrato de socio — Fundez',
+    title: 'Contrato de socio — Fandez',
     user: req.session.user,
     provider,
     contract,

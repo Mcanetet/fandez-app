@@ -4,19 +4,19 @@
 
   const shareUrl = page.dataset.shareUrl;
   const code = page.dataset.code;
-  const shareText = `¡Prueba Fundez! Servicios del hogar en Santiago. Usa mi código ${code} y ganamos $5.000 cada uno: ${shareUrl}`;
+  const shareText = `¡Prueba Fandez! Servicios del hogar en Santiago. Usa mi código ${code} y ganamos $5.000 cada uno: ${shareUrl}`;
 
   document.getElementById('btnCopyCode')?.addEventListener('click', () => {
-    navigator.clipboard.writeText(code).then(() => FundezNotify.show('Código copiado', 'success'));
+    navigator.clipboard.writeText(code).then(() => FandezNotify.show('Código copiado', 'success'));
   });
 
   document.getElementById('btnShare')?.addEventListener('click', async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Fundez — Invitación', text: shareText, url: shareUrl });
+        await navigator.share({ title: 'Fandez — Invitación', text: shareText, url: shareUrl });
       } catch (_) {}
     } else {
-      navigator.clipboard.writeText(shareText).then(() => FundezNotify.show('Enlace copiado para compartir', 'success'));
+      navigator.clipboard.writeText(shareText).then(() => FandezNotify.show('Enlace copiado para compartir', 'success'));
     }
   });
 
@@ -29,8 +29,8 @@
     });
     const data = await res.json();
     if (data.success) {
-      FundezNotify.show(data.message, 'success');
+      FandezNotify.show(data.message, 'success');
       input.value = '';
-    } else FundezNotify.show(data.error, 'error');
+    } else FandezNotify.show(data.error, 'error');
   });
 })();

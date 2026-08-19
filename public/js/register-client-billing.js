@@ -12,8 +12,8 @@
   const billingTypeInputs = document.querySelectorAll('input[name="client_billing_type"]');
 
   function t(key, fallback) {
-    if (typeof FundezI18n !== 'undefined') {
-      const value = FundezI18n.t(key);
+    if (typeof FandezI18n !== 'undefined') {
+      const value = FandezI18n.t(key);
       if (value && value !== key) return value;
     }
     return fallback || key;
@@ -50,7 +50,7 @@
       return false;
     }
 
-    if (typeof FundezRut === 'undefined' || !FundezRut.validate(value)) {
+    if (typeof FandezRut === 'undefined' || !FandezRut.validate(value)) {
       const msg = t('register.error_client_rut_invalid', 'El RUT ingresado no es válido.');
       showRutError(msg);
       if (showMessage) clientRut.reportValidity();
@@ -58,7 +58,7 @@
     }
 
     showRutError('');
-    clientRut.value = FundezRut.format(value);
+    clientRut.value = FandezRut.format(value);
     return true;
   }
 

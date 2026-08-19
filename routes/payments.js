@@ -53,7 +53,7 @@ router.get('/ajuste', requireRole('client'), (req, res) => {
   }
   const pricing = store.getPricingConfig();
   res.render('payments/additional-checkout', {
-    title: 'Pago de ajuste — Fundez',
+    title: 'Pago de ajuste — Fandez',
     request,
     charge,
     service: store.getServiceById(request.serviceId),
@@ -144,7 +144,7 @@ router.get('/checkout', requireRole('client'), (req, res) => {
   const enabledCardGateways = gateways.getEnabledCardGateways(pricing);
 
   res.render('payments/checkout', {
-    title: 'Checkout — Fundez',
+    title: 'Checkout — Fandez',
     request,
     summary,
     referral,
@@ -350,7 +350,7 @@ router.get('/transbank/iniciar', requireRole('client'), (req, res) => {
   }
 
   res.render('payments/transbank-iniciar', {
-    title: 'Webpay Plus — Fundez',
+    title: 'Webpay Plus — Fandez',
     token,
     paymentUrl
   });
@@ -408,7 +408,7 @@ router.get('/transferencia', requireRole('client'), (req, res) => {
 
   const pricing = store.getPricingConfig();
   res.render('payments/transfer', {
-    title: 'Transferencia bancaria — Fundez',
+    title: 'Transferencia bancaria — Fandez',
     request,
     summary: store.getCheckoutSummary(req.session.user.id, request.id),
     bank: pricing.bankTransfer,
@@ -440,7 +440,7 @@ router.get('/demo', requireRole('client'), (req, res) => {
     return res.redirect('/cliente');
   }
   res.render('payments/demo', {
-    title: 'Pago — Fundez',
+    title: 'Pago — Fandez',
     request,
     service: store.getServiceById(request.serviceId),
     formatCLP: store.formatCLP,
@@ -478,7 +478,7 @@ router.get('/exito', requireRole('client'), (req, res) => {
   const guardianUrl = company.guardianShareLink(request);
 
   res.render('payments/success', {
-    title: 'Pago exitoso — Fundez',
+    title: 'Pago exitoso — Fandez',
     request,
     formatCLP: store.formatCLP,
     beneficiaryWhatsapp,
@@ -495,7 +495,7 @@ router.get('/error', requireRole('client'), (req, res) => {
   if (request && request.clientId !== req.session.user.id) {
     return res.redirect('/cliente');
   }
-  res.render('payments/failure', { title: 'Pago fallido — Fundez', request, query: req.query });
+  res.render('payments/failure', { title: 'Pago fallido — Fandez', request, query: req.query });
 });
 
 router.get('/pendiente', requireRole('client'), (req, res) => {
@@ -503,7 +503,7 @@ router.get('/pendiente', requireRole('client'), (req, res) => {
   if (request && request.clientId !== req.session.user.id) {
     return res.redirect('/cliente');
   }
-  res.render('payments/pending', { title: 'Pago pendiente — Fundez', request });
+  res.render('payments/pending', { title: 'Pago pendiente — Fandez', request });
 });
 
 router.post('/webhook', async (req, res) => {

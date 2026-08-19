@@ -64,7 +64,7 @@ router.get('/', requireRole('tecnico'), (req, res) => {
     .map(serializeJob);
 
   res.render('tecnico/dashboard', {
-    title: 'Fundez — Panel Técnico',
+    title: 'Fandez — Panel Técnico',
     user: req.session.user,
     tecnico,
     socio,
@@ -85,7 +85,7 @@ router.get('/trabajo/:requestId', requireRole('tecnico'), (req, res) => {
   }
 
   res.render('tecnico/trabajo', {
-    title: 'Visita en terreno — Fundez',
+    title: 'Visita en terreno — Fandez',
     user: req.session.user,
     tecnico,
     request: serializeJob(request),
@@ -273,7 +273,7 @@ router.get('/trabajo/:requestId/materiales-catalogo', requireRole('tecnico'), (r
   res.json({
     success: true,
     materials: store.getMaterialsCatalogForService(request.serviceId),
-    formatHint: 'Precios de mercado Fundez · se cobran al cliente a costo'
+    formatHint: 'Precios de mercado Fandez · se cobran al cliente a costo'
   });
 });
 

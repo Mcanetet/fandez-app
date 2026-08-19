@@ -42,7 +42,7 @@
   async function uploadDocument(input) {
     const file = input.files?.[0];
     if (!file || file.size > 6 * 1024 * 1024) {
-      FundezNotify.show('Archivo inválido o mayor a 6 MB', 'error');
+      FandezNotify.show('Archivo inválido o mayor a 6 MB', 'error');
       input.value = '';
       return;
     }
@@ -62,11 +62,11 @@
             uploaded.documents = uploaded.documents || {};
             uploaded.documents[input.dataset.key] = { url: data.url };
           }
-          FundezNotify.show('Documento guardado', 'success');
+          FandezNotify.show('Documento guardado', 'success');
           renderDocuments();
-        } else FundezNotify.show(data.error || 'Error al subir', 'error');
+        } else FandezNotify.show(data.error || 'Error al subir', 'error');
       } catch (_) {
-        FundezNotify.show('Error de conexión', 'error');
+        FandezNotify.show('Error de conexión', 'error');
       }
     };
     reader.readAsDataURL(file);
@@ -114,7 +114,7 @@
     e.preventDefault();
     const body = collectFormData();
     if (!document.getElementById('acceptContract')?.checked) {
-      FundezNotify.show('Debes aceptar el contrato', 'error');
+      FandezNotify.show('Debes aceptar el contrato', 'error');
       return;
     }
     const btn = document.getElementById('btnSubmitContract');
@@ -128,15 +128,15 @@
       });
       const data = await res.json();
       if (data.success) {
-        FundezNotify.show('Expediente enviado a revisión legal', 'success');
+        FandezNotify.show('Expediente enviado a revisión legal', 'success');
         setTimeout(() => location.reload(), 900);
       } else {
-        FundezNotify.show(data.error || (data.errors && data.errors[0]) || 'Revisa el formulario', 'error');
+        FandezNotify.show(data.error || (data.errors && data.errors[0]) || 'Revisa el formulario', 'error');
         btn.disabled = false;
         btn.textContent = 'Enviar a revisión legal';
       }
     } catch (_) {
-      FundezNotify.show('Error de conexión', 'error');
+      FandezNotify.show('Error de conexión', 'error');
       btn.disabled = false;
       btn.textContent = 'Enviar a revisión legal';
     }

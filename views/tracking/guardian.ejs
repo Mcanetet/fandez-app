@@ -27,7 +27,7 @@
       <div id="gStatusDot" class="w-3 h-3 rounded-full bg-zilo-accent animate-pulse shrink-0"></div>
       <div>
         <p class="zilo-label">Estado</p>
-        <p class="font-semibold capitalize" id="gStatus"><%= request.techStatus || request.status %></p>
+        <p class="font-semibold" id="gStatus"><%= request.statusLabel || request.techStatus || request.status %></p>
       </div>
     </div>
 
@@ -53,7 +53,7 @@
     <% } %>
 
     <p class="text-center text-[10px] text-zilo-muted pt-4">
-      Fundez — Pasaporte Hogar & Modo Guardián · Santiago, Chile
+      Fandez — Pasaporte Hogar & Modo Guardián · Santiago, Chile
     </p>
   </main>
 </div>
@@ -69,8 +69,8 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     mapEl = document.getElementById('guardianMap');
-    if (mapEl && typeof FundezMap !== 'undefined') {
-      FundezMap.initTracking(mapEl, {
+    if (mapEl && typeof FandezMap !== 'undefined') {
+      FandezMap.initTracking(mapEl, {
         destLat: mapEl.dataset.lat,
         destLng: mapEl.dataset.lng,
         destLabel: mapEl.dataset.label
@@ -83,8 +83,8 @@
   });
 
   socket.on(`provider_location_${requestId}`, (loc) => {
-    if (mapEl && typeof FundezMap !== 'undefined') {
-      FundezMap.updateProviderLocation(mapEl.id, loc.lat, loc.lng, parseFloat(mapEl.dataset.lat), parseFloat(mapEl.dataset.lng));
+    if (mapEl && typeof FandezMap !== 'undefined') {
+      FandezMap.updateProviderLocation(mapEl.id, loc.lat, loc.lng, parseFloat(mapEl.dataset.lat), parseFloat(mapEl.dataset.lng));
     }
     if (loc.etaMinutes != null) {
       const box = document.getElementById('gEta');
@@ -114,6 +114,10 @@
   };
 
   function techStatusLabel(request) {
+    if (request.awaitingProviderReassign && !request.technicianId) {
+      return 'El socio está asignando otro técnico';
+    }
+    if (request.techStatus === 'asignado') return 'Esperando que el técnico acepte';
     if (request.techStatus && statusLabels[request.techStatus]) return statusLabels[request.techStatus];
     return statusLabels[request.status] || request.status;
   }
@@ -127,8 +131,8 @@
       document.getElementById('gProviderName').textContent = data.provider.name;
       document.getElementById('gProviderRating').textContent = data.provider.rating + '★';
     }
-    if (data.location?.lat != null && mapEl && typeof FundezMap !== 'undefined') {
-      FundezMap.updateProviderLocation(mapEl.id, data.location.lat, data.location.lng, parseFloat(mapEl.dataset.lat), parseFloat(mapEl.dataset.lng));
+    if (data.location?.lat != null && mapEl && typeof FandezMap !== 'undefined') {
+      FandezMap.updateProviderLocation(mapEl.id, data.location.lat, data.location.lng, parseFloat(mapEl.dataset.lat), parseFloat(mapEl.dataset.lng));
     }
     if (r.status === 'completed' || r.techStatus === 'completado') {
       document.getElementById('gStatusDot').className = 'w-3 h-3 rounded-full bg-zilo-success shrink-0';
