@@ -21,7 +21,8 @@ const excludes = [
   '.DS_Store',
   'public/uploads/providers/*',
   'public/uploads/requests/*',
-  'public/uploads/marketing/*'
+  'public/uploads/marketing/*',
+  'data/uploads/*'
 ];
 
 const args = excludes.map((e) => `-x "${e}"`).join(' ');

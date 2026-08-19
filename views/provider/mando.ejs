@@ -66,7 +66,8 @@
             <% } %>
             <% if (r.clientPhotoUrl) { %>
               <a href="<%= r.clientPhotoUrl %>" target="_blank" rel="noopener" class="block mb-3">
-                <img src="<%= r.clientPhotoUrl %>" alt="Foto del cliente" class="w-full max-h-32 object-cover rounded-xl border border-zilo-border" onerror="this.parentElement.style.display='none'">
+                <img src="<%= r.clientPhotoUrl %>" alt="Foto del cliente" class="w-full max-h-32 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg">No se pudo cargar la foto del pedido.</p>
               </a>
             <% } %>
 

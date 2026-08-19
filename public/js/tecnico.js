@@ -223,7 +223,7 @@
         : `<p class="text-xs text-zilo-muted mb-2">${t('provider.js.no_details')}</p>`;
       const photoParts = [];
       if (req.clientPhotoUrl) {
-        photoParts.push(`<a href="${escapeHtml(req.clientPhotoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(req.clientPhotoUrl)}" alt="" class="w-full max-h-40 object-cover rounded-xl border border-zilo-border"></a>`);
+        photoParts.push(`<a href="${escapeHtml(req.clientPhotoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(req.clientPhotoUrl)}" alt="" class="w-full max-h-40 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.insertAdjacentHTML('afterend','<p class=\\'text-xs text-zilo-muted p-2\\'>No se pudo cargar la foto</p>')"></a>`);
       }
       if (req.clientBrandPhotoUrl) {
         photoParts.push(`<a href="${escapeHtml(req.clientBrandPhotoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(req.clientBrandPhotoUrl)}" alt="" class="w-full max-h-40 object-cover rounded-xl border border-zilo-border"></a>`);

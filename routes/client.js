@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const store = require('../models/store');
-const { saveRequestFile } = require('../lib/uploads');
+const { saveRequestFile, moveRequestPhoto } = require('../lib/uploads');
 const company = require('../config/company');
 const { getClientOnboardingSteps } = require('../lib/onboarding');
 const { localizeServices } = require('../lib/i18n-admin');
@@ -493,34 +493,12 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
       timeZone
     });
 
-    const fs = require('fs');
-    const path = require('path');
-    const moveTempPhoto = async (url, prefix, field) => {
-      if (!url) return;
-      if (!url.includes('/tmp-')) {
-        // Ya está en destino final; verificar que el archivo exista
-        const finalPath = path.join(__dirname, '../public', url);
-        if (!fs.existsSync(finalPath)) {
-          console.warn(`[uploads] Foto ausente en disco: ${url}`);
-          request[field] = null;
-        }
-        return;
-      }
-      const oldPath = path.join(__dirname, '../public', url);
-      const newDir = path.join(__dirname, '../public/uploads/requests', request.id);
-      fs.mkdirSync(newDir, { recursive: true });
-      const newName = `${prefix}-${Date.now()}${path.extname(oldPath) || '.jpg'}`;
-      const newPath = path.join(newDir, newName);
-      if (fs.existsSync(oldPath)) {
-        fs.renameSync(oldPath, newPath);
-        request[field] = `/uploads/requests/${request.id}/${newName}`;
-      } else {
-        console.warn(`[uploads] Temp foto no encontrada: ${url}`);
-        request[field] = null;
-      }
-    };
-    await moveTempPhoto(clientPhotoUrl, 'cliente', 'clientPhotoUrl');
-    await moveTempPhoto(clientBrandPhotoUrl, 'marca', 'clientBrandPhotoUrl');
+    if (clientPhotoUrl) {
+      request.clientPhotoUrl = moveRequestPhoto(clientPhotoUrl, request.id, 'cliente');
+    }
+    if (clientBrandPhotoUrl) {
+      request.clientBrandPhotoUrl = moveRequestPhoto(clientBrandPhotoUrl, request.id, 'marca');
+    }
     if (request.clientPhotoUrl !== clientPhotoUrl || request.clientBrandPhotoUrl !== clientBrandPhotoUrl) {
       await require('../models/repository').saveRequest(request);
     }

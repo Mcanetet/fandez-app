@@ -204,6 +204,9 @@ io.use((socket, next) => {
 
 app.use(i18nMiddleware);
 
+const { router: mediaRouter } = require('./routes/media');
+app.use(mediaRouter);
+
 app.use(seoRoutes);
 
 const assetVersion = getAssetVersion();

@@ -7,6 +7,7 @@ const {
 const { validateRut, formatRut } = require('../lib/rut');
 const db = require('../lib/db');
 const repository = require('./repository');
+const { toServingUrl } = require('../lib/uploads');
 const { getAppVersionInfo } = require('../lib/version');
 const { t: translate } = require('../lib/i18n');
 const { verifyPassword, hashPassword } = require('../lib/password');
@@ -4630,6 +4631,8 @@ function enrichRequestForProvider(request, locale = 'es') {
   const safe = sanitizeRequestForWorker(request, pricing);
   return {
     ...safe,
+    clientPhotoUrl: toServingUrl(safe.clientPhotoUrl) || null,
+    clientBrandPhotoUrl: toServingUrl(safe.clientBrandPhotoUrl) || null,
     statusLabel: getRequestStatusLabel(request, locale),
     techStatusLabel: getTechStatusLabel(request.techStatus, locale) || getRequestStatusLabel(request, locale),
     payoutScheduledLabel: request.payoutScheduledDate ? formatPayDate(request.payoutScheduledDate, locale === 'en' ? 'en-US' : 'es-CL') : null,

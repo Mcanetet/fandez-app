@@ -184,7 +184,7 @@
         : '';
       const thumbUrl = req.clientPhotoUrl || req.clientBrandPhotoUrl || '';
       const thumbHtml = thumbUrl
-        ? `<img src="${escapeHtml(thumbUrl)}" alt="" class="w-14 h-14 rounded-xl object-cover border border-zilo-border shrink-0" loading="lazy" onerror="this.style.display='none'">`
+        ? `<img src="${escapeHtml(thumbUrl)}" alt="" class="w-14 h-14 rounded-xl object-cover border border-zilo-border shrink-0" loading="lazy" onerror="this.remove()">`
         : '';
 
       const card = document.createElement('article');
@@ -295,20 +295,24 @@
     if (photosEl) {
       const parts = [];
       if (data.request.clientPhotoUrl) {
+        const url = escapeHtml(data.request.clientPhotoUrl);
         parts.push(`
           <div>
             <p class="zilo-label mb-1">Foto del problema</p>
-            <a href="${data.request.clientPhotoUrl}" target="_blank" rel="noopener">
-              <img src="${data.request.clientPhotoUrl}" alt="Problema" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.closest('div').innerHTML='<p class=\\'text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg\\'>La foto no está disponible en el servidor (puede haberse perdido en un despliegue). Pide al cliente que la reenvíe por el chat.</p>'">
+            <a href="${url}" target="_blank" rel="noopener">
+              <img src="${url}" alt="Problema" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+              <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg">No se pudo cargar la foto. Pide al cliente que la reenvíe por el chat.</p>
             </a>
           </div>`);
       }
       if (data.request.clientBrandPhotoUrl) {
+        const url = escapeHtml(data.request.clientBrandPhotoUrl);
         parts.push(`
           <div>
             <p class="zilo-label mb-1">Foto de la marca</p>
-            <a href="${data.request.clientBrandPhotoUrl}" target="_blank" rel="noopener">
-              <img src="${data.request.clientBrandPhotoUrl}" alt="Marca" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.closest('div').innerHTML='<p class=\\'text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg\\'>Foto de marca no disponible.</p>'">
+            <a href="${url}" target="_blank" rel="noopener">
+              <img src="${url}" alt="Marca" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+              <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg">No se pudo cargar la foto de la marca.</p>
             </a>
           </div>`);
       } else if (data.request.brandNotVisible) {

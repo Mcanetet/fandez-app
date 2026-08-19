@@ -1,5 +1,5 @@
 /* Fundez PWA — service worker mínimo (requerido para “Instalar app” en Chrome/Android). */
-const SW_VERSION = 'fundez-sw-v5';
+const SW_VERSION = 'fundez-sw-v6';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -17,6 +17,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+  let pathname = '';
+  try { pathname = new URL(req.url).pathname; } catch (_) { return; }
+  if (pathname.startsWith('/uploads/') || pathname.startsWith('/media/') || pathname.startsWith('/socket.io')) return;
+  if (req.destination === 'image') return;
   event.respondWith(
     fetch(req).catch(async () => {
       const cached = await caches.match(req);

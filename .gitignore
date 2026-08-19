@@ -10,6 +10,8 @@ data/backup-config.json
 data/dte/
 data/vouchers/
 data/finance-state.json
+data/uploads/requests/*
+!data/uploads/requests/.gitkeep
 zilo-hostinger.zip
 
 # Playwright

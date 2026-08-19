@@ -13,7 +13,18 @@ function securityHeaders(req, res, next) {
 
 function rateLimitSimple(maxPerMinute = 120) {
   const hits = new Map();
+  const skip = (req) => {
+    const p = String(req.path || '');
+    if (p.startsWith('/socket.io')) return true;
+    if (p.startsWith('/uploads/')) return true;
+    if (p.startsWith('/media/')) return true;
+    if (p.startsWith('/icons/')) return true;
+    if (p.startsWith('/css/') || p.startsWith('/js/')) return true;
+    if (/\.(css|js|png|jpe?g|webp|svg|ico|woff2?|map)$/i.test(p)) return true;
+    return false;
+  };
   return (req, res, next) => {
+    if (skip(req)) return next();
     const key = req.ip || req.connection.remoteAddress || 'unknown';
     const now = Date.now();
     const window = hits.get(key) || [];

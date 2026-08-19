@@ -114,7 +114,8 @@
               <div>
                 <p class="zilo-label mb-1.5">Foto del problema</p>
                 <a href="<%= request.clientPhotoUrl %>" target="_blank" rel="noopener">
-                  <img src="<%= request.clientPhotoUrl %>" alt="Foto del problema" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
+                  <img src="<%= request.clientPhotoUrl %>" alt="Foto del problema" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                  <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg">No se pudo cargar la foto del problema.</p>
                 </a>
               </div>
             <% } %>
@@ -122,7 +123,8 @@
               <div>
                 <p class="zilo-label mb-1.5">Foto de la marca</p>
                 <a href="<%= request.clientBrandPhotoUrl %>" target="_blank" rel="noopener">
-                  <img src="<%= request.clientBrandPhotoUrl %>" alt="Foto de la marca" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
+                  <img src="<%= request.clientBrandPhotoUrl %>" alt="Foto de la marca" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                  <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg">No se pudo cargar la foto de la marca.</p>
                 </a>
               </div>
             <% } else if (request.brandNotVisible) { %>
