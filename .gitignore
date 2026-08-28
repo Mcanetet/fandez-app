@@ -1,5 +1,6 @@
 node_modules/
 .env
+fandez.cl.import.env
 .DS_Store
 *.log
 npm-debug.log*

@@ -58,8 +58,8 @@ SESSION_SECRET=clave-larga-aleatoria-min-32-caracteres
 APP_URL=https://tudominio.cl
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_NAME=u482073296_fandezapp_bd
-DB_USER=u482073296_fandezapp_user
+DB_NAME=u482073296_fandez_bd
+DB_USER=u482073296_fandez_user
 DB_PASSWORD=tu-clave-mysql
 ```
 
@@ -87,8 +87,8 @@ SESSION_SECRET=clave-larga-aleatoria-min-32-chars
 APP_URL=https://tudominio.cl
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_NAME=u482073296_fandezapp_bd
-DB_USER=u482073296_fandezapp_user
+DB_NAME=u482073296_fandez_bd
+DB_USER=u482073296_fandez_user
 DB_PASSWORD=tu-clave-mysql
 SUPPORT_EMAIL=soporte@fandez.cl
 DPO_EMAIL=privacidad@fandez.cl
@@ -116,7 +116,7 @@ SMTP_FROM=soporte@fandez.cl
 > - Prueba de conexión: `https://tudominio.cl/health?smtp=1` (añade `"verified":true` si SMTP conecta)
 > - Hotmail/Outlook a veces demoran o mandan a spam; pide al usuario revisar **Correo no deseado**.
 
-(O usa `DATABASE_URL=mysql://usuario:clave@127.0.0.1:3306/u482073296_fandezapp_bd`)
+(O usa `DATABASE_URL=mysql://u482073296_fandez_user:TU_CLAVE@127.0.0.1:3306/u482073296_fandez_bd`)
 
 > **Correos:** soporte al cliente y notificaciones desde **soporte@fandez.cl**; privacidad y derechos ARCO+ al DPD en **privacidad@fandez.cl** (ambos en Hostinger).
 
@@ -129,24 +129,32 @@ Fandez guarda usuarios, servicios y solicitudes en **MySQL**. Sin `DATABASE_URL`
 ### 1. Base de datos en Hostinger
 
 Ya tienes:
-- **Base de datos:** `u482073296_fandezapp_bd`
-- **Usuario:** `u482073296_fandezapp_user`
+- **Base de datos:** `u482073296_fandez_bd`
+- **Usuario:** `u482073296_fandez_user`
 
 En variables de entorno del Node.js app, añade:
 
 ```
-DATABASE_URL=mysql://u482073296_fandezapp_user:TU_CLAVE@127.0.0.1:3306/u482073296_fandezapp_bd
+DATABASE_URL=mysql://u482073296_fandez_user:TU_CLAVE@127.0.0.1:3306/u482073296_fandez_bd
 ```
 
 > En Hostinger usa `127.0.0.1` (no `localhost`) para forzar IPv4 y evitar el error de acceso `@'::1'`.
 
 ### 2. Inicializar tablas y usuarios demo
 
+**Opción A — SSH (recomendada)**
+
 Tras el primer deploy, en la terminal SSH de Hostinger:
 
 ```bash
 npm run db:setup
 ```
+
+**Opción B — phpMyAdmin (BD vacía, sin SSH)**
+
+1. hPanel → **Databases** → `u482073296_fandez_bd` → **Enter phpMyAdmin**
+2. Pestaña **Import** → archivo `db/fandez-demo.sql` del proyecto → **Go**
+3. Crea tablas y usuarios demo en una sola importación
 
 Esto crea las tablas e inserta los usuarios demo:
 

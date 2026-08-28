@@ -7,7 +7,7 @@ const repository = require('../models/repository');
 async function main() {
   if (!db.isConfigured()) {
     console.error('❌ Define DATABASE_URL en tu archivo .env');
-    console.error('   Ejemplo: DATABASE_URL=mysql://usuario:clave@127.0.0.1:3306/u482073296_fandezapp_bd');
+    console.error('   Ejemplo: DATABASE_URL=mysql://u482073296_fandez_user:clave@127.0.0.1:3306/u482073296_fandez_bd');
     process.exit(1);
   }
 

@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- Fandez — Datos demo para MySQL (Hostinger)
 -- ============================================================
 -- Cómo usar en Hostinger:
---   1. hPanel -> Bases de datos -> phpMyAdmin de tu base (u482073296_fandezapp_bd)
+--   1. hPanel -> Bases de datos -> phpMyAdmin de tu base (u482073296_fandez_bd)
 --   2. Pestaña "Importar" -> Selecciona este archivo -> Continuar
 --   3. Se crean las tablas (si faltan) y se cargan los usuarios demo.
 --

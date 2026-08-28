@@ -11,6 +11,7 @@
     "dev": "node index.js",
     "db:setup": "node scripts/db-setup.js",
     "db:seed": "node scripts/db-setup.js",
+    "db:hostinger": "DOTENV_CONFIG_PATH=./fandez.cl.import.env node -r dotenv/config scripts/db-setup.js",
     "db:test": "node scripts/test-db.js",
     "test": "jest --testPathPattern=tests",
     "test:unit": "jest --testPathPattern=tests/emailVerification",
