@@ -141,6 +141,23 @@ function getPendingMfa(req) {
   return pending;
 }
 
+function adminDbNotReadyMessage(req) {
+  const uptime = process.uptime();
+  const initErr = global.__ziloInitError;
+  if (uptime < 50 && !initErr) {
+    return 'La plataforma está arrancando. Espera 30–60 segundos y recarga esta página.';
+  }
+  if (initErr) {
+    return `Base de datos: ${initErr}. Si la BD está vacía, importa db/fandez-demo.sql en phpMyAdmin y redeploya.`;
+  }
+  let msg = 'La base de datos no está lista. Importa db/fandez-demo.sql en phpMyAdmin o ejecuta npm run db:setup en el servidor.';
+  const appUrl = String(process.env.APP_URL || '').trim();
+  if (appUrl.includes('www.') && !String(req.get('host') || '').startsWith('www.')) {
+    msg += ` Usa también: ${appUrl.replace(/\/$/, '')}${adminUrl('/login')}`;
+  }
+  return msg;
+}
+
 router.get('/login', (req, res) => {
   if (req.session.user?.role === 'admin' && req.session.adminMfaVerified) {
     return res.redirect(adminUrl());
@@ -148,7 +165,7 @@ router.get('/login', (req, res) => {
   if (!store.isReady()) {
     return res.render('admin/login', {
       title: 'Admin — Fandez',
-      error: 'La base de datos aún no está lista. En phpMyAdmin importa db/fandez-demo.sql o ejecuta npm run db:setup en el servidor.'
+      error: adminDbNotReadyMessage(req)
     });
   }
   const expired = req.query.expired === '1';
@@ -162,7 +179,7 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
   if (!store.isReady()) {
     return res.render('admin/login', {
       title: 'Admin — Fandez',
-      error: 'Base de datos sin tablas o sin conexión. Importa fandez-demo.sql en phpMyAdmin y redeploya la app.'
+      error: adminDbNotReadyMessage(req)
     });
   }
   const email = String(req.body.email || '').trim().toLowerCase();

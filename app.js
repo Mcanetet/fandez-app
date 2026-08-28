@@ -54,6 +54,25 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
+// Redirige fandez.cl → www.fandez.cl cuando APP_URL usa www (evita instancia sin BD)
+app.use((req, res, next) => {
+  const raw = String(process.env.APP_URL || '').trim();
+  if (!raw) return next();
+  try {
+    const canonical = new URL(raw);
+    const reqHost = (req.get('host') || '').split(':')[0].toLowerCase();
+    const canonHost = canonical.hostname.toLowerCase();
+    if (reqHost && canonHost && reqHost !== canonHost) {
+      const bare = (h) => h.replace(/^www\./, '');
+      if (bare(reqHost) === bare(canonHost)) {
+        const target = `${canonical.protocol}//${canonHost}${req.originalUrl || '/'}`;
+        return res.redirect(301, target);
+      }
+    }
+  } catch (_) { /* noop */ }
+  next();
+});
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.set('io', io);
