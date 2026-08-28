@@ -145,6 +145,12 @@ router.get('/login', (req, res) => {
   if (req.session.user?.role === 'admin' && req.session.adminMfaVerified) {
     return res.redirect(adminUrl());
   }
+  if (!store.isReady()) {
+    return res.render('admin/login', {
+      title: 'Admin — Fandez',
+      error: 'La base de datos aún no está lista. En phpMyAdmin importa db/fandez-demo.sql o ejecuta npm run db:setup en el servidor.'
+    });
+  }
   const expired = req.query.expired === '1';
   res.render('admin/login', {
     title: 'Admin — Fandez',
@@ -153,6 +159,12 @@ router.get('/login', (req, res) => {
 });
 
 router.post('/login', rateLimitLogin(8), async (req, res) => {
+  if (!store.isReady()) {
+    return res.render('admin/login', {
+      title: 'Admin — Fandez',
+      error: 'Base de datos sin tablas o sin conexión. Importa fandez-demo.sql en phpMyAdmin y redeploya la app.'
+    });
+  }
   const email = String(req.body.email || '').trim().toLowerCase();
   const password = String(req.body.password || '');
   const result = await store.authenticateUser(email, password, { allowedRoles: ['admin'] });
