@@ -1549,6 +1549,13 @@ function persist(fn, label) {
 module.exports = {
   SEED_SERVICES,
   SEED_MODULES,
+  SEED_PROMOS,
+  SEED_USERS,
+  SEED_LOGBOOK,
+  SEED_COMPLAINTS,
+  SEED_CHATS,
+  SEED_CONSENTS,
+  SEED_SECURITY_LOGS,
   migrate,
   ensureDemoData,
   ensureAdminAccount,

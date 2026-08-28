@@ -153,7 +153,9 @@ npm run db:setup
 **Opción B — phpMyAdmin (BD vacía, sin SSH)**
 
 1. hPanel → **Databases** → `u482073296_fandez_bd` → **Enter phpMyAdmin**
-2. Pestaña **Import** → archivo `db/fandez-schema-hostinger.sql` (solo tablas) o `db/fandez-demo.sql` (tablas + datos demo) → **Go**
+2. Pestaña **Import** → archivo `db/fandez-schema-hostinger.sql` (solo tablas) o `db/fandez-demo.sql` (tablas + datos demo completos) → **Go**
+
+Para regenerar `fandez-demo.sql` desde el código: `npm run db:generate-demo-sql`
 
 Esto crea las tablas e inserta los usuarios demo:
 
