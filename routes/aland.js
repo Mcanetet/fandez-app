@@ -96,7 +96,7 @@ router.post('/client/start', requireRole('client'), requireModule('client_aland'
     const greetingTemplate = isSupport
       ? (config.supportGreeting
         || aland.DEFAULT_CONFIG.supportGreeting
-        || 'Hola, soy Aland IA, soporte de Fandez. Dime si tu consulta es de servicio, pagos o una solicitud en curso y te indico el siguiente paso.')
+        || 'Hola, soy Sofía, soporte de Fandez. Dime si tu consulta es de servicio, pagos o una solicitud en curso y te indico el siguiente paso.')
       : (config.greetingMessage || config.greeting || aland.DEFAULT_CONFIG.greetingMessage);
 
     const greeting = String(greetingTemplate).replace('{service}', serviceName);
@@ -104,7 +104,7 @@ router.post('/client/start', requireRole('client'), requireModule('client_aland'
     const welcome = await aland.addMessage({
       conversationId: conversation.id,
       senderType: 'aland',
-      senderName: config.agentName || 'Aland IA',
+      senderName: config.agentName || 'Sofía',
       body: greeting
     });
 

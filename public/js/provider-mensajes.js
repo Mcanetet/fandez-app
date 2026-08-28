@@ -18,7 +18,7 @@
 
   function statusLabel(status) {
     const map = {
-      ai_active: 'Con Aland IA',
+      ai_active: 'Con Sofía',
       awaiting_provider: 'Esperando tu respuesta',
       awaiting_admin: 'En administración',
       closed: 'Cerrada'

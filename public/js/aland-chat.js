@@ -22,7 +22,7 @@
     const isSystem = msg.senderType === 'system';
     const align = isClient ? 'text-right' : 'text-left';
     const bg = isClient ? 'bg-aland text-white' : isAland ? 'bg-white border border-zilo-border' : isSystem ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-blue-50 border border-blue-200';
-    const name = msg.senderName || (isAland ? 'Aland' : msg.senderType);
+    const name = msg.senderName || (isAland ? 'Sofía' : msg.senderType);
     return `<div class="${align}"><div class="inline-block max-w-[90%] px-3 py-2 rounded-xl text-sm ${bg}"><span class="block text-[10px] opacity-70 mb-0.5">${escapeHtml(name)}</span>${escapeHtml(msg.body).replace(/\n/g, '<br>')}</div></div>`;
   }
 
@@ -55,7 +55,7 @@
           if (msg.senderType && msg.senderType !== 'client' && msg.senderType !== 'system' && window.FandezAlerts) {
             FandezAlerts.notify({
               type: 'message',
-              title: msg.senderName || 'Aland IA',
+              title: msg.senderName || 'Sofía',
               body: msg.body || 'Tienes un mensaje nuevo',
               tag: 'fandez-aland-msg',
               system: panelHidden || document.hidden
@@ -69,7 +69,7 @@
       appendMessage({
         senderType: 'system',
         senderName: 'Sistema',
-        body: 'Aland IA requiere OPENAI_API_KEY en el servidor. El administrador debe configurarla en Hostinger.'
+        body: 'Sofía requiere OPENAI_API_KEY en el servidor. El administrador debe configurarla en Hostinger.'
       });
     }
   }

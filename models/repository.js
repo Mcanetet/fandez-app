@@ -33,7 +33,7 @@ const SEED_MODULES = [
   { id: 'client_promos', audience: 'client', name: 'Promociones', description: 'Banners de promos en el inicio del cliente', sortOrder: 8, enabled: true },
   { id: 'client_historial', audience: 'client', name: 'Historial', description: 'Ver servicios anteriores del cliente', sortOrder: 9, enabled: true },
   { id: 'client_whatsapp', audience: 'client', name: 'Concierge WhatsApp (legado)', description: 'Solo si Aland IA está OFF: botón WhatsApp clásico', sortOrder: 10, enabled: false },
-  { id: 'client_aland', audience: 'client', name: 'Chat Aland IA', description: 'Asistente de soporte: primero IA, luego socio o pagos/WhatsApp', sortOrder: 11, enabled: true },
+  { id: 'client_aland', audience: 'client', name: 'Chat Sofía', description: 'Asistente de soporte: primero IA, luego socio o pagos/WhatsApp', sortOrder: 11, enabled: true },
   { id: 'provider_online', audience: 'provider', name: 'Modo en línea', description: 'Activar disponibilidad para recibir trabajos', sortOrder: 1, enabled: true },
   { id: 'provider_aceptar', audience: 'provider', name: 'Aceptar solicitudes', description: 'Modal de nuevas solicitudes entrantes', sortOrder: 2, enabled: true },
   { id: 'provider_equipo', audience: 'provider', name: 'Gestión de técnicos', description: 'Crear y administrar subusuarios técnicos', sortOrder: 3, enabled: true },
@@ -42,7 +42,7 @@ const SEED_MODULES = [
   { id: 'provider_ubicacion', audience: 'provider', name: 'Ubicación en tiempo real', description: 'Compartir GPS durante el servicio', sortOrder: 6, enabled: true },
   { id: 'provider_perfil', audience: 'provider', name: 'Perfil público', description: 'Editar datos visibles para clientes', sortOrder: 7, enabled: true },
   { id: 'provider_contrato', audience: 'provider', name: 'Contrato de socio', description: 'Firma del contrato de prestación y documentos legales', sortOrder: 8, enabled: true },
-  { id: 'provider_mensajes', audience: 'provider', name: 'Mensajes Aland IA', description: 'Consultas derivadas por Aland IA desde clientes', sortOrder: 9, enabled: true }
+  { id: 'provider_mensajes', audience: 'provider', name: 'Mensajes Sofía', description: 'Consultas derivadas por Sofía desde clientes', sortOrder: 9, enabled: true }
 ];
 
 const SEED_PROMOS = [

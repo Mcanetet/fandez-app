@@ -185,7 +185,7 @@ router.post('/solicitud/:id/sin-socio', async (req, res) => {
       message = await aland.addMessage({
         conversationId: updated.alandConversationId,
         senderType: 'aland',
-        senderName: 'Aland IA',
+        senderName: 'Sofía',
         body,
         meta: { type: 'no_provider_choice_response', requestId: updated.id, choice: result.choice }
       });
