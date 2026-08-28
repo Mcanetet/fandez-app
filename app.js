@@ -79,6 +79,9 @@ app.get('/health', async (req, res) => {
     database: dbOk ? 'connected' : (dbConfigured ? 'connecting' : 'not_configured'),
     uptime: process.uptime()
   };
+  if (!store.isReady() && global.__ziloInitError) {
+    payload.initError = global.__ziloInitError;
+  }
   if (process.env.HEALTH_VERBOSE === 'true') {
     payload.gitCommit = version.gitCommit;
     payload.appUrl = require('./lib/seo').getSiteUrl();
@@ -245,7 +248,7 @@ app.get('/', (req, res) => {
   if (req.query.ref) {
     req.session.pendingReferral = String(req.query.ref).trim().toUpperCase();
   }
-  if (req.session.user) {
+  if (req.session.user && store.isReady()) {
     const dashboards = {
       client: '/cliente',
       provider: '/proveedor',
@@ -253,6 +256,9 @@ app.get('/', (req, res) => {
       admin: ADMIN_BASE
     };
     return res.redirect(dashboards[req.session.user.role] || '/login');
+  }
+  if (req.session.user && !store.isReady()) {
+    req.session.destroy(() => {});
   }
   const seo = buildPageMeta('home', req);
   res.render('landing', {
@@ -271,6 +277,36 @@ app.get('/quienes-somos', (req, res) => {
 });
 
 app.use('/', authRoutes);
+app.use('/cliente', (req, res, next) => {
+  if (!store.isReady()) {
+    return res.status(503).render('error', {
+      title: req.t('error.connecting.title'),
+      message: req.t('error.connecting.message'),
+      code: 503
+    });
+  }
+  next();
+});
+app.use('/proveedor', (req, res, next) => {
+  if (!store.isReady()) {
+    return res.status(503).render('error', {
+      title: req.t('error.connecting.title'),
+      message: req.t('error.connecting.message'),
+      code: 503
+    });
+  }
+  next();
+});
+app.use('/tecnico', (req, res, next) => {
+  if (!store.isReady()) {
+    return res.status(503).render('error', {
+      title: req.t('error.connecting.title'),
+      message: req.t('error.connecting.message'),
+      code: 503
+    });
+  }
+  next();
+});
 app.use('/cliente', clientRoutes);
 app.use('/proveedor', providerRoutes);
 app.use('/tecnico', tecnicoRoutes);
