@@ -1,12 +1,12 @@
-/* Fandez — UI clara (nunca dark). Papel cálido + ámbar de herramienta. */
+/* Fandez — UI clara (nunca dark). Fondo blanco en todas las plataformas. */
 /* Aland (asistente) = teal; peligro = solo errores, nunca CTA */
 /* Legacy: brand/v1-azul/ · brand/v2-ambar/ */
 :root {
   color-scheme: light only;
-  --zilo-bg: #FAF8F4;
+  --zilo-bg: #FFFFFF;
   --zilo-surface: #FFFFFF;
   --zilo-card: #FFFFFF;
-  --zilo-elevated: #F3EEE6;
+  --zilo-elevated: #FFFFFF;
   --zilo-accent: #C45C14;
   --zilo-accent-rgb: 196, 92, 20;
   --zilo-accent-soft: #F6E6D4;
@@ -1018,7 +1018,7 @@ html {
 
 /* Overlay búsqueda de técnico */
 .search-overlay {
-  background: #F3F5F7;
+  background: #FFFFFF;
 }
 .search-overlay-orb,
 .search-overlay-grid {
@@ -2345,7 +2345,7 @@ html {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background: radial-gradient(ellipse 75% 42% at 100% -8%, rgba(var(--zilo-accent-rgb), 0.07), transparent 58%);
+  background: transparent;
 }
 
 /* PWA — banner instalar app (móvil) */
@@ -2433,7 +2433,7 @@ html {
 .fandez-install-banner__later {
   border: 1px solid #E6E0D8;
   border-radius: 0.75rem;
-  background: #FAF8F4;
+  background: #FFFFFF;
   color: #1A1814;
   font-size: 0.8rem;
   padding: 0.7rem 0.85rem;
@@ -2442,7 +2442,7 @@ html {
 }
 .fandez-install-banner__ios {
   margin-top: 0.5rem;
-  background: #FAF8F4;
+  background: #FFFFFF;
   color: #1A1814;
   border: 1px solid #E6E0D8;
   border-radius: 0.85rem;
@@ -2513,5 +2513,40 @@ body.fandez-install-visible {
 .zilo-icon-btn {
   min-width: 2.75rem;
   min-height: 2.75rem;
+}
+
+/* Fondo blanco universal — móvil, tablet, desktop, PWA, iOS/Android */
+html,
+body,
+.zilo-body,
+#fandezSplash,
+.fandez-landing,
+.min-h-screen,
+.min-h-full,
+.max-w-lg.mx-auto.min-h-screen {
+  background-color: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  html,
+  body,
+  .zilo-body,
+  :root {
+    background-color: #FFFFFF !important;
+    color-scheme: light only;
+  }
+}
+
+/* Headers sticky: blanco sólido en todos los breakpoints */
+header.sticky.bg-zilo-bg\/90,
+.sticky.top-0.bg-zilo-bg\/90 {
+  background-color: rgba(255, 255, 255, 0.97) !important;
+}
+
+.nav-client-bar,
+.nav-provider-bar,
+.sticky-order-bar,
+.sticky-track-bar {
+  background-color: rgba(255, 255, 255, 0.98) !important;
 }
 

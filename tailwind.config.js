@@ -9,10 +9,10 @@ module.exports = {
     extend: {
       colors: {
         zilo: {
-          bg: '#FAF8F4',
+          bg: '#FFFFFF',
           surface: '#FFFFFF',
           card: '#FFFFFF',
-          elevated: '#F3EEE6',
+          elevated: '#FFFFFF',
           border: '#E6E0D8',
           accent: '#C45C14',
           'accent-soft': '#F6E6D4',
