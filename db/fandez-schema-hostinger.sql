@@ -1,0 +1,398 @@
+-- ============================================================
+-- Fandez — Esquema MySQL completo (solo tablas, sin datos)
+-- ============================================================
+-- Base de datos: u482073296_fandez_bd (Hostinger)
+--
+-- Cómo importar:
+--   1. hPanel → Databases → u482073296_fandez_bd → phpMyAdmin
+--   2. Pestaña Import → selecciona este archivo → Go
+--
+-- Para tablas + datos demo, usa db/fandez-demo.sql
+-- ============================================================
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';
+
+-- ---------- Catálogo y configuración ----------
+
+CREATE TABLE IF NOT EXISTS services (
+  id VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  icon VARCHAR(64),
+  color VARCHAR(16),
+  visit_price INT NOT NULL DEFAULT 0,
+  basic_min INT NOT NULL DEFAULT 0,
+  basic_max INT NOT NULL DEFAULT 0,
+  description TEXT,
+  enabled TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS modules (
+  id VARCHAR(64) PRIMARY KEY,
+  audience ENUM('client', 'provider') NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  description TEXT,
+  sort_order INT NOT NULL DEFAULT 0,
+  enabled TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS pricing_config (
+  id VARCHAR(32) PRIMARY KEY,
+  config JSON NOT NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS promos (
+  id VARCHAR(64) PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  code VARCHAR(64),
+  color VARCHAR(16),
+  sort_order INT NOT NULL DEFAULT 0,
+  enabled TINYINT(1) NOT NULL DEFAULT 1,
+  discount_percent INT NULL DEFAULT NULL,
+  show_banner TINYINT(1) NOT NULL DEFAULT 1,
+  checkout_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------- Usuarios ----------
+
+CREATE TABLE IF NOT EXISTS users (
+  id VARCHAR(64) PRIMARY KEY,
+  email VARCHAR(190) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  role ENUM('client', 'provider', 'admin', 'tecnico') NOT NULL,
+  parent_id VARCHAR(64) DEFAULT NULL,
+  parent_ids JSON DEFAULT NULL,
+  phone VARCHAR(40),
+  address TEXT,
+  address_lat DECIMAL(10, 7) NULL,
+  address_lng DECIMAL(10, 7) NULL,
+  address_place_id VARCHAR(32) NULL,
+  referral_code VARCHAR(32),
+  zilo_points INT NOT NULL DEFAULT 0,
+  credits_clp INT NOT NULL DEFAULT 0,
+  referrals_count INT NOT NULL DEFAULT 0,
+  services_count INT NOT NULL DEFAULT 0,
+  used_welcome_promo TINYINT(1) NOT NULL DEFAULT 0,
+  used_referral TINYINT(1) NOT NULL DEFAULT 0,
+  member_since DATE,
+  onboarding_completed TINYINT(1) NOT NULL DEFAULT 0,
+  onboarding_completed_at DATETIME,
+  specialties JSON,
+  rating DECIMAL(3, 2),
+  reviews_count INT NOT NULL DEFAULT 0,
+  online TINYINT(1) NOT NULL DEFAULT 0,
+  avatar VARCHAR(8),
+  bio TEXT,
+  reviews JSON,
+  verification JSON,
+  location_share JSON,
+  billing JSON DEFAULT NULL,
+  mfa JSON DEFAULT NULL,
+  admin_access JSON DEFAULT NULL,
+  provider_contract JSON DEFAULT NULL,
+  client_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  email_verified_at DATETIME NULL,
+  email_verification_code_hash VARCHAR(128) NULL,
+  email_verification_expires_at DATETIME NULL,
+  email_verification_sent_at DATETIME NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_users_email (email),
+  INDEX idx_users_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------- Solicitudes y operaciones ----------
+
+CREATE TABLE IF NOT EXISTS service_requests (
+  id VARCHAR(64) PRIMARY KEY,
+  client_id VARCHAR(64) NOT NULL,
+  provider_id VARCHAR(64),
+  service_id VARCHAR(64) NOT NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'pending_payment',
+  payment_status VARCHAR(40) NOT NULL DEFAULT 'pending',
+  payload JSON NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_requests_client (client_id),
+  INDEX idx_requests_provider (provider_id),
+  INDEX idx_requests_status (status),
+  INDEX idx_requests_payment (payment_status),
+  CONSTRAINT fk_requests_client FOREIGN KEY (client_id) REFERENCES users (id) ON DELETE CASCADE,
+  CONSTRAINT fk_requests_provider FOREIGN KEY (provider_id) REFERENCES users (id) ON DELETE SET NULL,
+  CONSTRAINT fk_requests_service FOREIGN KEY (service_id) REFERENCES services (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS home_logbook (
+  id VARCHAR(64) PRIMARY KEY,
+  client_id VARCHAR(64) NOT NULL,
+  address TEXT,
+  service_name VARCHAR(120),
+  category VARCHAR(64),
+  entry_date DATE,
+  note TEXT,
+  health_impact INT NOT NULL DEFAULT 5,
+  provider_name VARCHAR(120),
+  INDEX idx_logbook_client (client_id),
+  CONSTRAINT fk_logbook_client FOREIGN KEY (client_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS complaints (
+  id VARCHAR(64) PRIMARY KEY,
+  request_id VARCHAR(64),
+  client_name VARCHAR(120),
+  client_email VARCHAR(190),
+  type VARCHAR(40),
+  subject VARCHAR(255),
+  description TEXT,
+  status VARCHAR(40) NOT NULL DEFAULT 'abierto',
+  priority VARCHAR(20),
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  resolved_at DATETIME
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS chats (
+  id VARCHAR(64) PRIMARY KEY,
+  client_name VARCHAR(120),
+  client_phone VARCHAR(40),
+  last_message TEXT,
+  channel VARCHAR(40),
+  status VARCHAR(40) NOT NULL DEFAULT 'activo',
+  unread INT NOT NULL DEFAULT 0,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS consent_records (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(64),
+  ip VARCHAR(64),
+  type VARCHAR(40) NOT NULL,
+  granted TINYINT(1) NOT NULL DEFAULT 1,
+  version VARCHAR(16),
+  user_agent VARCHAR(255),
+  purpose VARCHAR(255) NULL,
+  legal_basis VARCHAR(64) NULL,
+  source VARCHAR(64) NULL,
+  withdrawn_at DATETIME NULL,
+  meta JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_consent_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS security_logs (
+  id VARCHAR(64) PRIMARY KEY,
+  event VARCHAR(80) NOT NULL,
+  detail TEXT,
+  `user` VARCHAR(190),
+  ip VARCHAR(64),
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_security_logs_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id VARCHAR(64) PRIMARY KEY,
+  event VARCHAR(80) NOT NULL,
+  channel ENUM('email', 'whatsapp', 'system') NOT NULL DEFAULT 'system',
+  status ENUM('sent', 'queued', 'failed', 'skipped') NOT NULL DEFAULT 'queued',
+  recipient VARCHAR(190),
+  subject VARCHAR(255),
+  body TEXT,
+  meta JSON,
+  request_id VARCHAR(64),
+  user_id VARCHAR(64),
+  error TEXT,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_notifications_request (request_id),
+  INDEX idx_notifications_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS crm_leads (
+  id VARCHAR(64) PRIMARY KEY,
+  company_name VARCHAR(255) NOT NULL,
+  contact_name VARCHAR(255) NOT NULL,
+  email VARCHAR(190),
+  phone VARCHAR(64),
+  rut VARCHAR(32),
+  meeting_at DATETIME NULL,
+  next_steps TEXT,
+  meeting_notes TEXT,
+  training_done TINYINT(1) NOT NULL DEFAULT 0,
+  docs_received TINYINT(1) NOT NULL DEFAULT 0,
+  contract_sent TINYINT(1) NOT NULL DEFAULT 0,
+  contract_signed TINYINT(1) NOT NULL DEFAULT 0,
+  pipeline_stage VARCHAR(32) NOT NULL DEFAULT 'prospecto',
+  interested_services TEXT,
+  coverage_area VARCHAR(255),
+  source VARCHAR(128),
+  assigned_to VARCHAR(190),
+  notes TEXT,
+  converted_provider_id VARCHAR(64) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_crm_meeting (meeting_at),
+  INDEX idx_crm_stage (pipeline_stage)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  setting_key VARCHAR(64) PRIMARY KEY,
+  setting_value JSON NOT NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS app_backups (
+  id VARCHAR(64) PRIMARY KEY,
+  backup_type VARCHAR(32) NOT NULL,
+  triggered_by VARCHAR(190),
+  created_at DATETIME NOT NULL,
+  manifest JSON NOT NULL,
+  snapshot LONGTEXT NOT NULL,
+  folder_name VARCHAR(191),
+  includes_uploads TINYINT(1) NOT NULL DEFAULT 0,
+  INDEX idx_app_backups_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------- Aland IA ----------
+
+CREATE TABLE IF NOT EXISTS aland_config (
+  id VARCHAR(32) PRIMARY KEY,
+  config JSON NOT NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS aland_knowledge (
+  id VARCHAR(64) PRIMARY KEY,
+  source_type ENUM('company', 'service', 'pricing', 'custom', 'upload') NOT NULL DEFAULT 'custom',
+  service_id VARCHAR(64),
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_aland_knowledge_service (service_id),
+  INDEX idx_aland_knowledge_source (source_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS aland_conversations (
+  id VARCHAR(64) PRIMARY KEY,
+  service_id VARCHAR(64) NOT NULL,
+  service_name VARCHAR(120) NOT NULL,
+  client_id VARCHAR(64),
+  client_name VARCHAR(120) NOT NULL,
+  client_email VARCHAR(190),
+  provider_id VARCHAR(64),
+  provider_name VARCHAR(120),
+  status ENUM('ai_active', 'awaiting_provider', 'awaiting_admin', 'closed') NOT NULL DEFAULT 'ai_active',
+  escalated_at DATETIME,
+  provider_notified_at DATETIME,
+  admin_escalated_at DATETIME,
+  last_message_at DATETIME NOT NULL,
+  tokens_prompt INT NOT NULL DEFAULT 0,
+  tokens_completion INT NOT NULL DEFAULT 0,
+  tokens_total INT NOT NULL DEFAULT 0,
+  injection_count INT NOT NULL DEFAULT 0,
+  last_injection_at DATETIME NULL DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_aland_conv_status (status),
+  INDEX idx_aland_conv_provider (provider_id),
+  INDEX idx_aland_conv_client (client_id),
+  INDEX idx_aland_conv_last (last_message_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS aland_messages (
+  id VARCHAR(64) PRIMARY KEY,
+  conversation_id VARCHAR(64) NOT NULL,
+  sender_type ENUM('client', 'aland', 'provider', 'admin', 'system') NOT NULL,
+  sender_id VARCHAR(64),
+  sender_name VARCHAR(120),
+  body TEXT NOT NULL,
+  meta JSON,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_aland_msg_conv (conversation_id, created_at),
+  CONSTRAINT fk_aland_msg_conv FOREIGN KEY (conversation_id) REFERENCES aland_conversations (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------- Cobertura territorial ----------
+
+CREATE TABLE IF NOT EXISTS coverage_communes (
+  region_code VARCHAR(64) NOT NULL,
+  commune_code VARCHAR(64) NOT NULL,
+  region_name VARCHAR(160) NOT NULL,
+  commune_name VARCHAR(120) NOT NULL,
+  enabled TINYINT(1) NOT NULL DEFAULT 0,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (region_code, commune_code),
+  INDEX idx_coverage_enabled (enabled),
+  INDEX idx_coverage_region (region_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS coverage_regions (
+  region_code VARCHAR(64) PRIMARY KEY,
+  region_name VARCHAR(160) NOT NULL,
+  enabled TINYINT(1) NOT NULL DEFAULT 0,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_coverage_regions_enabled (enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------- Florencia (marketing IA) ----------
+
+CREATE TABLE IF NOT EXISTS florencia_marketing_items (
+  id VARCHAR(64) PRIMARY KEY,
+  kind VARCHAR(32) NOT NULL DEFAULT 'content',
+  title VARCHAR(220) NOT NULL,
+  channel VARCHAR(32) NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'draft',
+  scheduled_at DATETIME NULL,
+  content LONGTEXT NOT NULL,
+  image_url VARCHAR(1024) NULL,
+  external_id VARCHAR(512) NULL,
+  error TEXT NULL,
+  approved_by VARCHAR(64) NULL,
+  approved_at DATETIME NULL,
+  published_at DATETIME NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  INDEX idx_florencia_status_date (status, scheduled_at),
+  INDEX idx_florencia_channel (channel)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS florencia_chat_messages (
+  id VARCHAR(64) PRIMARY KEY,
+  item_id VARCHAR(64) NULL,
+  role ENUM('user','assistant','system') NOT NULL,
+  body TEXT NOT NULL,
+  meta JSON NULL,
+  created_at DATETIME NOT NULL,
+  INDEX idx_florencia_chat_created (created_at),
+  INDEX idx_florencia_chat_item (item_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------- Uso OpenAI ----------
+
+CREATE TABLE IF NOT EXISTS openai_usage_logs (
+  id VARCHAR(64) PRIMARY KEY,
+  agent VARCHAR(64) NOT NULL,
+  operation VARCHAR(64) NOT NULL DEFAULT 'chat',
+  model VARCHAR(120) NULL,
+  prompt_tokens INT NOT NULL DEFAULT 0,
+  completion_tokens INT NOT NULL DEFAULT 0,
+  total_tokens INT NOT NULL DEFAULT 0,
+  images INT NOT NULL DEFAULT 0,
+  estimated TINYINT(1) NOT NULL DEFAULT 0,
+  cost_usd DECIMAL(12, 6) NOT NULL DEFAULT 0,
+  meta JSON NULL,
+  created_at DATETIME NOT NULL,
+  INDEX idx_openai_usage_agent_date (agent, created_at),
+  INDEX idx_openai_usage_created (created_at),
+  INDEX idx_openai_usage_operation (operation)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- Listo: 24 tablas creadas (sin datos).
