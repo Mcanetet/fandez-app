@@ -2497,16 +2497,78 @@ body.fandez-install-visible {
   border: 2px solid var(--zilo-accent); flex-shrink: 0;
 }
 
-/* Socket reconnect banner */
-.socket-reconnect-banner {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 600;
-  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-  padding: 0.5rem 1rem; background: var(--zilo-warning); color: #1A1814;
-  font-size: 0.75rem; font-weight: 600;
+/* Socket reconnect toast — no bloquea header ni sidebar */
+.socket-reconnect-banner:not([hidden]) {
+  position: fixed !important;
+  top: auto !important;
+  right: auto !important;
+  left: 50% !important;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+  width: max-content !important;
+  max-width: min(22rem, calc(100vw - 2rem)) !important;
+  z-index: 550;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 999px;
+  background: rgba(26, 24, 20, 0.92);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+  transform: translateX(-50%) !important;
+  animation: socketToastIn 0.24s ease-out;
+}
+.socket-reconnect-banner[hidden] {
+  display: none !important;
+}
+.socket-reconnect-banner[data-tone="warning"] {
+  background: rgba(180, 83, 9, 0.96);
+  color: #fff;
+}
+.socket-reconnect-banner[data-tone="success"] {
+  background: rgba(22, 101, 52, 0.96);
+  color: #fff;
 }
 .socket-reconnect-banner__dot {
-  width: 0.5rem; height: 0.5rem; border-radius: 999px; background: currentColor;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: currentColor;
+  flex-shrink: 0;
   animation: pulse 1.2s ease-in-out infinite;
+}
+.socket-reconnect-banner[data-tone="success"] .socket-reconnect-banner__dot {
+  animation: none;
+  opacity: 0.85;
+}
+.socket-reconnect-banner__close {
+  margin-left: 0.125rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.125rem;
+  line-height: 1;
+  opacity: 0.75;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.socket-reconnect-banner__close:hover {
+  opacity: 1;
+}
+@keyframes socketToastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0.75rem) !important;
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) !important;
+  }
 }
 
 /* Touch targets — a11y */
