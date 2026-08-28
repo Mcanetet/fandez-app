@@ -4,6 +4,7 @@
   let banner = null;
   let hideTimer = null;
   let wasConnected = false;
+  let hadConnectionIssue = false;
 
   const TONE_STYLES = {
     warning: {
@@ -16,13 +17,21 @@
     },
   };
 
+  function getBottomOffset() {
+    const cookie = document.getElementById('cookieBanner');
+    if (cookie && !cookie.classList.contains('hidden') && cookie.offsetHeight > 0) {
+      return 'calc(' + cookie.offsetHeight + 'px + 1rem + env(safe-area-inset-bottom, 0px))';
+    }
+    return 'calc(1rem + env(safe-area-inset-bottom, 0px))';
+  }
+
   function baseBannerStyles() {
     return {
       position: 'fixed',
       top: 'auto',
       right: 'auto',
       left: '50%',
-      bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+      bottom: getBottomOffset(),
       zIndex: '550',
       display: 'flex',
       alignItems: 'center',
@@ -94,17 +103,23 @@
 
   const socket = io();
   socket.on('connect', () => {
-    if (wasConnected) {
-      hide();
+    if (hadConnectionIssue) {
+      hadConnectionIssue = false;
+      show(t('js.socket_connected', 'Conexión restablecida'), {
+        tone: 'success',
+        autoHideMs: 2200,
+      });
     }
     wasConnected = true;
   });
   socket.on('disconnect', () => {
     if (!wasConnected) return;
+    hadConnectionIssue = true;
     show(t('js.socket_reconnecting', 'Reconectando…'), { tone: 'warning' });
   });
   socket.on('connect_error', () => {
     if (!wasConnected) return;
+    hadConnectionIssue = true;
     show(t('js.socket_error', 'Sin conexión. Reintentando…'), { tone: 'warning' });
   });
 
