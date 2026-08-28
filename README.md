@@ -1,10 +1,11 @@
 # Fandez — Plataforma on-demand de servicios del hogar
 
-Plataforma premium para Santiago, Chile. Node.js + Express + Socket.io + Mercado Pago + Leaflet.
+Plataforma premium para Santiago, Chile. Node.js + Express + EJS + MySQL + Socket.io + Mercado Pago + Leaflet.
 
 ## Requisitos
 
-- Node.js 18+
+- Node.js 20.x
+- MySQL 8+
 - Cuenta Mercado Pago (Chile) para pagos reales
 - Hosting Node.js (Hostinger VPS o sección Node.js)
 
@@ -13,10 +14,17 @@ Plataforma premium para Santiago, Chile. Node.js + Express + Socket.io + Mercado
 ```bash
 npm install
 cp .env.example .env
+npm run db:setup
+npm run build:css   # compila Tailwind (public/css/tailwind.css)
 npm start
 ```
 
 Abre http://localhost:3000
+
+## Build y assets
+
+- `npm run build:css` — compila Tailwind desde `src/tailwind-input.css` (sin CDN en producción)
+- `npm run build` — prepara carpetas de datos + CSS para deploy Hostinger
 
 ## Cuentas demo
 
@@ -30,82 +38,49 @@ Abre http://localhost:3000
 
 1. Sube el proyecto a GitHub y clónalo en Hostinger, o sube por FTP.
 2. En el panel Node.js de Hostinger:
-   - **Entry file:** `app.js`
+   - **Entry file:** `index.js` o `app.js`
    - **Start command:** `npm start`
-3. Crea `.env` en el servidor con:
-   - `NODE_ENV=production`
-   - `SESSION_SECRET` (clave larga aleatoria)
-   - `APP_URL=https://tudominio.cl`
-   - `MP_ACCESS_TOKEN` (producción o sandbox)
-   - `WHATSAPP_NUMBER`
-   - `SUPPORT_EMAIL=soporte@fandez.cl`
-   - `DPO_EMAIL=privacidad@fandez.cl`
-   - `SMTP_HOST`, `SMTP_USER=soporte@fandez.cl`, `SMTP_PASS` (correo Hostinger)
-4. Ejecuta `npm install` en el terminal de Hostinger.
+3. Crea `.env` en el servidor (ver `.env.example`).
+4. Ejecuta `npm install && npm run build` en el terminal de Hostinger.
 5. Activa SSL/HTTPS (obligatorio para cookies seguras y HSTS).
 
 ## Estructura
 
 ```
-app.js              → Entrada (PORT dinámico)
-models/store.js     → Datos in-memory
+index.js            → Entrada
+app.js              → Express + Socket.io
+models/store.js     → Lógica de negocio
+models/repository.js→ Persistencia MySQL
+db/schema.sql       → Esquema
 routes/             → auth, cliente, proveedor, admin, pagos, legal
-config/company.js   → WhatsApp, soporte@fandez.cl, DPD privacidad@fandez.cl
-middleware/security.js → Headers HTTP, rate limiting
-views/legal/        → Privacidad, términos, cookies
-public/             → CSS, JS, iconos SVG
+views/              → EJS (cliente, socio, técnico, admin)
+public/css/         → main.css + tailwind.css (compilado)
+locales/            → i18n ES/EN (portal + panels)
+```
+
+## Experiencia cliente y socio (UX)
+
+- **Cliente:** bottom nav, tracking con ETA sticky, cobertura pre-pago, post-pago → seguimiento automático, reseña y re-solicitar desde historial.
+- **Socio:** bottom nav (Inicio · Muro · Mando · Equipo · Perfil), checklist de activación, bloqueo de “en línea” sin KYC+contrato, muro con alertas sonoras, rechazo con motivo, mapa en Mando y asignación por distancia.
+- **Técnico:** wizard de visita en terreno (un paso a la vez).
+- **Global:** i18n ES/EN, banner de reconexión Socket.io, Tailwind compilado, aliases CSS `fandez-*`.
+
+## Tests
+
+```bash
+npm test              # Jest unit/integration
+npm run test:e2e      # Playwright (login + flujos panel)
 ```
 
 ## Panel Admin
 
-- Servicios ON/OFF en tiempo real
-- Pagos Mercado Pago y comisiones
-- Liquidación a proveedores (15% plataforma)
-- Reclamos y disputas
-- Chat soporte vía WhatsApp y correo **soporte@fandez.cl**
-- Privacidad / DPD: **privacidad@fandez.cl**
-- Consentimiento de datos (Ley 21.719)
-- Auditoría de ciberseguridad
-- Florencia IA: estrategia, agenda editorial, imágenes, email marketing y publicación con aprobación humana
-
-### Conectar Florencia IA
-
-Florencia usa `OPENAI_API_KEY` para texto e imágenes. Las redes se habilitan con
-variables seguras del servidor (ver `.env.example`):
-
-- Meta: página de Facebook, cuenta Instagram Business vinculada y token con permisos de publicación.
-- LinkedIn: organización, OAuth y permiso `w_organization_social`.
-- X: token OAuth de usuario con `tweet.write` (no sirve un token app-only).
-- TikTok: requiere Content Posting API y auditoría antes de publicar contenido público.
-- Email: SMTP configurado; solo se envía a clientes con consentimiento de marketing vigente.
-
-Toda pieza queda en “Por aprobar”. Al aprobarla, el scheduler la publica en su
-fecha; el administrador también puede publicarla inmediatamente.
+Operaciones, finanzas, socios, Florencia IA (marketing), backups. Ver rutas en `routes/admin.js`.
 
 ## Legal
 
 - `/legal/privacidad` — Política de privacidad
 - `/legal/terminos` — Términos y condiciones
 - `/legal/cookies` — Política de cookies
-- Banner de consentimiento en todas las páginas
-
-## Seguridad
-
-- Headers: X-Frame-Options, CSP básico, HSTS en producción
-- Cookies HttpOnly + SameSite
-- Rate limiting por IP
-- Logs de auditoría (login, pagos, cambios admin)
-- Sin almacenamiento de datos de tarjeta (Mercado Pago)
-
-## GitHub
-
-```bash
-git init
-git add .
-git commit -m "Fandez v1.0"
-gh auth login
-gh repo create zilo --public --source=. --push
-```
 
 ## Licencia
 

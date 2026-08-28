@@ -15,6 +15,12 @@ function getBaseUrl(req) {
   return `${req.protocol}://${req.get('host')}`;
 }
 
+function paymentSuccessPath(requestId, { auto = true, chargeId } = {}) {
+  const autoQ = auto ? '&auto=1' : '';
+  const chargeQ = chargeId ? `&charge=${encodeURIComponent(chargeId)}` : '';
+  return `/pagos/exito?ref=${requestId}${autoQ}${chargeQ}`;
+}
+
 function notifyProviders(req, request) {
   notifyProvidersForRequest(req.app.get('io'), request);
 }
@@ -125,7 +131,7 @@ router.get('/checkout', requireRole('client'), (req, res) => {
     return res.redirect('/cliente');
   }
   if (request.paymentStatus === 'approved') {
-    return res.redirect(`/pagos/exito?ref=${request.id}`);
+    return res.redirect(paymentSuccessPath(request.id));
   }
   if (request.paymentStatus === 'pending_transfer') {
     return res.redirect(`/pagos/transferencia?ref=${request.id}`);
@@ -218,7 +224,7 @@ router.post('/crear', requireRole('client'), async (req, res) => {
     return res.json({
       success: true,
       free: true,
-      redirect: `/pagos/exito?ref=${requestId}`
+      redirect: paymentSuccessPath(requestId)
     });
   }
 
@@ -325,7 +331,7 @@ router.get('/paypal/retorno', requireRole('client'), async (req, res) => {
       store.markPaymentApproved(request.id, String(paymentId));
       store.activateRequest(request.id);
       notifyProviders(req, request);
-      return res.redirect(`/pagos/exito?ref=${ref}`);
+        return res.redirect(paymentSuccessPath(ref));
     }
 
     return res.redirect(`/pagos/error?ref=${ref}`);
@@ -386,7 +392,7 @@ router.post('/transbank/retorno', requireRole('client'), async (req, res) => {
       store.markPaymentApproved(request.id, String(paymentId));
       store.activateRequest(request.id);
       notifyProviders(req, request);
-      return res.redirect(`/pagos/exito?ref=${ref}`);
+        return res.redirect(paymentSuccessPath(ref));
     }
 
     console.warn('Transbank no autorizado:', result?.response_code, result?.status);
@@ -403,7 +409,7 @@ router.get('/transferencia', requireRole('client'), (req, res) => {
     return res.redirect('/cliente');
   }
   if (request.paymentStatus === 'approved') {
-    return res.redirect(`/pagos/exito?ref=${request.id}`);
+    return res.redirect(paymentSuccessPath(request.id));
   }
 
   const pricing = store.getPricingConfig();
@@ -461,7 +467,7 @@ router.post('/demo/confirmar', requireRole('client'), (req, res) => {
   store.activateRequest(request.id);
   notifyProviders(req, store.requests.find(r => r.id === request.id));
 
-  res.json({ success: true, redirect: `/pagos/exito?ref=${request.id}` });
+  res.json({ success: true, redirect: paymentSuccessPath(request.id) });
 });
 
 router.get('/exito', requireRole('client'), (req, res) => {
@@ -486,7 +492,8 @@ router.get('/exito', requireRole('client'), (req, res) => {
     company,
     additionalPayment: charge?.status === 'approved' ? charge : null,
     splitInvoicing: process.env.SPLIT_INVOICING !== 'false',
-    checkoutStep: 3
+    checkoutStep: 3,
+    autoRedirect: !charge && req.query.auto === '1'
   });
 });
 

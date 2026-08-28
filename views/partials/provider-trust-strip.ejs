@@ -1,31 +1,31 @@
 <% const stats = typeof providerStats !== 'undefined' ? providerStats : {}; %>
-<div class="trust-strip provider-trust-strip" role="region" aria-label="Tu rendimiento Fandez">
+<div class="trust-strip provider-trust-strip" role="region" aria-label="<%= t('provider.trust.aria') %>">
   <div class="trust-strip-item">
     <%- include('ui-icon', { name: 'wallet', size: 18, className: 'trust-strip-icon' }) %>
     <div>
       <strong><%= typeof formatCLP === 'function' ? formatCLP(stats.pendingPayout || 0) : '$0' %></strong>
-      <span><%= stats.nextPayDateLabel ? 'Pago ' + stats.nextPayDateLabel : 'Por cobrar' %></span>
+      <span><%= stats.nextPayDateLabel ? t('provider.trust.pay_on', { date: stats.nextPayDateLabel }) : t('provider.trust.pending') %></span>
     </div>
   </div>
   <div class="trust-strip-item">
     <%- include('ui-icon', { name: 'check', size: 18, className: 'trust-strip-icon' }) %>
     <div>
       <strong><%= stats.monthCompleted || 0 %></strong>
-      <span>Servicios este mes</span>
+      <span><%= t('provider.trust.month_jobs') %></span>
     </div>
   </div>
   <div class="trust-strip-item">
     <%- include('ui-icon', { name: 'star', size: 18, className: 'trust-strip-icon' }) %>
     <div>
       <strong><%= stats.rating || '—' %></strong>
-      <span><%= stats.reviewsCount || 0 %> reseñas</span>
+      <span><%= stats.reviewsCount || 0 %> <%= t('provider.trust.reviews') %></span>
     </div>
   </div>
   <div class="trust-strip-item">
     <%- include('ui-icon', { name: 'chart', size: 18, className: 'trust-strip-icon' }) %>
     <div>
       <strong><%= typeof stats.adherenceRate === 'number' ? stats.adherenceRate + '%' : '100%' %></strong>
-      <span>Adherencia · deserción <%= typeof stats.desertionRate === 'number' ? stats.desertionRate + '%' : '0%' %></span>
+      <span><%= t('provider.trust.adherence') %> <%= typeof stats.desertionRate === 'number' ? stats.desertionRate + '%' : '0%' %></span>
     </div>
   </div>
 </div>

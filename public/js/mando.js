@@ -279,4 +279,61 @@
       });
     });
   }
+
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const toRad = (v) => (v * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2
+      + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function sortTechOptionsForRequest(card) {
+    const lat = parseFloat(card.dataset.lat);
+    const lng = parseFloat(card.dataset.lng);
+    const select = card.querySelector('[data-role="tech-select"]');
+    if (!select || Number.isNaN(lat) || Number.isNaN(lng)) return;
+    const markers = Array.isArray(window.MANDO_TECH_MARKERS) ? window.MANDO_TECH_MARKERS : [];
+    const options = [...select.options].filter((o) => o.value);
+    options.sort((a, b) => {
+      const ma = markers.find((m) => m.id === a.value);
+      const mb = markers.find((m) => m.id === b.value);
+      const da = ma?.lat != null && ma?.lng != null ? haversineKm(lat, lng, ma.lat, ma.lng) : 9999;
+      const db = mb?.lat != null && mb?.lng != null ? haversineKm(lat, lng, mb.lat, mb.lng) : 9999;
+      return da - db;
+    });
+    const placeholder = select.options[0];
+    select.innerHTML = '';
+    select.appendChild(placeholder);
+    options.forEach((opt) => select.appendChild(opt));
+    if (options[0]) select.value = options[0].value;
+  }
+
+  document.querySelectorAll('#mandoList [data-request-id]').forEach(sortTechOptionsForRequest);
+
+  const mapEl = document.getElementById('mandoMap');
+  if (mapEl && typeof FandezMap !== 'undefined' && typeof L !== 'undefined') {
+    const cards = [...document.querySelectorAll('#mandoList [data-request-id]')];
+    const techMarkers = Array.isArray(window.MANDO_TECH_MARKERS) ? window.MANDO_TECH_MARKERS : [];
+    const points = [];
+    cards.forEach((card) => {
+      const lat = parseFloat(card.dataset.lat);
+      const lng = parseFloat(card.dataset.lng);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        points.push({ lat, lng, label: card.querySelector('strong')?.textContent || 'Pedido' });
+      }
+    });
+    techMarkers.forEach((m) => {
+      if (m.lat != null && m.lng != null) points.push({ lat: m.lat, lng: m.lng, label: m.name || 'Técnico' });
+    });
+    const center = points[0] || { lat: -33.4489, lng: -70.6693 };
+    FandezMap.init(mapEl, { lat: center.lat, lng: center.lng, zoom: 12, label: '' });
+    const map = FandezMap.maps[mapEl.id];
+    if (map) {
+      points.slice(1).forEach((p) => {
+        L.marker([p.lat, p.lng], { icon: FandezMap._destIcon() }).addTo(map).bindPopup(p.label);
+      });
+    }
+  }
 })();

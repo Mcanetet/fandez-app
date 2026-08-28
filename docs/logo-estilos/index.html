@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fandez — 5 estilos de logo</title>
+  <style>
+    :root { --ink:#1A1814; --muted:#6B635A; --bg:#F4F2EE; --amber:#C45C14; --border:#E6E0D8; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 2rem 1.2rem 3rem; }
+    h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.03em; margin: 0 0 0.4rem; }
+    .lead { color: var(--muted); max-width: 40rem; margin-bottom: 1.5rem; }
+    .card {
+      background:#fff; border:1px solid var(--border); border-radius:1rem;
+      padding:1.15rem; margin-bottom:1rem;
+    }
+    .n { font-size:0.68rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--amber); }
+    h2 { margin:0.2rem 0; font-size:1.25rem; letter-spacing:-0.02em; }
+    header p { margin:0; color:var(--muted); font-size:0.92rem; }
+    .pair { display:grid; gap:0.75rem; margin-top:0.9rem; }
+    @media (min-width:700px) { .pair { grid-template-columns:1fr 1fr; } }
+    figure { margin:0; }
+    figure img {
+      width:100%; aspect-ratio:1; object-fit:contain; background:#fff;
+      border:1px solid var(--border); border-radius:0.75rem; display:block;
+    }
+    figcaption {
+      text-align:center; font-size:0.72rem; font-weight:700; letter-spacing:0.06em;
+      text-transform:uppercase; color:var(--muted); margin-top:0.4rem;
+    }
+    footer { text-align:center; color:var(--muted); font-size:0.8rem; margin-top:1.5rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>5 estilos de logo</h1>
+    <p class="lead">Oficial: <strong>01 Contorno</strong> + tipografía <strong>Unbounded Bold</strong>. Cada estilo tiene sin marca / con marca; el tipo 1 también tiene lockup horizontal.</p>
+    
+    <article class="card" style="outline:2px solid #C45C14; outline-offset:2px">
+      <header>
+        <span class="n">01 · oficial</span>
+        <h2>Contorno</h2>
+        <p>Trazo abierto. Interior transparente. Wordmark: Unbounded Bold.</p>
+      </header>
+      <div class="pair">
+        <figure>
+          <img src="fandez-01-contorno-sin-marca.jpg" alt="Contorno sin marca">
+          <figcaption>Sin marca</figcaption>
+        </figure>
+        <figure>
+          <img src="fandez-01-contorno-con-marca.jpg" alt="Contorno con marca">
+          <figcaption>Con marca (apilada)</figcaption>
+        </figure>
+      </div>
+      <figure style="margin-top:0.85rem">
+        <img src="fandez-01-contorno-horizontal.jpg" alt="Contorno horizontal" style="width:100%;aspect-ratio:auto;max-height:220px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:0.75rem;display:block">
+        <figcaption>Con marca · horizontal (logo izquierda + Fandez derecha)</figcaption>
+      </figure>
+    </article>
+
+    <article class="card" style="outline:2px solid #C45C14; outline-offset:2px; margin-top:1.25rem">
+      <header>
+        <span class="n">PNG transparente</span>
+        <h2>Sin fondo blanco</h2>
+        <p>Solo el símbolo y la tipografía, con canal alpha. Fondo ajedrezado = transparencia.</p>
+      </header>
+      <style>
+        .checker {
+          background-image:
+            linear-gradient(45deg, #e8e4de 25%, transparent 25%),
+            linear-gradient(-45deg, #e8e4de 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, #e8e4de 75%),
+            linear-gradient(-45deg, transparent 75%, #e8e4de 75%);
+          background-size: 20px 20px;
+          background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+          background-color: #f7f5f1;
+          border-radius: 0.75rem; border: 1px solid var(--border);
+          padding: 1.25rem; display: flex; align-items: center; justify-content: center; min-height: 160px;
+        }
+        .checker img { max-width: 100%; max-height: 200px; object-fit: contain; }
+        .checker.dark { background-color: #2a2620; background-image:
+            linear-gradient(45deg, #3a352e 25%, transparent 25%),
+            linear-gradient(-45deg, #3a352e 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, #3a352e 75%),
+            linear-gradient(-45deg, transparent 75%, #3a352e 75%);
+          background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+        }
+      </style>
+      <div class="pair" style="margin-top:0.9rem">
+        <figure>
+          <div class="checker"><img src="fandez-01-contorno-isotipo.png" alt="Isotipo transparente"></div>
+          <figcaption>Solo logo · ámbar</figcaption>
+        </figure>
+        <figure>
+          <div class="checker"><img src="fandez-01-contorno-con-marca.png" alt="Con marca transparente"></div>
+          <figcaption>Logo + marca · apilada</figcaption>
+        </figure>
+      </div>
+      <figure style="margin-top:0.85rem">
+        <div class="checker"><img src="fandez-01-contorno-horizontal.png" alt="Horizontal transparente" style="max-height:120px"></div>
+        <figcaption>Logo + marca · horizontal</figcaption>
+      </figure>
+      <div class="pair" style="margin-top:0.85rem">
+        <figure>
+          <div class="checker dark"><img src="fandez-01-contorno-isotipo-blanco.png" alt="Isotipo blanco"></div>
+          <figcaption>Solo logo · blanco (fondos oscuros)</figcaption>
+        </figure>
+        <figure>
+          <div class="checker dark"><img src="fandez-01-contorno-horizontal-blanco.png" alt="Horizontal blanco"></div>
+          <figcaption>Horizontal · blanco</figcaption>
+        </figure>
+      </div>
+      <p style="margin:0.9rem 0 0;font-size:0.85rem;color:var(--muted)">También en <code>public/brand/</code> y <code>docs/inapi/</code>.</p>
+    </article>
+
+
+    <article class="card">
+      <header>
+        <span class="n">02</span>
+        <h2>Sólido</h2>
+        <p>Copa rellena ámbar. Más peso visual, icono denso.</p>
+      </header>
+      <div class="pair">
+        <figure>
+          <img src="fandez-02-solido-sin-marca.jpg" alt="Sólido sin marca">
+          <figcaption>Sin marca</figcaption>
+        </figure>
+        <figure>
+          <img src="fandez-02-solido-con-marca.jpg" alt="Sólido con marca">
+          <figcaption>Con marca</figcaption>
+        </figure>
+      </div>
+    </article>
+
+    <article class="card">
+      <header>
+        <span class="n">03</span>
+        <h2>Ícono app</h2>
+        <p>Cuadrado ámbar redondeado + símbolo blanco (home screen).</p>
+      </header>
+      <div class="pair">
+        <figure>
+          <img src="fandez-03-icono-app-sin-marca.jpg" alt="Ícono app sin marca">
+          <figcaption>Sin marca</figcaption>
+        </figure>
+        <figure>
+          <img src="fandez-03-icono-app-con-marca.jpg" alt="Ícono app con marca">
+          <figcaption>Con marca</figcaption>
+        </figure>
+      </div>
+    </article>
+
+    <article class="card">
+      <header>
+        <span class="n">04</span>
+        <h2>Sello</h2>
+        <p>Círculo carbón con contorno ámbar. Aspecto de marca/certificación.</p>
+      </header>
+      <div class="pair">
+        <figure>
+          <img src="fandez-04-sello-sin-marca.jpg" alt="Sello sin marca">
+          <figcaption>Sin marca</figcaption>
+        </figure>
+        <figure>
+          <img src="fandez-04-sello-con-marca.jpg" alt="Sello con marca">
+          <figcaption>Con marca</figcaption>
+        </figure>
+      </div>
+    </article>
+
+    <article class="card">
+      <header>
+        <span class="n">05</span>
+        <h2>Negativo</h2>
+        <p>Campo carbón + trazo ámbar. Para fondos oscuros y merchandising.</p>
+      </header>
+      <div class="pair">
+        <figure>
+          <img src="fandez-05-negativo-sin-marca.jpg" alt="Negativo sin marca">
+          <figcaption>Sin marca</figcaption>
+        </figure>
+        <figure>
+          <img src="fandez-05-negativo-con-marca.jpg" alt="Negativo con marca">
+          <figcaption>Con marca</figcaption>
+        </figure>
+      </div>
+    </article>
+    <footer>docs/logo-estilos · regenerar: <code>node scripts/export-logo-styles.js</code></footer>
+  </div>
+</body>
+</html>

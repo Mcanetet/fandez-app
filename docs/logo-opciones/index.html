@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fandez — 3 tipografías para el logo</title>
+  <style>
+    :root { --ink:#1A1814; --muted:#6B635A; --bg:#F4F2EE; --amber:#C45C14; --border:#E6E0D8; --dark:#1A1814; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.45; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 2rem 1.25rem 3.5rem; }
+    h1 { font-size: clamp(1.85rem, 4vw, 2.7rem); letter-spacing: -0.035em; margin: 0 0 0.45rem; }
+    .lead { color: var(--muted); max-width: 42rem; margin: 0 0 1.75rem; }
+    .grid { display: grid; gap: 1.15rem; }
+    @media (min-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+    .card {
+      background: #fff; border: 1px solid var(--border); border-radius: 1rem;
+      padding: 1.15rem; display: flex; flex-direction: column; gap: 0.7rem;
+    }
+    .opt {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--amber);
+    }
+    h2 { margin: 0.1rem 0; font-size: 1.2rem; letter-spacing: -0.02em; }
+    .vibe { margin: 0; font-size: 0.88rem; font-weight: 600; color: var(--ink); }
+    .preview {
+      border-radius: 0.75rem; border: 1px solid var(--border);
+      overflow: hidden; aspect-ratio: 1; background: #fff;
+    }
+    .preview.amber { background: #C45C14; border-color: #9A3F0A; }
+    .preview img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .preview.amber img { filter: brightness(0) invert(1); }
+    .row-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0.35rem 0 0; }
+    .pitch { margin: 0.25rem 0 0; font-size: 0.9rem; color: var(--muted); }
+    .file { margin: 0; font-size: 0.72rem; color: var(--muted); word-break: break-all; }
+    code { font-size: 0.78em; background: rgba(26,24,20,0.06); padding: 0.1em 0.3em; border-radius: 0.25em; }
+    footer { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); text-align: center; }
+    .hint { background: #fff; border: 1px solid var(--border); border-radius: 0.85rem; padding: 0.9rem 1rem; margin-bottom: 1.25rem; font-size: 0.9rem; color: var(--muted); }
+    .hint strong { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Elige tipografía del logo</h1>
+    <p class="lead">Elegida: <strong>opción B — Unbounded Bold</strong>. Las otras quedan como referencia.</p>
+    <p class="hint"><strong>Cómo mirarlas:</strong> la de arriba es el lockup apilado (INAPI). La de abajo simula el logo en botón ámbar.</p>
+
+    <div class="grid">
+      <article class="card">
+        <span class="opt">Opción A</span>
+        <h2>Syne ExtraBold</h2>
+        <p class="vibe">Oficio + plataforma</p>
+        <p class="row-label">Lockup</p>
+        <div class="preview"><img src="fandez-opcion-A-syne.jpg" alt="Fandez Syne"></div>
+        <p class="row-label">Sobre ámbar</p>
+        <div class="preview amber"><img src="fandez-opcion-A-syne-horizontal.jpg" alt=""></div>
+        <p class="pitch">Identidad de marca. Geometría con carácter; se aleja de Inter/Arial. Buena para registrar y diferenciarse.</p>
+        <p class="file"><code>fandez-opcion-A-syne.jpg</code></p>
+      </article>
+
+      <article class="card" style="outline:2px solid #C45C14; outline-offset:2px">
+        <span class="opt">Opción B · oficial</span>
+        <h2>Unbounded Bold</h2>
+        <p class="vibe">Futuro / app nativa</p>
+        <p class="row-label">Lockup</p>
+        <div class="preview"><img src="fandez-opcion-B-unbounded.jpg" alt="Fandez Unbounded"></div>
+        <p class="row-label">Sobre ámbar</p>
+        <div class="preview amber"><img src="fandez-opcion-B-unbounded-horizontal.jpg" alt=""></div>
+        <p class="pitch">Display tech actual. Terminales más cuadrados; se lee “producto digital / fintech-home”. Más llamativa.</p>
+        <p class="file"><code>fandez-opcion-B-unbounded.jpg</code></p>
+      </article>
+
+      <article class="card">
+        <span class="opt">Opción C</span>
+        <h2>Space Grotesk Bold</h2>
+        <p class="vibe">Startup / SaaS</p>
+        <p class="row-label">Lockup</p>
+        <div class="preview"><img src="fandez-opcion-C-space-grotesk.jpg" alt="Fandez Space Grotesk"></div>
+        <p class="row-label">Sobre ámbar</p>
+        <div class="preview amber"><img src="fandez-opcion-C-space-grotesk-horizontal.jpg" alt=""></div>
+        <p class="pitch">Clásico de startups tech. Limpia y confiable; muy usada en SaaS (más “parecida a otras apps”).</p>
+        <p class="file"><code>fandez-opcion-C-space-grotesk.jpg</code></p>
+      </article>
+    </div>
+
+    <footer>Fandez · comparación tipográfica · <code>docs/logo-opciones/</code></footer>
+  </div>
+</body>
+</html>

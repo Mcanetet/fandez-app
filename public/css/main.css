@@ -63,8 +63,8 @@ html {
 }
 
 .fandez-wordmark {
-  font-family: 'Bricolage Grotesque', 'Source Sans 3', system-ui, sans-serif;
-  font-weight: 800;
+  font-family: Unbounded, 'Bricolage Grotesque', system-ui, sans-serif;
+  font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--zilo-text);
   line-height: 1;
@@ -2470,3 +2470,48 @@ body.fandez-install-visible {
   .fandez-install-banner { display: none !important; }
   .fandez-install-banner.fandez-install-banner--forced { display: flex !important; }
 }
+
+/* Fandez aliases (legacy zilo-* preserved) */
+.fandez-card-premium { background: var(--zilo-surface); border: 1px solid var(--zilo-border); box-shadow: var(--zilo-shadow); }
+.fandez-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.875rem 1.25rem; border-radius: var(--zilo-radius-btn); background: var(--zilo-accent); color: #fff; font-weight: 600; border: 1px solid var(--zilo-accent-strong); }
+.fandez-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--zilo-muted); }
+
+/* Provider bottom nav */
+.nav-provider-bar {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--zilo-border);
+  box-shadow: 0 -4px 20px rgba(26, 24, 20, 0.06);
+}
+.nav-provider-active { color: var(--zilo-accent) !important; }
+
+/* Activation checklist */
+.provider-activation-item.is-done { opacity: 0.85; }
+.provider-activation-check {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.25rem; height: 1.25rem; border-radius: 999px;
+  background: var(--zilo-success); color: #fff; font-size: 0.65rem; margin-right: 0.5rem;
+}
+.provider-activation-dot {
+  width: 0.625rem; height: 0.625rem; border-radius: 999px;
+  border: 2px solid var(--zilo-accent); flex-shrink: 0;
+}
+
+/* Socket reconnect banner */
+.socket-reconnect-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 600;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 0.5rem 1rem; background: var(--zilo-warning); color: #1A1814;
+  font-size: 0.75rem; font-weight: 600;
+}
+.socket-reconnect-banner__dot {
+  width: 0.5rem; height: 0.5rem; border-radius: 999px; background: currentColor;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+/* Touch targets — a11y */
+.zilo-icon-btn {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+

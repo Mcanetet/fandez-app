@@ -1,15 +1,20 @@
 <%- include('../partials/head', { useMap: true }) %>
 
-<div class="max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center p-6 text-center" id="successPage">
+<div class="max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center p-6 text-center" id="successPage"
+  data-auto="<%= typeof autoRedirect !== 'undefined' && autoRedirect ? '1' : '0' %>"
+  data-tracking-url="<%= request ? '/cliente/servicio/' + request.serviceId + '?tracking=' + request.id : '/cliente' %>">
   <div class="w-full max-w-lg px-2 mb-4">
     <%- include('../partials/checkout-progress', { checkoutStep: typeof checkoutStep !== 'undefined' ? checkoutStep : 3 }) %>
   </div>
   <div class="w-20 h-20 rounded-full bg-zilo-success/15 flex items-center justify-center mb-6 animate-bounce-in border border-zilo-success/30">
-    <svg class="w-10 h-10 text-zilo-success" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+    <svg class="w-10 h-10 text-zilo-success" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
   </div>
   <% const isAdditionalPayment = typeof additionalPayment !== 'undefined' && additionalPayment; %>
-  <h1 class="zilo-display text-3xl mb-2">Pago confirmado</h1>
-  <p class="text-zilo-muted text-sm mb-1"><%= isAdditionalPayment ? ((additionalPayment.reason === 'materials') ? 'Materiales pagados. Gracias por completar el pago.' : 'El ajuste fue pagado y el trabajo puede continuar') : 'Estamos buscando un socio verificado (hasta ~15 min). Te avisamos en la app y por Aland.' %></p>
+  <h1 class="zilo-display text-3xl mb-2"><%= t('payments.success.title') %></h1>
+  <p class="text-zilo-muted text-sm mb-1" id="successSubtext"><%= isAdditionalPayment ? ((additionalPayment.reason === 'materials') ? 'Materiales pagados. Gracias por completar el pago.' : 'El ajuste fue pagado y el trabajo puede continuar') : t('payments.success.searching') %></p>
+  <% if (!isAdditionalPayment && (typeof autoRedirect !== 'undefined' && autoRedirect)) { %>
+  <p class="text-xs text-zilo-accent font-medium mb-4" id="successRedirectHint"><%= t('payments.success.redirecting') %></p>
+  <% } %>
   <% if (request) { %>
     <p class="text-zilo-accent font-semibold text-lg mb-6"><%= formatCLP(isAdditionalPayment ? additionalPayment.amountDue : (request.amountDue ?? request.estimatedVisit)) %></p>
 
@@ -49,18 +54,17 @@
       : 'La boleta o factura electrónica se envía al correo de facturación (requiere datos de factura en el checkout).' %></p>
     <% } %>
 
-    <!-- Modo Guardián — feature única -->
     <% if (typeof mod === 'function' && mod('client_guardian')) { %>
     <div class="w-full zilo-card-premium rounded-2xl p-5 mb-4 text-left">
       <div class="flex items-start gap-3">
         <div class="w-10 h-10 rounded-xl bg-zilo-accent/15 flex items-center justify-center shrink-0 guardian-pulse">
-          <svg class="w-5 h-5 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <svg class="w-5 h-5 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <div class="flex-1 min-w-0">
           <p class="zilo-label mb-1">Modo Guardián</p>
           <p class="text-sm text-zilo-muted mb-3">Comparte este enlace con tu familia para que sigan el servicio en vivo, sin necesidad de cuenta.</p>
           <div class="flex gap-2">
-            <input type="text" readonly value="<%= guardianUrl %>" id="guardianUrl" class="zilo-input text-xs flex-1 truncate">
+            <input type="text" readonly value="<%= guardianUrl %>" id="guardianUrl" class="zilo-input text-xs flex-1 truncate" aria-label="Enlace Modo Guardián">
             <button type="button" id="btnCopyGuardian" class="zilo-btn-ghost shrink-0 text-xs">Copiar</button>
           </div>
         </div>
@@ -81,8 +85,8 @@
     <% } %>
     <% } %>
 
-    <a href="/cliente/servicio/<%= request.serviceId %>?tracking=<%= request.id %>" class="zilo-btn-primary mb-3">
-      Ver estado del servicio
+    <a href="/cliente/servicio/<%= request.serviceId %>?tracking=<%= request.id %>" class="zilo-btn-primary mb-3" id="successTrackCta">
+      <%= t('payments.success.track_cta') %>
     </a>
     <% if (!isAdditionalPayment) { %>
     <button type="button" data-open-aland class="w-full mb-3 py-3 rounded-xl zilo-btn-ghost text-sm font-semibold">
@@ -104,6 +108,7 @@
 <script src="/js/map.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    const page = document.getElementById('successPage');
     const el = document.getElementById('paymentMap');
     if (el && typeof FandezMap !== 'undefined') {
       FandezMap.init(el, { lat: el.dataset.lat, lng: el.dataset.lng, label: el.dataset.label, zoom: 15 });
@@ -112,6 +117,10 @@
       navigator.clipboard.writeText(document.getElementById('guardianUrl').value)
         .then(() => FandezNotify.show('Enlace Modo Guardián copiado', 'success'));
     });
+    if (page?.dataset.auto === '1' && page.dataset.trackingUrl) {
+      const delay = 2800;
+      setTimeout(() => { window.location.href = page.dataset.trackingUrl; }, delay);
+    }
   });
 </script>
 

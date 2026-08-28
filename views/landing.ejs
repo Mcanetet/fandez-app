@@ -33,7 +33,12 @@
 
     <a href="/registro" class="zilo-btn-primary mb-3">
       <%= t('landing.cta.signup') %>
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <a href="/registro?emergency=1" class="zilo-btn-ghost mb-3 border border-zilo-accent/30 !text-zilo-accent">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+      <%= t('landing.emergency_cta') %>
+      <span class="text-[10px] text-zilo-muted ml-1">· <%= t('landing.emergency_hint') %></span>
     </a>
     <button type="button" data-install-app class="zilo-btn-ghost mb-3 fandez-install-entry">
       <svg class="w-5 h-5 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 3v12m0 0l4-4m-4 4l-4-4"/><path d="M5 19h14"/></svg>

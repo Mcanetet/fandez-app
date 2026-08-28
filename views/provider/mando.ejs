@@ -1,14 +1,14 @@
-<%- include('../partials/head') %>
+<%- include('../partials/head', { useMap: true }) %>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="mandoPage">
   <header class="sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border px-5 py-4">
     <div class="flex items-center gap-3">
-      <a href="/proveedor" class="zilo-icon-btn" title="Volver">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <a href="/proveedor" class="zilo-icon-btn" title="<%= t('nav.back') %>" aria-label="<%= t('nav.back') %>">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       </a>
       <div>
-        <p class="zilo-label !text-[9px]">Socio Fandez</p>
-        <h1 class="text-base font-semibold">Mis trabajos</h1>
+        <p class="zilo-label !text-[9px]"><%= t('provider.welcome') %></p>
+        <h1 class="text-base font-semibold"><%= t('provider.mando_page.title') %></h1>
       </div>
     </div>
   </header>
@@ -21,25 +21,36 @@
     </div>
     <% } %>
 
-    <p class="text-xs text-zilo-muted mb-4">Asigna cada solicitud a un técnico aprobado de tu equipo y sigue su avance en terreno.</p>
+    <p class="text-xs text-zilo-muted mb-4"><%= t('provider.mando_page.hint') %></p>
+
+    <% if (requests.length > 0) { %>
+    <section class="mb-4 zilo-card-premium rounded-2xl p-4" aria-label="<%= t('provider.mando_page.map_title') %>">
+      <p class="zilo-label mb-2"><%= t('provider.mando_page.map_title') %></p>
+      <div id="mandoMap" class="w-full h-44 rounded-xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
+      <p class="text-[10px] text-zilo-muted mt-2"><%= t('provider.mando_page.map_hint') %></p>
+    </section>
+    <% } %>
 
     <% if (technicians.length === 0) { %>
       <div class="mb-4 p-4 rounded-2xl border border-zilo-warning/30 bg-zilo-warning/10">
-        <p class="text-sm font-semibold text-zilo-warning mb-1">Aún no tienes técnicos aprobados</p>
-        <p class="text-xs text-zilo-muted mb-3">Incorpora técnicos y completa sus expedientes para poder asignar solicitudes.</p>
-        <a href="/proveedor/equipo" class="inline-flex zilo-btn-primary !py-2 !px-4 !text-xs">Ir a mi equipo</a>
+        <p class="text-sm font-semibold text-zilo-warning mb-1"><%= t('provider.mando_page.no_tech_title') %></p>
+        <p class="text-xs text-zilo-muted mb-3"><%= t('provider.mando_page.no_tech_body') %></p>
+        <a href="/proveedor/equipo" class="inline-flex zilo-btn-primary !py-2 !px-4 !text-xs"><%= t('provider.mando_page.no_tech_cta') %></a>
       </div>
     <% } %>
 
     <% if (requests.length === 0) { %>
       <div class="zilo-empty zilo-card-premium rounded-2xl">
-        <p class="zilo-display">Sin solicitudes activas</p>
-        <p class="text-sm">Cuando aceptes trabajos aparecerán aquí para asignarlos</p>
+        <p class="zilo-display"><%= t('provider.mando_page.empty_title') %></p>
+        <p class="text-sm"><%= t('provider.mando_page.empty_body') %></p>
       </div>
     <% } else { %>
       <div class="space-y-3" id="mandoList">
         <% requests.forEach(r => { %>
-          <div class="p-4 rounded-2xl zilo-card-premium" data-request-id="<%= r.id %>">
+          <div class="p-4 rounded-2xl zilo-card-premium" data-request-id="<%= r.id %>"
+            data-service-id="<%= r.serviceId %>"
+            data-lat="<%= r.coords && r.coords.lat != null ? r.coords.lat : '' %>"
+            data-lng="<%= r.coords && r.coords.lng != null ? r.coords.lng : '' %>">
             <div class="flex justify-between items-start mb-2">
               <div class="min-w-0">
                 <strong class="text-sm block truncate"><%= r.serviceName %></strong>
@@ -48,26 +59,26 @@
               <span class="zilo-badge zilo-badge-muted shrink-0" data-role="status"><%= r.techStatusLabel || r.statusLabel || r.techStatus || r.status %></span>
             </div>
             <p class="text-xs text-zilo-muted/90 mb-2 flex items-start gap-1">
-              <svg class="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              <span><%= r.address || 'Sin dirección' %></span>
+              <svg class="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span><%= r.address || t('provider.dashboard.no_address') %></span>
             </p>
             <% if (r.providerPayout != null) { %>
-              <p class="text-[11px] text-zilo-success font-medium mb-2">Te pagamos: <%= formatCLP(r.providerPayout) %></p>
+              <p class="text-[11px] text-zilo-success font-medium mb-2"><%= t('provider.js.your_payout') %>: <%= formatCLP(r.providerPayout) %></p>
             <% } %>
             <% if (r.urgencyTierLabel) { %>
-              <p class="text-[10px] text-orange-600 mb-2">Urgencia: <%= r.urgencyTierLabel %></p>
+              <p class="text-[10px] text-orange-600 mb-2"><%= t('provider.js.urgency') %>: <%= r.urgencyTierLabel %></p>
             <% } %>
             <% const requestedAt = r.searchingAt || r.createdAt || r.paidAt; %>
             <% if (requestedAt) { %>
-              <p class="text-[10px] text-zilo-muted mb-2">Pedido: <%= new Date(requestedAt).toLocaleString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) %></p>
+              <p class="text-[10px] text-zilo-muted mb-2"><%= t('provider.js.requested_at') %>: <%= new Date(requestedAt).toLocaleString(req.locale === 'en' ? 'en-US' : 'es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) %></p>
             <% } %>
             <% if (r.notes) { %>
               <p class="text-[11px] text-zilo-muted italic mb-3 p-2 rounded-lg bg-zilo-bg/80 border border-zilo-border line-clamp-2"><%= r.notes %></p>
             <% } %>
             <% if (r.clientPhotoUrl) { %>
               <a href="<%= r.clientPhotoUrl %>" target="_blank" rel="noopener" class="block mb-3">
-                <img src="<%= r.clientPhotoUrl %>" alt="Foto del cliente" class="w-full max-h-32 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
-                <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg">No se pudo cargar la foto del pedido.</p>
+                <img src="<%= r.clientPhotoUrl %>" alt="<%= t('provider.dashboard.client_photo') %>" class="w-full max-h-32 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg"><%= t('provider.mando_page.photo_error') %></p>
               </a>
             <% } %>
 
@@ -76,57 +87,54 @@
                 <div class="p-3 rounded-xl border border-amber-300 bg-amber-50 space-y-2"
                   data-accept-deadline="<%= r.technicianAssignedAt || '' %>"
                   data-accept-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>">
-                  <p class="text-xs text-amber-900">Esperando que <strong><%= r.technicianName %></strong> acepte.</p>
+                  <p class="text-xs text-amber-900"><%= t('provider.mando_page.waiting_accept', { name: r.technicianName }) %></p>
                   <p class="text-sm font-semibold text-amber-950 tabular-nums" data-role="accept-countdown"><%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>:00</p>
-                  <p class="text-[11px] text-amber-800/80">Si no acepta, se desasigna solo y debes elegir otro técnico.</p>
-                  <a href="/proveedor/trabajo/<%= r.id %>" class="block text-center zilo-btn-ghost !py-2 !text-xs">Ver pedido</a>
-                  <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>">Liberar pedido (vuelve a búsqueda)</button>
+                  <p class="text-[11px] text-amber-800/80"><%= t('provider.mando_page.accept_timeout_hint') %></p>
+                  <a href="/proveedor/trabajo/<%= r.id %>" class="block text-center zilo-btn-ghost !py-2 !text-xs"><%= t('provider.mando_page.view_job') %></a>
+                  <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release') %></button>
                 </div>
               <% } else if (r.technicianId) { %>
                 <div class="space-y-2">
-                  <p class="text-xs">Técnico: <strong data-role="tech-name"><%= r.technicianName %></strong></p>
-                  <% if (typeof providerStats !== 'undefined') { %>
-                    <p class="text-[10px] text-zilo-muted">Tu adherencia se actualiza si liberas un pedido o el cliente cambia de socio.</p>
-                  <% } %>
-                  <a href="/proveedor/trabajo/<%= r.id %>" class="block text-center zilo-btn-primary !py-3 !text-sm">Ver pedido en terreno</a>
+                  <p class="text-xs"><%= t('provider.mando_page.tech_label') %>: <strong data-role="tech-name"><%= r.technicianName %></strong></p>
+                  <a href="/proveedor/trabajo/<%= r.id %>" class="block text-center zilo-btn-primary !py-3 !text-sm"><%= t('provider.mando_page.open_field') %></a>
                   <div class="flex gap-2">
                     <% if (r.guardianToken) { %>
-                      <a href="/seguimiento/<%= r.guardianToken %>" target="_blank" class="flex-1 text-center zilo-btn-ghost !py-2 !text-xs">Mapa en vivo</a>
+                      <a href="/seguimiento/<%= r.guardianToken %>" target="_blank" rel="noopener" class="flex-1 text-center zilo-btn-ghost !py-2 !text-xs"><%= t('provider.mando_page.live_map') %></a>
                     <% } %>
-                    <button type="button" class="flex-1 zilo-btn-ghost !py-2 !text-xs" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>">Chat cliente</button>
+                    <button type="button" class="flex-1 zilo-btn-ghost !py-2 !text-xs" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>"><%= t('provider.mando_page.chat_client') %></button>
                   </div>
                   <% if (!['en_sitio','diagnostico','reparando','comprando','presupuesto_pendiente','presupuesto_aprobado','completado'].includes(r.techStatus)) { %>
-                    <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>">Liberar pedido</button>
+                    <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release_short') %></button>
                   <% } %>
                 </div>
               <% } else if (technicians.length > 0) { %>
                 <% const eligibleTechs = technicians.filter(t => Array.isArray(t.specialties) && t.specialties.includes(r.serviceId)); %>
                 <div class="space-y-2">
                   <% if (r.awaitingProviderReassign) { %>
-                    <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2">El técnico anterior no aceptó. Asigna otro ahora o libera el pedido.</p>
+                    <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2"><%= t('provider.mando_page.reassign_hint') %></p>
                     <p class="text-xs font-semibold text-amber-900 tabular-nums"
                       data-reassign-deadline="<%= r.techAcceptTimedOutAt || '' %>"
                       data-reassign-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.providerReassignMinutes : 10 %>"
                       data-role="reassign-countdown"></p>
                   <% } %>
-                  <label class="zilo-label block !text-[10px]" for="tech-select-<%= r.id %>">Buscar y elegir técnico</label>
+                  <label class="zilo-label block !text-[10px]" for="tech-select-<%= r.id %>"><%= t('provider.mando_page.pick_tech') %></label>
                   <select id="tech-select-<%= r.id %>" class="zilo-select-tech zilo-input text-sm" data-role="tech-select" <%= eligibleTechs.length ? '' : 'disabled' %>>
-                    <option value=""><%= eligibleTechs.length ? 'Toca aquí para ver tu equipo…' : 'Sin técnico para este servicio' %></option>
+                    <option value=""><%= eligibleTechs.length ? t('provider.mando_page.pick_placeholder') : t('provider.mando_page.no_eligible') %></option>
                     <% eligibleTechs.forEach(t => { %>
                       <option value="<%= t.id %>"><%= t.name %></option>
                     <% }); %>
                   </select>
-                  <button type="button" class="zilo-btn-primary w-full !py-3 !text-sm" data-role="assign-btn" data-id="<%= r.id %>" <%= eligibleTechs.length ? '' : 'disabled' %>>Asignar técnico</button>
-                  <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>">Liberar (sin técnicos)</button>
-                  <button type="button" class="w-full zilo-btn-ghost !py-2.5 !text-sm" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>">Mensajes con el cliente</button>
+                  <button type="button" class="zilo-btn-primary w-full !py-3 !text-sm" data-role="assign-btn" data-id="<%= r.id %>" <%= eligibleTechs.length ? '' : 'disabled' %>><%= t('provider.mando_page.assign_btn') %></button>
+                  <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release_no_tech') %></button>
+                  <button type="button" class="w-full zilo-btn-ghost !py-2.5 !text-sm" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>"><%= t('provider.mando_page.chat_client') %></button>
                   <% if (!eligibleTechs.length) { %>
-                    <a href="/proveedor/equipo" class="block text-center text-[11px] text-zilo-accent underline">Activar un técnico con esta especialidad</a>
+                    <a href="/proveedor/equipo" class="block text-center text-[11px] text-zilo-accent underline"><%= t('provider.mando_page.activate_tech') %></a>
                   <% } %>
                 </div>
               <% } else { %>
-                <a href="/proveedor/equipo" class="block text-center zilo-btn-ghost !py-3 !text-sm">Agregar técnico para asignar</a>
-                <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold mt-2" data-role="desert-btn" data-id="<%= r.id %>">Liberar pedido</button>
-                <button type="button" class="w-full zilo-btn-ghost !py-2.5 !text-sm mt-2" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>">Mensajes con el cliente</button>
+                <a href="/proveedor/equipo" class="block text-center zilo-btn-ghost !py-3 !text-sm"><%= t('provider.mando_page.add_tech') %></a>
+                <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold mt-2" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release_short') %></button>
+                <button type="button" class="w-full zilo-btn-ghost !py-2.5 !text-sm mt-2" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>"><%= t('provider.mando_page.chat_client') %></button>
               <% } %>
             </div>
 
@@ -135,31 +143,36 @@
       </div>
     <% } %>
   </main>
+
+  <%- include('../partials/nav-provider', { navActive: 'mando' }) %>
 </div>
 
-<div id="jobChatModal" class="fixed inset-0 z-[80] hidden">
+<div id="jobChatModal" class="fixed inset-0 z-[80] hidden" role="dialog" aria-modal="true" aria-labelledby="jobChatTitle">
   <div class="absolute inset-0 bg-black/40" data-role="chat-backdrop"></div>
   <div class="job-chat-sheet absolute inset-x-0 bottom-0 max-w-lg mx-auto rounded-t-3xl border border-zilo-border shadow-xl flex flex-col" style="max-height: 85vh;">
     <div class="flex items-center justify-between px-5 py-4 border-b border-zilo-border bg-white rounded-t-3xl">
       <div>
-        <p class="zilo-label !text-[9px]">Chat del servicio</p>
-        <h2 id="jobChatTitle" class="text-sm font-semibold text-zilo-text">Cliente</h2>
-        <p id="jobChatYouAre" class="text-[10px] text-zilo-muted mt-0.5">Escribes como Socio</p>
+        <p class="zilo-label !text-[9px]"><%= t('provider.mando_page.chat_title') %></p>
+        <h2 id="jobChatTitle" class="text-sm font-semibold text-zilo-text"><%= t('provider.mando_page.chat_client') %></h2>
+        <p id="jobChatYouAre" class="text-[10px] text-zilo-muted mt-0.5"><%= t('provider.mando_page.chat_as') %></p>
       </div>
-      <button type="button" class="zilo-icon-btn" data-role="chat-close" aria-label="Cerrar">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      <button type="button" class="zilo-icon-btn" data-role="chat-close" aria-label="<%= t('client.historial.cancel') %>">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
     </div>
     <div id="jobChatThread" class="job-chat-thread flex-1 overflow-y-auto px-4 py-4 space-y-2.5 min-h-[220px]"></div>
     <form id="jobChatForm" class="job-chat-composer">
-      <label class="job-chat-composer__label" for="jobChatInput">Tu mensaje</label>
+      <label class="job-chat-composer__label" for="jobChatInput"><%= t('provider.mando_page.chat_input_label') %></label>
       <div class="job-chat-composer__row">
-        <input id="jobChatInput" type="text" maxlength="1000" autocomplete="off" placeholder="Escribe aquí para el cliente…" class="job-chat-input">
-        <button type="submit" class="job-chat-send">Enviar</button>
+        <input id="jobChatInput" type="text" maxlength="1000" autocomplete="off" placeholder="<%= t('provider.mando_page.chat_placeholder') %>" class="job-chat-input">
+        <button type="submit" class="job-chat-send"><%= t('provider.mando_page.chat_send') %></button>
       </div>
-      <p class="job-chat-composer__hint">Se verá como <strong>Socio</strong>. El cliente y el técnico también quedan etiquetados.</p>
+      <p class="job-chat-composer__hint"><%= t('provider.mando_page.chat_hint') %></p>
     </form>
   </div>
 </div>
 
-<%- include('../partials/footer', { pageScript: '/js/mando.js' }) %>
+<%- include('../partials/footer', { pageScript: '/js/mando.js', extraScripts: ['/js/map.js'] }) %>
+<script>
+  window.MANDO_TECH_MARKERS = <%- JSON.stringify(typeof technicianMarkers !== 'undefined' ? technicianMarkers : []) %>;
+</script>

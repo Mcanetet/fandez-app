@@ -1,0 +1,29 @@
+<% const steps = typeof activationSteps !== 'undefined' ? activationSteps : []; %>
+<% if (steps.length && steps.some(function(s) { return !s.done; })) { %>
+<section class="mb-4 p-4 rounded-2xl border border-zilo-accent/25 bg-zilo-accent-soft/30 zilo-page-enter" aria-label="<%= t('provider.activation.title') %>">
+  <p class="zilo-label mb-1"><%= t('provider.activation.title') %></p>
+  <p class="text-xs text-zilo-muted mb-3"><%= t('provider.activation.subtitle') %></p>
+  <ol class="space-y-2 provider-activation-list">
+    <% steps.forEach(function(step) { %>
+      <li class="provider-activation-item <%= step.done ? 'is-done' : 'is-pending' %>">
+        <% if (step.done) { %>
+          <span class="provider-activation-check" aria-hidden="true">✓</span>
+          <span class="text-sm text-zilo-success font-medium"><%= t(step.labelKey) %></span>
+        <% } else if (step.url) { %>
+          <a href="<%= step.url %>" class="flex items-center gap-3 p-3 rounded-xl border border-zilo-border bg-white hover:border-zilo-accent/40 transition w-full">
+            <span class="provider-activation-dot" aria-hidden="true"></span>
+            <span class="text-sm font-medium flex-1"><%= t(step.labelKey) %></span>
+            <svg class="w-4 h-4 text-zilo-accent shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+        <% } else { %>
+          <div class="flex items-center gap-3 p-3 rounded-xl border border-zilo-border bg-white/80 w-full">
+            <span class="provider-activation-dot" aria-hidden="true"></span>
+            <span class="text-sm font-medium flex-1"><%= t(step.labelKey) %></span>
+            <span class="text-[10px] text-zilo-muted"><%= t('provider.activation.toggle_hint') %></span>
+          </div>
+        <% } %>
+      </li>
+    <% }); %>
+  </ol>
+</section>
+<% } %>

@@ -6,6 +6,15 @@
   <title>Fandez — Manual de marca</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <style>
+    @font-face {
+      font-family: 'Unbounded';
+      src: url('../public/fonts/unbounded-700.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -64,16 +73,20 @@
       .hero .inner { grid-template-columns: 132px 1fr; gap: 2.25rem; }
     }
     .hero h1 { color: #fff; }
-    .hero p { color: rgba(255,255,255,0.72); max-width: 34rem; }
+    .hero p { color: rgba(255,255,255,0.72); max-width: 38rem; }
     .hero .meta {
       font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
       color: rgba(255,255,255,0.45); margin-bottom: 0.65rem; font-weight: 600;
     }
     .hero .badge {
-      display: inline-block; margin-top: 0.75rem;
+      display: inline-block; margin-top: 0.75rem; margin-right: 0.4rem;
       font-size: 0.75rem; font-weight: 700;
       padding: 0.35rem 0.7rem; border-radius: 999px;
       background: var(--amber); color: #fff;
+    }
+    .hero .badge.ghost {
+      background: transparent; border: 1px solid rgba(255,255,255,0.28);
+      color: rgba(255,255,255,0.85);
     }
 
     .logo-mark { width: 120px; height: 130px; display: block; }
@@ -130,8 +143,8 @@
 
     .wordmark {
       display: flex; align-items: center; gap: 0.7rem;
-      font-family: "Bricolage Grotesque", sans-serif;
-      font-weight: 800; font-size: 1.55rem; letter-spacing: -0.03em; color: var(--ink);
+      font-family: Unbounded, "Bricolage Grotesque", sans-serif;
+      font-weight: 700; font-size: 1.55rem; letter-spacing: -0.03em; color: var(--ink);
     }
     .wordmark.inv { color: #fff; }
 
@@ -207,6 +220,66 @@
       width: 36px; height: 36px; border-radius: 10px; margin-bottom: 0.5rem;
     }
 
+    .construct {
+      display: grid; gap: 0.75rem; margin: 1.15rem 0 0.35rem;
+    }
+    @media (min-width: 720px) { .construct { grid-template-columns: repeat(3, 1fr); } }
+    .construct .step {
+      border: 1px solid var(--border); border-radius: 0.85rem;
+      padding: 1rem 0.85rem 0.95rem; background: #FAF8F5;
+      min-height: 250px; display: flex; flex-direction: column; align-items: center;
+    }
+    .construct .step svg { width: 100%; max-width: 168px; height: 168px; }
+    .construct .n {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--amber); margin-bottom: 0.35rem;
+    }
+    .construct h3 { font-size: 0.95rem; margin-bottom: 0.35rem; text-align: center; }
+    .construct p { font-size: 0.82rem; margin: 0; text-align: center; }
+
+    .formula {
+      margin-top: 1.15rem;
+      border-radius: 0.85rem;
+      border: 1px solid rgba(196,92,20,0.28);
+      background: var(--amber-soft);
+      padding: 1rem 1.15rem;
+      display: grid; gap: 0.55rem; align-items: center;
+    }
+    @media (min-width: 640px) {
+      .formula { grid-template-columns: 1fr auto 1fr auto 1fr; text-align: center; }
+    }
+    .formula strong { display: block; font-size: 1.05rem; }
+    .formula span { font-size: 0.78rem; color: var(--muted); }
+    .formula .op {
+      font-family: "Bricolage Grotesque", sans-serif;
+      font-weight: 800; font-size: 1.4rem; color: var(--amber);
+    }
+
+    .inapi {
+      background: #1A1814; color: #fff; border-color: #2a2620;
+    }
+    .inapi h2, .inapi h3 { color: #fff; }
+    .inapi p, .inapi li { color: rgba(255,255,255,0.72); }
+    .inapi strong { color: #fff; }
+    .inapi .copy {
+      background: #11100E; border: 1px solid #3a352e; border-radius: 0.75rem;
+      padding: 1rem 1.1rem; color: rgba(255,255,255,0.88);
+      font-size: 0.92rem; line-height: 1.55;
+    }
+    .inapi .note {
+      font-size: 0.8rem; color: rgba(255,255,255,0.5); margin: 0.65rem 0 0;
+    }
+
+    .quote-sign {
+      border-left: 3px solid var(--amber);
+      padding: 0.15rem 0 0.15rem 1rem;
+      margin: 1rem 0 0;
+      font-size: 1.05rem;
+      color: var(--ink);
+      font-family: "Bricolage Grotesque", sans-serif;
+      letter-spacing: -0.02em; line-height: 1.35;
+    }
+
     footer.manual-foot {
       text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 0.8rem;
     }
@@ -214,6 +287,8 @@
       body { background: #fff; }
       nav.toc { display: none; }
       section { break-inside: avoid; }
+      .hero, .inapi, .panel.dark, .panel.amber { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      @page { size: A4; margin: 12mm; }
     }
   </style>
 </head>
@@ -222,10 +297,11 @@
     <div class="inner">
       <img class="logo-mark" src="../public/logo-plunger.svg" alt="Símbolo Fandez">
       <div>
-        <p class="meta">Manual de marca · v2.0 · Julio 2026</p>
+        <p class="meta">Manual de marca · v3.0 · Agosto 2026 · Dossier INAPI</p>
         <h1>Fandez</h1>
-        <p>Concierge del hogar en Santiago. Paleta de <strong style="color:#fff">carbón + ámbar de herramienta</strong>: se ve distinta en el celular frente al mar de apps azules y celestes.</p>
-        <span class="badge">Acento #C45C14 · no azul genérico</span>
+        <p>El isotipo es un <strong style="color:#fff">sopapo / destapador de baño visto a 45°</strong>. Esa perspectiva cierra la copa sobre sí misma y traza un <strong style="color:#fff">infinito</strong>: el pulso que destapa y vuelve a hacer circular el flujo.</p>
+        <span class="badge">Sopapo a 45° → ∞</span>
+        <span class="badge ghost">FANDEZ · Chile</span>
       </div>
     </div>
   </header>
@@ -233,7 +309,9 @@
   <div class="wrap">
     <nav class="toc" aria-label="Índice">
       <a href="#esencia">Esencia</a>
-      <a href="#por-que">Por qué este color</a>
+      <a href="#construccion">Construcción</a>
+      <a href="#energia">Energía</a>
+      <a href="#inapi">INAPI</a>
       <a href="#logo">Logo</a>
       <a href="#icono">Icono app</a>
       <a href="#color">Color</a>
@@ -245,46 +323,150 @@
 
     <section id="esencia">
       <p class="label">01 · Esencia</p>
-      <h2>Oficio del hogar, no otra fintech azul</h2>
-      <p>Fandez conecta hogares con técnicos verificados. La marca debe sentirse <strong>práctica, cálida y de taller</strong> — memorable en la grilla del teléfono.</p>
+      <h2>Destapar el hogar, devolver el flujo</h2>
+      <p>Fandez conecta hogares y oficinas con técnicos verificados. El oficio es concreto —gasfitería, electricidad, cerrajería— y el signo lo dice sin escribir una palabra: <strong>una herramienta de destape</strong> que, vista de otro modo, es un <strong>ciclo que no se agota</strong>.</p>
       <div class="grid-3" style="margin-top:1.15rem">
         <div class="card-ex">
-          <h3>Práctico</h3>
-          <p style="margin:0">Menos adorno, más claridad de precio y estado.</p>
+          <h3>Oficio</h3>
+          <p style="margin:0">El sopapo es del baño, del piso, de la cañería. Marca de taller, no de fintech.</p>
         </div>
         <div class="card-ex">
-          <h3>Humano</h3>
-          <p style="margin:0">Tono cercano. Aland es soporte, no “magia IA”.</p>
+          <h3>Ángulo</h3>
+          <p style="margin:0">A 45° la copa deja de ser “un dibujo de herramienta” y se vuelve signo propio.</p>
         </div>
         <div class="card-ex">
-          <h3>Distinto</h3>
-          <p style="margin:0">Ámbar de herramienta vs. el azul/celeste de casi todas las apps.</p>
+          <h3>Infinito</h3>
+          <p style="margin:0">El mismo trazo es lemniscata: servicio que vuelve, flujo que se restaura.</p>
         </div>
       </div>
     </section>
 
-    <section id="por-que">
-      <p class="label">02 · Decisión de color</p>
-      <h2>Por qué no azul</h2>
-      <p>Bancos, mensajería, marketplaces y SaaS ya saturan el azul. En el dock del celular Fandez se pierde si usa el mismo acento.</p>
-      <div class="compare" style="margin-top:1rem">
-        <div class="box old">
-          <div class="dot" style="background:#2563EB"></div>
-          <h3>Evitar</h3>
-          <p style="margin:0">Azul Tailwind / celeste (#2563EB, #0EA5E9). Se mezcla con WhatsApp Business, bancos y “apps genéricas”.</p>
+    <section id="construccion">
+      <p class="label">02 · Construcción del signo</p>
+      <h2>Un destapador a 45 grados genera el infinito</h2>
+      <p>El isotipo no es un pictograma frontal ni un mango con ventosa. Es la <strong>copa de un sopapo (destapador de baño / desatascador)</strong>, observada en <strong>perspectiva de 45°</strong>, sin palo. En ese ángulo el borde de la copa y el cuerpo de goma se superponen y el contorno se cierra en dos lóbulos: una <strong>lemniscata vertical</strong>, el símbolo de infinito.</p>
+
+      <div class="construct">
+        <div class="step">
+          <p class="n">01 · Herramienta</p>
+          <svg viewBox="0 0 160 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <line x1="46" y1="22" x2="86" y2="78" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+            <rect x="28" y="10" width="28" height="18" rx="6" transform="rotate(-42 42 19)" fill="#1A1814"/>
+            <ellipse cx="102" cy="118" rx="38" ry="18" stroke="#C45C14" stroke-width="5"/>
+            <path d="M64 118 C64 96 80 86 102 86 C124 86 140 96 140 118 C140 142 124 152 102 152 C80 152 64 142 64 118 Z" stroke="#C45C14" stroke-width="5" stroke-linejoin="round"/>
+            <path d="M22 148 L52 118" stroke="#C45C14" stroke-width="2" stroke-dasharray="4 4" opacity="0.7"/>
+            <text x="18" y="162" fill="#C45C14" font-size="11" font-family="Source Sans 3, sans-serif" font-weight="700">45°</text>
+          </svg>
+          <h3>Sopapo / destapador</h3>
+          <p>Copa de goma + mango. Herramienta real del baño, vista en tres cuartos.</p>
         </div>
-        <div class="box now">
-          <div class="dot" style="background:#C45C14"></div>
-          <h3>Usar</h3>
-          <p style="margin:0">Ámbar cobre (#C45C14) sobre carbón (#1A1814). Evoca metal, herramienta y oficio — y se lee a distancia.</p>
+        <div class="step">
+          <p class="n">02 · Recorte</p>
+          <svg viewBox="0 0 160 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <ellipse cx="80" cy="62" rx="28" ry="22" stroke="#C45C14" stroke-width="8" stroke-linejoin="round"/>
+            <ellipse cx="80" cy="108" rx="40" ry="28" stroke="#C45C14" stroke-width="8" stroke-linejoin="round"/>
+            <path d="M52 78 C62 88 98 88 108 78" stroke="#C45C14" stroke-width="8" stroke-linecap="round"/>
+            <circle cx="80" cy="84" r="3.5" fill="#1A1814"/>
+          </svg>
+          <h3>Solo la copa, a 45°</h3>
+          <p>Se omite el mango. Quedan dos elipses: el sello superior y el cuerpo que pulsa.</p>
+        </div>
+        <div class="step">
+          <p class="n">03 · Signo</p>
+          <svg viewBox="0 0 160 168" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Isotipo Fandez">
+            <g transform="translate(80,86) scale(0.95) translate(-60,-72)">
+              <path fill="none" stroke="#C45C14" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"
+                d="M60 22 C78 22 92 34 94 50 C95 58 92 66 84 70 C98 74 108 84 108 96 C108 112 86 122 60 122 C34 122 12 112 12 96 C12 84 22 74 36 70 C28 66 25 58 26 50 C28 34 42 22 60 22 Z"/>
+            </g>
+          </svg>
+          <h3>Infinito vertical</h3>
+          <p>Un solo trazo cerrado. Se lee a la vez como ventosa y como ∞.</p>
         </div>
       </div>
+
+      <div class="formula">
+        <div>
+          <strong>Sopapo</strong>
+          <span>destapador de baño</span>
+        </div>
+        <div class="op">×</div>
+        <div>
+          <strong>45°</strong>
+          <span>perspectiva de oficio</span>
+        </div>
+        <div class="op">=</div>
+        <div>
+          <strong>∞</strong>
+          <span>lemniscata / flujo</span>
+        </div>
+      </div>
+      <p style="margin-top:1rem;margin-bottom:0">El ángulo de 45° ya está resuelto en el dibujo. <strong>No se rota el SVG</strong> al usarlo: rotarlo otra vez rompería el signo registrado.</p>
+    </section>
+
+    <section id="energia">
+      <p class="label">03 · Lectura simbólica</p>
+      <h2>El sopapo genera energía: destapa y hace circular</h2>
+      <p>En el oficio, el destapador no “empuja suciedad”: <strong>sella, comprime y suelta</strong>. Ese pulso de vacío y de presión mueve el agua. En la lectura de la marca, el mismo gesto mueve lo estancado: restablece circulación en el hogar y en quien lo habita.</p>
+      <p class="quote-sign">Destapar es devolver el flujo. El infinito es la promesa de que ese flujo puede volver, una y otra vez.</p>
+      <div class="grid-2" style="margin-top:1.2rem">
+        <div class="card-ex">
+          <h3>Pulso de vacío y presión</h3>
+          <p style="margin:0">La copa sella. Al accionar se crea un vacío y un golpe de presión. Esa es la “energía” del signo: no un rayo decorativo, sino un <strong>ciclo físico que desbloquea</strong>. Lo que estaba detenido vuelve a moverse.</p>
+        </div>
+        <div class="card-ex">
+          <h3>Dos lóbulos, un cruce</h3>
+          <p style="margin:0">El lóbulo de arriba es el sello (lo que toca el mundo). El de abajo es el cuerpo que guarda la fuerza. El cruce central es el acto de servicio: <strong>donde materia y cuidado se tocan</strong>.</p>
+        </div>
+        <div class="card-ex">
+          <h3>El ángulo de 45°</h3>
+          <p style="margin:0">Lo horizontal es el piso, la cañería, lo concreto. Lo vertical es la intención, el aliento, lo que se eleva. <strong>45° es la diagonal de la acción</strong>: ni solo taller ni solo símbolo; los dos a la vez.</p>
+        </div>
+        <div class="card-ex">
+          <h3>Infinito como ciclo del hogar</h3>
+          <p style="margin:0">Se tapa, se destapa, vuelve a fluir. Agua, aire, luz, tránsito. El ∞ no es adorno esotérico suelto: es la forma que el sopapo <strong>revela</strong> cuando se lo mira en el ángulo justo. Continuidad, retorno, protección del flujo vital del hogar.</p>
+        </div>
+      </div>
+      <p style="margin-top:1.1rem;margin-bottom:0">Por eso el mango no entra al isotipo. La fuerza no está en el palo; está en la copa que sella y pulsa. Fandez es ese pulso, puesto al servicio de oficinas y hogares.</p>
+    </section>
+
+    <section id="inapi" class="inapi">
+      <p class="label" style="color:rgba(255,255,255,0.45)">04 · Registro en INAPI</p>
+      <h2>Qué presentar y qué pegar en la solicitud</h2>
+      <p>INAPI pide, en marcas figurativas o mixtas, una <strong>descripción visual</strong> (forma, color, disposición). No pide —ni conviene pegar— la lectura simbólica. Esa queda en este manual como fundamento de diseño y de distintividad: el signo no es “un destapador genérico”, es una <strong>copa a 45° que se lee como infinito</strong>.</p>
+
+      <h3 style="margin:1.15rem 0 0.55rem">Denominación</h3>
+      <p><strong>FANDEZ</strong> (una sola palabra, sin tilde, con F mayúscula en uso de marca; en el formulario puede ir en mayúsculas). Sin traducción. Palabra de fantasía.</p>
+
+      <h3 style="margin:1.15rem 0 0.55rem">Tipos de signo recomendados</h3>
+      <ul class="rules">
+        <li><strong>Denominativa:</strong> FANDEZ, sola, para proteger el nombre en cualquier grafía.</li>
+        <li><strong>Etiqueta (figurativa):</strong> el isotipo de la copa / lemniscata, sin texto.</li>
+        <li><strong>Mixta apilada:</strong> isotipo arriba + Fandez (Unbounded Bold) debajo.</li>
+        <li><strong>Mixta horizontal (oficial secundaria):</strong> isotipo a la izquierda + Fandez a la derecha.</li>
+      </ul>
+
+      <h3 style="margin:1.25rem 0 0.55rem">Descripción de etiqueta — isotipo (pegar en el formulario)</h3>
+      <div class="copy">
+        El signo figurativo consiste en un contorno lineal cerrado, de trazo grueso, uniforme y de extremos redondeados, sin relleno interior. El trazado describe dos lóbulos superpuestos en el eje vertical, de modo que la silueta se lee como una lemniscata o símbolo de infinito dispuesto en sentido vertical. Dicha forma corresponde a la copa de un destapador o sopapo de baño (desatascador), observada en perspectiva a cuarenta y cinco grados (45°), sin mango. El color reivindicado del isotipo, en su versión sobre fondo blanco, es ámbar cobre, equivalente al hexadecimal #C45C14. El signo no incluye elementos denominativos ni los símbolos ®, MR o TM.
+      </div>
+
+      <h3 style="margin:1.25rem 0 0.55rem">Descripción de etiqueta — marca mixta (pegar si se pide el conjunto)</h3>
+      <div class="copy">
+        Marca mixta compuesta, dispuesta en sentido vertical, por: (i) en la parte superior, el isotipo descrito como contorno lineal cerrado en dos lóbulos verticales, correspondiente a la copa de un destapador o sopapo de baño visto a 45°, que se lee asimismo como lemniscata o infinito, en color ámbar cobre #C45C14, sin relleno; y (ii) debajo, centrada, la denominación FANDEZ escrita en una sola palabra, con inicial mayúscula y el resto en minúsculas, en tipografía Unbounded Bold (palo seco display tecnológico de trazo grueso, con letter-spacing negativo), color carbón #1A1814. Fondo blanco. El conjunto no incluye los símbolos ®, MR o TM.
+      </div>
+
+      <h3 style="margin:1.25rem 0 0.55rem">Descripción de etiqueta — marca mixta horizontal</h3>
+      <div class="copy">
+        Marca mixta compuesta, dispuesta de izquierda a derecha, por: (i) a la izquierda, el isotipo descrito como contorno lineal cerrado en dos lóbulos verticales, correspondiente a la copa de un destapador o sopapo de baño visto a 45°, que se lee asimismo como lemniscata o infinito, en color ámbar cobre #C45C14, sin relleno; y (ii) a su derecha, la denominación FANDEZ escrita en una sola palabra, con inicial mayúscula y el resto en minúsculas, en tipografía Unbounded Bold (palo seco display tecnológico de trazo grueso, con letter-spacing negativo), color carbón #1A1814. Fondo blanco. El conjunto no incluye los símbolos ®, MR o TM.
+      </div>
+      <p class="note">No incluir en el campo “descripción de etiqueta” la lectura de energías, vacío, pulso o simbolismo. INAPI exige reseña visual, no concepto. Esa capa está en la sección 03 de este manual.</p>
+      <p class="note">Ejemplar electrónico: JPG o PNG, entre <strong>850×850</strong> y <strong>3700×3700</strong> px, máximo 2 MB. Archivos en <code style="background:rgba(255,255,255,0.08);color:#fff">docs/inapi/</code>. Wordmark: Unbounded Bold (opción B).</p>
     </section>
 
     <section id="logo">
-      <p class="label">03 · Logo</p>
-      <h2>Símbolo de la ventosa</h2>
-      <p>Isotipo: <strong>base del desatascador sin mango</strong>, contorno con interior transparente. Humor contenido, oficio del hogar.</p>
+      <p class="label">05 · Logo</p>
+      <h2>Isotipo y wordmark</h2>
+      <p>Contorno con interior transparente. Humor contenido, oficio del hogar, lectura doble: <strong>ventosa + infinito</strong>.</p>
 
       <div class="grid-3" style="margin:1.2rem 0">
         <div class="panel dark">
@@ -297,7 +479,7 @@
         </div>
         <div class="panel soft">
           <img src="../public/logo-plunger-amber.svg" alt="Ámbar">
-          <span>Acento · stroke ámbar</span>
+          <span>Acento · stroke ámbar · versión INAPI</span>
         </div>
       </div>
 
@@ -328,16 +510,16 @@
           <span class="tag">No</span>
           <ul class="rules">
             <li>No rellenar el hueco ni agregar mango</li>
+            <li>No rotar: los 45° ya están en el dibujo</li>
             <li>No azul/celeste ni violeta “IA”</li>
-            <li>No glow, degradados púrpura ni sombras de neón</li>
-            <li>No rotar ni aplastar el viewBox</li>
+            <li>No ® / MR / TM sobre el ejemplar de INAPI</li>
           </ul>
         </div>
       </div>
     </section>
 
     <section id="icono">
-      <p class="label">04 · Icono de app (home screen)</p>
+      <p class="label">06 · Icono de app (home screen)</p>
       <h2>Cómo resalta en el celular</h2>
       <p>El ícono debe ganar en la grilla: fondo <strong>ámbar</strong> o <strong>carbón</strong> + símbolo <strong>blanco</strong>.</p>
       <div class="grid-2" style="margin-top:1.1rem;align-items:center">
@@ -369,7 +551,7 @@
     </section>
 
     <section id="color">
-      <p class="label">05 · Paleta</p>
+      <p class="label">07 · Paleta</p>
       <h2>Carbón + ámbar de herramienta</h2>
       <div class="grid-4" style="margin-top:1rem">
         <div class="swatch">
@@ -409,23 +591,49 @@
     </section>
 
     <section id="tipo">
-      <p class="label">06 · Tipografía</p>
-      <h2>Familias</h2>
-      <div class="grid-2" style="margin-top:1rem">
+      <p class="label">08 · Tipografía</p>
+      <h2>Tres roles, tres voces</h2>
+      <p>En marcas tech el error más común es usar la misma sans en el logo y en la app: el nombre se vuelve “texto de interfaz”. Fandez separa <strong>wordmark</strong>, <strong>titulares</strong> y <strong>UI</strong>.</p>
+      <div class="grid-3" style="margin-top:1rem">
         <div class="type-sample card-ex">
-          <p class="label" style="margin-bottom:0.45rem">Display · Bricolage Grotesque</p>
-          <div class="huge">Tu hogar,<br>en buenas manos.</div>
-          <p style="margin-top:0.7rem;margin-bottom:0">Títulos y marca. Pesos 600–800.</p>
+          <p class="label" style="margin-bottom:0.45rem">Wordmark · Unbounded Bold</p>
+          <div class="huge" style="font-family:Unbounded,sans-serif;letter-spacing:-0.03em;font-size:2.35rem">Fandez</div>
+          <p style="margin-top:0.7rem;margin-bottom:0">Solo el nombre de marca. Display tech contemporánea; terminales cuadrados. Tracking −3%.</p>
         </div>
         <div class="type-sample card-ex">
-          <p class="label" style="margin-bottom:0.45rem">Cuerpo · Source Sans 3</p>
-          <div class="body">UI, formularios y ayuda. Legible en móvil. Evitar Inter, Roboto o el azul “de plantilla”.</div>
+          <p class="label" style="margin-bottom:0.45rem">Titulares · Bricolage Grotesque</p>
+          <div class="huge" style="font-size:1.85rem">Tu hogar,<br>en buenas manos.</div>
+          <p style="margin-top:0.7rem;margin-bottom:0">Headlines de producto. Cálida, de oficio. Nunca en el lockup del logo.</p>
+        </div>
+        <div class="type-sample card-ex">
+          <p class="label" style="margin-bottom:0.45rem">UI · Source Sans 3</p>
+          <div class="body">Botones, formularios, estados y ayuda. Máxima legibilidad en móvil.</div>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:1rem">
+        <div class="card-ex ok">
+          <span class="tag">Por qué Unbounded</span>
+          <ul class="rules">
+            <li>Display tech hecha para productos digitales y marcas.</li>
+            <li>Terminales cuadrados: se lee “app / plataforma”, no “texto de UI”.</li>
+            <li>Bold dialoga con el trazo grueso del sopapo.</li>
+            <li>Elegida como opción B frente a Syne y Space Grotesk.</li>
+          </ul>
+        </div>
+        <div class="card-ex bad">
+          <span class="tag">Evitar en el logo</span>
+          <ul class="rules">
+            <li>Bricolage (queda “la misma letra de la app”).</li>
+            <li>Arial Black / Helvetica Bold (relleno de formulario).</li>
+            <li>Space Grotesk / Outfit / Plus Jakarta (saturadas en startups).</li>
+            <li>Tracking neutro: el wordmark necesita condensación leve.</li>
+          </ul>
         </div>
       </div>
     </section>
 
     <section id="voz">
-      <p class="label">07 · Voz</p>
+      <p class="label">09 · Voz</p>
       <h2>Cómo hablamos</h2>
       <div class="grid-2" style="margin-top:1rem">
         <div class="card-ex ok">
@@ -448,7 +656,7 @@
     </section>
 
     <section id="ui">
-      <p class="label">08 · UI</p>
+      <p class="label">10 · UI</p>
       <h2>Componentes</h2>
       <p>Botones ~14px de radio, relleno sólido ámbar (sin degradado brillante). Cards con borde suave.</p>
       <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:1rem;align-items:center">
@@ -463,21 +671,26 @@
     </section>
 
     <section id="archivos">
-      <p class="label">09 · Archivos</p>
+      <p class="label">11 · Archivos</p>
       <h2>Entrega</h2>
       <ul class="rules">
         <li><code>public/logo-plunger.svg</code> — blanco (fondos oscuros / ícono)</li>
         <li><code>public/logo-plunger-dark.svg</code> — carbón (fondos claros)</li>
-        <li><code>public/logo-plunger-amber.svg</code> — ámbar marca</li>
-        <li><code>public/logo-plunger-blue.svg</code> — legado (no usar en UI nueva)</li>
+        <li><code>public/logo-plunger-amber.svg</code> — ámbar marca · versión de registro</li>
         <li><code>docs/manual-marca.html</code> — este manual</li>
+        <li><code>docs/Fandez-Manual-de-Marca.pdf</code> — PDF para archivo e INAPI</li>
+        <li><code>public/fonts/unbounded-700.woff2</code> — wordmark Unbounded Bold</li>
+        <li><code>docs/inapi/fandez-isotipo.jpg</code> — figurativo, cuadrado, logo ajustado</li>
+        <li><code>docs/inapi/fandez-mixta.jpg</code> — mixta apilada (isotipo + FANDEZ en Unbounded)</li>
+        <li><code>docs/inapi/fandez-mixta-horizontal.jpg</code> — mixta horizontal (isotipo | FANDEZ)</li>
+        <li><code>docs/logo-estilos/fandez-01-contorno-horizontal.jpg</code> — mismo lockup horizontal (estilo 01)</li>
       </ul>
-      <p style="margin-top:1rem;margin-bottom:0">PDF: abrir en el navegador → Imprimir → Guardar como PDF.</p>
+      <p style="margin-top:1rem;margin-bottom:0">Regenerar PDF y JPG: <code>node scripts/export-brand-manual.js</code>.</p>
     </section>
   </div>
 
   <footer class="manual-foot">
-    Fandez SpA · Santiago · Manual de marca v2.0 · Carbón + ámbar · 2026
+    Fandez SpA · Santiago · Manual de marca v3.0 · Sopapo a 45° · Infinito · 2026
   </footer>
 </body>
 </html>

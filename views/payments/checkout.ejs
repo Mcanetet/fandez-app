@@ -12,7 +12,7 @@
         <svg class="w-5 h-5 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       </a>
       <div>
-        <p class="zilo-label">Checkout</p>
+        <p class="zilo-label"><%= t('checkout.title') %></p>
         <h1 class="font-semibold"><%= service.name %></h1>
       </div>
     </div>
@@ -38,7 +38,7 @@
     <section class="zilo-card-premium rounded-2xl p-5" id="billingSection" data-complete="<%= billingComplete ? '1' : '0' %>">
       <div class="flex items-start justify-between gap-3 mb-3">
         <div>
-          <h2 class="zilo-label mb-0">Datos para factura</h2>
+          <h2 class="zilo-label mb-0"><%= t('checkout.billing_title') %></h2>
           <% if (billingComplete) { %>
           <p class="text-[11px] text-zilo-muted mt-1" id="billingSummaryLine">
             <%= billing.legalName %> · <%= billing.rut %> · <%= billing.invoiceEmail %>
@@ -46,18 +46,18 @@
           <% } %>
         </div>
         <% if (billingComplete) { %>
-        <button type="button" id="btnEditBilling" class="text-xs font-semibold text-zilo-accent shrink-0">Editar</button>
+        <button type="button" id="btnEditBilling" class="text-xs font-semibold text-zilo-accent shrink-0"><%= t('checkout.billing_edit') %></button>
         <% } %>
       </div>
       <div id="billingFields" class="<%= billingComplete ? 'hidden' : '' %>">
         <div class="grid grid-cols-2 gap-2 mb-3">
           <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer billing-type-option text-xs <%= billing.type !== 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
             <input type="radio" name="billingType" value="natural" <%= billing.type !== 'empresa' ? 'checked' : '' %> class="accent-[#C45C14]">
-            Persona natural
+            <%= t('checkout.billing_natural') %>
           </label>
           <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer billing-type-option text-xs <%= billing.type === 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
             <input type="radio" name="billingType" value="empresa" <%= billing.type === 'empresa' ? 'checked' : '' %> class="accent-[#C45C14]">
-            Empresa
+            <%= t('checkout.billing_company') %>
           </label>
         </div>
         <div class="space-y-2">
@@ -69,13 +69,13 @@
         </div>
       </div>
       <% if (billingComplete) { %>
-      <p class="text-[11px] text-emerald-700" id="billingUseProfileHint">Usaremos los datos de tu perfil. Puedes editarlos si cambió algo.</p>
+      <p class="text-[11px] text-emerald-700" id="billingUseProfileHint"><%= t('checkout.billing_use_profile') %></p>
       <% } %>
     </section>
 
     <!-- Método de pago -->
     <section class="zilo-card-premium rounded-2xl p-5 space-y-3">
-      <h2 class="zilo-label">Método de pago</h2>
+      <h2 class="zilo-label"><%= t('checkout.payment_title') %></h2>
       <% if (summary.cardEnabled && typeof enabledCardGateways !== 'undefined' && enabledCardGateways.length) { %>
       <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer payment-option <%= (summary.paymentMethod || 'card') === 'card' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-method="card">
         <input type="radio" name="paymentMethod" value="card" <%= (summary.paymentMethod || 'card') === 'card' ? 'checked' : '' %> class="mt-0.5 accent-[#C45C14]">
@@ -195,7 +195,7 @@
     <% } %>
 
     <button type="button" id="btnPay" class="zilo-btn-primary">
-      <span id="btnPayLabel">Continuar al pago</span>
+      <span id="btnPayLabel"><%= t('checkout.continue') %></span>
     </button>
     <a href="/cliente" class="block text-center text-sm text-zilo-muted hover:text-gray-700 py-2">Cancelar</a>
   </main>
@@ -206,7 +206,7 @@
         <p class="text-[10px] text-zilo-muted uppercase tracking-wide">Total a pagar</p>
         <strong class="text-zilo-accent text-base" id="stickyCheckoutTotal"><%= formatCLP(summary.amountDue) %></strong>
       </div>
-      <button type="button" id="btnPaySticky" class="sticky-order-btn">Pagar ahora</button>
+      <button type="button" id="btnPaySticky" class="sticky-order-btn"><%= t('checkout.pay_now') %></button>
     </div>
   </div>
 </div>

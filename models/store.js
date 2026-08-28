@@ -1707,6 +1707,7 @@ function ensureProviderFields(provider) {
   if (!provider.verification) provider.verification = defaultProviderVerification();
   if (!provider.locationShare) provider.locationShare = defaultLocationShare();
   if (!provider.providerContract) provider.providerContract = defaultProviderContract();
+  if (!provider.wallDismissed || typeof provider.wallDismissed !== 'object') provider.wallDismissed = {};
   provider.providerContract = normalizeProviderContract(provider.providerContract);
   provider.verification.status = computeVerificationStatus(provider);
   provider.providerContract.status = computeContractStatus(provider.providerContract);
@@ -3064,6 +3065,7 @@ function getWorkWallItems(userId) {
       if (r.status !== 'searching' || !specs.includes(r.serviceId)) return false;
       if (r.clientId === userId) return false;
       if (user.role === 'provider') {
+        if (user.wallDismissed?.[r.id]) return false;
         return hasTechnicianCoverage(user.id, r.serviceId);
       }
       if (user.role === 'tecnico') {
@@ -4749,6 +4751,21 @@ function getProviderDashboardStats(providerId) {
   };
 }
 
+function dismissWorkWallItem(providerId, requestId, reason) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') return { error: 'Socio no encontrado' };
+  const request = requests.find((r) => r.id === requestId);
+  if (!request || request.status !== 'searching') return { error: 'El pedido ya no está disponible' };
+  ensureProviderFields(provider);
+  provider.wallDismissed[requestId] = {
+    reason: String(reason || 'other').slice(0, 64),
+    at: new Date().toISOString()
+  };
+  repository.persist(() => repository.saveUser(provider), `wall dismiss ${providerId}`);
+  logSecurityEvent('wall_dismiss', `${providerId} · ${requestId} · ${provider.wallDismissed[requestId].reason}`, null);
+  return { success: true };
+}
+
 function getProviderWorkflowStep(providerId) {
   const provider = getUserById(providerId);
   if (!provider?.online) return 1;
@@ -5434,6 +5451,7 @@ module.exports = {
   getAllRequests,
   getPendingRequestsForProvider,
   getWorkWallItems,
+  dismissWorkWallItem,
   tryAcceptRequest,
   setTechnicianEta,
   formatEtaRangeLabel,

@@ -6,7 +6,7 @@ const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
 const { requireModule } = require('../middleware/modules');
 const { saveProviderFile, saveProviderInvoice, saveTechnicianDocumentFile } = require('../lib/uploads');
 const { verifySelfie } = require('../lib/faceVerify');
-const { getProviderOnboardingSteps } = require('../lib/onboarding');
+const { getProviderOnboardingSteps, getProviderActivationSteps } = require('../lib/onboarding');
 const { getClientIp } = require('../middleware/security');
 const {
   ENTITY_TYPES,
@@ -81,7 +81,12 @@ router.get('/', requireRole('provider'), (req, res) => {
     pendingCount: pending.length,
     formatCLP: store.formatCLP,
     showOnboarding: store.needsOnboarding(provider),
-    onboardingSteps: getProviderOnboardingSteps({ hasVerificationBanner: !verificationCheck.ok }),
+    onboardingSteps: getProviderOnboardingSteps({
+      hasVerificationBanner: !verificationCheck.ok,
+      t: req.t
+    }),
+    activationSteps: getProviderActivationSteps(provider, verificationCheck, contractSummary),
+    canGoOnline: verificationCheck.ok && contractSummary.canOperate,
     onboardingCompleteUrl: '/proveedor/onboarding/complete'
   });
 });
@@ -104,6 +109,12 @@ router.get('/pendientes', requireRole('provider'), (req, res) => {
 
 router.get('/muro', requireRole('provider'), (req, res) => {
   res.json({ success: true, items: buildWorkWallPayload(req.session.user.id) });
+});
+
+router.post('/muro/dismiss/:requestId', requireRole('provider'), requireModule('provider_aceptar'), (req, res) => {
+  const result = store.dismissWorkWallItem(req.session.user.id, req.params.requestId, req.body?.reason);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  res.json({ success: true });
 });
 
 router.post('/toggle-online', requireRole('provider'), requireModule('provider_online'), (req, res) => {
@@ -549,12 +560,21 @@ router.get('/mando', requireRole('provider'), requireModule('provider_mando'), (
     .filter((t) => t.active !== false && store.canTechnicianOperate(t).ok);
   const active = store.getActiveRequestsForProvider(provider.id, req.locale);
 
+  const technicianMarkers = technicians.map((t) => ({
+    id: t.id,
+    name: t.name,
+    lat: t.locationShare?.lat ?? provider.locationShare?.lat,
+    lng: t.locationShare?.lng ?? provider.locationShare?.lng,
+    online: Boolean(t.online)
+  }));
+
   res.render('provider/mando', {
-    title: 'Mis trabajos — Fandez',
+    title: req.t('provider.mando_page.title'),
     user: req.session.user,
     provider,
     technicians,
     requests: active,
+    technicianMarkers,
     providerStats: store.getProviderDashboardStats(provider.id),
     workflowStep: 3,
     services: store.SERVICES,

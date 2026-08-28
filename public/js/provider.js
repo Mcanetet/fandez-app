@@ -208,6 +208,7 @@
         ${notesHtml}
         <p class="text-xs font-semibold text-zilo-success mb-3">${t('provider.js.your_payout')}: ${fmt(req.providerPayout ?? req.estimatedVisit)}</p>
         <div class="flex gap-2">
+          <button type="button" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm" data-dismiss="${escapeHtml(req.id)}">${t('provider.js.dismiss_job')}</button>
           <button type="button" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm" data-detail="${escapeHtml(req.id)}">${t('provider.js.view_details')}</button>
           <button type="button" class="flex-1 py-2.5 rounded-xl zilo-modal-accept !text-sm" data-take="${escapeHtml(req.id)}">${t('provider.js.take_job')}</button>
         </div>
@@ -221,6 +222,59 @@
     workWallList.querySelectorAll('[data-take]').forEach(btn => {
       btn.addEventListener('click', () => acceptRequest(btn.dataset.take, btn));
     });
+    workWallList.querySelectorAll('[data-dismiss]').forEach(btn => {
+      btn.addEventListener('click', () => dismissWallItem(btn.dataset.dismiss, btn));
+    });
+  }
+
+  async function dismissWallItem(requestId, btn) {
+    const reasons = [
+      { id: 'out_of_zone', label: t('provider.js.dismiss_out_of_zone') },
+      { id: 'no_tool', label: t('provider.js.dismiss_no_tool') },
+      { id: 'busy', label: t('provider.js.dismiss_busy') },
+      { id: 'other', label: t('provider.js.dismiss_other') }
+    ];
+    const reason = await new Promise((resolve) => {
+      const existing = document.getElementById('providerDismissModal');
+      if (existing) existing.remove();
+      const modal = document.createElement('div');
+      modal.id = 'providerDismissModal';
+      modal.className = 'fixed inset-0 z-[95] flex items-end sm:items-center justify-center p-4 bg-black/50';
+      modal.innerHTML = `
+        <div class="w-full max-w-md rounded-2xl bg-zilo-surface border border-zilo-border p-5 shadow-xl">
+          <h3 class="text-base font-semibold mb-1">${t('provider.js.dismiss_title')}</h3>
+          <p class="text-xs text-zilo-muted mb-4">${t('provider.js.dismiss_body')}</p>
+          <div class="space-y-2" data-role="reasons"></div>
+          <button type="button" data-role="cancel" class="mt-3 w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm">${t('js.cancel')}</button>
+        </div>`;
+      const box = modal.querySelector('[data-role="reasons"]');
+      reasons.forEach((r) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'w-full py-3 px-3 rounded-xl border border-zilo-border text-sm font-medium text-left hover:border-zilo-accent';
+        b.textContent = r.label;
+        b.addEventListener('click', () => { modal.remove(); resolve(r.id); });
+        box.appendChild(b);
+      });
+      modal.querySelector('[data-role="cancel"]').addEventListener('click', () => { modal.remove(); resolve(null); });
+      document.body.appendChild(modal);
+    });
+    if (!reason) return;
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch(`/proveedor/muro/dismiss/${encodeURIComponent(requestId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ reason })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || t('provider.js.dismiss_error'));
+      removeWallItem(requestId);
+      FandezNotify.show(t('provider.js.dismiss_ok'), 'info');
+    } catch (err) {
+      if (btn) btn.disabled = false;
+      FandezNotify.show(err.message || t('provider.js.dismiss_error'), 'warning');
+    }
   }
 
   function openWallDetails(requestId) {

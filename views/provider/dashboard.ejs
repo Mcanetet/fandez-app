@@ -63,25 +63,51 @@
       linkText: t('provider.guide.link')
     }) %>
 
+    <%- include('../partials/provider-activation-checklist', { activationSteps: typeof activationSteps !== 'undefined' ? activationSteps : [] }) %>
+
     <% if (typeof providerStats !== 'undefined') { %>
     <div class="mb-4 zilo-page-enter-delay-1">
       <%- include('../partials/provider-trust-strip', { providerStats, formatCLP }) %>
     </div>
     <% } %>
 
+    <% if (typeof providerStats !== 'undefined') { %>
+    <section class="mb-4 zilo-page-enter-delay-1" aria-label="<%= t('provider.finance.title') %>">
+      <p class="zilo-label mb-2"><%= t('provider.finance.title') %></p>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="p-3 rounded-xl zilo-card-premium">
+          <strong class="text-zilo-accent text-sm block"><%= formatCLP(providerStats.pendingPayout || 0) %></strong>
+          <span class="text-[10px] text-zilo-muted"><%= t('provider.finance.pending') %></span>
+        </div>
+        <div class="p-3 rounded-xl zilo-card-premium">
+          <strong class="text-sm block"><%= providerStats.monthCompleted || 0 %></strong>
+          <span class="text-[10px] text-zilo-muted"><%= t('provider.finance.month_jobs') %></span>
+        </div>
+        <div class="p-3 rounded-xl zilo-card-premium">
+          <strong class="text-sm block"><%= formatCLP(providerStats.paidTotal || 0) %></strong>
+          <span class="text-[10px] text-zilo-muted"><%= t('provider.finance.paid_total') %></span>
+        </div>
+        <div class="p-3 rounded-xl zilo-card-premium">
+          <strong class="text-sm block text-zilo-success"><%= providerStats.nextPayDateLabel || t('provider.finance.no_schedule') %></strong>
+          <span class="text-[10px] text-zilo-muted"><%= providerStats.nextPayAmount ? formatCLP(providerStats.nextPayAmount) : t('provider.finance.next_pay') %></span>
+        </div>
+      </div>
+    </section>
+    <% } %>
+
     <%- include('../partials/provider-workflow', { workflowStep: typeof workflowStep !== 'undefined' ? workflowStep : 1 }) %>
 
     <% if (mod('provider_online')) { %>
-    <section data-tour="online" class="flex items-center justify-between p-5 rounded-2xl zilo-card-premium mb-4 zilo-page-enter-delay-1">
+    <section data-tour="online" class="flex items-center justify-between p-5 rounded-2xl zilo-card-premium mb-4 zilo-page-enter-delay-1 <%= typeof canGoOnline !== 'undefined' && !canGoOnline ? 'opacity-90' : '' %>">
       <div class="flex items-center gap-3">
         <div id="statusDot" class="w-3 h-3 rounded-full <%= provider.online ? 'bg-zilo-success animate-pulse' : 'bg-zilo-muted/40' %>"></div>
         <div>
           <h2 id="statusText" class="font-semibold text-sm"><%= provider.online ? t('provider.online') : t('provider.offline') %></h2>
-          <p id="statusSub" class="text-xs text-zilo-muted"><%= provider.online ? t('provider.status_online_sub') : t('provider.status_offline_sub') %></p>
+          <p id="statusSub" class="text-xs text-zilo-muted"><%= provider.online ? t('provider.status_online_sub') : (typeof canGoOnline !== 'undefined' && !canGoOnline ? t('provider.activation.complete_first') : t('provider.status_offline_sub')) %></p>
         </div>
       </div>
-      <label class="toggle-ios">
-        <input type="checkbox" id="onlineToggle" <%= provider.online ? 'checked' : '' %>>
+      <label class="toggle-ios" title="<%= typeof canGoOnline !== 'undefined' && !canGoOnline ? t('provider.activation.complete_first') : '' %>">
+        <input type="checkbox" id="onlineToggle" <%= provider.online ? 'checked' : '' %> <%= typeof canGoOnline !== 'undefined' && !canGoOnline && !provider.online ? 'disabled' : '' %> aria-describedby="statusSub">
         <span class="slider"></span>
       </label>
     </section>
@@ -216,14 +242,16 @@
       <div class="min-w-0 flex items-center gap-2">
         <span id="stickyOnlineDot" class="w-2.5 h-2.5 rounded-full shrink-0 <%= provider.online ? 'bg-zilo-success animate-pulse' : 'bg-zilo-muted/40' %>"></span>
         <div>
-          <p class="text-[10px] text-zilo-muted uppercase tracking-wide">Trabajos disponibles</p>
-          <strong class="text-zilo-accent text-sm" id="stickyPendingCount"><%= pendingCount %> disponibles</strong>
+          <p class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= t('provider.sticky.wall_label') %></p>
+          <strong class="text-zilo-accent text-sm" id="stickyPendingCount"><%= t('provider.js.available_count', { count: pendingCount }) %></strong>
         </div>
       </div>
-      <button type="button" id="btnRefreshWall" class="sticky-order-btn">Actualizar muro</button>
+      <button type="button" id="btnRefreshWall" class="sticky-order-btn"><%= t('provider.js.refresh_wall') %></button>
     </div>
   </div>
   <% } %>
+
+  <%- include('../partials/nav-provider', { navActive: 'inicio' }) %>
 
   <div id="requestModal" class="hidden fixed inset-0 z-[300]">
     <div class="absolute inset-0 bg-black/85 backdrop-blur-md"></div>
@@ -237,7 +265,7 @@
           </div>
           <div class="flex-1">
             <h2 class="zilo-display text-xl"><%= t('provider.dashboard.new_request') %></h2>
-            <p class="text-xs text-zilo-muted">También visible en el muro · el primero que toma gana</p>
+            <p class="text-xs text-zilo-muted"><%= t('provider.js.new_request_sub') %></p>
           </div>
           <div class="w-11 h-11 rounded-full bg-zilo-accent/15 border border-zilo-accent/30 flex items-center justify-center shrink-0">
             <svg class="w-5 h-5 text-zilo-accent animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>

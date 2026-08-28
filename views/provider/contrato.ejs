@@ -125,4 +125,5 @@
 <script type="application/json" id="contractDocsCatalog"><%- JSON.stringify(documentCatalog) %></script>
 <script type="application/json" id="contractUploaded"><%- JSON.stringify({ documents: contract.documents, technicalCerts: contract.technicalCerts }) %></script>
 
+<%- include('../partials/nav-provider', { navActive: 'perfil' }) %>
 <%- include('../partials/footer', { pageScript: '/js/provider-contract.js' }) %>
