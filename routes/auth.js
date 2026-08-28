@@ -80,8 +80,13 @@ router.post('/login', rateLimitLogin(12), async (req, res) => {
 
   if (result.error === 'wrong_portal') {
     store.logSecurityEvent('login_admin_blocked_public', email, req);
+    const appMode = require('../lib/appMode');
+    const adminLoginPath = appMode.adminUrl('/login');
+    const adminHint = appMode.isDemoMode()
+      ? ` Entra aquí: ${adminLoginPath}`
+      : '';
     return res.render('login', loginRenderOptions(req, {
-      error: 'Las cuentas de administración usan el portal corporativo (enlace interno).'
+      error: 'Las cuentas de administración no usan este login público.' + adminHint
     }));
   }
 
