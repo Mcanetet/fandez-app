@@ -130,9 +130,9 @@ app.get('/site.webmanifest', (req, res) => {
   res.setHeader('Surrogate-Control', 'no-store');
   res.json({
     id: '/',
-    name: 'Fandez — Hogares y oficinas en excelencia',
+    name: 'Fandez — Hogar y oficina con excelencia',
     short_name: 'Fandez',
-    description: 'Expertos verificados en Santiago para hogar y oficina: seguimiento en vivo y Pasaporte Hogar digital.',
+    description: 'Expertos verificados en Santiago: pide tu servicio, sigue la visita en vivo y guarda el historial de tu propiedad.',
     lang: 'es-CL',
     start_url: '/',
     scope: '/',
