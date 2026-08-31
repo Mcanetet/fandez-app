@@ -1319,7 +1319,7 @@ html {
 
 /* Admin */
 .admin-page {
-  background: #F4F6FA;
+  background: #FFFFFF;
 }
 .admin-shell {
   display: flex;
@@ -1450,9 +1450,13 @@ html {
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1.25rem;
-  background: rgba(244,246,250,0.92);
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--zilo-border);
+}
+.admin-main,
+.admin-content {
+  background-color: #FFFFFF;
 }
 .admin-menu-btn {
   display: none;
@@ -2610,5 +2614,47 @@ header.sticky.bg-zilo-bg\/90,
 .sticky-order-bar,
 .sticky-track-bar {
   background-color: rgba(255, 255, 255, 0.98) !important;
+}
+
+/* Forzar tema claro — evita que el SO pinte fondos oscuros */
+html.fandez-force-light,
+html.fandez-force-light body,
+html.fandez-force-light .zilo-body,
+html.fandez-force-light .admin-page,
+html.fandez-force-light .admin-shell,
+html.fandez-force-light .admin-main,
+html.fandez-force-light .admin-content,
+html.fandez-force-light .admin-sidebar,
+html.fandez-force-light .admin-panel,
+html.fandez-force-light main,
+html.fandez-force-light section {
+  background-color: #ffffff !important;
+  color-scheme: light only !important;
+}
+
+html.fandez-force-light .bg-zilo-bg,
+html.fandez-force-light .bg-zilo-surface,
+html.fandez-force-light .bg-zilo-card {
+  background-color: #ffffff !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  html.fandez-force-light,
+  html.fandez-force-light body,
+  html.fandez-force-light .zilo-body,
+  html.fandez-force-light .admin-page,
+  html.fandez-force-light .admin-shell,
+  html.fandez-force-light .admin-main,
+  html.fandez-force-light .admin-content,
+  html.fandez-force-light .admin-sidebar,
+  html.fandez-force-light .admin-panel,
+  html.fandez-force-light main,
+  html.fandez-force-light section,
+  html.fandez-force-light .bg-zilo-bg,
+  html.fandez-force-light .bg-zilo-surface,
+  html.fandez-force-light .bg-zilo-card {
+    background-color: #ffffff !important;
+    color-scheme: light only !important;
+  }
 }
 
