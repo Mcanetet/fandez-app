@@ -1,8 +1,7 @@
-/* Fandez — UI clara (nunca dark). Fondo blanco en todas las plataformas. */
+/* Fandez — tema claro + oscuro nativo (paleta marca) */
 /* Aland (asistente) = teal; peligro = solo errores, nunca CTA */
-/* Legacy: brand/v1-azul/ · brand/v2-ambar/ */
 :root {
-  color-scheme: only light;
+  color-scheme: light dark;
   --zilo-bg: #FFFFFF;
   --zilo-surface: #FFFFFF;
   --zilo-card: #FFFFFF;
@@ -24,16 +23,44 @@
   --zilo-radius-card: 1rem;
   --zilo-shadow: 0 1px 2px rgba(26, 24, 20, 0.05);
   --zilo-shadow-md: 0 1px 2px rgba(26, 24, 20, 0.04), 0 6px 16px rgba(26, 24, 20, 0.06);
+  --zilo-header-bg: rgba(255, 255, 255, 0.97);
+  --zilo-sticky-bar-bg: rgba(255, 255, 255, 0.98);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --zilo-bg: #141210;
+    --zilo-surface: #1A1814;
+    --zilo-card: #1F1C18;
+    --zilo-elevated: #252219;
+    --zilo-accent: #E07828;
+    --zilo-accent-rgb: 224, 120, 40;
+    --zilo-accent-soft: rgba(224, 120, 40, 0.16);
+    --zilo-accent-strong: #F08A38;
+    --zilo-text: #F5F0EA;
+    --zilo-muted: #A39E96;
+    --zilo-border: #3A352E;
+    --zilo-success: #5CB88A;
+    --zilo-warning: #D4A04A;
+    --zilo-danger: #E87062;
+    --aland: #4A9A88;
+    --aland-soft: rgba(74, 154, 136, 0.18);
+    --aland-strong: #6BBAA8;
+    --zilo-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --zilo-shadow-md: 0 4px 18px rgba(0, 0, 0, 0.4);
+    --zilo-header-bg: rgba(26, 24, 20, 0.96);
+    --zilo-sticky-bar-bg: rgba(26, 24, 20, 0.97);
+  }
 }
 
 html {
-  color-scheme: only light;
+  color-scheme: light dark;
   background-color: var(--zilo-bg);
 }
 
 @media (prefers-color-scheme: dark) {
   html, body, :root {
-    color-scheme: only light;
+    color-scheme: light dark;
     background-color: var(--zilo-bg);
   }
 }
@@ -57,9 +84,10 @@ html {
 }
 
 .zilo-body {
-  color-scheme: only light;
+  color-scheme: light dark;
   background-color: var(--zilo-bg);
   background-image: none;
+  color: var(--zilo-text);
 }
 
 .fandez-wordmark {
@@ -175,7 +203,7 @@ html {
   font-size: 0.875rem;
   color: var(--zilo-text);
   border: 1px solid var(--zilo-border);
-  background: #FFFFFF;
+  background: var(--zilo-surface);
   transition: border-color 0.15s, color 0.15s, background-color 0.15s;
 }
 .zilo-btn-ghost:hover {
@@ -1328,7 +1356,7 @@ html {
 
 /* Admin */
 .admin-page {
-  background: #FFFFFF;
+  background: var(--zilo-bg);
 }
 .admin-shell {
   display: flex;
@@ -1346,8 +1374,7 @@ html {
 .admin-sidebar {
   width: 17.5rem;
   flex-shrink: 0;
-  background: #FFFFFF;
-  border-right: 1px solid var(--zilo-border);
+  background: var(--zilo-card);
   display: flex;
   flex-direction: column;
   position: sticky;
@@ -1459,13 +1486,13 @@ html {
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1.25rem;
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--zilo-header-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--zilo-border);
 }
 .admin-main,
 .admin-content {
-  background-color: #FFFFFF;
+  background-color: var(--zilo-bg);
 }
 .admin-menu-btn {
   display: none;
@@ -1473,7 +1500,7 @@ html {
   height: 2.25rem;
   border-radius: 0.625rem;
   border: 1px solid var(--zilo-border);
-  background: #fff;
+  background: var(--zilo-card);
   align-items: center;
   justify-content: center;
   color: #334155;
@@ -2350,7 +2377,7 @@ html {
 
 
 .fandez-landing {
-  color-scheme: only light;
+  color-scheme: light dark;
   background: var(--zilo-bg);
 }
 
@@ -2370,7 +2397,7 @@ html {
   padding: 0.85rem 1rem;
   border-radius: var(--zilo-radius-btn);
   border: 1px solid rgba(var(--zilo-accent-rgb), 0.28);
-  background: #FFFFFF;
+  background: var(--zilo-card);
   color: var(--zilo-accent);
   text-decoration: none;
   box-sizing: border-box;
@@ -2415,7 +2442,7 @@ html {
 .landing-stat-card {
   border-radius: 1rem;
   border: 1px solid var(--zilo-border);
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--zilo-card);
   padding: 1rem 0.5rem;
 }
 .landing-stat-grid {
@@ -2719,7 +2746,7 @@ body.fandez-install-visible {
   min-height: 2.75rem;
 }
 
-/* Fondo blanco universal — móvil, tablet, desktop, PWA, iOS/Android */
+/* Superficies — siguen variables en claro y oscuro */
 html,
 body,
 .zilo-body,
@@ -2728,121 +2755,45 @@ body,
 .min-h-screen,
 .min-h-full,
 .max-w-lg.mx-auto.min-h-screen {
-  background-color: #FFFFFF;
+  background-color: var(--zilo-bg);
+  color: var(--zilo-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  html,
-  body,
-  .zilo-body,
-  :root {
-    background-color: #FFFFFF !important;
-    color-scheme: only light;
-  }
-}
-
-/* Headers sticky: blanco sólido en todos los breakpoints */
 header.sticky.bg-zilo-bg\/90,
 .sticky.top-0.bg-zilo-bg\/90 {
-  background-color: rgba(255, 255, 255, 0.97) !important;
+  background-color: var(--zilo-header-bg) !important;
 }
 
 .nav-client-bar,
 .nav-provider-bar,
 .sticky-order-bar,
 .sticky-track-bar {
-  background-color: rgba(255, 255, 255, 0.98) !important;
+  background-color: var(--zilo-sticky-bar-bg) !important;
 }
 
-/* Forzar tema claro — evita que el SO pinte fondos oscuros */
-html.fandez-force-light,
-html.fandez-force-light body,
-html.fandez-force-light .zilo-body,
-html.fandez-force-light .fandez-landing,
-html.fandez-force-light .min-h-screen,
-html.fandez-force-light .admin-page,
-html.fandez-force-light .admin-shell,
-html.fandez-force-light .admin-main,
-html.fandez-force-light .admin-content,
-html.fandez-force-light .admin-sidebar,
-html.fandez-force-light .admin-panel,
-html.fandez-force-light main,
-html.fandez-force-light section,
-html.fandez-force-light .landing-stat-card,
-html.fandez-force-light .landing-urgent-cta,
-html.fandez-force-light .zilo-btn-ghost {
-  background-color: #ffffff !important;
-  color-scheme: only light !important;
+.fandez-install-banner__card {
+  background: var(--zilo-card);
+  color: var(--zilo-text);
 }
 
-html.fandez-force-light .zilo-btn-primary {
-  background-color: #c45c14 !important;
-  color: #ffffff !important;
+.zilo-input {
+  background: var(--zilo-surface);
+  color: var(--zilo-text);
 }
 
-html.fandez-force-light .text-zilo-text,
-html.fandez-force-light .zilo-display,
-html.fandez-force-light .fandez-wordmark {
-  color: #1a1814 !important;
-}
-
-html.fandez-force-light .text-zilo-muted,
-html.fandez-force-light .zilo-label {
-  color: #6b635a !important;
-}
-
-html.fandez-force-light .text-zilo-accent {
-  color: #c45c14 !important;
-}
-
-html.fandez-force-light .bg-zilo-bg,
-html.fandez-force-light .bg-zilo-surface,
-html.fandez-force-light .bg-zilo-card {
-  background-color: #ffffff !important;
+.zilo-card-premium {
+  background: var(--zilo-card);
 }
 
 @media (prefers-color-scheme: dark) {
-  html.fandez-force-light,
-  html.fandez-force-light body,
-  html.fandez-force-light .zilo-body,
-  html.fandez-force-light .fandez-landing,
-  html.fandez-force-light .min-h-screen,
-  html.fandez-force-light .admin-page,
-  html.fandez-force-light .admin-shell,
-  html.fandez-force-light .admin-main,
-  html.fandez-force-light .admin-content,
-  html.fandez-force-light .admin-sidebar,
-  html.fandez-force-light .admin-panel,
-  html.fandez-force-light main,
-  html.fandez-force-light section,
-  html.fandez-force-light .landing-stat-card,
-  html.fandez-force-light .landing-urgent-cta,
-  html.fandez-force-light .zilo-btn-ghost,
-  html.fandez-force-light .bg-zilo-bg,
-  html.fandez-force-light .bg-zilo-surface,
-  html.fandez-force-light .bg-zilo-card {
-    background-color: #ffffff !important;
-    color-scheme: only light !important;
+  .zilo-icon-wrap {
+    background: var(--zilo-card);
+    border-color: var(--zilo-border);
+    color: var(--zilo-muted);
   }
 
-  html.fandez-force-light .zilo-btn-primary {
-    background-color: #c45c14 !important;
-    color: #ffffff !important;
-  }
-
-  html.fandez-force-light .text-zilo-text,
-  html.fandez-force-light .zilo-display,
-  html.fandez-force-light .fandez-wordmark {
-    color: #1a1814 !important;
-  }
-
-  html.fandez-force-light .text-zilo-muted,
-  html.fandez-force-light .zilo-label {
-    color: #6b635a !important;
-  }
-
-  html.fandez-force-light .text-zilo-accent {
-    color: #c45c14 !important;
+  .admin-topbar {
+    border-bottom-color: var(--zilo-border);
   }
 }
 

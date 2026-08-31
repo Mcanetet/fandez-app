@@ -1,33 +1,20 @@
 <!DOCTYPE html>
-<html lang="<%= typeof locale !== 'undefined' ? locale : 'es' %>" class="h-full fandez-force-light" style="color-scheme:only light;background-color:#FFFFFF">
+<html lang="<%= typeof locale !== 'undefined' ? locale : 'es' %>" class="h-full">
 <head>
   <meta charset="UTF-8">
-  <style id="fandez-light-first-paint">
-    html {
-      color-scheme: only light !important;
-      background: #ffffff !important;
-      background-image: linear-gradient(#ffffff, #ffffff) !important;
-    }
-    body {
-      color-scheme: only light !important;
-      background: #ffffff !important;
-      background-image: linear-gradient(#ffffff, #ffffff) !important;
-      color: #1a1814 !important;
+  <style id="fandez-theme-first-paint">
+    html { color-scheme: light dark; background: #ffffff; }
+    body { color-scheme: light dark; background: #ffffff; color: #1a1814; }
+    @media (prefers-color-scheme: dark) {
+      html, body { background: #141210; color: #f5f0ea; }
     }
   </style>
   <script src="<%= typeof asset === 'function' ? asset('/js/force-light.js') : '/js/force-light.js' %>"></script>
-  <script>
-    (function () {
-      if (window.FandezForceLight && window.FandezForceLight.apply) window.FandezForceLight.apply();
-    })();
-  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="color-scheme" content="only light">
-  <meta name="supported-color-schemes" content="light">
-  <meta name="night-mode" content="disable">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#FFFFFF">
+  <meta name="theme-color" content="#141210" media="(prefers-color-scheme: dark)">
   <meta name="application-name" content="Fandez">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -66,12 +53,12 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <% } %>
 </head>
-<body class="bg-zilo-bg text-zilo-text font-sans min-h-full antialiased zilo-body <%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>" style="background-color:#FFFFFF;color-scheme:only light">
+<body class="bg-zilo-bg text-zilo-text font-sans min-h-full antialiased zilo-body <%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
   <!-- Splash propio (el del SO no anima): logo ámbar palpita como Tinder al abrir la app -->
   <style>
     #fandezSplash{
       position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
-      background:#FFFFFF;transition:opacity .38s ease,visibility .38s ease;
+      background:var(--zilo-bg,#FFFFFF);transition:opacity .38s ease,visibility .38s ease;
     }
     #fandezSplash.fandez-splash--out{opacity:0;visibility:hidden;pointer-events:none}
     #fandezSplash .fandez-splash__mark{

@@ -5,7 +5,8 @@
 @layer base {
   html,
   body {
-    background-color: #ffffff !important;
-    color-scheme: only light;
+    background-color: var(--zilo-bg);
+    color: var(--zilo-text);
+    color-scheme: light dark;
   }
 }

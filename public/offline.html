@@ -1,23 +1,35 @@
 <!DOCTYPE html>
-<html lang="es" class="fandez-force-light" style="color-scheme:only light;background-color:#FFFFFF">
+<html lang="es" class="fandez-force-light" style="color-scheme:light dark;background-color:var(--zilo-bg,#fff)">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="only light">
-  <meta name="night-mode" content="disable">
-  <meta name="theme-color" content="#FFFFFF">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141210" media="(prefers-color-scheme: dark)">
   <title>Sin conexión — Fandez</title>
   <style>
+    :root {
+      --zilo-bg: #ffffff;
+      --zilo-text: #1a1814;
+      --zilo-muted: #6b635a;
+      --zilo-accent: #c45c14;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --zilo-bg: #141210;
+        --zilo-text: #f5f0ea;
+        --zilo-muted: #a39e96;
+        --zilo-accent: #e07828;
+      }
+    }
     html {
-      color-scheme: only light !important;
-      background: #ffffff !important;
-      background-image: linear-gradient(#ffffff, #ffffff) !important;
+      color-scheme: light dark;
+      background: var(--zilo-bg);
     }
     body {
       font-family: system-ui, sans-serif;
-      background: #ffffff !important;
-      background-image: linear-gradient(#ffffff, #ffffff) !important;
-      color: #1A1814;
+      background: var(--zilo-bg);
+      color: var(--zilo-text);
       margin: 0;
       min-height: 100vh;
       display: flex;
@@ -25,11 +37,19 @@
       justify-content: center;
       padding: 1.5rem;
       text-align: center;
-      color-scheme: only light !important;
     }
     h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
-    p { color: #6B635A; margin: 0 0 1.25rem; font-size: 0.95rem; }
-    a { display: inline-block; background: #C45C14; color: #fff; text-decoration: none; padding: 0.75rem 1.25rem; border-radius: 0.75rem; font-weight: 600; border: 0; }
+    p { color: var(--zilo-muted); margin: 0 0 1.25rem; font-size: 0.95rem; }
+    a {
+      display: inline-block;
+      background: var(--zilo-accent);
+      color: #fff;
+      text-decoration: none;
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      border: 0;
+    }
   </style>
 </head>
 <body>

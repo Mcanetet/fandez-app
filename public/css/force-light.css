@@ -1,134 +1,61 @@
 /**
- * Fandez — tema claro obligatorio (Android Chrome auto-dark, PWA standalone, iOS).
- * Cargar SIEMPRE al final del <head>, después de tailwind.css y main.css.
+ * Tema adaptativo — refuerza paleta Fandez cuando el teléfono usa modo oscuro.
+ * Evita el “auto-dark” feo de Chrome (gris sucio / invertido).
  */
-html {
-  color-scheme: only light !important;
-  background-color: #ffffff !important;
-  background-image: linear-gradient(#ffffff, #ffffff) !important;
-  forced-color-adjust: none !important;
-}
-
-body {
-  color-scheme: only light !important;
-  background-color: #ffffff !important;
-  background-image: linear-gradient(#ffffff, #ffffff) !important;
-  color: #1a1814 !important;
-  forced-color-adjust: none !important;
-}
-
-html.fandez-force-light,
-html.fandez-force-light body,
-html.fandez-force-light .zilo-body,
-html.fandez-force-light .min-h-screen,
-html.fandez-force-light .min-h-full,
-html.fandez-force-light .fandez-landing,
-html.fandez-force-light .max-w-lg,
-html.fandez-force-light main,
-html.fandez-force-light header,
-html.fandez-force-light footer,
-html.fandez-force-light section,
-html.fandez-force-light nav,
-html.fandez-force-light article,
-html.fandez-force-light .admin-page,
-html.fandez-force-light .admin-shell,
-html.fandez-force-light .admin-main,
-html.fandez-force-light .admin-content,
-html.fandez-force-light .landing-stat-card,
-html.fandez-force-light .landing-urgent-cta,
-html.fandez-force-light .zilo-btn-ghost,
-html.fandez-force-light #fandezSplash {
-  background-color: #ffffff !important;
-  color-scheme: only light !important;
-}
-
-html.fandez-force-light .zilo-btn-primary {
-  background-color: #c45c14 !important;
-  color: #ffffff !important;
-  border-color: #a84e10 !important;
-}
-
-html.fandez-force-light .text-zilo-text,
-html.fandez-force-light .zilo-display,
-html.fandez-force-light .fandez-wordmark,
-html.fandez-force-light h1,
-html.fandez-force-light h2,
-html.fandez-force-light h3 {
-  color: #1a1814 !important;
-}
-
-html.fandez-force-light .text-zilo-muted,
-html.fandez-force-light .zilo-label {
-  color: #6b635a !important;
-}
-
-html.fandez-force-light .text-zilo-accent {
-  color: #c45c14 !important;
-}
-
-html.fandez-force-light .bg-zilo-bg,
-html.fandez-force-light .bg-zilo-surface,
-html.fandez-force-light .bg-zilo-card {
-  background-color: #ffffff !important;
-}
-
-html.fandez-standalone,
-html.fandez-standalone body {
-  background-color: #ffffff !important;
-  color-scheme: only light !important;
-}
-
 @media (prefers-color-scheme: dark) {
   html,
   body {
-    color-scheme: only light !important;
-    background-color: #ffffff !important;
-    background-image: linear-gradient(#ffffff, #ffffff) !important;
-    filter: none !important;
-    -webkit-filter: none !important;
+    color-scheme: light dark;
+    background-color: var(--zilo-bg) !important;
+    color: var(--zilo-text) !important;
   }
 
-  html.fandez-force-light,
-  html.fandez-force-light body,
-  html.fandez-force-light .zilo-body,
-  html.fandez-force-light .min-h-screen,
-  html.fandez-force-light .min-h-full,
-  html.fandez-force-light .fandez-landing,
-  html.fandez-force-light main,
-  html.fandez-force-light header,
-  html.fandez-force-light footer,
-  html.fandez-force-light section,
-  html.fandez-force-light .admin-page,
-  html.fandez-force-light .admin-shell,
-  html.fandez-force-light .landing-stat-card,
-  html.fandez-force-light .landing-urgent-cta,
-  html.fandez-force-light .zilo-btn-ghost,
-  html.fandez-force-light .bg-zilo-bg,
-  html.fandez-force-light .bg-zilo-surface,
-  html.fandez-force-light .bg-zilo-card {
-    background-color: #ffffff !important;
-    color-scheme: only light !important;
-    filter: none !important;
-    -webkit-filter: none !important;
+  #fandezSplash {
+    background: var(--zilo-bg) !important;
   }
 
-  html.fandez-force-light .zilo-btn-primary {
-    background-color: #c45c14 !important;
+  .bg-white {
+    background-color: var(--zilo-card) !important;
+  }
+
+  .bg-white\/80 {
+    background-color: color-mix(in srgb, var(--zilo-card) 88%, transparent) !important;
+  }
+
+  .zilo-btn-primary {
+    background: var(--zilo-accent) !important;
     color: #ffffff !important;
+    border-color: var(--zilo-accent-strong) !important;
   }
 
-  html.fandez-force-light .text-zilo-text,
-  html.fandez-force-light .zilo-display,
-  html.fandez-force-light .fandez-wordmark {
-    color: #1a1814 !important;
+  .zilo-btn-ghost {
+    background: var(--zilo-surface) !important;
+    color: var(--zilo-text) !important;
+    border-color: var(--zilo-border) !important;
   }
 
-  html.fandez-force-light .text-zilo-muted,
-  html.fandez-force-light .zilo-label {
-    color: #6b635a !important;
+  .zilo-btn-ghost:hover {
+    background: var(--zilo-accent-soft) !important;
+    color: var(--zilo-accent) !important;
   }
 
-  html.fandez-force-light .text-zilo-accent {
-    color: #c45c14 !important;
+  .text-zilo-text,
+  .zilo-display,
+  .fandez-wordmark,
+  h1, h2, h3 {
+    color: var(--zilo-text);
+  }
+
+  .text-zilo-muted,
+  .zilo-label {
+    color: var(--zilo-muted);
+  }
+
+  .text-zilo-accent {
+    color: var(--zilo-accent);
+  }
+
+  .border-zilo-border {
+    border-color: var(--zilo-border) !important;
   }
 }

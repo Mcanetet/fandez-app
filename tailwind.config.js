@@ -9,24 +9,24 @@ module.exports = {
     extend: {
       colors: {
         zilo: {
-          bg: '#FFFFFF',
-          surface: '#FFFFFF',
-          card: '#FFFFFF',
-          elevated: '#FFFFFF',
-          border: '#E6E0D8',
-          accent: '#C45C14',
-          'accent-soft': '#F6E6D4',
-          'accent-strong': '#A84E10',
-          text: '#1A1814',
-          muted: '#6B635A',
-          success: '#2F6B4F',
-          warning: '#B47814',
-          danger: '#B83A2E'
+          bg: 'var(--zilo-bg)',
+          surface: 'var(--zilo-surface)',
+          card: 'var(--zilo-card)',
+          elevated: 'var(--zilo-elevated)',
+          border: 'var(--zilo-border)',
+          accent: 'var(--zilo-accent)',
+          'accent-soft': 'var(--zilo-accent-soft)',
+          'accent-strong': 'var(--zilo-accent-strong)',
+          text: 'var(--zilo-text)',
+          muted: 'var(--zilo-muted)',
+          success: 'var(--zilo-success)',
+          warning: 'var(--zilo-warning)',
+          danger: 'var(--zilo-danger)'
         },
         aland: {
-          DEFAULT: '#2A6A5B',
-          soft: '#E4F0EC',
-          strong: '#1F5045'
+          DEFAULT: 'var(--aland)',
+          soft: 'var(--aland-soft)',
+          strong: 'var(--aland-strong)'
         }
       },
       fontFamily: {

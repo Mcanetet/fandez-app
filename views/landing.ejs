@@ -1,6 +1,6 @@
 <%- include('partials/head') %>
 
-<div class="min-h-screen relative fandez-landing" style="background-color:#FFFFFF;color-scheme:only light">
+<div class="min-h-screen relative fandez-landing">
   <div class="fandez-landing-atmosphere" aria-hidden="true"></div>
 
   <header class="relative z-10 flex items-center justify-between px-5 py-5 max-w-lg mx-auto">
@@ -102,7 +102,7 @@
       </ul>
     </div>
 
-    <a href="/registro?role=provider" class="group block rounded-2xl p-5 mb-8 border border-zilo-border bg-white hover:border-zilo-accent/40 transition">
+    <a href="/registro?role=provider" class="group block rounded-2xl p-5 mb-8 border border-zilo-border bg-zilo-card hover:border-zilo-accent/40 transition">
       <div class="flex items-start gap-4">
         <div class="w-11 h-11 rounded-xl bg-zilo-accent-soft border border-zilo-accent/20 flex items-center justify-center shrink-0 text-zilo-accent">
           <%- include('partials/ui-icon', { name: 'wallet', size: 20 }) %>
