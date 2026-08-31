@@ -2348,6 +2348,76 @@ html {
   background: #FFFFFF;
 }
 
+/* Landing — shell y header alineados (móvil) */
+.landing-shell {
+  position: relative;
+  z-index: 10;
+}
+
+.landing-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.75rem;
+  padding-top: 1.25rem;
+  padding-bottom: 1rem;
+}
+
+.landing-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.landing-header__logo {
+  width: 2.25rem;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.landing-header__wordmark {
+  font-size: 1.5rem;
+  line-height: 1;
+  min-width: 0;
+}
+
+.landing-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.landing-header__actions .lang-switcher {
+  flex-shrink: 0;
+}
+
+.landing-header__actions .lang-switch-link {
+  padding: 0.5rem 0.625rem;
+  line-height: 1;
+}
+
+.landing-header__login {
+  width: auto !important;
+  padding: 0.5rem 0.875rem !important;
+  white-space: nowrap;
+}
+
+@media (min-width: 400px) {
+  .landing-header {
+    column-gap: 1rem;
+  }
+
+  .landing-header__logo {
+    width: 2.75rem;
+  }
+
+  .landing-header__wordmark {
+    font-size: 1.75rem;
+  }
+}
+
 /* Landing — CTAs y bloques alineados (móvil / Android / iOS) */
 .landing-cta-stack {
   display: flex;

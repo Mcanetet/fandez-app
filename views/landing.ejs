@@ -3,18 +3,19 @@
 <div class="min-h-screen relative fandez-landing">
   <div class="fandez-landing-atmosphere" aria-hidden="true"></div>
 
-  <header class="relative z-10 flex items-center justify-between px-5 py-5 max-w-lg mx-auto">
-    <div class="flex items-center gap-3">
-      <%- include('partials/logo', { className: 'w-11 h-12', logoId: 'landing', logoVariant: 'amber' }) %>
-      <span class="fandez-wordmark text-3xl"><%= t('app.name') %></span>
-    </div>
-    <div class="flex items-center gap-2">
-      <%- include('partials/lang-switcher') %>
-      <a href="/login" class="zilo-btn-ghost text-sm !w-auto !py-2"><%= t('landing.login_btn') %></a>
-    </div>
-  </header>
+  <div class="landing-shell max-w-lg mx-auto px-5">
+    <header class="landing-header">
+      <div class="landing-header__brand">
+        <%- include('partials/logo', { className: 'landing-header__logo', logoId: 'landing', logoVariant: 'amber' }) %>
+        <span class="fandez-wordmark landing-header__wordmark"><%= t('app.name') %></span>
+      </div>
+      <div class="landing-header__actions">
+        <%- include('partials/lang-switcher') %>
+        <a href="/login" class="landing-header__login zilo-btn-ghost text-sm"><%= t('landing.login_btn') %></a>
+      </div>
+    </header>
 
-  <main class="relative z-10 px-5 pt-2 pb-12 max-w-lg mx-auto">
+    <main class="landing-main pt-2 pb-12">
     <p class="zilo-label mb-3"><%= t('landing.hero.eyebrow') %></p>
     <h1 class="zilo-display text-[2.65rem] leading-[1.08] mb-4">
       <%= t('landing.hero.title1') %><br>
@@ -117,9 +118,10 @@
         </div>
       </div>
     </a>
-  </main>
+    </main>
+  </div>
 
-  <section class="relative z-10 px-5 pb-10 max-w-lg mx-auto">
+  <section class="landing-shell max-w-lg mx-auto px-5 pb-10">
     <p class="text-sm font-semibold text-zilo-text mb-3 text-center"><%= t('landing.specialties') %></p>
     <div class="flex flex-wrap justify-center gap-2">
       <% (services || []).forEach(s => { %>
