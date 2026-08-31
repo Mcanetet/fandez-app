@@ -186,8 +186,8 @@ window.FandezAlerts = {
     try {
       const n = new Notification(title || 'Fandez', {
         body: body || '',
-        icon: '/icons/fandez-v5-192.png',
-        badge: '/icons/fandez-v5-96.png',
+        icon: '/icons/fandez-v6-192.png',
+        badge: '/icons/fandez-v6-96.png',
         tag: tag || ('fandez-' + type),
         renotify: true,
         vibrate: this.VIBRATE[type] || this.VIBRATE.default,

@@ -141,9 +141,9 @@ app.get('/site.webmanifest', (req, res) => {
     background_color: '#FFFFFF',
     theme_color: '#FFFFFF',
     icons: [
-      { src: '/icons/fandez-v5-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fandez-v5-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fandez-v5-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: '/icons/fandez-v6-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-v6-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-v6-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   });
 });
@@ -180,7 +180,17 @@ function sendBrandAsset(res, relativePath) {
   ['/icons/fundez-v5-180.png', 'icons/fandez-v5-180.png'],
   ['/icons/fundez-v5-192.png', 'icons/fandez-v5-192.png'],
   ['/icons/fundez-v5-512.png', 'icons/fandez-v5-512.png'],
-  ['/icons/fundez-v5.ico', 'icons/fandez-v5.ico']
+  ['/icons/fundez-v5.ico', 'icons/fandez-v5.ico'],
+  ['/icons/fandez-v6-96.png', 'icons/fandez-v6-96.png'],
+  ['/icons/fandez-v6-180.png', 'icons/fandez-v6-180.png'],
+  ['/icons/fandez-v6-192.png', 'icons/fandez-v6-192.png'],
+  ['/icons/fandez-v6-512.png', 'icons/fandez-v6-512.png'],
+  ['/icons/fandez-v6.ico', 'icons/fandez-v6.ico'],
+  ['/icons/fundez-v6-96.png', 'icons/fandez-v6-96.png'],
+  ['/icons/fundez-v6-180.png', 'icons/fandez-v6-180.png'],
+  ['/icons/fundez-v6-192.png', 'icons/fandez-v6-192.png'],
+  ['/icons/fundez-v6-512.png', 'icons/fandez-v6-512.png'],
+  ['/icons/fundez-v6.ico', 'icons/fandez-v6.ico'],
 ].forEach(([route, file]) => {
   app.get(route, (req, res) => sendBrandAsset(res, file));
 });

@@ -15,14 +15,14 @@
   <meta name="mobile-web-app-capable" content="yes">
   <% var favBase = (typeof siteUrl !== 'undefined' && siteUrl) ? String(siteUrl).replace(/\/$/, '') : ''; %>
   <% var favV = typeof assetVersion !== 'undefined' ? assetVersion : '1'; %>
-  <!-- v5: paths nuevos — Hostinger CDN y Safari ignoran ?v= en favicon.ico -->
+  <!-- v6: paths nuevos — Hostinger CDN y Safari ignoran ?v= en favicon.ico -->
   <link rel="icon" href="<%= favBase %>/favicon.svg?v=<%= favV %>" type="image/svg+xml">
-  <link rel="icon" type="image/png" sizes="48x48" href="<%= favBase %>/icons/fandez-v5-96.png?v=<%= favV %>">
-  <link rel="icon" type="image/png" sizes="96x96" href="<%= favBase %>/icons/fandez-v5-96.png?v=<%= favV %>">
-  <link rel="icon" type="image/png" sizes="192x192" href="<%= favBase %>/icons/fandez-v5-192.png?v=<%= favV %>">
-  <link rel="shortcut icon" href="<%= favBase %>/icons/fandez-v5.ico?v=<%= favV %>">
-  <link rel="icon" href="<%= favBase %>/icons/fandez-v5.ico?v=<%= favV %>" sizes="any">
-  <link rel="apple-touch-icon" sizes="180x180" href="<%= favBase %>/icons/fandez-v5-180.png?v=<%= favV %>">
+  <link rel="icon" type="image/png" sizes="48x48" href="<%= favBase %>/icons/fandez-v6-96.png?v=<%= favV %>">
+  <link rel="icon" type="image/png" sizes="96x96" href="<%= favBase %>/icons/fandez-v6-96.png?v=<%= favV %>">
+  <link rel="icon" type="image/png" sizes="192x192" href="<%= favBase %>/icons/fandez-v6-192.png?v=<%= favV %>">
+  <link rel="shortcut icon" href="<%= favBase %>/icons/fandez-v6.ico?v=<%= favV %>">
+  <link rel="icon" href="<%= favBase %>/icons/fandez-v6.ico?v=<%= favV %>" sizes="any">
+  <link rel="apple-touch-icon" sizes="180x180" href="<%= favBase %>/icons/fandez-v6-180.png?v=<%= favV %>">
   <link rel="manifest" href="/site.webmanifest?v=<%= favV %>">
   <title><%= title %></title>
   <%- include('seo-meta', { seo: typeof seo !== 'undefined' ? seo : null }) %>
@@ -87,7 +87,7 @@
     })();
   </script>
   <div id="fandezSplash" role="presentation" aria-hidden="true">
-    <img class="fandez-splash__mark" src="<%= favBase %>/icons/fandez-v5-192.png?v=<%= favV %>" width="192" height="192" alt="" decoding="async" fetchpriority="high">
+    <img class="fandez-splash__mark" src="<%= favBase %>/icons/fandez-v6-192.png?v=<%= favV %>" width="192" height="192" alt="" decoding="async" fetchpriority="high">
   </div>
   <script>
     (function(){

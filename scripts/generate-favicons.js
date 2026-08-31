@@ -44,7 +44,12 @@ async function main() {
     ['icons/fandez-v5-96.png', 96],
     ['icons/fandez-v5-180.png', 180],
     ['icons/fandez-v5-192.png', 192],
-    ['icons/fandez-v5-512.png', 512]
+    ['icons/fandez-v5-512.png', 512],
+    // v6 — favicon ámbar actualizado (cache bust CDN)
+    ['icons/fandez-v6-96.png', 96],
+    ['icons/fandez-v6-180.png', 180],
+    ['icons/fandez-v6-192.png', 192],
+    ['icons/fandez-v6-512.png', 512]
   ];
 
   fs.mkdirSync(path.join(publicDir, 'icons'), { recursive: true });
@@ -61,6 +66,10 @@ async function main() {
   const ico = await toIco([ico16, ico32, ico48]);
   fs.writeFileSync(path.join(publicDir, 'favicon.ico'), ico);
   console.log('✓ favicon.ico');
+  fs.writeFileSync(path.join(publicDir, 'icons', 'fandez-v5.ico'), ico);
+  console.log('✓ icons/fandez-v5.ico');
+  fs.writeFileSync(path.join(publicDir, 'icons', 'fandez-v6.ico'), ico);
+  console.log('✓ icons/fandez-v6.ico');
 }
 
 main().catch((err) => {

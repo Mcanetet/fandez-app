@@ -184,7 +184,7 @@
     bannerEl.setAttribute('aria-live', 'polite');
     bannerEl.innerHTML = `
       <div class="fandez-install-banner__card">
-        <img class="fandez-install-banner__icon" src="/icons/fandez-v5-96.png" width="48" height="48" alt="">
+        <img class="fandez-install-banner__icon" src="/icons/fandez-v6-96.png" width="48" height="48" alt="">
         <div class="fandez-install-banner__text">
           <p class="fandez-install-banner__title" data-install-title></p>
           <p class="fandez-install-banner__body" data-install-body></p>
