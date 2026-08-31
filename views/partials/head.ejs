@@ -1,20 +1,16 @@
 <!DOCTYPE html>
-<html lang="<%= typeof locale !== 'undefined' ? locale : 'es' %>" class="h-full">
+<html lang="<%= typeof locale !== 'undefined' ? locale : 'es' %>" class="h-full fandez-only-light">
 <head>
   <meta charset="UTF-8">
   <style id="fandez-theme-first-paint">
-    html { color-scheme: light dark; background: #ffffff; }
-    body { color-scheme: light dark; background: #ffffff; color: #1a1814; }
-    @media (prefers-color-scheme: dark) {
-      html, body { background: #141210; color: #f5f0ea; }
-    }
+    html { color-scheme: only light; background: #ffffff; }
+    body { color-scheme: only light; background: #ffffff; color: #1a1814; }
   </style>
   <script src="<%= typeof asset === 'function' ? asset('/js/force-light.js') : '/js/force-light.js' %>"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
-  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#141210" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="only light">
+  <meta name="supported-color-schemes" content="only light">
+  <meta name="theme-color" content="#FFFFFF">
   <meta name="application-name" content="Fandez">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">

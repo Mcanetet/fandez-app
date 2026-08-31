@@ -139,7 +139,7 @@ app.get('/site.webmanifest', (req, res) => {
     display: 'standalone',
     orientation: 'portrait-primary',
     background_color: '#FFFFFF',
-    theme_color: '#141210',
+    theme_color: '#FFFFFF',
     icons: [
       { src: '/icons/fandez-v6-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/icons/fandez-v6-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

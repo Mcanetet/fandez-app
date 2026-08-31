@@ -1,7 +1,7 @@
-/* Fandez — tema claro + oscuro nativo (paleta marca) */
+/* Fandez — tema claro fijo (ClassPass: siempre blanco, sin auto-dark) */
 /* Aland (asistente) = teal; peligro = solo errores, nunca CTA */
 :root {
-  color-scheme: light dark;
+  color-scheme: only light;
   --zilo-bg: #FFFFFF;
   --zilo-surface: #FFFFFF;
   --zilo-card: #FFFFFF;
@@ -27,42 +27,9 @@
   --zilo-sticky-bar-bg: rgba(255, 255, 255, 0.98);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --zilo-bg: #141210;
-    --zilo-surface: #1A1814;
-    --zilo-card: #1F1C18;
-    --zilo-elevated: #252219;
-    --zilo-accent: #E07828;
-    --zilo-accent-rgb: 224, 120, 40;
-    --zilo-accent-soft: rgba(224, 120, 40, 0.16);
-    --zilo-accent-strong: #F08A38;
-    --zilo-text: #F5F0EA;
-    --zilo-muted: #A39E96;
-    --zilo-border: #3A352E;
-    --zilo-success: #5CB88A;
-    --zilo-warning: #D4A04A;
-    --zilo-danger: #E87062;
-    --aland: #4A9A88;
-    --aland-soft: rgba(74, 154, 136, 0.18);
-    --aland-strong: #6BBAA8;
-    --zilo-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-    --zilo-shadow-md: 0 4px 18px rgba(0, 0, 0, 0.4);
-    --zilo-header-bg: rgba(26, 24, 20, 0.96);
-    --zilo-sticky-bar-bg: rgba(26, 24, 20, 0.97);
-  }
-}
-
 html {
-  color-scheme: light dark;
+  color-scheme: only light;
   background-color: var(--zilo-bg);
-}
-
-@media (prefers-color-scheme: dark) {
-  html, body, :root {
-    color-scheme: light dark;
-    background-color: var(--zilo-bg);
-  }
 }
 
 /* Aland — asistente (teal, no violeta “IA”) */
@@ -84,7 +51,7 @@ html {
 }
 
 .zilo-body {
-  color-scheme: light dark;
+  color-scheme: only light;
   background-color: var(--zilo-bg);
   background-image: none;
   color: var(--zilo-text);
@@ -2377,8 +2344,8 @@ html {
 
 
 .fandez-landing {
-  color-scheme: light dark;
-  background: var(--zilo-bg);
+  color-scheme: only light;
+  background: #FFFFFF;
 }
 
 /* Landing — CTAs y bloques alineados (móvil / Android / iOS) */
@@ -2783,17 +2750,5 @@ header.sticky.bg-zilo-bg\/90,
 
 .zilo-card-premium {
   background: var(--zilo-card);
-}
-
-@media (prefers-color-scheme: dark) {
-  .zilo-icon-wrap {
-    background: var(--zilo-card);
-    border-color: var(--zilo-border);
-    color: var(--zilo-muted);
-  }
-
-  .admin-topbar {
-    border-bottom-color: var(--zilo-border);
-  }
 }
 

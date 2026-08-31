@@ -1,61 +1,60 @@
 /**
- * Tema adaptativo — refuerza paleta Fandez cuando el teléfono usa modo oscuro.
- * Evita el “auto-dark” feo de Chrome (gris sucio / invertido).
+ * Fondo blanco fijo — opt-out de auto-dark del navegador (ClassPass-style).
  */
+html,
+body,
+.fandez-landing {
+  color-scheme: only light !important;
+  background-color: #ffffff !important;
+  background-image: linear-gradient(#ffffff, #ffffff) !important;
+}
+
+body {
+  color: #1a1814 !important;
+}
+
+#fandezSplash {
+  background: #ffffff !important;
+}
+
 @media (prefers-color-scheme: dark) {
   html,
-  body {
-    color-scheme: light dark;
-    background-color: var(--zilo-bg) !important;
-    color: var(--zilo-text) !important;
-  }
-
+  body,
+  .fandez-landing,
   #fandezSplash {
-    background: var(--zilo-bg) !important;
+    color-scheme: only light !important;
+    background-color: #ffffff !important;
+    background-image: linear-gradient(#ffffff, #ffffff) !important;
+    filter: none !important;
+    -webkit-filter: none !important;
   }
 
-  .bg-white {
-    background-color: var(--zilo-card) !important;
+  body {
+    color: #1a1814 !important;
+  }
+
+  .bg-white,
+  .bg-zilo-bg,
+  .bg-zilo-surface,
+  .bg-zilo-card {
+    background-color: #ffffff !important;
   }
 
   .bg-white\/80 {
-    background-color: color-mix(in srgb, var(--zilo-card) 88%, transparent) !important;
-  }
-
-  .zilo-btn-primary {
-    background: var(--zilo-accent) !important;
-    color: #ffffff !important;
-    border-color: var(--zilo-accent-strong) !important;
-  }
-
-  .zilo-btn-ghost {
-    background: var(--zilo-surface) !important;
-    color: var(--zilo-text) !important;
-    border-color: var(--zilo-border) !important;
-  }
-
-  .zilo-btn-ghost:hover {
-    background: var(--zilo-accent-soft) !important;
-    color: var(--zilo-accent) !important;
+    background-color: rgba(255, 255, 255, 0.88) !important;
   }
 
   .text-zilo-text,
   .zilo-display,
   .fandez-wordmark,
-  h1, h2, h3 {
-    color: var(--zilo-text);
+  h1,
+  h2,
+  h3 {
+    color: #1a1814 !important;
   }
 
   .text-zilo-muted,
   .zilo-label {
-    color: var(--zilo-muted);
-  }
-
-  .text-zilo-accent {
-    color: var(--zilo-accent);
-  }
-
-  .border-zilo-border {
-    border-color: var(--zilo-border) !important;
+    color: #6b635a !important;
   }
 }

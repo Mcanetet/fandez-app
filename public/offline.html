@@ -1,35 +1,20 @@
 <!DOCTYPE html>
-<html lang="es" class="fandez-force-light" style="color-scheme:light dark;background-color:var(--zilo-bg,#fff)">
+<html lang="es" class="fandez-only-light" style="color-scheme:only light;background-color:#ffffff">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#141210" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="only light">
+  <meta name="theme-color" content="#FFFFFF">
   <title>Sin conexión — Fandez</title>
   <style>
-    :root {
-      --zilo-bg: #ffffff;
-      --zilo-text: #1a1814;
-      --zilo-muted: #6b635a;
-      --zilo-accent: #c45c14;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --zilo-bg: #141210;
-        --zilo-text: #f5f0ea;
-        --zilo-muted: #a39e96;
-        --zilo-accent: #e07828;
-      }
-    }
     html {
-      color-scheme: light dark;
-      background: var(--zilo-bg);
+      color-scheme: only light;
+      background: #ffffff;
     }
     body {
       font-family: system-ui, sans-serif;
-      background: var(--zilo-bg);
-      color: var(--zilo-text);
+      background: #ffffff;
+      color: #1a1814;
       margin: 0;
       min-height: 100vh;
       display: flex;
@@ -39,10 +24,10 @@
       text-align: center;
     }
     h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
-    p { color: var(--zilo-muted); margin: 0 0 1.25rem; font-size: 0.95rem; }
+    p { color: #6b635a; margin: 0 0 1.25rem; font-size: 0.95rem; }
     a {
       display: inline-block;
-      background: var(--zilo-accent);
+      background: #c45c14;
       color: #fff;
       text-decoration: none;
       padding: 0.75rem 1.25rem;

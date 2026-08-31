@@ -1,8 +1,11 @@
 /**
- * Inicialización de tema Fandez — PWA standalone + color de barra del sistema.
+ * Tema claro fijo — PWA standalone + barra del sistema siempre blanca.
  */
 (function () {
   'use strict';
+
+  var WHITE = '#FFFFFF';
+  var TEXT = '#1A1814';
 
   function isStandalone() {
     try {
@@ -13,32 +16,41 @@
     }
   }
 
-  function isDark() {
-    try {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    } catch (_) {
-      return false;
-    }
+  function setOnlyLight(el) {
+    if (!el) return;
+    el.style.setProperty('color-scheme', 'only light', 'important');
+    el.style.setProperty('background-color', WHITE, 'important');
   }
 
-  function updateThemeColor() {
-    var color = isDark() ? '#141210' : '#FFFFFF';
+  function setThemeColor() {
     try {
-      document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
-        meta.setAttribute('content', color);
-      });
+      var metas = document.querySelectorAll('meta[name="theme-color"]');
+      if (metas.length) {
+        metas.forEach(function (meta) {
+          meta.setAttribute('content', WHITE);
+        });
+      } else {
+        var m = document.createElement('meta');
+        m.name = 'theme-color';
+        m.content = WHITE;
+        document.head.appendChild(m);
+      }
     } catch (_) { /* ignore */ }
   }
 
-  function init() {
+  function apply() {
     var html = document.documentElement;
+    var body = document.body;
+    html.classList.add('fandez-only-light');
     if (isStandalone()) html.classList.add('fandez-standalone');
-    updateThemeColor();
-    try {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateThemeColor);
-    } catch (_) { /* ignore */ }
+    setOnlyLight(html);
+    setOnlyLight(body);
+    if (body) body.style.setProperty('color', TEXT, 'important');
+    setThemeColor();
   }
 
-  init();
-  window.FandezTheme = { refresh: init };
+  apply();
+  document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('pageshow', apply);
+  window.FandezTheme = { refresh: apply };
 })();

@@ -7,6 +7,6 @@
   body {
     background-color: var(--zilo-bg);
     color: var(--zilo-text);
-    color-scheme: light dark;
+    color-scheme: only light;
   }
 }
