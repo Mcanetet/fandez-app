@@ -206,6 +206,8 @@ app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders(res, filePath) {
     if (/\.(js|css)$/.test(filePath)) {
       res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      res.setHeader('CDN-Cache-Control', 'no-store');
+      res.setHeader('Surrogate-Control', 'no-store');
     }
     if (/(favicon|apple-touch-icon|icon-\d+|icons\/fandez|logo-plunger|logo(-mark)?\.svg|site\.webmanifest|\/sw\.js)/i.test(filePath)) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
