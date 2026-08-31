@@ -2,7 +2,7 @@
 /* Aland (asistente) = teal; peligro = solo errores, nunca CTA */
 /* Legacy: brand/v1-azul/ · brand/v2-ambar/ */
 :root {
-  color-scheme: light only;
+  color-scheme: only light;
   --zilo-bg: #FFFFFF;
   --zilo-surface: #FFFFFF;
   --zilo-card: #FFFFFF;
@@ -27,13 +27,13 @@
 }
 
 html {
-  color-scheme: light only;
+  color-scheme: only light;
   background-color: var(--zilo-bg);
 }
 
 @media (prefers-color-scheme: dark) {
   html, body, :root {
-    color-scheme: light only;
+    color-scheme: only light;
     background-color: var(--zilo-bg);
   }
 }
@@ -57,7 +57,7 @@ html {
 }
 
 .zilo-body {
-  color-scheme: light only;
+  color-scheme: only light;
   background-color: var(--zilo-bg);
   background-image: none;
 }
@@ -2350,7 +2350,7 @@ html {
 
 
 .fandez-landing {
-  color-scheme: light only;
+  color-scheme: only light;
   background: var(--zilo-bg);
 }
 
@@ -2737,7 +2737,7 @@ body,
   .zilo-body,
   :root {
     background-color: #FFFFFF !important;
-    color-scheme: light only;
+    color-scheme: only light;
   }
 }
 
@@ -2758,6 +2758,8 @@ header.sticky.bg-zilo-bg\/90,
 html.fandez-force-light,
 html.fandez-force-light body,
 html.fandez-force-light .zilo-body,
+html.fandez-force-light .fandez-landing,
+html.fandez-force-light .min-h-screen,
 html.fandez-force-light .admin-page,
 html.fandez-force-light .admin-shell,
 html.fandez-force-light .admin-main,
@@ -2765,9 +2767,32 @@ html.fandez-force-light .admin-content,
 html.fandez-force-light .admin-sidebar,
 html.fandez-force-light .admin-panel,
 html.fandez-force-light main,
-html.fandez-force-light section {
+html.fandez-force-light section,
+html.fandez-force-light .landing-stat-card,
+html.fandez-force-light .landing-urgent-cta,
+html.fandez-force-light .zilo-btn-ghost {
   background-color: #ffffff !important;
-  color-scheme: light only !important;
+  color-scheme: only light !important;
+}
+
+html.fandez-force-light .zilo-btn-primary {
+  background-color: #c45c14 !important;
+  color: #ffffff !important;
+}
+
+html.fandez-force-light .text-zilo-text,
+html.fandez-force-light .zilo-display,
+html.fandez-force-light .fandez-wordmark {
+  color: #1a1814 !important;
+}
+
+html.fandez-force-light .text-zilo-muted,
+html.fandez-force-light .zilo-label {
+  color: #6b635a !important;
+}
+
+html.fandez-force-light .text-zilo-accent {
+  color: #c45c14 !important;
 }
 
 html.fandez-force-light .bg-zilo-bg,
@@ -2780,6 +2805,8 @@ html.fandez-force-light .bg-zilo-card {
   html.fandez-force-light,
   html.fandez-force-light body,
   html.fandez-force-light .zilo-body,
+  html.fandez-force-light .fandez-landing,
+  html.fandez-force-light .min-h-screen,
   html.fandez-force-light .admin-page,
   html.fandez-force-light .admin-shell,
   html.fandez-force-light .admin-main,
@@ -2788,11 +2815,34 @@ html.fandez-force-light .bg-zilo-card {
   html.fandez-force-light .admin-panel,
   html.fandez-force-light main,
   html.fandez-force-light section,
+  html.fandez-force-light .landing-stat-card,
+  html.fandez-force-light .landing-urgent-cta,
+  html.fandez-force-light .zilo-btn-ghost,
   html.fandez-force-light .bg-zilo-bg,
   html.fandez-force-light .bg-zilo-surface,
   html.fandez-force-light .bg-zilo-card {
     background-color: #ffffff !important;
-    color-scheme: light only !important;
+    color-scheme: only light !important;
+  }
+
+  html.fandez-force-light .zilo-btn-primary {
+    background-color: #c45c14 !important;
+    color: #ffffff !important;
+  }
+
+  html.fandez-force-light .text-zilo-text,
+  html.fandez-force-light .zilo-display,
+  html.fandez-force-light .fandez-wordmark {
+    color: #1a1814 !important;
+  }
+
+  html.fandez-force-light .text-zilo-muted,
+  html.fandez-force-light .zilo-label {
+    color: #6b635a !important;
+  }
+
+  html.fandez-force-light .text-zilo-accent {
+    color: #c45c14 !important;
   }
 }
 

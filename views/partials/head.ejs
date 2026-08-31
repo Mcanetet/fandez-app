@@ -1,9 +1,17 @@
 <!DOCTYPE html>
-<html lang="<%= typeof locale !== 'undefined' ? locale : 'es' %>" class="h-full fandez-force-light" style="color-scheme:light only;background:#FFFFFF">
+<html lang="<%= typeof locale !== 'undefined' ? locale : 'es' %>" class="h-full fandez-force-light" style="color-scheme:only light;background-color:#FFFFFF">
 <head>
+  <script>
+    (function () {
+      var d = document.documentElement;
+      d.classList.add('fandez-force-light');
+      d.style.colorScheme = 'only light';
+      d.style.backgroundColor = '#FFFFFF';
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="color-scheme" content="light only">
+  <meta name="color-scheme" content="only light">
   <meta name="supported-color-schemes" content="light">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: dark)">
@@ -41,9 +49,15 @@
   </style>
   <link rel="stylesheet" href="<%= asset('/css/main.css') %>">
   <style id="fandez-force-light-critical">
-    html, body { background-color: #ffffff !important; color-scheme: light only !important; }
+    html, body {
+      background-color: #ffffff !important;
+      color-scheme: only light !important;
+    }
     @media (prefers-color-scheme: dark) {
-      html, body { background-color: #ffffff !important; color-scheme: light only !important; }
+      html, body {
+        background-color: #ffffff !important;
+        color-scheme: only light !important;
+      }
     }
   </style>
   <% if (typeof useMap !== 'undefined' && useMap) { %>
@@ -51,7 +65,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <% } %>
 </head>
-<body class="bg-zilo-bg text-zilo-text font-sans min-h-full antialiased zilo-body <%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>" style="background-color:#FFFFFF;color-scheme:light only">
+<body class="bg-zilo-bg text-zilo-text font-sans min-h-full antialiased zilo-body <%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>" style="background-color:#FFFFFF;color-scheme:only light">
   <!-- Splash propio (el del SO no anima): logo ámbar palpita como Tinder al abrir la app -->
   <style>
     #fandezSplash{
