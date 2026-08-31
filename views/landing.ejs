@@ -31,59 +31,73 @@
       </div>
     <% } %>
 
-    <a href="/registro" class="zilo-btn-primary mb-3">
-      <%= t('landing.cta.signup') %>
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </a>
-    <a href="/registro?emergency=1" class="zilo-btn-ghost mb-3 border border-zilo-accent/30 !text-zilo-accent">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-      <%= t('landing.emergency_cta') %>
-      <span class="text-[10px] text-zilo-muted ml-1">· <%= t('landing.emergency_hint') %></span>
-    </a>
-    <button type="button" data-install-app class="zilo-btn-ghost mb-3 fandez-install-entry">
-      <svg class="w-5 h-5 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 3v12m0 0l4-4m-4 4l-4-4"/><path d="M5 19h14"/></svg>
-      <%= t('landing.install_cta') %>
-    </button>
+    <div class="landing-cta-stack">
+      <a href="/registro" class="zilo-btn-primary">
+        <%= t('landing.cta.signup') %>
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a href="/registro?emergency=1" class="landing-urgent-cta">
+        <span class="landing-urgent-cta__icon" aria-hidden="true">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        </span>
+        <span class="landing-urgent-cta__body">
+          <span class="landing-urgent-cta__title"><%= t('landing.emergency_cta') %></span>
+          <span class="landing-urgent-cta__hint"><%= t('landing.emergency_hint') %></span>
+        </span>
+      </a>
+      <button type="button" data-install-app class="zilo-btn-ghost zilo-btn-block fandez-install-entry">
+        <svg class="w-5 h-5 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l4-4m-4 4l-4-4"/><path d="M5 19h14"/></svg>
+        <%= t('landing.install_cta') %>
+      </button>
+    </div>
     <p class="text-center text-sm text-zilo-muted mb-10">
       <%= t('landing.cta.has_account') %>
       <a href="/login" class="text-zilo-accent font-semibold hover:underline"><%= t('landing.cta.login') %></a>
     </p>
 
-    <div class="mb-8 rounded-2xl border border-zilo-border bg-white/80 backdrop-blur-sm py-4 px-2">
-      <div class="grid grid-cols-3 gap-2 text-center">
-        <div>
-          <strong class="zilo-display text-lg text-zilo-accent block">4.9</strong>
-          <span class="text-[11px] text-zilo-muted"><%= t('landing.stat.rating') %></span>
+    <div class="landing-stat-card mb-8">
+      <div class="landing-stat-grid">
+        <div class="landing-stat-item">
+          <strong class="landing-stat-value text-zilo-accent">4.9</strong>
+          <span class="landing-stat-label"><%= t('landing.stat.rating') %></span>
         </div>
-        <div class="border-x border-zilo-border">
-          <strong class="zilo-display text-lg block">24/7</strong>
-          <span class="text-[11px] text-zilo-muted"><%= t('landing.stat.emergency') %></span>
+        <div class="landing-stat-item landing-stat-item--divider">
+          <strong class="landing-stat-value">24/7</strong>
+          <span class="landing-stat-label"><%= t('landing.stat.emergency') %></span>
         </div>
-        <div>
-          <strong class="zilo-display text-lg block">100%</strong>
-          <span class="text-[11px] text-zilo-muted"><%= t('landing.stat.verified') %></span>
+        <div class="landing-stat-item">
+          <strong class="landing-stat-value">100%</strong>
+          <span class="landing-stat-label"><%= t('landing.stat.verified') %></span>
         </div>
       </div>
     </div>
 
     <div class="mb-8">
-      <p class="fandez-wordmark text-lg mb-3"><%= t('landing.only_fandez') %></p>
-      <ul class="space-y-2.5 text-sm text-zilo-muted">
-        <li class="flex gap-2.5 items-start">
-          <%- include('partials/ui-icon', { name: 'home', size: 16, className: 'text-zilo-accent mt-0.5 shrink-0' }) %>
-          <%= t('landing.feature.passport') %>
+      <p class="fandez-wordmark text-lg mb-4"><%= t('landing.only_fandez') %></p>
+      <ul class="landing-feature-list">
+        <li>
+          <span class="landing-feature-icon" aria-hidden="true">
+            <%- include('partials/ui-icon', { name: 'home', size: 16, className: 'text-zilo-accent' }) %>
+          </span>
+          <span class="landing-feature-text"><%= t('landing.feature.passport') %></span>
         </li>
-        <li class="flex gap-2.5 items-start">
-          <%- include('partials/ui-icon', { name: 'wallet', size: 16, className: 'text-zilo-accent mt-0.5 shrink-0' }) %>
-          <%= t('landing.feature.card') %>
+        <li>
+          <span class="landing-feature-icon" aria-hidden="true">
+            <%- include('partials/ui-icon', { name: 'wallet', size: 16, className: 'text-zilo-accent' }) %>
+          </span>
+          <span class="landing-feature-text"><%= t('landing.feature.card') %></span>
         </li>
-        <li class="flex gap-2.5 items-start">
-          <%- include('partials/ui-icon', { name: 'shield', size: 16, className: 'text-zilo-accent mt-0.5 shrink-0' }) %>
-          <%= t('landing.feature.guardian') %>
+        <li>
+          <span class="landing-feature-icon" aria-hidden="true">
+            <%- include('partials/ui-icon', { name: 'shield', size: 16, className: 'text-zilo-accent' }) %>
+          </span>
+          <span class="landing-feature-text"><%= t('landing.feature.guardian') %></span>
         </li>
-        <li class="flex gap-2.5 items-start">
-          <%- include('partials/ui-icon', { name: 'spark', size: 16, className: 'text-zilo-accent mt-0.5 shrink-0' }) %>
-          <%= t('landing.feature.gift') %>
+        <li>
+          <span class="landing-feature-icon" aria-hidden="true">
+            <%- include('partials/ui-icon', { name: 'spark', size: 16, className: 'text-zilo-accent' }) %>
+          </span>
+          <span class="landing-feature-text"><%= t('landing.feature.gift') %></span>
         </li>
       </ul>
     </div>

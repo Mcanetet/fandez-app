@@ -646,7 +646,7 @@
   "payments.success.redirecting": "Redirecting to tracking…",
   "payments.success.track_cta": "View service status",
   "landing.emergency_cta": "I need urgent help",
-  "landing.emergency_hint": "Priority response · sign up in 2 minutes",
+  "landing.emergency_hint": "Priority response · 2 min signup",
   "js.socket_reconnecting": "Reconnecting…",
   "js.socket_connected": "Connection restored",
   "js.socket_error": "No connection. Retrying…"
