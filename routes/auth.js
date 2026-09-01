@@ -425,18 +425,25 @@ router.post('/registro', async (req, res) => {
   }
 
   if (wantsJson(req)) {
+    const mailQs = issue.authFailed
+      ? 'welcome=1&mail=auth'
+      : (issue.error && !issue.demo && !issue.pending
+        ? 'welcome=1&mail=error'
+        : (issue.demo ? 'welcome=1&mail=demo' : (issue.pending ? 'welcome=1&mail=pending' : 'welcome=1')));
     return res.json({
       success: true,
-      redirect: issue.error && !issue.demo && !issue.pending
-        ? '/verificar-email?welcome=1&mail=error'
-        : (issue.demo ? '/verificar-email?welcome=1&mail=demo' : (issue.pending ? '/verificar-email?welcome=1&mail=pending' : '/verificar-email?welcome=1')),
+      redirect: `/verificar-email?${mailQs}`,
       mailDemo: Boolean(issue.demo),
       mailError: issue.error || null,
-      mailPending: Boolean(issue.pending)
+      mailPending: Boolean(issue.pending),
+      mailAuthFailed: Boolean(issue.authFailed)
     });
   }
   if (issue.pending) {
     return res.redirect('/verificar-email?welcome=1&mail=pending');
+  }
+  if (issue.authFailed) {
+    return res.redirect('/verificar-email?welcome=1&mail=auth');
   }
   if (issue.error && !issue.demo) {
     return res.redirect('/verificar-email?welcome=1&mail=error');
@@ -471,12 +478,14 @@ router.get('/verificar-email', (req, res) => {
   if (req.query.exists === '1') {
     success = req.t('verify.exists_resent');
   }
-  if (req.query.mail === 'error') {
-    error = 'No pudimos enviar el correo de verificación. Revisa spam o pulsa Reenviar. Si el problema continúa, el SMTP de Hostinger puede estar rechazando el envío (revisa /health?smtp=1).';
+  if (req.query.mail === 'auth') {
+    error = req.t('verify.mail_auth_error');
+  } else if (req.query.mail === 'error') {
+    error = req.t('verify.mail_error');
   } else if (req.query.mail === 'demo') {
-    success = 'Modo demo: faltan SMTP_HOST / SMTP_USER / SMTP_PASS en el servidor. El código está en los logs ([verify:demo]).';
+    success = req.t('verify.mail_demo');
   } else if (req.query.mail === 'pending') {
-    success = 'Tu cuenta ya está creada. El correo puede tardar unos segundos; si no llega, pulsa Reenviar código.';
+    success = req.t('verify.mail_pending');
   }
 
   res.render('verificar-email', {

@@ -4856,10 +4856,15 @@ async function issueEmailVerification(userId, { locale = 'es' } = {}) {
   }
 
   if (mailResult?.error) {
+    const raw = String(mailResult.error || '');
+    const authFail = /535|authentication failed|invalid login/i.test(raw);
     return {
-      error: `No pudimos enviar el correo (${mailResult.error}). Revisa spam, espera un minuto y pulsa Reenviar.`,
+      error: authFail
+        ? 'auth_failed'
+        : `No pudimos enviar el correo (${mailResult.error}). Revisa spam, espera un minuto y pulsa Reenviar.`,
       sentAt: prepared.sentAt,
-      mailError: mailResult.error
+      mailError: mailResult.error,
+      authFailed: authFail
     };
   }
 
