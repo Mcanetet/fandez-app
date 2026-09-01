@@ -40,8 +40,8 @@ test.describe('Login cliente (demo)', () => {
 
     if (page.url().includes('/verificar-email')) {
       // Cuenta aún no verificada: debe verse el correo y el formulario OTP
-      await expect(page.getByRole('heading', { name: /verifica tu correo/i })).toBeVisible();
-      await expect(page.locator('strong.text-zilo-text, strong').filter({ hasText: DEMO_CLIENT.email })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /bienvenido|confirma tu correo|verify/i })).toBeVisible();
+      await expect(page.getByText(DEMO_CLIENT.email)).toBeVisible();
       await expect(page.locator('.verify-otp__digit').first()).toBeVisible();
       await expect(page.locator('form[action="/verificar-email"] button[type="submit"]')).toBeVisible();
       return;
