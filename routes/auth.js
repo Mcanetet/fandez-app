@@ -521,6 +521,7 @@ router.get('/verificar-email', (req, res) => {
     error,
     success,
     cooldown,
+    codeExpiresAt: user.emailVerificationExpiresAt || null,
     demoHint: !require('../lib/mailer').isConfigured()
   });
 });
@@ -536,6 +537,9 @@ router.post('/verificar-email', async (req, res) => {
   const code = (req.body.code || '').trim();
   const result = await store.verifyEmailCode(user.id, code);
   if (result.error) {
+    const fresh = store.getUserById(user.id) || user;
+    // Si el código ya no sirve, dejar reenviar de inmediato
+    const cooldown = emailVerification.resendCooldownSeconds(fresh);
     return res.render('verificar-email', {
       title: 'Verificar correo — Fandez',
       email: user.email,
@@ -544,7 +548,8 @@ router.post('/verificar-email', async (req, res) => {
       company,
       error: result.error,
       success: null,
-      cooldown: emailVerification.resendCooldownSeconds(user),
+      cooldown,
+      codeExpiresAt: fresh.emailVerificationExpiresAt || null,
       demoHint: !require('../lib/mailer').isConfigured()
     });
   }
@@ -561,9 +566,23 @@ router.post('/verificar-email/reenviar', async (req, res) => {
   const result = await store.resendEmailVerification(user.id, { locale: req.locale || 'es' });
   if (result.error) {
     const status = result.cooldown ? 429 : 502;
-    return res.status(status).json({ success: false, error: result.error, cooldown: result.cooldown || 0 });
+    const errorMsg = result.error === 'auth_failed'
+      ? req.t('verify.mail_auth_error')
+      : result.error;
+    return res.status(status).json({
+      success: false,
+      error: errorMsg,
+      cooldown: result.cooldown || 0
+    });
   }
-  res.json({ success: true, demo: result.demo || false });
+  const fresh = store.getUserById(user.id);
+  res.json({
+    success: true,
+    demo: result.demo || false,
+    pending: Boolean(result.pending),
+    cooldown: emailVerification.RESEND_COOLDOWN_MS / 1000,
+    expiresAt: fresh?.emailVerificationExpiresAt || null
+  });
 });
 
 router.get('/logout', (req, res) => {

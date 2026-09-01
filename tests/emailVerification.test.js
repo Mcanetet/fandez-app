@@ -188,6 +188,8 @@ describe('lib/emailVerification', () => {
 
     it('edge: bloquea reenvío inmediato (cooldown activo)', () => {
       const user = {
+        emailVerificationCodeHash: 'abc',
+        emailVerificationExpiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         emailVerificationSentAt: new Date(Date.now() - 5_000).toISOString()
       };
       expect(canResend(user)).toBe(false);
@@ -199,10 +201,22 @@ describe('lib/emailVerification', () => {
     it('edge: sentAt en el futuro no produce cooldown negativo', () => {
       // Defensa ante reloj desfasado / datos corruptos
       const user = {
+        emailVerificationCodeHash: 'abc',
+        emailVerificationExpiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         emailVerificationSentAt: new Date(Date.now() + 60_000).toISOString()
       };
       expect(resendCooldownSeconds(user)).toBeGreaterThan(0);
       expect(canResend(user)).toBe(false);
+    });
+
+    it('happy path: si el código expiró, permite pedir otro al tiro', () => {
+      const user = {
+        emailVerificationCodeHash: 'abc',
+        emailVerificationExpiresAt: new Date(Date.now() - 1000).toISOString(),
+        emailVerificationSentAt: new Date().toISOString()
+      };
+      expect(canResend(user)).toBe(true);
+      expect(resendCooldownSeconds(user)).toBe(0);
     });
   });
 

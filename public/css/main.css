@@ -280,12 +280,20 @@ html {
   .verify-welcome__mark { animation: none; }
 }
 
+.verify-otp-wrap {
+  position: relative;
+  min-height: 3.1rem;
+}
 .verify-otp {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.45rem;
+  pointer-events: none;
 }
 .verify-otp__digit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 3.1rem;
   padding: 0.55rem 0.15rem !important;
@@ -293,9 +301,31 @@ html {
   font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: 0;
-  caret-color: var(--zilo-accent);
+  line-height: 1;
+  user-select: none;
 }
-.verify-otp__digit:focus {
+.verify-otp__digit.is-active {
+  border-color: rgba(var(--zilo-accent-rgb), 0.65);
+  box-shadow: 0 0 0 3px rgba(var(--zilo-accent-rgb), 0.14);
+}
+.verify-otp__control {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0.02;
+  color: transparent;
+  caret-color: transparent;
+  background: transparent;
+  font-size: 1.35rem; /* evita zoom forzado en iOS */
+  letter-spacing: 1.6em;
+  text-align: left;
+  z-index: 2;
+}
+.verify-otp-wrap:focus-within .verify-otp__digit.is-active {
   border-color: rgba(var(--zilo-accent-rgb), 0.65);
   box-shadow: 0 0 0 3px rgba(var(--zilo-accent-rgb), 0.14);
 }
@@ -2654,7 +2684,7 @@ html {
   background: transparent;
 }
 
-/* PWA — banner instalar app (móvil) */
+/* PWA — hoja de instalación (móvil) */
 .fandez-install-banner {
   position: fixed;
   left: 0;
@@ -2667,22 +2697,19 @@ html {
   pointer-events: none;
 }
 .fandez-install-banner.hidden { display: none !important; }
-.fandez-install-banner__card,
-.fandez-install-banner__actions,
-.fandez-install-banner__ios {
+.fandez-install-banner__sheet {
   pointer-events: auto;
+  background: #FFFFFF;
+  border: 1px solid #E6E0D8;
+  border-radius: 1.1rem;
+  box-shadow: 0 -10px 32px rgba(26, 24, 20, 0.14);
+  overflow: hidden;
 }
 .fandez-install-banner__card {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  background: #FFFFFF;
-  color: #1A1814;
-  border: 1px solid #E6E0D8;
-  border-bottom: 0;
-  border-radius: 1rem 1rem 0.35rem 0.35rem;
-  padding: 0.85rem 0.75rem 0.75rem;
-  box-shadow: 0 -8px 28px rgba(26, 24, 20, 0.12);
+  padding: 0.95rem 0.85rem 0.55rem;
 }
 .fandez-install-banner__icon {
   width: 48px;
@@ -2694,16 +2721,16 @@ html {
 .fandez-install-banner__text { flex: 1; min-width: 0; padding-top: 0.1rem; }
 .fandez-install-banner__title {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1.25;
   color: #1A1814;
   font-family: "Bricolage Grotesque", "Source Sans 3", system-ui, sans-serif;
 }
 .fandez-install-banner__body {
-  margin: 0.25rem 0 0;
-  font-size: 0.75rem;
-  line-height: 1.35;
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
   color: #6B635A;
 }
 .fandez-install-banner__close {
@@ -2718,11 +2745,7 @@ html {
 .fandez-install-banner__actions {
   display: flex;
   gap: 0.5rem;
-  background: #FFFFFF;
-  border: 1px solid #E6E0D8;
-  border-top: 0;
-  border-radius: 0.35rem 0.35rem 1rem 1rem;
-  padding: 0 0.75rem 0.85rem;
+  padding: 0.15rem 0.85rem 0.9rem;
 }
 .fandez-install-banner__cta {
   flex: 1;
@@ -2732,7 +2755,7 @@ html {
   color: #fff;
   font-weight: 700;
   font-size: 0.875rem;
-  padding: 0.7rem 0.85rem;
+  padding: 0.75rem 0.85rem;
   cursor: pointer;
 }
 .fandez-install-banner__cta.hidden { display: none; }
@@ -2742,35 +2765,54 @@ html {
   background: #FFFFFF;
   color: #1A1814;
   font-size: 0.8rem;
-  padding: 0.7rem 0.85rem;
+  padding: 0.75rem 0.85rem;
   cursor: pointer;
   white-space: nowrap;
 }
 .fandez-install-banner__ios {
-  margin-top: 0.5rem;
-  background: #FFFFFF;
+  margin: 0 0.85rem 0.65rem;
+  background: #F7F4F0;
   color: #1A1814;
-  border: 1px solid #E6E0D8;
   border-radius: 0.85rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.8rem;
-  line-height: 1.4;
+  padding: 0.8rem 0.9rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
 }
 .fandez-install-banner__ios.hidden { display: none; }
 .fandez-install-banner__ios ol {
   margin: 0;
-  padding-left: 1.1rem;
+  padding-left: 1.15rem;
 }
-.fandez-install-banner__ios li + li { margin-top: 0.35rem; }
+.fandez-install-banner__ios li + li { margin-top: 0.45rem; }
+.fandez-install-banner__hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.72rem;
+  color: #6B635A;
+  line-height: 1.35;
+}
+.fandez-install-banner__hint.hidden { display: none; }
+.fandez-share-glyph {
+  display: inline-block;
+  width: 0.95rem;
+  height: 0.95rem;
+  vertical-align: -0.12rem;
+  margin: 0 0.12rem;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12'/%3E%3Cpath d='M8 7l4-4 4 4'/%3E%3Cpath d='M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12'/%3E%3Cpath d='M8 7l4-4 4 4'/%3E%3Cpath d='M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7'/%3E%3C/svg%3E") center / contain no-repeat;
+}
 .fandez-install-banner.fandez-install-banner--forced {
   z-index: 520;
+}
+.fandez-install-banner--ios-guide {
+  padding-bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
 }
 html.fandez-standalone .fandez-install-entry,
 html.fandez-standalone .fandez-install-banner {
   display: none !important;
 }
 body.fandez-install-visible {
-  padding-bottom: 8.5rem;
+  padding-bottom: 11rem;
 }
 @media (min-width: 901px) {
   .fandez-install-banner { display: none !important; }
