@@ -280,6 +280,26 @@ html {
   .verify-welcome__mark { animation: none; }
 }
 
+.verify-otp {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+.verify-otp__digit {
+  width: 100%;
+  min-height: 3.1rem;
+  padding: 0.55rem 0.15rem !important;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  caret-color: var(--zilo-accent);
+}
+.verify-otp__digit:focus {
+  border-color: rgba(var(--zilo-accent-rgb), 0.65);
+  box-shadow: 0 0 0 3px rgba(var(--zilo-accent-rgb), 0.14);
+}
+
 .password-field-input {
   padding-right: 2.75rem;
 }
