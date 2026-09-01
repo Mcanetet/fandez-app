@@ -320,6 +320,7 @@ app.get('/quienes-somos', (req, res) => {
 app.use('/', authRoutes);
 app.use('/cliente', (req, res, next) => {
   if (!store.isReady()) {
+    res.set('Retry-After', '5');
     return res.status(503).render('error', {
       title: req.t('error.connecting.title'),
       message: req.t('error.connecting.message'),
@@ -330,6 +331,7 @@ app.use('/cliente', (req, res, next) => {
 });
 app.use('/proveedor', (req, res, next) => {
   if (!store.isReady()) {
+    res.set('Retry-After', '5');
     return res.status(503).render('error', {
       title: req.t('error.connecting.title'),
       message: req.t('error.connecting.message'),
@@ -340,6 +342,7 @@ app.use('/proveedor', (req, res, next) => {
 });
 app.use('/tecnico', (req, res, next) => {
   if (!store.isReady()) {
+    res.set('Retry-After', '5');
     return res.status(503).render('error', {
       title: req.t('error.connecting.title'),
       message: req.t('error.connecting.message'),
@@ -513,6 +516,12 @@ async function initDatabase() {
 }
 
 async function start() {
+  console.log('Inicializando base de datos…');
+  await initDatabase();
+  if (!store.isReady()) {
+    console.error('⚠ La app arrancó sin base de datos lista — las rutas /cliente y /proveedor mostrarán 503 hasta reiniciar.');
+  }
+
   server.listen(PORT, '0.0.0.0', () => {
     const mode = appMode.getPublicStatus();
     console.log(`Servidor escuchando en puerto ${PORT}`);
@@ -524,8 +533,10 @@ async function start() {
     console.log('DB_HOST:', process.env.DB_HOST || '(no definido)');
     console.log('DB_NAME:', process.env.DB_NAME || '(no definido)');
     console.log('DB_USER:', process.env.DB_USER || '(no definido)');
+    if (store.isReady()) {
+      console.log('✓ Store listo — clientes y socios pueden usar la app');
+    }
   });
-  initDatabase();
   return { app, server, io };
 }
 

@@ -244,7 +244,11 @@ async function init() {
   COVERAGE_COMMUNES = data.coverageCommunes || [];
   COVERAGE_REGIONS = data.coverageRegions || [];
   rebuildCoverageMap();
-  await ensureDemoPartnerWallReady();
+  try {
+    await ensureDemoPartnerWallReady();
+  } catch (err) {
+    console.error('[demo-partner] No se pudo preparar socio demo:', err.message);
+  }
   initialized = true;
   const events = require('../lib/events');
   events.init(module.exports);
@@ -1146,16 +1150,22 @@ async function ensureDemoPartnerWallReady() {
   const allServices = SERVICES.filter((s) => s.enabled !== false).map((s) => s.id);
   provider.specialties = allServices;
 
-  const tech = getTechniciansByProvider(DEMO_PARTNER_ID).find((t) => t.active !== false);
   const missingCoverage = allServices.some((sid) => !hasTechnicianCoverage(DEMO_PARTNER_ID, sid));
-  if (!tech || missingCoverage) {
+  if (missingCoverage) {
     const selfResult = await enableSelfOperator(DEMO_PARTNER_ID);
     if (selfResult?.error) {
       console.warn('[demo-partner] Sin cobertura técnica:', selfResult.error);
     }
   }
 
-  promoteDueScheduledSearches();
+  const promoted = promoteDueScheduledSearches();
+  if (promoted.length) {
+    afterEvent((ev) => {
+      promoted.forEach((request) => {
+        try { ev.onServiceSearching?.(request); } catch (_) { /* ignore */ }
+      });
+    });
+  }
 }
 
 function beginSearchingRequest(request, { persist = true } = {}) {

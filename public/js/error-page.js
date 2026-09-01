@@ -1,10 +1,34 @@
 (function () {
-  const cfg = window.FandezErrorPage;
-  if (!cfg || !cfg.slogans || !cfg.slogans.length) return;
+  const cfg = window.FandezErrorPage || {};
+
+  function runAutoRetry() {
+    if (!cfg.autoReloadMs || cfg.autoReloadMs <= 0) return;
+    const label = document.getElementById('errorAutoRetry');
+    if (!label) return;
+
+    const template = label.dataset.template
+      || (label.textContent && (label.textContent.includes('{{s}}') || label.textContent.includes('{seconds}'))
+        ? label.textContent
+        : '')
+      || 'Reintentando en {seconds}s…';
+
+    const started = Date.now();
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((cfg.autoReloadMs - (Date.now() - started)) / 1000));
+      label.textContent = template
+        .replace(/\{\{s\}\}/g, String(left))
+        .replace(/\{seconds\}/g, String(left));
+      if (left <= 0) location.reload();
+    };
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  runAutoRetry();
 
   const sloganEl = document.getElementById('errorSloganText');
   const tips = document.querySelectorAll('.fandez-error-tip');
-  if (!sloganEl) return;
+  if (!cfg.slogans || !cfg.slogans.length || !sloganEl) return;
 
   let sloganIdx = 0;
   let tipIdx = 0;
@@ -31,26 +55,4 @@
 
   setInterval(cycleSlogan, cfg.interval || 2800);
   setInterval(cycleTip, (cfg.interval || 2800) + 400);
-
-  if (cfg.autoReloadMs && cfg.autoReloadMs > 0) {
-    const label = document.getElementById('errorAutoRetry');
-    const started = Date.now();
-    const tick = () => {
-      const left = Math.max(0, Math.ceil((cfg.autoReloadMs - (Date.now() - started)) / 1000));
-      if (label && label.dataset.template) {
-        label.textContent = label.dataset.template.replace('{{s}}', String(left));
-      }
-      if (left <= 0) location.reload();
-    };
-    if (label) {
-      label.dataset.template = label.textContent.includes('{{s}}')
-        ? label.textContent
-        : (label.textContent || 'Reintentando en {{s}}s…');
-      if (!label.dataset.template.includes('{{s}}')) {
-        label.dataset.template = 'Reintentando en {{s}}s…';
-      }
-    }
-    tick();
-    setInterval(tick, 1000);
-  }
 })();

@@ -88,7 +88,7 @@
         <a href="/registro" class="fandez-error-link-cta"><%= tt('error.lost.cta_signup') %> →</a>
       <% } %>
       <% if (isConnecting) { %>
-        <p class="fandez-error-autoretry" id="errorAutoRetry" aria-live="polite"><%= tt('error.system.autoretry') %></p>
+        <p class="fandez-error-autoretry" id="errorAutoRetry" data-template="<%= tt('error.system.autoretry') %>" aria-live="polite"><%= tt('error.system.autoretry') %></p>
       <% } %>
     </div>
 

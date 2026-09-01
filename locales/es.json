@@ -565,7 +565,7 @@
   "error.system.cta_retry": "Reintentar ahora",
   "error.system.cta_whatsapp": "Hablar con Fandez",
   "error.system.whatsapp_msg": "Hola Fandez, la app me dio un error y necesito ayuda para continuar con mi servicio.",
-  "error.system.autoretry": "Reintentando solos en {{s}}s…",
+  "error.system.autoretry": "Reintentando solos en {seconds}s…",
 
   "error.blocked.badge": "Acceso restringido",
   "error.blocked.headline": "Por acá no es",

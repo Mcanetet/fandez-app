@@ -1489,7 +1489,12 @@
 
   function pollForProvider(requestId, attempts = 0, startedAt = Date.now()) {
     fetch(`/cliente/solicitud/${requestId}`)
-      .then(r => r.json())
+      .then(async (r) => {
+        if (r.status === 503) {
+          throw new Error('store_not_ready');
+        }
+        return r.json();
+      })
       .then(data => {
         if (data.request?.status === 'scheduled') {
           showScheduledPanel(data.request);
@@ -1530,8 +1535,16 @@
         }
         setTimeout(() => pollForProvider(requestId, attempts + 1, startedAt), SEARCH_POLL_MS);
       })
-      .catch(() => {
-        setTimeout(() => pollForProvider(requestId, attempts + 1, startedAt), SEARCH_POLL_MS);
+      .catch((err) => {
+        if (err?.message === 'store_not_ready') {
+          const sub = document.getElementById('loaderSub');
+          if (sub) {
+            sub.textContent = t('client.service.searching_sub_retry')
+              || 'La app se está reconectando. Tu pedido sigue en cola; reintentamos en unos segundos…';
+          }
+        }
+        const delay = err?.message === 'store_not_ready' ? 5000 : SEARCH_POLL_MS;
+        setTimeout(() => pollForProvider(requestId, attempts + 1, startedAt), delay);
       });
   }
 
@@ -1540,7 +1553,12 @@
     if (window.FandezAlerts) FandezAlerts.ensurePermission();
     // Estado inicial: se define al primer poll / socket.
     fetch(`/cliente/solicitud/${requestId}`)
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (r.status === 503) {
+          throw new Error('store_not_ready');
+        }
+        return r.json();
+      })
       .then((data) => {
         if (data.request?.status === 'scheduled') {
           showScheduledPanel(data.request);
@@ -1558,7 +1576,14 @@
       })
       .catch(() => {
         loaderOverlay?.classList.remove('hidden');
+        const sub = document.getElementById('loaderSub');
+        if (sub) {
+          sub.textContent = t('client.service.searching_sub_retry') || 'La app se está reconectando. Tu pedido sigue en cola; reintentamos en unos segundos…';
+        }
         startSearchExperience();
+        setTimeout(() => {
+          if (currentRequestId === requestId) pollForProvider(requestId, 0, Date.now());
+        }, 4000);
       });
 
     const joinRoom = () => socket.emit('register_client', requestId);

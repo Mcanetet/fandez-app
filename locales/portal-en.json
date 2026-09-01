@@ -88,6 +88,7 @@
   "client.service.processing": "Processing…",
   "client.service.searching": "Looking for a nearby technician…",
   "client.service.searching_sub": "We are contacting available partners near you",
+  "client.service.searching_sub_retry": "The app is reconnecting. Your request stays in the queue; we'll retry in a few seconds…",
   "client.service.searching_hint": "You can leave this screen open or minimize the app — we will notify you when someone accepts.",
   "client.service.search_elapsed": "Search time",
   "client.service.search_progress_start": "Order received",

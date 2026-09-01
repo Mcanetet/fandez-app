@@ -88,6 +88,7 @@
   "client.service.processing": "Procesando…",
   "client.service.searching": "Buscando técnico cercano…",
   "client.service.searching_sub": "Estamos contactando socios disponibles cerca de ti",
+  "client.service.searching_sub_retry": "La app se está reconectando. Tu pedido sigue en cola; reintentamos en unos segundos…",
   "client.service.searching_hint": "Puedes dejar esta pantalla abierta o minimizar la app: te avisamos cuando alguien acepte.",
   "client.service.search_elapsed": "Tiempo de búsqueda",
   "client.service.search_progress_start": "Pedido recibido",
