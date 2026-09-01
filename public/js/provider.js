@@ -302,7 +302,6 @@
   }
 
   async function loadWorkWall() {
-    if (!onlineToggle?.checked) return;
     try {
       const res = await fetch('/proveedor/muro');
       const data = await res.json();

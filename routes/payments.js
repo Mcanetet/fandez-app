@@ -427,6 +427,19 @@ router.get('/transferencia', requireRole('client'), (req, res) => {
 router.post('/transferencia/confirmar', requireRole('client'), (req, res) => {
   const result = store.submitTransferPayment(req.body.requestId, req.session.user.id);
   if (result.error) return res.status(400).json({ success: false, error: result.error });
+
+  // Modo demo: activar búsqueda al instante (en producción el admin confirma el abono).
+  if (!appMode.isProductionMode()) {
+    const approved = store.approveTransferPayment(req.body.requestId);
+    if (approved) {
+      notifyProviders(req, approved);
+      return res.json({
+        success: true,
+        redirect: paymentSuccessPath(req.body.requestId)
+      });
+    }
+  }
+
   res.json({
     success: true,
     redirect: `/pagos/transferencia?ref=${req.body.requestId}&enviado=1`

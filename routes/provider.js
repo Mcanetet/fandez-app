@@ -108,6 +108,14 @@ router.get('/pendientes', requireRole('provider'), (req, res) => {
 });
 
 router.get('/muro', requireRole('provider'), (req, res) => {
+  if (typeof store.promoteDueScheduledSearches === 'function') {
+    const promoted = store.promoteDueScheduledSearches();
+    const io = req.app.get('io');
+    if (io && promoted.length) {
+      const { notifyProvidersForRequest } = require('../lib/dispatch');
+      promoted.forEach((request) => notifyProvidersForRequest(io, request));
+    }
+  }
   res.json({ success: true, items: buildWorkWallPayload(req.session.user.id) });
 });
 

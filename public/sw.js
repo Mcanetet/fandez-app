@@ -1,5 +1,5 @@
 /* Fandez PWA — service worker mínimo (requerido para “Instalar app” en Chrome/Android). */
-const SW_VERSION = 'fandez-sw-v21';
+const SW_VERSION = 'fandez-sw-v22';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

@@ -521,8 +521,15 @@ function rowToCoverageRegion(row) {
   };
 }
 
+function normalizePaymentStatus(status) {
+  const raw = String(status || '').trim().toLowerCase();
+  if (raw === 'paid') return 'approved';
+  return status || 'pending';
+}
+
 function rowToRequest(row) {
   const payload = parseJson(row.payload, {});
+  const paymentStatus = normalizePaymentStatus(row.payment_status || payload.paymentStatus);
   return {
     ...payload,
     id: row.id,
@@ -530,7 +537,7 @@ function rowToRequest(row) {
     providerId: row.provider_id,
     serviceId: row.service_id,
     status: row.status,
-    paymentStatus: row.payment_status,
+    paymentStatus,
     createdAt: payload.createdAt || (row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString())
   };
 }
@@ -943,6 +950,8 @@ async function ensureDemoData() {
   await ensureDemoPricing();
   await ensureDemoUsers();
   await ensureDemoExtras();
+  // Siempre: el socio demo debe poder ver pedidos reales (cobertura + técnico).
+  await syncDemoProviderCoverage();
   console.log('✓ Catálogo verificado — historial de pagos y datos existentes conservados');
   return true;
 }

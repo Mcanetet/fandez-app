@@ -232,7 +232,7 @@ async function init() {
     repository.persist(() => repository.savePricingConfig(PRICING_CONFIG), 'pricing');
   }
   USERS = data.users;
-  requests = data.requests;
+  requests = data.requests.map(normalizeRequestRecord);
   homeLogbook = data.homeLogbook;
   COMPLAINTS = data.complaints;
   CHATS = data.chats;
@@ -244,6 +244,7 @@ async function init() {
   COVERAGE_COMMUNES = data.coverageCommunes || [];
   COVERAGE_REGIONS = data.coverageRegions || [];
   rebuildCoverageMap();
+  await ensureDemoPartnerWallReady();
   initialized = true;
   const events = require('../lib/events');
   events.init(module.exports);
@@ -1117,6 +1118,46 @@ function resolveSearchStartAt(request, fromDate = new Date()) {
   return new Date(fromDate.getTime() + hoursUntilSearch * 3600 * 1000);
 }
 
+function normalizePaymentStatus(status) {
+  const raw = String(status || '').trim().toLowerCase();
+  if (raw === 'paid') return 'approved';
+  return status || 'pending';
+}
+
+function isRequestPaymentApproved(request) {
+  return normalizePaymentStatus(request?.paymentStatus) === 'approved';
+}
+
+function normalizeRequestRecord(request) {
+  if (!request) return request;
+  const paymentStatus = normalizePaymentStatus(request.paymentStatus);
+  if (paymentStatus !== request.paymentStatus) {
+    request.paymentStatus = paymentStatus;
+  }
+  return request;
+}
+
+const DEMO_PARTNER_ID = 'provider-pedro';
+
+async function ensureDemoPartnerWallReady() {
+  const provider = getUserById(DEMO_PARTNER_ID);
+  if (!provider || provider.role !== 'provider') return;
+
+  const allServices = SERVICES.filter((s) => s.enabled !== false).map((s) => s.id);
+  provider.specialties = allServices;
+
+  const tech = getTechniciansByProvider(DEMO_PARTNER_ID).find((t) => t.active !== false);
+  const missingCoverage = allServices.some((sid) => !hasTechnicianCoverage(DEMO_PARTNER_ID, sid));
+  if (!tech || missingCoverage) {
+    const selfResult = await enableSelfOperator(DEMO_PARTNER_ID);
+    if (selfResult?.error) {
+      console.warn('[demo-partner] Sin cobertura técnica:', selfResult.error);
+    }
+  }
+
+  promoteDueScheduledSearches();
+}
+
 function beginSearchingRequest(request, { persist = true } = {}) {
   if (!request) return null;
   const nowIso = new Date().toISOString();
@@ -1136,7 +1177,7 @@ function activateRequest(requestId) {
   if (request.status === 'searching') return request;
   if (request.status === 'scheduled') return request;
   if (['assigned', 'in_progress', 'completed', 'cancelled'].includes(request.status)) return null;
-  if (request.paymentStatus !== 'approved') return null;
+  if (!isRequestPaymentApproved(request)) return null;
 
   const now = new Date();
   const searchAt = resolveSearchStartAt(request, now);
@@ -3074,12 +3115,14 @@ function getOnlineTechnicians(serviceId) {
 }
 
 function getWorkWallItems(userId) {
+  promoteDueScheduledSearches();
   const user = getUserById(userId);
   if (!user || !['provider', 'tecnico'].includes(user.role)) return [];
   const specs = user.specialties || [];
   return requests
     .filter((r) => {
-      if (r.status !== 'searching' || !specs.includes(r.serviceId)) return false;
+      if (r.status !== 'searching' || !isRequestPaymentApproved(r) || r.providerId) return false;
+      if (!specs.includes(r.serviceId)) return false;
       if (r.clientId === userId) return false;
       if (user.role === 'provider') {
         if (user.wallDismissed?.[r.id]) return false;
