@@ -137,8 +137,10 @@
   const otpError = document.getElementById('otpError');
   const submitBtn = document.getElementById('verifySubmit');
   const btn = document.getElementById('btnResend');
+  const resendLabel = document.getElementById('resendLabel');
   const timerEl = document.getElementById('resendTimer');
   const expiryHint = document.getElementById('codeExpiryHint');
+  const defaultResendLabel = resendLabel ? resendLabel.textContent : '';
   let cooldown = Number(<%= Number(cooldown || 0) %>) || 0;
   let cooldownTimer = null;
   let expiryTimer = null;
@@ -149,7 +151,11 @@
     submitting: <%= JSON.stringify(t('verify.submitting')) %>,
     hint: <%= JSON.stringify(t('verify.hint')) %>,
     expiresIn: <%= JSON.stringify(t('verify.expires_in')) %>,
-    expired: <%= JSON.stringify(t('verify.expired')) %>
+    expired: <%= JSON.stringify(t('verify.expired')) %>,
+    resendOk: <%= JSON.stringify(t('verify.resend_ok')) %>,
+    resendDemo: <%= JSON.stringify(t('verify.resend_demo')) %>,
+    resendSending: <%= JSON.stringify(t('verify.resend_sending')) %>,
+    resendPending: <%= JSON.stringify(t('verify.resend_pending')) %>
   };
 
   function normalizeCode(raw) {
@@ -320,30 +326,52 @@
   btn?.addEventListener('click', async () => {
     if (!btn || btn.disabled) return;
     btn.disabled = true;
+    if (resendLabel) resendLabel.textContent = messages.resendSending;
+    if (timerEl) timerEl.textContent = '';
     try {
       const res = await fetch('/verificar-email/reenviar', {
         method: 'POST',
-        headers: { Accept: 'application/json' }
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
       });
-      const data = await res.json();
-      if (!data.success) {
-        FandezNotify?.show(data.error || 'No se pudo reenviar', 'warning');
-        startCooldown(data.cooldown != null ? data.cooldown : 0);
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (_) {
+        data = null;
+      }
+      if (!res.ok || !data || !data.success) {
+        const errMsg = (data && data.error)
+          || (res.status === 401 ? 'Sesión expirada. Vuelve a iniciar sesión.' : null)
+          || 'No se pudo reenviar el código';
+        if (window.FandezNotify) FandezNotify.show(errMsg, 'warning');
+        else showOtpError(errMsg);
+        if (resendLabel) resendLabel.textContent = defaultResendLabel;
+        startCooldown(data && data.cooldown != null ? data.cooldown : 0);
         return;
       }
-      FandezNotify?.show(data.demo
-        ? <%= JSON.stringify(t('verify.resend_demo')) %>
-        : <%= JSON.stringify(t('verify.resend_ok')) %>, 'success');
+      const okMsg = data.demo
+        ? messages.resendDemo
+        : (data.pending ? messages.resendPending : messages.resendOk);
+      if (window.FandezNotify) FandezNotify.show(okMsg, 'success');
+      else if (expiryHint) {
+        expiryHint.textContent = okMsg;
+        expiryHint.classList.remove('text-amber-800', 'font-semibold');
+      }
       autoSubmitting = false;
       setCode('', { submitWhenFull: false });
       codeInput?.focus();
+      if (resendLabel) resendLabel.textContent = defaultResendLabel;
       startCooldown(data.cooldown != null ? data.cooldown : 60);
       startExpiryWatch(data.expiresAt || null);
-      if (expiryHint && data.expiresAt) {
-        expiryHint.classList.remove('text-amber-800', 'font-semibold');
-      }
     } catch (_) {
-      FandezNotify?.show('Error de conexión', 'error');
+      const errMsg = 'Error de conexión. Intenta de nuevo.';
+      if (window.FandezNotify) FandezNotify.show(errMsg, 'error');
+      else showOtpError(errMsg);
+      if (resendLabel) resendLabel.textContent = defaultResendLabel;
       btn.disabled = false;
     }
   });

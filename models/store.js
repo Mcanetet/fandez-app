@@ -4817,7 +4817,7 @@ function isEmailVerified(user) {
   return Boolean(user.emailVerifiedAt);
 }
 
-async function issueEmailVerification(userId, { locale = 'es', respectCooldown = false } = {}) {
+async function issueEmailVerification(userId, { locale = 'es', respectCooldown = false, waitForMail = false } = {}) {
   const user = getUserById(userId);
   if (!user || isEmailVerified(user)) return { skipped: true };
   if (isDemoAccount(user)) return { skipped: true, demo: true };
@@ -4843,17 +4843,40 @@ async function issueEmailVerification(userId, { locale = 'es', respectCooldown =
     return { error: 'No se pudo enviar el código. Intenta más tarde.' };
   }
 
+  const mailPromise = emailVerification.dispatchVerificationEmail(user, prepared)
+    .catch((err) => {
+      console.error('[verify:error]', err.message);
+      return { error: err.message || 'mail_error' };
+    });
+
   let mailResult = null;
   try {
-    const mailPromise = emailVerification.dispatchVerificationEmail(user, prepared)
-      .catch((err) => {
-        console.error('[verify:error]', err.message);
-        return { error: err.message || 'mail_error' };
-      });
-    mailResult = await Promise.race([
-      mailPromise,
-      new Promise((resolve) => setTimeout(() => resolve({ pending: true }), 8000))
-    ]);
+    if (waitForMail) {
+      // Reenvío: el usuario espera; no fingir éxito si SMTP aún no respondió.
+      mailResult = await Promise.race([
+        mailPromise,
+        new Promise((resolve) => setTimeout(
+          () => resolve({ error: 'El servidor de correo tarda demasiado. Intenta de nuevo en un minuto.' }),
+          28000
+        ))
+      ]);
+    } else {
+      mailResult = await Promise.race([
+        mailPromise,
+        new Promise((resolve) => setTimeout(() => resolve({ pending: true }), 8000))
+      ]);
+      if (mailResult?.pending) {
+        // Si falla en segundo plano, liberar cooldown para poder reintentar.
+        mailPromise.then(async (finalResult) => {
+          if (!finalResult?.error) return;
+          console.error('[verify:bg-fail]', finalResult.error);
+          const u = getUserById(userId);
+          if (!u || u.emailVerificationCodeHash !== prepared.codeHash) return;
+          u.emailVerificationSentAt = null;
+          try { await repository.saveUser(u); } catch (_) { /* ignore */ }
+        }).catch(() => {});
+      }
+    }
   } catch (err) {
     console.error('[verify:error]', err.message);
     mailResult = { error: err.message || 'mail_error' };
@@ -4933,7 +4956,11 @@ async function resendEmailVerification(userId, { locale = 'es' } = {}) {
       cooldown: emailVerification.resendCooldownSeconds(user)
     };
   }
-  return issueEmailVerification(userId, { locale });
+  const result = await issueEmailVerification(userId, { locale, waitForMail: true });
+  if (result?.skipped && !result.demo) {
+    return { error: 'No se pudo reenviar el código. Recarga la página e intenta de nuevo.' };
+  }
+  return result;
 }
 
 function recordConsent({

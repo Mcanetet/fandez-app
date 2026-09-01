@@ -559,30 +559,39 @@ router.post('/verificar-email', async (req, res) => {
 });
 
 router.post('/verificar-email/reenviar', async (req, res) => {
-  if (!req.session.user) return res.status(401).json({ error: 'No autenticado' });
+  if (!req.session.user) return res.status(401).json({ success: false, error: 'No autenticado' });
   const user = store.getUserById(req.session.user.id);
-  if (!user) return res.status(401).json({ error: 'No autenticado' });
+  if (!user) return res.status(401).json({ success: false, error: 'No autenticado' });
 
-  const result = await store.resendEmailVerification(user.id, { locale: req.locale || 'es' });
-  if (result.error) {
-    const status = result.cooldown ? 429 : 502;
-    const errorMsg = result.error === 'auth_failed'
-      ? req.t('verify.mail_auth_error')
-      : result.error;
-    return res.status(status).json({
+  try {
+    const result = await store.resendEmailVerification(user.id, { locale: req.locale || 'es' });
+    if (result.error) {
+      const status = result.cooldown ? 429 : 502;
+      const errorMsg = result.error === 'auth_failed'
+        ? req.t('verify.mail_auth_error')
+        : result.error;
+      return res.status(status).json({
+        success: false,
+        error: errorMsg,
+        cooldown: result.cooldown || 0
+      });
+    }
+    const fresh = store.getUserById(user.id);
+    return res.json({
+      success: true,
+      demo: Boolean(result.demo),
+      pending: Boolean(result.pending),
+      cooldown: result.demo ? 0 : (emailVerification.RESEND_COOLDOWN_MS / 1000),
+      expiresAt: fresh?.emailVerificationExpiresAt || null
+    });
+  } catch (err) {
+    console.error('[verificar-email/reenviar]', err.message);
+    return res.status(500).json({
       success: false,
-      error: errorMsg,
-      cooldown: result.cooldown || 0
+      error: 'No se pudo reenviar el código. Intenta de nuevo.',
+      cooldown: 0
     });
   }
-  const fresh = store.getUserById(user.id);
-  res.json({
-    success: true,
-    demo: result.demo || false,
-    pending: Boolean(result.pending),
-    cooldown: emailVerification.RESEND_COOLDOWN_MS / 1000,
-    expiresAt: fresh?.emailVerificationExpiresAt || null
-  });
 });
 
 router.get('/logout', (req, res) => {
