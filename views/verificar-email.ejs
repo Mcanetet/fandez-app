@@ -21,11 +21,17 @@
         </div>
         <p class="zilo-label mb-2"><%= t('app.name') %></p>
         <h1 class="zilo-display text-[1.85rem] leading-tight mb-2">
-          <%= firstName
-            ? t('verify.welcome_title_named', { name: firstName })
-            : t('verify.welcome_title') %>
+          <%= (typeof pendingLogin !== 'undefined' && pendingLogin)
+            ? t('verify.pending_title')
+            : (firstName
+              ? t('verify.welcome_title_named', { name: firstName })
+              : t('verify.welcome_title')) %>
         </h1>
-        <p class="text-sm text-zilo-muted leading-relaxed"><%= t('verify.welcome_body') %></p>
+        <p class="text-sm text-zilo-muted leading-relaxed">
+          <%= (typeof pendingLogin !== 'undefined' && pendingLogin)
+            ? t('verify.pending_body')
+            : t('verify.welcome_body') %>
+        </p>
       </div>
 
       <ol class="verify-steps mb-5" aria-label="<%= t('verify.title') %>">

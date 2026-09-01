@@ -49,8 +49,21 @@ function getDashboardPath(role) {
 
 async function redirectAfterAuth(req, res, user) {
   if (!store.isEmailVerified(user)) {
-    await store.issueEmailVerification(user.id, { locale: req.locale || 'es' }).catch(() => {});
-    return res.redirect('/verificar-email');
+    const qs = new URLSearchParams({ pending: '1' });
+    try {
+      const issue = await store.issueEmailVerification(user.id, {
+        locale: req.locale || 'es',
+        respectCooldown: true
+      });
+      if (issue?.authFailed) qs.set('mail', 'auth');
+      else if (issue?.error && !issue?.skippedCooldown) qs.set('mail', 'error');
+      else if (issue?.pending || issue?.skippedCooldown) qs.set('mail', 'pending');
+      else if (issue?.demo) qs.set('mail', 'demo');
+    } catch (err) {
+      console.error('[login] verificación email:', err.message);
+      qs.set('mail', 'error');
+    }
+    return res.redirect(`/verificar-email?${qs.toString()}`);
   }
   return res.redirect(getDashboardPath(user.role));
 }
@@ -68,7 +81,9 @@ function loginRenderOptions(req, extra = {}) {
 router.get('/login', (req, res) => {
   if (req.session.user) {
     const user = store.getUserById(req.session.user.id);
-    if (user && !store.isEmailVerified(user)) return res.redirect('/verificar-email');
+    if (user && !store.isEmailVerified(user)) {
+      return res.redirect('/verificar-email?pending=1');
+    }
     return res.redirect(getDashboardPath(req.session.user.role));
   }
   res.render('login', loginRenderOptions(req, { error: null }));
@@ -479,6 +494,9 @@ router.get('/verificar-email', (req, res) => {
   if (req.query.exists === '1') {
     success = req.t('verify.exists_resent');
   }
+  if (req.query.pending === '1') {
+    success = req.t('verify.pending_login');
+  }
   if (req.query.mail === 'auth') {
     error = req.t('verify.mail_auth_error');
     cooldown = 0;
@@ -488,14 +506,17 @@ router.get('/verificar-email', (req, res) => {
   } else if (req.query.mail === 'demo') {
     success = req.t('verify.mail_demo');
   } else if (req.query.mail === 'pending') {
-    success = req.t('verify.mail_pending');
+    success = req.query.pending === '1'
+      ? req.t('verify.pending_login')
+      : req.t('verify.mail_pending');
   }
 
   res.render('verificar-email', {
-    title: req.query.welcome === '1' ? 'Bienvenido — Fandez' : 'Verificar correo — Fandez',
+    title: req.query.pending === '1' ? 'Verificación pendiente — Fandez' : (req.query.welcome === '1' ? 'Bienvenido — Fandez' : 'Verificar correo — Fandez'),
     email: user.email,
     userName: user.name || '',
-    welcome: req.query.welcome === '1' || !req.query.exists,
+    welcome: req.query.welcome === '1' || req.query.pending === '1' || !req.query.exists,
+    pendingLogin: req.query.pending === '1',
     company,
     error,
     success,

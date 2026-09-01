@@ -67,7 +67,7 @@ function requireVerifiedEmail(req, res, next) {
   if (!user || store.isEmailVerified(user)) return next();
   if (user.role === 'admin') return next();
   if (wantsJson(req)) return res.status(403).json({ success: false, error: 'Debes verificar tu email para continuar.' });
-  return res.redirect('/verificar-email');
+  return res.redirect('/verificar-email?pending=1');
 }
 
 module.exports = { requireAuth, requireRole, requireVerifiedEmail };

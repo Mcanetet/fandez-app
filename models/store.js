@@ -4817,10 +4817,19 @@ function isEmailVerified(user) {
   return Boolean(user.emailVerifiedAt);
 }
 
-async function issueEmailVerification(userId, { locale = 'es' } = {}) {
+async function issueEmailVerification(userId, { locale = 'es', respectCooldown = false } = {}) {
   const user = getUserById(userId);
   if (!user || isEmailVerified(user)) return { skipped: true };
   if (isDemoAccount(user)) return { skipped: true, demo: true };
+
+  if (respectCooldown && !emailVerification.canResend(user)) {
+    return {
+      success: true,
+      skippedCooldown: true,
+      cooldown: emailVerification.resendCooldownSeconds(user),
+      pending: true
+    };
+  }
 
   const prepared = emailVerification.prepareVerification(user, { locale });
   user.emailVerificationCodeHash = prepared.codeHash;
