@@ -137,7 +137,7 @@
   "verify.subtitle": "Revisa tu bandeja de entrada. El código llegó a",
   "verify.inbox_title": "Revisa tu correo",
   "verify.code_label": "Ingresa el código de 6 dígitos",
-  "verify.code_instruction": "Escríbelo de corrido (6 números). También puedes tocar la sugerencia de Gmail o pegarlo del correo.",
+  "verify.code_instruction": "Toca el cuadro e escribe los 6 números seguidos (o pégalos del correo).",
   "verify.digit_label": "Dígito {{n}}",
   "verify.error_incomplete": "Ingresa los 6 dígitos del correo.",
   "verify.submitting": "Validando código…",

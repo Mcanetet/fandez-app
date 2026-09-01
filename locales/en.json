@@ -137,7 +137,7 @@
   "verify.subtitle": "Check your inbox. The code was sent to",
   "verify.inbox_title": "Check your email",
   "verify.code_label": "Enter the 6-digit code",
-  "verify.code_instruction": "Type all 6 digits in a row. You can also tap the Gmail suggestion or paste it from the email.",
+  "verify.code_instruction": "Tap the field and type all 6 digits in a row (or paste them from the email).",
   "verify.digit_label": "Digit {{n}}",
   "verify.error_incomplete": "Enter all 6 digits from the email.",
   "verify.submitting": "Validating code…",
