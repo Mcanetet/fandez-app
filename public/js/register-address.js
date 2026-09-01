@@ -657,7 +657,8 @@
         setMapStatus(t('register.address_manual_hint'));
         syncConfirmButton();
         if (confirmBtn) {
-          confirmBtn.classList.remove('hidden');
+          confirmBtn.hidden = false;
+          confirmBtn.disabled = false;
           confirmBtn.focus();
         }
       }
