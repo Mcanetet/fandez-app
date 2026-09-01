@@ -89,6 +89,7 @@ app.get('/health', async (req, res) => {
   }
   const version = getAppVersionInfo();
   const mode = appMode.getPublicStatus();
+  const mailer = require('./lib/mailer');
   const payload = {
     ok: store.isReady() && dbOk,
     app: 'fandez',
@@ -96,10 +97,19 @@ app.get('/health', async (req, res) => {
     mode: mode.mode,
     ready: store.isReady(),
     database: dbOk ? 'connected' : (dbConfigured ? 'connecting' : 'not_configured'),
+    smtp: mailer.smtpStatus(),
     uptime: process.uptime()
   };
   if (!store.isReady() && global.__ziloInitError) {
     payload.initError = global.__ziloInitError;
+  }
+  if (req.query.smtp === '1' && mailer.isConfigured()) {
+    const verified = await mailer.verifySmtp();
+    payload.smtp = {
+      ...payload.smtp,
+      verified: Boolean(verified.ok),
+      verifyError: verified.ok ? null : (verified.reason || 'verify_failed')
+    };
   }
   if (process.env.HEALTH_VERBOSE === 'true') {
     payload.gitCommit = version.gitCommit;
