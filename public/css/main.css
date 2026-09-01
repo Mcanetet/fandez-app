@@ -218,6 +218,10 @@ html {
   .address-autocomplete-input.is-searching { animation: none; }
 }
 
+.address-confirm-manual[hidden] {
+  display: none !important;
+}
+
 .password-field-input {
   padding-right: 2.75rem;
 }

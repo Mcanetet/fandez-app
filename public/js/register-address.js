@@ -112,8 +112,29 @@
     const canConfirm = !addressInput.disabled
       && !addressConfirmed
       && Boolean(parseStreetAndNumber(addressInput.value));
-    confirmBtn.classList.toggle('hidden', !canConfirm);
+    confirmBtn.hidden = !canConfirm;
     confirmBtn.disabled = !canConfirm;
+  }
+
+  function communeCopy(kind) {
+    if (!communeSelect) {
+      if (kind === 'placeholder') return t('register.commune_placeholder') || 'Selecciona tu comuna';
+      if (kind === 'loading') return t('register.commune_loading') || 'Cargando…';
+      return t('register.commune_region_first') || 'Primero elige la región';
+    }
+    if (kind === 'placeholder') {
+      return communeSelect.dataset.placeholder
+        || t('register.commune_placeholder')
+        || 'Selecciona tu comuna';
+    }
+    if (kind === 'loading') {
+      return communeSelect.dataset.loading
+        || t('register.commune_loading')
+        || 'Cargando…';
+    }
+    return communeSelect.dataset.regionFirst
+      || t('register.commune_region_first')
+      || 'Primero elige la región';
   }
 
   function onPinDrag(lat, lng) {
@@ -248,7 +269,7 @@
 
   function fillCommuneOptions(communes, selectedCode) {
     if (!communeSelect) return;
-    const options = [`<option value="">${escapeHtml(t('register.commune_placeholder'))}</option>`]
+    const options = [`<option value="">${escapeHtml(communeCopy('placeholder'))}</option>`]
       .concat((communes || []).map((c) => (
         `<option value="${escapeHtml(c.code)}"${selectedCode === c.code ? ' selected' : ''}>${escapeHtml(c.name)}</option>`
       )));
@@ -266,12 +287,12 @@
     clearTimeout(mapResetTimer);
 
     if (!regionCode) {
-      resetCommuneOptions(t('register.commune_region_first'));
+      resetCommuneOptions(communeCopy('regionFirst'));
       resetMapToDefault();
       return;
     }
 
-    resetCommuneOptions(t('register.commune_loading'));
+    resetCommuneOptions(communeCopy('loading'));
     try {
       const res = await fetch(`/registro/regiones/${encodeURIComponent(regionCode)}/comunas`);
       const data = await res.json();
@@ -284,7 +305,7 @@
         setMapStatus('');
       }
     } catch (_) {
-      resetCommuneOptions(t('register.commune_placeholder'));
+      resetCommuneOptions(communeCopy('placeholder'));
       setMapStatus(t('register.address_search_fail'));
     }
   }
@@ -301,7 +322,7 @@
       return;
     }
 
-    setMapStatus(t('register.commune_loading'));
+    setMapStatus(communeCopy('loading'));
     try {
       const res = await fetch(
         `/registro/comunas/${encodeURIComponent(regionCode)}/${encodeURIComponent(code)}`
@@ -744,7 +765,7 @@
       }
       syncConfirmButton();
     } else {
-      resetCommuneOptions(t('register.commune_region_first'));
+      resetCommuneOptions(communeCopy('regionFirst'));
       setAddressFieldEnabled(false);
       resetMapToDefault();
     }

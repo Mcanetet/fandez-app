@@ -133,7 +133,11 @@
         <div>
           <label for="address_commune" class="zilo-label block mb-1.5"><%= t('register.commune') %></label>
           <p class="text-[11px] text-zilo-muted mb-1.5"><%= t('register.commune_hint') %></p>
-          <select id="address_commune" name="address_commune" required class="zilo-input" <%= form.addressRegion ? '' : 'disabled' %>>
+          <select id="address_commune" name="address_commune" required class="zilo-input"
+            data-placeholder="<%= t('register.commune_placeholder') %>"
+            data-region-first="<%= t('register.commune_region_first') %>"
+            data-loading="<%= t('register.commune_loading') %>"
+            <%= form.addressRegion ? '' : 'disabled' %>>
             <option value=""><%= form.addressRegion ? t('register.commune_placeholder') : t('register.commune_region_first') %></option>
             <% (registrationCommunes || []).forEach(function(c) { %>
               <option value="<%= c.code %>" <%= (form.addressCommune || '') === c.code ? 'selected' : '' %>><%= c.name %></option>
@@ -151,7 +155,7 @@
           <input type="hidden" id="address_place_id" name="address_place_id" value="<%= form.addressPlaceId || '' %>">
           <div id="addressSuggestions" class="hidden absolute left-0 right-0 top-full mt-1 z-30 rounded-xl border border-zilo-border bg-white shadow-zilo max-h-52 overflow-y-auto" role="listbox"></div>
         </div>
-        <button type="button" id="addressConfirmManual" class="hidden zilo-btn-ghost zilo-btn-block !py-2.5 text-sm">
+        <button type="button" id="addressConfirmManual" class="address-confirm-manual zilo-btn-ghost zilo-btn-block !py-2.5 text-sm" hidden>
           <%= t('register.address_confirm_manual') %>
         </button>
         <div>
@@ -267,6 +271,7 @@
   'register.region_placeholder': t('register.region_placeholder'),
   'register.region_hint': t('register.region_hint'),
   'register.commune_region_first': t('register.commune_region_first'),
+  'register.commune_placeholder': t('register.commune_placeholder'),
   'register.validation_region_required': t('register.validation_region_required'),
   'register.commune_loading': t('register.commune_loading'),
   'register.commune_selected': t('register.commune_selected'),
