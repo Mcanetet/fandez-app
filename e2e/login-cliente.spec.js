@@ -42,7 +42,7 @@ test.describe('Login cliente (demo)', () => {
       // Cuenta aún no verificada: debe verse el correo y el formulario OTP
       await expect(page.getByRole('heading', { name: /verifica tu correo/i })).toBeVisible();
       await expect(page.locator('strong.text-zilo-text, strong').filter({ hasText: DEMO_CLIENT.email })).toBeVisible();
-      await expect(page.locator('#code')).toBeVisible();
+      await expect(page.locator('.verify-otp__digit').first()).toBeVisible();
       await expect(page.locator('form[action="/verificar-email"] button[type="submit"]')).toBeVisible();
       return;
     }
