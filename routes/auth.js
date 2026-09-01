@@ -506,6 +506,8 @@ router.post('/verificar-email', async (req, res) => {
     return res.render('verificar-email', {
       title: 'Verificar correo — Fandez',
       email: user.email,
+      userName: user.name || '',
+      welcome: true,
       company,
       error: result.error,
       success: null,
