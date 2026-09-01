@@ -300,6 +300,11 @@ html {
   box-shadow: 0 0 0 3px rgba(var(--zilo-accent-rgb), 0.14);
 }
 
+.verify-resend-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .password-field-input {
   padding-right: 2.75rem;
 }

@@ -4858,13 +4858,19 @@ async function issueEmailVerification(userId, { locale = 'es' } = {}) {
   if (mailResult?.error) {
     const raw = String(mailResult.error || '');
     const authFail = /535|authentication failed|invalid login/i.test(raw);
+    // Si el correo no salió, no bloquear "Reenviar" con cooldown de 60s.
+    user.emailVerificationSentAt = null;
+    try {
+      await repository.saveUser(user);
+    } catch (_) { /* ignore */ }
     return {
       error: authFail
         ? 'auth_failed'
         : `No pudimos enviar el correo (${mailResult.error}). Revisa spam, espera un minuto y pulsa Reenviar.`,
-      sentAt: prepared.sentAt,
+      sentAt: null,
       mailError: mailResult.error,
-      authFailed: authFail
+      authFailed: authFail,
+      cooldown: 0
     };
   }
 

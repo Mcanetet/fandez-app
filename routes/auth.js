@@ -475,13 +475,16 @@ router.get('/verificar-email', (req, res) => {
 
   let success = null;
   let error = null;
+  let cooldown = emailVerification.resendCooldownSeconds(user);
   if (req.query.exists === '1') {
     success = req.t('verify.exists_resent');
   }
   if (req.query.mail === 'auth') {
     error = req.t('verify.mail_auth_error');
+    cooldown = 0;
   } else if (req.query.mail === 'error') {
     error = req.t('verify.mail_error');
+    cooldown = 0;
   } else if (req.query.mail === 'demo') {
     success = req.t('verify.mail_demo');
   } else if (req.query.mail === 'pending') {
@@ -496,7 +499,7 @@ router.get('/verificar-email', (req, res) => {
     company,
     error,
     success,
-    cooldown: emailVerification.resendCooldownSeconds(user),
+    cooldown,
     demoHint: !require('../lib/mailer').isConfigured()
   });
 });
