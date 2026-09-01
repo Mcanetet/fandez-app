@@ -222,6 +222,64 @@ html {
   display: none !important;
 }
 
+/* Verificar correo — bienvenida post-registro */
+.verify-welcome__mark {
+  width: 4.5rem;
+  height: 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.25rem;
+  background: var(--zilo-accent-soft);
+  animation: verifyWelcomeIn 0.55s ease-out both;
+}
+.verify-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  display: grid;
+  gap: 0.65rem;
+  border-radius: 1rem;
+  border: 1px solid var(--zilo-border);
+  background: var(--zilo-bg);
+}
+.verify-step {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--zilo-muted);
+}
+.verify-step__dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--zilo-border);
+  flex-shrink: 0;
+}
+.verify-step--done {
+  color: var(--zilo-success);
+}
+.verify-step--done .verify-step__dot {
+  background: var(--zilo-success);
+}
+.verify-step--current {
+  color: var(--zilo-text);
+  font-weight: 600;
+}
+.verify-step--current .verify-step__dot {
+  background: var(--zilo-accent);
+  box-shadow: 0 0 0 4px rgba(var(--zilo-accent-rgb), 0.16);
+}
+@keyframes verifyWelcomeIn {
+  from { opacity: 0; transform: scale(0.86); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .verify-welcome__mark { animation: none; }
+}
+
 .password-field-input {
   padding-right: 2.75rem;
 }

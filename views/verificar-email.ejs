@@ -1,21 +1,59 @@
 <%- include('partials/head') %>
+<%
+  const firstName = (typeof userName !== 'undefined' && userName)
+    ? String(userName).trim().split(/\s+/)[0]
+    : '';
+  const showWelcome = typeof welcome !== 'undefined' ? welcome : true;
+%>
 
-<div class="min-h-screen flex items-center justify-center p-5 relative">
-  <div class="fixed inset-0 pointer-events-none">
-    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-zilo-accent/6 rounded-full blur-3xl"></div>
-  </div>
+<div class="min-h-screen flex items-center justify-center p-5 relative verify-page">
+  <div class="fandez-landing-atmosphere" aria-hidden="true"></div>
 
   <div class="absolute top-5 right-5 z-20">
     <%- include('partials/lang-switcher') %>
   </div>
 
-  <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-3xl p-8 zilo-page-enter">
-    <div class="text-center mb-6">
-      <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-zilo-accent/10 flex items-center justify-center">
-        <svg class="w-7 h-7 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>
+  <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-3xl p-6 sm:p-8 zilo-page-enter" data-tour="welcome">
+    <% if (showWelcome) { %>
+      <div class="text-center mb-6 verify-welcome">
+        <div class="verify-welcome__mark mx-auto mb-4" aria-hidden="true">
+          <%- include('partials/logo', { className: 'w-14 h-14', logoId: 'verify', logoVariant: 'amber' }) %>
+        </div>
+        <p class="zilo-label mb-2"><%= t('app.name') %></p>
+        <h1 class="zilo-display text-[1.85rem] leading-tight mb-2">
+          <%= firstName
+            ? t('verify.welcome_title_named', { name: firstName })
+            : t('verify.welcome_title') %>
+        </h1>
+        <p class="text-sm text-zilo-muted leading-relaxed"><%= t('verify.welcome_body') %></p>
       </div>
-      <h1 class="zilo-display text-2xl mb-1"><%= t('verify.title') %></h1>
-      <p class="text-sm text-zilo-muted"><%= t('verify.subtitle') %><br><strong class="text-zilo-text"><%= email %></strong></p>
+
+      <ol class="verify-steps mb-6" aria-label="<%= t('verify.title') %>">
+        <li class="verify-step verify-step--done">
+          <span class="verify-step__dot" aria-hidden="true"></span>
+          <span><%= t('verify.step_account') %></span>
+        </li>
+        <li class="verify-step verify-step--current">
+          <span class="verify-step__dot" aria-hidden="true"></span>
+          <span><%= t('verify.step_email') %></span>
+        </li>
+        <li class="verify-step">
+          <span class="verify-step__dot" aria-hidden="true"></span>
+          <span><%= t('verify.step_ready') %></span>
+        </li>
+      </ol>
+    <% } else { %>
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-zilo-accent/10 flex items-center justify-center">
+          <svg class="w-7 h-7 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>
+        </div>
+        <h1 class="zilo-display text-2xl mb-1"><%= t('verify.title') %></h1>
+      </div>
+    <% } %>
+
+    <div class="mb-5 text-center">
+      <p class="text-sm text-zilo-muted"><%= t('verify.subtitle') %></p>
+      <p class="text-base font-semibold text-zilo-text mt-1 break-all"><%= email %></p>
     </div>
 
     <% if (error) { %>

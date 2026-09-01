@@ -2167,11 +2167,14 @@ async function registerUser({
   if (role === 'client') {
     const billingType = clientBillingType === 'empresa' ? 'empresa' : 'natural';
     const rut = (clientRut || '').trim();
-    if (!rut) return { errorKey: 'register.error_client_rut' };
-    if (!validateRut(rut)) return { errorKey: 'register.error_client_rut_invalid' };
+    // RUT opcional en persona natural (se completa al pagar). Empresa sí lo exige.
     if (billingType === 'empresa') {
+      if (!rut) return { errorKey: 'register.error_client_rut' };
+      if (!validateRut(rut)) return { errorKey: 'register.error_client_rut_invalid' };
       if (!(clientLegalName || '').trim()) return { errorKey: 'register.error_client_company_name' };
       if (!(clientGiro || '').trim()) return { errorKey: 'register.error_client_giro' };
+    } else if (rut && !validateRut(rut)) {
+      return { errorKey: 'register.error_client_rut_invalid' };
     }
   }
 
@@ -2257,7 +2260,7 @@ async function registerUser({
     const billingType = clientBillingType === 'empresa' ? 'empresa' : 'natural';
     clientBilling = normalizeBilling({
       type: billingType,
-      rut: formatRut(clientRut),
+      rut: clientRut ? formatRut(clientRut) : '',
       legalName: billingType === 'empresa' ? clientLegalName : name,
       giro: billingType === 'empresa' ? clientGiro : '',
       fiscalAddress: resolvedAddress,

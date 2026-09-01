@@ -114,8 +114,8 @@
         </div>
         <div>
           <label for="client_rut" class="zilo-label block mb-1.5"><%= t('register.client_rut') %></label>
-          <input type="text" id="client_rut" name="client_rut" placeholder="12.345.678-9" class="zilo-input" value="<%= form.clientRut || '' %>">
-          <p class="text-[10px] text-zilo-muted mt-1"><%= t('register.client_rut_hint') %></p>
+          <input type="text" id="client_rut" name="client_rut" placeholder="12.345.678-9" class="zilo-input" value="<%= form.clientRut || '' %>" autocomplete="off">
+          <p id="clientRutHint" class="text-[10px] text-zilo-muted mt-1"><%= t('register.client_rut_hint_optional') %></p>
         </div>
       </div>
 
@@ -234,7 +234,7 @@
 
     form.addEventListener('invalid', (event) => {
       const field = event.target;
-      if (field.id === 'address') return;
+      if (field.id === 'address' || field.id === 'client_rut' || field.id === 'client_legal_name' || field.id === 'client_giro') return;
       field.setCustomValidity('');
       if (field.validity.valueMissing) {
         field.setCustomValidity(validationMessages.required);
@@ -300,6 +300,8 @@
   'register.error_address_unit_required': t('register.error_address_unit_required'),
   'register.error_client_rut': t('register.error_client_rut'),
   'register.error_client_rut_invalid': t('register.error_client_rut_invalid'),
+  'register.client_rut_hint_optional': t('register.client_rut_hint_optional'),
+  'register.client_rut_hint_company': t('register.client_rut_hint_company'),
   'register.name': t('register.name'),
   'register.name_placeholder': t('register.name_placeholder'),
   'register.contact_name': t('register.contact_name'),

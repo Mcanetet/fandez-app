@@ -428,23 +428,23 @@ router.post('/registro', async (req, res) => {
     return res.json({
       success: true,
       redirect: issue.error && !issue.demo && !issue.pending
-        ? '/verificar-email?mail=error'
-        : (issue.demo ? '/verificar-email?mail=demo' : (issue.pending ? '/verificar-email?mail=pending' : '/verificar-email')),
+        ? '/verificar-email?welcome=1&mail=error'
+        : (issue.demo ? '/verificar-email?welcome=1&mail=demo' : (issue.pending ? '/verificar-email?welcome=1&mail=pending' : '/verificar-email?welcome=1')),
       mailDemo: Boolean(issue.demo),
       mailError: issue.error || null,
       mailPending: Boolean(issue.pending)
     });
   }
   if (issue.pending) {
-    return res.redirect('/verificar-email?mail=pending');
+    return res.redirect('/verificar-email?welcome=1&mail=pending');
   }
   if (issue.error && !issue.demo) {
-    return res.redirect('/verificar-email?mail=error');
+    return res.redirect('/verificar-email?welcome=1&mail=error');
   }
   if (issue.demo) {
-    return res.redirect('/verificar-email?mail=demo');
+    return res.redirect('/verificar-email?welcome=1&mail=demo');
   }
-  return res.redirect('/verificar-email');
+  return res.redirect('/verificar-email?welcome=1');
   } catch (err) {
     console.error('[registro] error inesperado:', err);
     const form = registerFormFromBody(req.body || {});
@@ -480,8 +480,10 @@ router.get('/verificar-email', (req, res) => {
   }
 
   res.render('verificar-email', {
-    title: 'Verificar correo — Fandez',
+    title: req.query.welcome === '1' ? 'Bienvenido — Fandez' : 'Verificar correo — Fandez',
     email: user.email,
+    userName: user.name || '',
+    welcome: req.query.welcome === '1' || !req.query.exists,
     company,
     error,
     success,

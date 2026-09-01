@@ -7,6 +7,7 @@
   const clientRut = document.getElementById('client_rut');
   const clientLegalName = document.getElementById('client_legal_name');
   const clientGiro = document.getElementById('client_giro');
+  const rutHint = document.getElementById('clientRutHint');
   const nameLabel = document.getElementById('nameLabel');
   const nameInput = document.getElementById('name');
   const billingTypeInputs = document.querySelectorAll('input[name="client_billing_type"]');
@@ -43,17 +44,29 @@
     }
 
     const value = clientRut.value.trim();
+    const company = isCompanyClient();
+
     if (!value) {
-      const msg = t('register.error_client_rut', 'Ingresa el RUT del cliente.');
-      showRutError(msg);
-      if (showMessage) clientRut.reportValidity();
-      return false;
+      if (company) {
+        const msg = t('register.error_client_rut', 'Ingresa el RUT de la empresa.');
+        showRutError(msg);
+        if (showMessage) {
+          clientRut.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          clientRut.reportValidity();
+        }
+        return false;
+      }
+      showRutError('');
+      return true;
     }
 
     if (typeof FandezRut === 'undefined' || !FandezRut.validate(value)) {
       const msg = t('register.error_client_rut_invalid', 'El RUT ingresado no es válido.');
       showRutError(msg);
-      if (showMessage) clientRut.reportValidity();
+      if (showMessage) {
+        clientRut.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        clientRut.reportValidity();
+      }
       return false;
     }
 
@@ -64,30 +77,35 @@
 
   function syncClientBilling() {
     const isClient = isClientRole();
+    const company = isClient && isCompanyClient();
     if (clientBillingFields) clientBillingFields.classList.toggle('hidden', !isClient);
 
-    if (clientRut) clientRut.required = isClient;
-    if (clientLegalName) clientLegalName.required = isClient && isCompanyClient();
-    if (clientGiro) clientGiro.required = isClient && isCompanyClient();
+    if (clientRut) clientRut.required = company;
+    if (clientLegalName) clientLegalName.required = company;
+    if (clientGiro) clientGiro.required = company;
 
     if (clientCompanyFields) {
-      clientCompanyFields.classList.toggle('hidden', !isClient || !isCompanyClient());
+      clientCompanyFields.classList.toggle('hidden', !company);
+    }
+
+    if (rutHint) {
+      rutHint.textContent = company
+        ? t('register.client_rut_hint_company', 'Obligatorio para emitir factura a tu empresa.')
+        : t('register.client_rut_hint_optional', 'Opcional ahora. Si lo dejas vacío, lo pediremos al pagar tu primera visita.');
     }
 
     if (nameLabel) {
-      const company = isClient && isCompanyClient();
       nameLabel.textContent = company
         ? (nameLabel.dataset.labelCompany || t('register.contact_name', 'Nombre del contacto'))
         : (nameLabel.dataset.labelNatural || t('register.name', 'Nombre completo'));
     }
     if (nameInput) {
-      const company = isClient && isCompanyClient();
       nameInput.placeholder = company
         ? (nameInput.dataset.placeholderCompany || t('register.contact_name_placeholder', 'Quién gestiona la cuenta'))
         : (nameInput.dataset.placeholderNatural || t('register.name_placeholder', 'Tu nombre'));
     }
 
-    if (!isClient) showRutError('');
+    if (!isClient || !company) showRutError('');
   }
 
   billingTypeInputs.forEach((input) => {
