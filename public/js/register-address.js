@@ -17,6 +17,7 @@
   const mapStatus = document.getElementById('addressMapStatus');
   const mapActions = document.getElementById('addressMapActions');
   const useGpsBtn = document.getElementById('addressUseGps');
+  const confirmBtn = document.getElementById('addressConfirmManual');
   const coverageAlert = document.getElementById('addressCoverageAlert');
   const addressLabel = document.getElementById('addressLabel');
   const addressHint = document.getElementById('addressHint');
@@ -29,6 +30,9 @@
   let addressConfirmed = false;
   let lastSelectedLabel = '';
   let selectedCommune = null;
+  let suggestAbort = null;
+  let suggestSeq = 0;
+  let mapResetTimer = null;
 
   function currentRole() {
     const role = document.querySelector('input[name="role"]:checked');
@@ -88,6 +92,30 @@
     if (mapStatus) mapStatus.textContent = text || '';
   }
 
+  function setSearching(isSearching) {
+    addressInput.classList.toggle('is-searching', Boolean(isSearching));
+    addressInput.setAttribute('aria-busy', isSearching ? 'true' : 'false');
+  }
+
+  function parseStreetAndNumber(query) {
+    let trimmed = String(query || '').trim().replace(/\s+/g, ' ');
+    trimmed = trimmed.split(',')[0].trim();
+    const match = trimmed.match(/^(.+?)\s+(?:n[°ºo.]?\s*|nro\.?\s*|no\.?\s*|#\s*)?(\d{1,5}[A-Za-z]?(?:-\d{1,3}[A-Za-z]?)?)$/i);
+    if (!match) return null;
+    const street = match[1].trim().replace(/[,\s]+$/g, '');
+    if (street.length < 2) return null;
+    return { street, number: match[2] };
+  }
+
+  function syncConfirmButton() {
+    if (!confirmBtn) return;
+    const canConfirm = !addressInput.disabled
+      && !addressConfirmed
+      && Boolean(parseStreetAndNumber(addressInput.value));
+    confirmBtn.classList.toggle('hidden', !canConfirm);
+    confirmBtn.disabled = !canConfirm;
+  }
+
   function onPinDrag(lat, lng) {
     if (latInput) latInput.value = Number(lat).toFixed(6);
     if (lngInput) lngInput.value = Number(lng).toFixed(6);
@@ -103,8 +131,8 @@
         onMarkerDrag: onPinDrag
       });
     }
-    if (label) {
-      const marker = FandezMap?.markers?.registerAddressMap?.destination;
+    if (label && typeof FandezMap !== 'undefined') {
+      const marker = FandezMap.markers?.registerAddressMap?.destination;
       if (marker) marker.bindPopup(label);
     }
   }
@@ -160,7 +188,12 @@
     resetMapToDefault();
   }
 
-  function clearAddressSelection() {
+  function scheduleMapReset() {
+    clearTimeout(mapResetTimer);
+    mapResetTimer = setTimeout(() => resetMapToCommune(), 280);
+  }
+
+  function clearAddressConfirmation({ resetMap = true } = {}) {
     addressConfirmed = false;
     lastSelectedLabel = '';
     if (latInput) latInput.value = '';
@@ -168,7 +201,8 @@
     if (placeInput) placeInput.value = '';
     hideCoverage();
     disablePinAdjustment();
-    resetMapToCommune();
+    if (resetMap) scheduleMapReset();
+    syncConfirmButton();
   }
 
   function setAddressFieldEnabled(enabled) {
@@ -176,6 +210,7 @@
     addressInput.placeholder = enabled
       ? t('register.address_street_placeholder')
       : t('register.address_commune_first');
+    syncConfirmButton();
   }
 
   function hideSuggestions() {
@@ -227,7 +262,8 @@
     addressInput.value = '';
     hideSuggestions();
     hideCoverage();
-    clearAddressSelection();
+    clearAddressConfirmation({ resetMap: false });
+    clearTimeout(mapResetTimer);
 
     if (!regionCode) {
       resetCommuneOptions(t('register.commune_region_first'));
@@ -283,10 +319,12 @@
 
       setAddressFieldEnabled(true);
       addressInput.value = '';
-      clearAddressSelection();
+      clearAddressConfirmation({ resetMap: false });
+      clearTimeout(mapResetTimer);
       showMapAt(data.lat, data.lng, data.name, 13);
       if (data.coverage) showCoverage(data.coverage);
       setMapStatus(t('register.commune_selected', { name: data.name }));
+      syncConfirmButton();
     } catch (_) {
       selectedCommune = null;
       setAddressFieldEnabled(false);
@@ -294,16 +332,25 @@
     }
   }
 
-  function selectSuggestion(item) {
+  function markConfirmed(item) {
     addressInput.value = item.label;
     lastSelectedLabel = item.label;
     addressConfirmed = true;
-    if (latInput) latInput.value = item.lat;
-    if (lngInput) lngInput.value = item.lng;
+    if (latInput) latInput.value = String(item.lat);
+    if (lngInput) lngInput.value = String(item.lng);
     if (placeInput) placeInput.value = item.placeId || '';
     hideSuggestions();
-    showMapAt(item.lat, item.lng, item.label, 19, { draggable: true });
+    showMapAt(item.lat, item.lng, item.label, item.approximate ? 16 : 19, { draggable: true });
     enablePinAdjustment(item.label);
+    syncConfirmButton();
+    addressInput.setCustomValidity('');
+  }
+
+  function selectSuggestion(item) {
+    markConfirmed(item);
+    setMapStatus(item.approximate
+      ? t('register.address_approx_hint')
+      : t('register.address_map_tap_hint'));
 
     fetch('/registro/direcciones/validar', {
       method: 'POST',
@@ -318,28 +365,26 @@
       })
     })
       .then(async (res) => {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!res.ok || data.success === false) {
-          throw new Error(data.error || t('register.error_address_street_number'));
+          // Mantener selección: el usuario ya eligió calle+número y puede ajustar el pin.
+          setMapStatus(data.error || t('register.address_approx_hint'));
+          return data;
+        }
+        if (data.coverage) showCoverage(data.coverage);
+        if (data.coords?.lat != null && data.coords?.lng != null) {
+          if (latInput) latInput.value = Number(data.coords.lat).toFixed(6);
+          if (lngInput) lngInput.value = Number(data.coords.lng).toFixed(6);
         }
         return data;
       })
-      .then((data) => {
-        if (data.coverage) showCoverage(data.coverage);
-      })
-      .catch((err) => {
-        clearAddressSelection();
-        setMapStatus(err.message || t('register.error_address_street_number'));
+      .catch(() => {
+        setMapStatus(t('register.address_approx_hint'));
       });
   }
 
   function renderSuggestions(items) {
     if (!suggestionsEl) return;
-    if (items.length === 1) {
-      selectSuggestion(items[0]);
-      return;
-    }
-
     currentSuggestions = items;
     activeIndex = -1;
     if (!items.length) {
@@ -350,7 +395,7 @@
     suggestionsEl.innerHTML = items.map((item, index) => (
       `<button type="button" class="address-suggestion w-full text-left px-3 py-2.5 text-sm hover:bg-zilo-accent-soft transition border-b border-zilo-border last:border-b-0" data-index="${index}">
         <span class="block font-medium text-zilo-text">${escapeHtml(item.label)}</span>
-        <span class="block text-[11px] text-zilo-muted mt-0.5 truncate">${escapeHtml(item.displayName)}</span>
+        <span class="block text-[11px] text-zilo-muted mt-0.5 truncate">${escapeHtml(item.approximate ? (t('register.address_approx_badge') || 'Aprox. — ajusta el pin') : item.displayName)}</span>
       </button>`
     )).join('');
 
@@ -362,10 +407,6 @@
         const item = currentSuggestions[Number(btn.dataset.index)];
         if (item) selectSuggestion(item);
       });
-      btn.addEventListener('mouseenter', () => {
-        const item = currentSuggestions[Number(btn.dataset.index)];
-        if (item) showMapAt(item.lat, item.lng, item.label, 15);
-      });
     });
   }
 
@@ -376,21 +417,89 @@
       setMapStatus(!regionCode
         ? t('register.validation_region_required')
         : t('register.validation_commune_required'));
+      setSearching(false);
       return;
     }
 
+    if (suggestAbort) suggestAbort.abort();
+    const controller = new AbortController();
+    suggestAbort = controller;
+    const seq = ++suggestSeq;
+    setSearching(true);
+
     try {
       const res = await fetch(
-        `/registro/direcciones?q=${encodeURIComponent(query)}&region=${encodeURIComponent(regionCode)}&commune=${encodeURIComponent(communeCode)}`
+        `/registro/direcciones?q=${encodeURIComponent(query)}&region=${encodeURIComponent(regionCode)}&commune=${encodeURIComponent(communeCode)}`,
+        { signal: controller.signal }
       );
+      if (seq !== suggestSeq) return;
       const data = await res.json();
-      renderSuggestions(data.suggestions || []);
-      if (!(data.suggestions || []).length && query.length >= 3) {
-        setMapStatus(t('register.address_no_results'));
+      const suggestions = data.suggestions || [];
+      renderSuggestions(suggestions);
+      if (!suggestions.length && query.length >= 3) {
+        if (parseStreetAndNumber(query)) {
+          setMapStatus(t('register.address_manual_hint'));
+          syncConfirmButton();
+        } else {
+          setMapStatus(t('register.address_no_results'));
+        }
+      } else if (suggestions.length) {
+        setMapStatus(t('register.address_pick_hint'));
       }
-    } catch (_) {
+    } catch (err) {
+      if (err?.name === 'AbortError') return;
       setMapStatus(t('register.address_search_fail'));
       hideSuggestions();
+    } finally {
+      if (seq === suggestSeq) setSearching(false);
+    }
+  }
+
+  async function confirmManualAddress() {
+    const value = addressInput.value.trim();
+    const parsed = parseStreetAndNumber(value);
+    if (!parsed || !selectedCommune) {
+      addressInput.setCustomValidity(t('register.error_address_street_number'));
+      addressInput.reportValidity();
+      return;
+    }
+
+    setSearching(true);
+    setMapStatus(t('register.address_searching'));
+    hideSuggestions();
+
+    try {
+      const res = await fetch(
+        `/registro/direcciones?q=${encodeURIComponent(value)}&region=${encodeURIComponent(getRegionCode())}&commune=${encodeURIComponent(getCommuneCode())}`
+      );
+      const data = await res.json();
+      const first = (data.suggestions || [])[0];
+      if (first) {
+        selectSuggestion(first);
+        return;
+      }
+
+      selectSuggestion({
+        label: `${parsed.street} ${parsed.number}, ${selectedCommune.name}`,
+        displayName: `${parsed.street} ${parsed.number}, ${selectedCommune.name}`,
+        lat: selectedCommune.lat,
+        lng: selectedCommune.lng,
+        placeId: '',
+        approximate: true,
+        hasStreetNumber: true
+      });
+    } catch (_) {
+      selectSuggestion({
+        label: `${parsed.street} ${parsed.number}, ${selectedCommune.name}`,
+        displayName: `${parsed.street} ${parsed.number}, ${selectedCommune.name}`,
+        lat: selectedCommune.lat,
+        lng: selectedCommune.lng,
+        placeId: '',
+        approximate: true,
+        hasStreetNumber: true
+      });
+    } finally {
+      setSearching(false);
     }
   }
 
@@ -427,28 +536,50 @@
     });
   }
 
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      confirmManualAddress();
+    });
+  }
+
   addressInput.addEventListener('input', () => {
     if (addressInput.disabled) return;
+    addressInput.setCustomValidity('');
 
     const value = addressInput.value.trim();
-    if (value !== lastSelectedLabel) clearAddressSelection();
 
+    // Solo invalidar confirmación cuando había una dirección elegida (evita reiniciar el mapa en cada tecla).
+    if (addressConfirmed && value !== lastSelectedLabel) {
+      clearAddressConfirmation({ resetMap: true });
+    }
+
+    syncConfirmButton();
     clearTimeout(suggestTimer);
+
     if (value.length < 3) {
       hideSuggestions();
-      if (selectedCommune) {
+      if (!addressConfirmed && selectedCommune) {
         setMapStatus(t('register.commune_selected', { name: selectedCommune.name }));
-      } else {
+      } else if (!addressConfirmed) {
         setMapStatus('');
       }
       return;
     }
 
     setMapStatus(t('register.address_searching'));
-    suggestTimer = setTimeout(() => fetchSuggestions(value), 450);
+    suggestTimer = setTimeout(() => fetchSuggestions(value), 380);
   });
 
   addressInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !addressConfirmed && parseStreetAndNumber(addressInput.value)) {
+      if (!currentSuggestions.length || suggestionsEl.classList.contains('hidden')) {
+        e.preventDefault();
+        confirmManualAddress();
+        return;
+      }
+    }
+
     if (!currentSuggestions.length || suggestionsEl.classList.contains('hidden')) return;
 
     if (e.key === 'ArrowDown') {
@@ -471,10 +602,6 @@
     suggestionsEl.querySelectorAll('.address-suggestion').forEach((btn, i) => {
       btn.classList.toggle('bg-zilo-accent-soft', i === activeIndex);
     });
-    if (activeIndex >= 0 && currentSuggestions[activeIndex]) {
-      const item = currentSuggestions[activeIndex];
-      showMapAt(item.lat, item.lng, item.label, 15);
-    }
   }
 
   document.addEventListener('click', (e) => {
@@ -505,6 +632,14 @@
     }
     if (!addressConfirmed || !latInput.value || !lngInput.value) {
       e.preventDefault();
+      if (parseStreetAndNumber(addressInput.value) && !addressConfirmed) {
+        setMapStatus(t('register.address_manual_hint'));
+        syncConfirmButton();
+        if (confirmBtn) {
+          confirmBtn.classList.remove('hidden');
+          confirmBtn.focus();
+        }
+      }
       addressInput.setCustomValidity(t('register.validation_address_select'));
       addressInput.reportValidity();
       return;
@@ -565,7 +700,6 @@
     }
   }, true);
 
-  addressInput.addEventListener('input', () => addressInput.setCustomValidity(''));
   if (regionSelect) regionSelect.addEventListener('change', () => regionSelect.setCustomValidity(''));
   if (communeSelect) communeSelect.addEventListener('change', () => communeSelect.setCustomValidity(''));
   if (unitInput) unitInput.addEventListener('input', () => unitInput.setCustomValidity(''));
@@ -608,6 +742,7 @@
         lastSelectedLabel = addressInput.value.trim();
         setAddressFieldEnabled(true);
       }
+      syncConfirmButton();
     } else {
       resetCommuneOptions(t('register.commune_region_first'));
       setAddressFieldEnabled(false);

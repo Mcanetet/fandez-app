@@ -143,14 +143,17 @@
         <div class="relative">
           <label for="address" id="addressLabel" class="zilo-label block mb-1.5"><%= t('register.address_street') %></label>
           <p id="addressHint" class="text-[11px] text-zilo-muted mb-1.5"><%= t('register.address_hint') %></p>
-          <input type="text" id="address" name="address" required autocomplete="off"
-            placeholder="<%= t('register.address_commune_first') %>" class="zilo-input" value="<%= form.address || '' %>"
+          <input type="text" id="address" name="address" required autocomplete="street-address"
+            placeholder="<%= t('register.address_commune_first') %>" class="zilo-input address-autocomplete-input" value="<%= form.address || '' %>"
             aria-autocomplete="list" aria-controls="addressSuggestions" aria-expanded="false" disabled>
           <input type="hidden" id="address_lat" name="address_lat" value="<%= form.addressLat || '' %>">
           <input type="hidden" id="address_lng" name="address_lng" value="<%= form.addressLng || '' %>">
           <input type="hidden" id="address_place_id" name="address_place_id" value="<%= form.addressPlaceId || '' %>">
           <div id="addressSuggestions" class="hidden absolute left-0 right-0 top-full mt-1 z-30 rounded-xl border border-zilo-border bg-white shadow-zilo max-h-52 overflow-y-auto" role="listbox"></div>
         </div>
+        <button type="button" id="addressConfirmManual" class="hidden zilo-btn-ghost zilo-btn-block !py-2.5 text-sm">
+          <%= t('register.address_confirm_manual') %>
+        </button>
         <div>
           <label for="address_unit" class="zilo-label block mb-1.5"><%= t('register.address_unit') %></label>
           <input type="text" id="address_unit" name="address_unit" required autocomplete="address-line2" placeholder="<%= t('register.address_unit_placeholder') %>" class="zilo-input" value="<%= form.addressUnit || '' %>">
@@ -281,6 +284,11 @@
   'register.address_searching': t('register.address_searching'),
   'register.address_no_results': t('register.address_no_results'),
   'register.address_search_fail': t('register.address_search_fail'),
+  'register.address_pick_hint': t('register.address_pick_hint'),
+  'register.address_manual_hint': t('register.address_manual_hint'),
+  'register.address_approx_hint': t('register.address_approx_hint'),
+  'register.address_approx_badge': t('register.address_approx_badge'),
+  'register.address_confirm_manual': t('register.address_confirm_manual'),
   'register.validation_address_select': t('register.validation_address_select'),
   'register.validation_required': t('register.validation_required'),
   'register.error_address_street_number': t('register.error_address_street_number'),

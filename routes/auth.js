@@ -126,7 +126,9 @@ const {
   geocodeAddress,
   geocodeCommuneCenter,
   withCommuneContext,
-  coordsMatchAddress
+  coordsMatchAddress,
+  parseStreetAndNumber,
+  haversineKm
 } = require('../lib/geocode');
 
 function wantsJson(req) {
@@ -248,9 +250,16 @@ router.post('/registro/direcciones/validar', async (req, res) => {
     });
   }
 
+  if (!parseStreetAndNumber(addr)) {
+    return res.status(400).json({
+      success: false,
+      error: req.t('register.error_address_street_number')
+    });
+  }
+
   const fullAddress = withCommuneContext(addr, commune.name);
   const geo = await geocodeAddress(fullAddress, { strict: true, communeName: commune.name });
-  if (!geo.found || !geo.hasStreetNumber) {
+  if (!geo.found) {
     return res.status(400).json({
       success: false,
       error: req.t('register.error_address_street_number')
@@ -259,12 +268,20 @@ router.post('/registro/direcciones/validar', async (req, res) => {
 
   const submittedLat = parseFloat(lat);
   const submittedLng = parseFloat(lng);
-  const coordCheck = await coordsMatchAddress({
+  let coordCheck = await coordsMatchAddress({
     lat: submittedLat,
     lng: submittedLng,
     geo,
-    communeName: commune.name
+    communeName: commune.name,
+    maxDistanceKm: geo.approximate ? 4 : 2.5
   });
+  if (!coordCheck.ok && Number.isFinite(submittedLat) && Number.isFinite(submittedLng)) {
+    const center = await geocodeCommuneCenter(commune.name, commune.regionName);
+    const distToCommune = haversineKm(submittedLat, submittedLng, center.lat, center.lng);
+    if (distToCommune <= 8) {
+      coordCheck = { ok: true, distKm: distToCommune, adjusted: true };
+    }
+  }
   if (!coordCheck.ok) {
     return res.status(400).json({
       success: false,

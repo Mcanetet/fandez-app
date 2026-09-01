@@ -76,7 +76,7 @@ const {
 const adminProfilesStore = require('../lib/adminProfilesStore');
 const { checkAddressCoverage, groupCoverageForAdmin, formatCoverageMessage, buildCoverageResult } = require('../lib/coverage');
 const { getCommuneKey, getCommune } = require('../lib/chile-geo');
-const { geocodeAddress, haversineKm, withCommuneContext, coordsMatchAddress } = require('../lib/geocode');
+const { geocodeAddress, haversineKm, withCommuneContext, coordsMatchAddress, parseStreetAndNumber, geocodeCommuneCenter } = require('../lib/geocode');
 const {
   POLICY_VERSION,
   CONSENT_DEFINITIONS,
@@ -2196,6 +2196,9 @@ async function registerUser({
     return { errorKey: 'register.error_address_select' };
   }
 
+  const parsedAddr = parseStreetAndNumber(addr);
+  if (!parsedAddr) return { errorKey: 'register.error_address_street_number' };
+
   const fullAddr = withCommuneContext(addr, communeMeta.name);
   let geo;
   try {
@@ -2204,7 +2207,9 @@ async function registerUser({
     console.error('[registro] geocode:', err.message);
     return { errorKey: 'register.error_address_timeout' };
   }
-  if (!geo.found || !geo.hasStreetNumber) return { errorKey: 'register.error_address_street_number' };
+  // En Chile OSM rara vez trae house_number: basta con que el usuario escribió calle+número
+  // y obtuvimos una ubicación usable (calle o centro de comuna).
+  if (!geo.found) return { errorKey: 'register.error_address_street_number' };
 
   let coordCheck;
   try {
@@ -2212,13 +2217,22 @@ async function registerUser({
       lat,
       lng,
       geo,
-      communeName: communeMeta.name
+      communeName: communeMeta.name,
+      maxDistanceKm: geo.approximate ? 4 : 2.5
     });
   } catch (err) {
     console.error('[registro] coords:', err.message);
-    // Si Nominatim falla al validar, aceptamos coords del cliente cuando el geocode encontró la dirección.
     const distKm = haversineKm(lat, lng, geo.lat, geo.lng);
-    coordCheck = distKm <= 2.5 ? { ok: true, distKm } : { ok: false, distKm };
+    coordCheck = distKm <= 4 ? { ok: true, distKm } : { ok: false, distKm };
+  }
+  if (!coordCheck.ok) {
+    try {
+      const center = await geocodeCommuneCenter(communeMeta.name, communeMeta.regionName);
+      const distToCommune = haversineKm(lat, lng, center.lat, center.lng);
+      if (distToCommune <= 8) {
+        coordCheck = { ok: true, distKm: distToCommune, adjusted: true };
+      }
+    } catch (_) { /* keep failure */ }
   }
   if (!coordCheck.ok) return { errorKey: 'register.error_address_mismatch' };
 
