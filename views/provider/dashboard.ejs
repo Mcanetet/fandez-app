@@ -170,6 +170,14 @@
     <% } %>
 
     <% if (mod('provider_aceptar')) { %>
+    <% const showFirstJobCoach = typeof canGoOnline !== 'undefined' && canGoOnline && provider.online && (provider.jobsTakenCount || 0) === 0; %>
+    <% if (showFirstJobCoach) { %>
+    <section id="firstJobCoach" class="mb-4 p-4 rounded-2xl border border-emerald-300 bg-emerald-50 zilo-page-enter-delay-2" aria-label="<%= t('provider.first_job.title') %>">
+      <p class="text-sm font-semibold text-emerald-800 mb-1"><%= t('provider.first_job.title') %></p>
+      <p class="text-xs text-emerald-900/80 mb-2"><%= t('provider.first_job.body') %></p>
+      <p class="text-[10px] text-emerald-800/70"><%= t('provider.first_job.tip') %></p>
+    </section>
+    <% } %>
     <section id="workWall" data-tour="work-wall" class="mb-6 zilo-page-enter-delay-2">
       <div class="flex items-center justify-between mb-3">
         <p class="zilo-label"><%= t('provider.work_wall') %></p>

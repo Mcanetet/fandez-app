@@ -85,7 +85,7 @@ router.get('/', requireRole('provider'), (req, res) => {
       hasVerificationBanner: !verificationCheck.ok,
       t: req.t
     }),
-    activationSteps: getProviderActivationSteps(provider, verificationCheck, contractSummary),
+    activationSteps: getProviderActivationSteps(provider, verificationCheck, contractSummary, store),
     canGoOnline: verificationCheck.ok && contractSummary.canOperate,
     onboardingCompleteUrl: '/proveedor/onboarding/complete'
   });
