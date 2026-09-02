@@ -3555,6 +3555,103 @@ function getAdminDispatchQueue(locale = 'es') {
     }));
 }
 
+function getOperationalDiagnostics() {
+  const now = Date.now();
+  const issues = [];
+
+  for (const r of requests) {
+    const created = Date.parse(r.createdAt || r.paidAt || '');
+    const ageMin = Number.isFinite(created) ? Math.round((now - created) / 60000) : null;
+
+    if (['pending', 'pending_payment'].includes(normalizePaymentStatus(r.paymentStatus))) {
+      if (ageMin != null && ageMin >= 3) {
+        issues.push({
+          severity: 'high',
+          code: 'payment_pending',
+          requestId: r.id,
+          clientName: r.clientName,
+          serviceName: r.serviceName,
+          status: r.status,
+          paymentStatus: r.paymentStatus,
+          ageMinutes: ageMin,
+          hint: 'Cliente puede estar en checkout o MP no confirmó. Revisar /pagos o webhook.'
+        });
+      }
+    }
+
+    if (r.paymentStatus === 'pending_transfer') {
+      issues.push({
+        severity: 'medium',
+        code: 'transfer_pending',
+        requestId: r.id,
+        clientName: r.clientName,
+        serviceName: r.serviceName,
+        amountDue: r.amountDue,
+        hint: 'Aprobar transferencia en Admin → Pagos para activar búsqueda.'
+      });
+    }
+
+    if (r.status === 'searching' && isRequestPaymentApproved(r) && !r.providerId) {
+      const eligible = getEligibleProvidersForRequest(r.id);
+      const onlineEligible = eligible.filter((p) => p.online);
+      let onWallCount = 0;
+      for (const u of USERS) {
+        if (u.role !== 'provider' || u.active === false) continue;
+        if (getWorkWallItems(u.id).some((item) => item.id === r.id)) onWallCount += 1;
+      }
+      const searchingAt = Date.parse(r.searchingAt || r.paidAt || r.createdAt || '');
+      const searchMin = Number.isFinite(searchingAt) ? Math.round((now - searchingAt) / 60000) : ageMin;
+
+      let severity = 'medium';
+      if (onlineEligible.length === 0) severity = 'high';
+      if (onWallCount === 0 && eligible.length > 0) severity = 'high';
+      if (searchMin != null && searchMin >= 10) severity = 'high';
+
+      issues.push({
+        severity,
+        code: 'searching_unassigned',
+        requestId: r.id,
+        clientName: r.clientName,
+        serviceName: r.serviceName,
+        searchMinutes: searchMin,
+        eligibleProviders: eligible.length,
+        onlineProviders: onlineEligible.length,
+        onWallProviders: onWallCount,
+        hint: onWallCount === 0
+          ? 'Ningún socio ve el pedido en el muro. Revisa cobertura, especialidad y expediente técnico.'
+          : (onlineEligible.length === 0
+            ? 'Hay socios elegibles pero ninguno está en línea.'
+            : 'Pedido en búsqueda; socios en línea deberían verlo en el muro.')
+      });
+    }
+
+    if (r.status === 'assigned' && r.techStatus === 'asignado' && r.technicianAssignedAt) {
+      const assignedAt = Date.parse(r.technicianAssignedAt);
+      const waitMin = Number.isFinite(assignedAt) ? Math.round((now - assignedAt) / 60000) : null;
+      const acceptLimit = getRequestTimeouts().techAcceptMinutes || 10;
+      if (waitMin != null && waitMin >= acceptLimit - 1) {
+        issues.push({
+          severity: 'medium',
+          code: 'tech_accept_late',
+          requestId: r.id,
+          technicianName: r.technicianName,
+          providerId: r.providerId,
+          waitMinutes: waitMin,
+          hint: `Técnico no aceptó en ${acceptLimit} min. Puede reasignarse automáticamente.`
+        });
+      }
+    }
+  }
+
+  const summary = {
+    total: issues.length,
+    high: issues.filter((i) => i.severity === 'high').length,
+    medium: issues.filter((i) => i.severity === 'medium').length
+  };
+
+  return { issues, summary, generatedAt: new Date().toISOString() };
+}
+
 function assignPayoutSchedule(request) {
   if (!request?.completedAt) return null;
   const schedule = resolvePayoutSchedule(request.completedAt);
@@ -5522,6 +5619,7 @@ module.exports = {
   assignProvider,
   getEligibleProvidersForRequest,
   getAdminDispatchQueue,
+  getOperationalDiagnostics,
   updateRequestStatus,
   assignTechnician,
   releaseStaleTechnicianAssignments,

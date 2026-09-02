@@ -95,6 +95,20 @@ function buildAdminAttentionInbox(storeRef, locale = 'es') {
       actionLabel: 'Ver reclamo'
     });
   });
+  try {
+    const op = storeRef.getOperationalDiagnostics();
+    op.issues.filter((i) => i.severity === 'high').slice(0, 6).forEach((issue) => {
+      inbox.push({
+        type: 'ops',
+        urgency: 'high',
+        tab: 'solicitudes',
+        title: `Ops · ${issue.code}`,
+        body: `${issue.clientName || 'Cliente'} · ${issue.serviceName || 'Servicio'} — ${issue.hint || ''}`,
+        actionLabel: 'Diagnóstico',
+        requestId: issue.requestId
+      });
+    });
+  } catch (_) { /* ignore */ }
   return inbox;
 }
 
@@ -1296,6 +1310,16 @@ router.get('/solicitudes/elegibles/:requestId', requireRole('admin'), requireAdm
     success: true,
     requestId: request.id,
     providers: store.getEligibleProvidersForRequest(request.id)
+  });
+});
+
+router.get('/diagnostico/operacion', requireRole('admin'), requireAdminPermission('solicitudes.view'), (req, res) => {
+  const diag = store.getOperationalDiagnostics();
+  const { runGoLiveChecks } = require('../lib/goLiveCheck');
+  res.json({
+    success: true,
+    diagnostics: diag,
+    goLive: runGoLiveChecks(store)
   });
 });
 

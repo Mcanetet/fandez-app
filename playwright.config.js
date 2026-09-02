@@ -32,6 +32,11 @@ module.exports = defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      name: 'iphone-13',
+      use: { ...devices['iPhone 13'], locale: 'es-CL' },
+      testMatch: /mobile-iphone.*\.spec\.js/
     }
   ],
   webServer: startServer

@@ -111,6 +111,11 @@ app.get('/health', async (req, res) => {
       verifyError: verified.ok ? null : (verified.reason || 'verify_failed')
     };
   }
+  if (req.query.go === '1') {
+    const { runGoLiveChecks } = require('./lib/goLiveCheck');
+    payload.goLive = runGoLiveChecks(store);
+    payload.bootErrors = appMode.assertSecureBoot();
+  }
   if (process.env.HEALTH_VERBOSE === 'true') {
     payload.gitCommit = version.gitCommit;
     payload.appUrl = require('./lib/seo').getSiteUrl();
