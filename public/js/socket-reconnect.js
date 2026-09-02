@@ -109,6 +109,7 @@
         tone: 'success',
         autoHideMs: 2200,
       });
+      window.dispatchEvent(new CustomEvent('fandez:resume', { detail: { reason: 'socket' } }));
     }
     wasConnected = true;
   });

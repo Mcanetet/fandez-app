@@ -231,6 +231,7 @@
   "register.address_use_gps": "Use my current location",
   "register.address_gps_loading": "Getting your location…",
   "register.address_gps_error": "We could not get your location. Adjust the pin manually.",
+  "register.address_gps_need_confirm": "Confirm your address on the map first (tap the correct house), then use GPS.",
   "register.address_unit": "House, apartment or office",
   "register.address_unit_placeholder": "E.g. House 12, Apt 403, Office 8",
   "register.address_unit_hint": "This identifies the exact door inside the building, condominium or property.",

@@ -1960,4 +1960,63 @@
     }, { threshold: 0, rootMargin: '0px 0px -80px 0px' });
     observer.observe(requestFormEl);
   }
+
+  function syncActiveRequestOnResume() {
+    if (!currentRequestId) return;
+    if (socket?.connected) socket.emit('register_client', currentRequestId);
+    fetch(`/cliente/solicitud/${currentRequestId}`)
+      .then(async (r) => {
+        if (r.status === 503) throw new Error('store_not_ready');
+        return r.json();
+      })
+      .then((data) => {
+        if (data.request?.status === 'cancelled') {
+          stopSearchExperience();
+          clearPaymentConfirmPoll();
+          loaderOverlay?.classList.add('hidden');
+          hideScheduledPanel();
+          return;
+        }
+        if (data.request && isPaymentNotReady(data.request)) {
+          showPaymentConfirming(currentRequestId);
+          return;
+        }
+        if (data.request?.status === 'scheduled') {
+          showScheduledPanel(data.request);
+          return;
+        }
+        if (data.provider) {
+          hideNoProviderChoice();
+          hideScheduledPanel();
+          showProvider(data.provider, data.request);
+          return;
+        }
+        if (data.request?.noProviderDecisionStatus === 'pending') {
+          showNoProviderChoice(data.request);
+          return;
+        }
+        if (data.request?.status === 'searching') {
+          hideScheduledPanel();
+          hideNoProviderChoice();
+          providerCard?.classList.add('hidden');
+          loaderOverlay?.classList.remove('hidden');
+          if (!searchTimerInterval) startSearchExperience(data.request);
+          else syncSearchStartFromRequest(data.request);
+        }
+        if (data.request) {
+          syncTripFromRequest(data.request);
+          if (data.request.coords) {
+            ensureTrackingMap(data.request, { location: data.provider?.location });
+            updateLiveTrackBanner(data.request);
+          }
+        }
+      })
+      .catch(() => {});
+  }
+
+  if (window.FandezMobile?.onResume) {
+    FandezMobile.onResume(() => syncActiveRequestOnResume());
+  } else {
+    window.addEventListener('fandez:resume', () => syncActiveRequestOnResume());
+  }
 })();

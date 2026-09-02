@@ -521,4 +521,15 @@
   setInterval(tickTechAcceptCountdowns, 1000);
 
   document.querySelectorAll('#jobList [data-job-id]').forEach(render);
+
+  function resumeTecnicoSession() {
+    socket.emit('register_technico', tecnicoId);
+    if (onlineToggle?.checked) loadWorkWall();
+  }
+
+  if (window.FandezMobile?.onResume) {
+    FandezMobile.onResume(() => resumeTecnicoSession());
+  } else {
+    window.addEventListener('fandez:resume', () => resumeTecnicoSession());
+  }
 })();

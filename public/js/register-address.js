@@ -539,8 +539,13 @@
 
   if (useGpsBtn) {
     useGpsBtn.addEventListener('click', () => {
-      if (!addressConfirmed || !navigator.geolocation) {
+      if (!navigator.geolocation) {
         setMapStatus(t('register.address_gps_error'));
+        return;
+      }
+      if (!addressConfirmed) {
+        setMapStatus(t('register.address_gps_need_confirm'));
+        addressInput?.focus();
         return;
       }
       setMapStatus(t('register.address_gps_loading'));

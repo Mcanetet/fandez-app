@@ -637,6 +637,8 @@
   "provider.js.dismiss_ok": "Pedido ocultado del muro",
   "provider.js.dismiss_error": "No se pudo ocultar el pedido",
   "checkout.title": "Checkout",
+  "checkout.inapp_title": "Abre en Safari o Chrome para pagar",
+  "checkout.inapp_body": "WhatsApp e Instagram no permiten pagos con Mercado Pago. Toca ⋯ o Compartir y elige «Abrir en Safari» (iPhone) o «Abrir en Chrome» (Android).",
   "checkout.billing_title": "Datos para factura",
   "checkout.billing_edit": "Editar",
   "checkout.billing_natural": "Persona natural",

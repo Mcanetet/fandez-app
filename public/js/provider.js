@@ -716,4 +716,18 @@
   socket.on('modules_updated', () => {
     setTimeout(() => location.reload(), 600);
   });
+
+  function resumeProviderSession() {
+    socket.emit('register_provider', providerId);
+    if (onlineToggle?.checked) {
+      loadWorkWall();
+      if (locationWatchId == null) startLocationWatch();
+    }
+  }
+
+  if (window.FandezMobile?.onResume) {
+    FandezMobile.onResume(() => resumeProviderSession());
+  } else {
+    window.addEventListener('fandez:resume', () => resumeProviderSession());
+  }
 })();

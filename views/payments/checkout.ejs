@@ -19,6 +19,10 @@
   </header>
 
   <main class="flex-1 px-5 py-5 space-y-4 pb-28">
+    <div id="checkoutInAppWarn" class="hidden rounded-2xl border border-amber-300 bg-amber-50 p-4 text-left" role="alert">
+      <p class="text-sm font-semibold text-amber-950 mb-1"><%= t('checkout.inapp_title') %></p>
+      <p class="text-xs text-amber-900/90 leading-relaxed"><%= t('checkout.inapp_body') %></p>
+    </div>
     <%- include('../partials/checkout-progress', { checkoutStep: 2 }) %>
     <%- include('../partials/trust-strip', { trustStats: typeof trustStats !== 'undefined' ? trustStats : {} }) %>
 
@@ -400,6 +404,11 @@
   recalc();
 
   document.getElementById('btnPaySticky')?.addEventListener('click', () => btnPay.click());
+
+  if (window.FandezMobile?.isInAppBrowser?.()) {
+    const warn = document.getElementById('checkoutInAppWarn');
+    if (warn) warn.classList.remove('hidden');
+  }
 })();
 </script>
 

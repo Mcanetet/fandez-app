@@ -637,6 +637,8 @@
   "provider.js.dismiss_ok": "Job hidden from wall",
   "provider.js.dismiss_error": "Could not hide job",
   "checkout.title": "Checkout",
+  "checkout.inapp_title": "Open in Safari or Chrome to pay",
+  "checkout.inapp_body": "WhatsApp and Instagram block Mercado Pago. Tap ⋯ or Share and choose «Open in Safari» (iPhone) or «Open in Chrome» (Android).",
   "checkout.billing_title": "Billing details",
   "checkout.billing_edit": "Edit",
   "checkout.billing_natural": "Individual",

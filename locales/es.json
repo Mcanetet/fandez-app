@@ -230,6 +230,7 @@
   "register.address_use_gps": "Usar mi ubicación actual",
   "register.address_gps_loading": "Obteniendo tu ubicación…",
   "register.address_gps_error": "No pudimos obtener tu ubicación. Ajusta el pin manualmente.",
+  "register.address_gps_need_confirm": "Primero confirma tu dirección en el mapa (toca la casa correcta) y luego usa GPS.",
   "register.address_unit": "Casa, departamento u oficina",
   "register.address_unit_placeholder": "Ej: Casa 12, Depto 403, Oficina 8",
   "register.address_unit_hint": "Este dato identifica la puerta exacta dentro del edificio, condominio o sitio.",

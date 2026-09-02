@@ -628,4 +628,31 @@
     }
   });
   socket.emit('register_client', requestId);
+
+  function resumeFieldJob() {
+    socket.emit('register_client', requestId);
+    if (isObserver || !navigator.geolocation || !requestId) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        fetch('/tecnico/ubicacion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lng, requestId })
+        }).catch(() => {});
+        if (typeof FandezMap !== 'undefined' && !isNaN(destLat)) {
+          FandezMap.updateProviderLocation('fieldMap', lat, lng, destLat, destLng);
+        }
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 }
+    );
+  }
+
+  if (window.FandezMobile?.onResume) {
+    FandezMobile.onResume(() => resumeFieldJob());
+  } else {
+    window.addEventListener('fandez:resume', () => resumeFieldJob());
+  }
 })();
