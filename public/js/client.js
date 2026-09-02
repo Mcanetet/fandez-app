@@ -386,6 +386,48 @@
   let searchCurrentPhase = null;
   let searchTipIndex = 0;
   let searchTimeoutTriggered = false;
+  let paymentConfirmPoll = null;
+
+  function clearPaymentConfirmPoll() {
+    if (paymentConfirmPoll) {
+      clearInterval(paymentConfirmPoll);
+      paymentConfirmPoll = null;
+    }
+  }
+
+  function isPaymentNotReady(request) {
+    const ps = request?.paymentStatus;
+    return !ps || ps === 'pending' || ps === 'pending_transfer' || ps === 'pending_payment';
+  }
+
+  function showPaymentConfirming(requestId) {
+    clearPaymentConfirmPoll();
+    loaderOverlay?.classList.remove('hidden');
+    stopSearchExperience();
+    hideScheduledPanel();
+    hideNoProviderChoice();
+    const title = document.getElementById('loaderText');
+    const sub = document.getElementById('loaderSub');
+    if (title) title.textContent = t('client.service.payment_confirming_title') || 'Confirmando pago…';
+    if (sub) sub.textContent = t('client.service.payment_confirming_sub') || 'Verificando con el banco. Tu pedido se activará en unos segundos…';
+
+    const poll = () => {
+      fetch(`/pagos/estado?ref=${encodeURIComponent(requestId)}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' }
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.approved) {
+            clearPaymentConfirmPoll();
+            startTracking(requestId);
+          }
+        })
+        .catch(() => {});
+    };
+    poll();
+    paymentConfirmPoll = setInterval(poll, 3000);
+  }
 
   async function triggerSearchTimeout(requestId) {
     if (searchTimeoutTriggered || !requestId) return;
@@ -456,10 +498,9 @@
     if (timerEl) timerEl.textContent = formatSearchClock(capped);
     if (barEl) barEl.style.width = `${Math.round(ratio * 100)}%`;
     if (labelEl) {
-      const mins = Math.min(SEARCH_TIMEOUT_MINUTES, Math.floor(capped / 60000));
       labelEl.textContent = t('client.js.search_progress', {
-        elapsed: String(mins),
-        total: String(SEARCH_TIMEOUT_MINUTES)
+        elapsed: formatSearchClock(capped),
+        total: formatSearchClock(SEARCH_TIMEOUT_MS)
       });
     }
     if (ringEl) {
@@ -1505,6 +1546,7 @@
           stopSearchExperience();
           loaderOverlay?.classList.add('hidden');
           hideScheduledPanel();
+          FandezNotify.show(t('client.js.search_cancelled') || 'La búsqueda fue cancelada.', 'info');
           return;
         }
         if (data.request?.status === 'searching') {
@@ -1560,6 +1602,10 @@
         return r.json();
       })
       .then((data) => {
+        if (data.request && isPaymentNotReady(data.request)) {
+          showPaymentConfirming(requestId);
+          return;
+        }
         if (data.request?.status === 'scheduled') {
           showScheduledPanel(data.request);
         } else if (data.provider) {
@@ -1599,8 +1645,10 @@
     socket.on(`request_update_${requestId}`, (payload) => {
       if (payload.cancelled || payload.request?.status === 'cancelled') {
         stopSearchExperience();
+        clearPaymentConfirmPoll();
         loaderOverlay?.classList.add('hidden');
         hideScheduledPanel();
+        FandezNotify.show(t('client.js.search_cancelled') || 'La búsqueda fue cancelada.', 'info');
         return;
       }
       if (payload.request?.status === 'scheduled') {

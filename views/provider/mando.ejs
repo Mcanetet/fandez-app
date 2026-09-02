@@ -48,6 +48,7 @@
       <div class="space-y-3" id="mandoList">
         <% requests.forEach(r => { %>
           <div class="p-4 rounded-2xl zilo-card-premium" data-request-id="<%= r.id %>"
+            data-tech-status="<%= r.techStatus || '' %>"
             data-service-id="<%= r.serviceId %>"
             data-lat="<%= r.coords && r.coords.lat != null ? r.coords.lat : '' %>"
             data-lng="<%= r.coords && r.coords.lng != null ? r.coords.lng : '' %>">

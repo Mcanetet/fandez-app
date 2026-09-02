@@ -1,12 +1,47 @@
 <%- include('../partials/head') %>
 
-<div class="max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center p-6 text-center zilo-page-enter">
+<div class="max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center p-6 text-center zilo-page-enter" id="pendingPage"
+  data-poll="<%= typeof pollPayment !== 'undefined' && pollPayment ? '1' : '0' %>"
+  data-ref="<%= request ? request.id : '' %>">
   <div class="w-20 h-20 rounded-full bg-zilo-warning/10 border border-zilo-warning/25 flex items-center justify-center mb-6">
-    <svg class="w-10 h-10 text-zilo-warning" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    <svg class="w-10 h-10 text-zilo-warning" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
   </div>
-  <h1 class="zilo-display text-2xl mb-2">Pago pendiente</h1>
-  <p class="text-zilo-muted mb-8 max-w-xs leading-relaxed">Tu pago está en revisión. Te notificaremos cuando se confirme.</p>
-  <a href="/cliente" class="zilo-btn-primary !w-auto !px-10">Volver al inicio</a>
+  <h1 class="zilo-display text-2xl mb-2"><%= t('payments.pending.title') %></h1>
+  <p class="text-zilo-muted mb-2 max-w-xs leading-relaxed" id="pendingSub"><%= t('payments.pending.body') %></p>
+  <% if (typeof pollPayment !== 'undefined' && pollPayment) { %>
+  <p class="text-xs text-zilo-accent font-medium mb-6" id="pendingPollHint"><%= t('payments.pending.confirming') %></p>
+  <% } else { %>
+  <p class="text-zilo-muted mb-8 max-w-xs leading-relaxed"><%= t('payments.pending.notify') %></p>
+  <% } %>
+  <a href="/cliente" class="zilo-btn-primary !w-auto !px-10"><%= t('payments.pending.back') %></a>
 </div>
+
+<% if (typeof pollPayment !== 'undefined' && pollPayment && request) { %>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const page = document.getElementById('pendingPage');
+    if (!page || page.dataset.poll !== '1') return;
+    const ref = page.dataset.ref;
+    let tries = 0;
+    const maxTries = 40;
+    const poll = async () => {
+      tries += 1;
+      try {
+        const res = await fetch(`/pagos/estado?ref=${encodeURIComponent(ref)}`, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin'
+        });
+        const data = await res.json();
+        if (data.approved) {
+          window.location.href = data.redirect || `/pagos/exito?ref=${encodeURIComponent(ref)}&auto=1`;
+          return;
+        }
+      } catch (_) { /* retry */ }
+      if (tries < maxTries) setTimeout(poll, 3000);
+    };
+    poll();
+  });
+</script>
+<% } %>
 
 <%- include('../partials/footer') %>

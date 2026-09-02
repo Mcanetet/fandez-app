@@ -118,8 +118,31 @@
         .then(() => FandezNotify.show('Enlace Modo Guardián copiado', 'success'));
     });
     if (page?.dataset.auto === '1' && page.dataset.trackingUrl) {
-      const delay = 2800;
-      setTimeout(() => { window.location.href = page.dataset.trackingUrl; }, delay);
+      const ref = new URL(page.dataset.trackingUrl, window.location.origin).searchParams.get('tracking')
+        || new URLSearchParams(window.location.search).get('ref');
+      const go = () => { window.location.href = page.dataset.trackingUrl; };
+      if (ref) {
+        let tries = 0;
+        const poll = async () => {
+          tries += 1;
+          try {
+            const res = await fetch(`/pagos/estado?ref=${encodeURIComponent(ref)}`, {
+              headers: { Accept: 'application/json' },
+              credentials: 'same-origin'
+            });
+            const data = await res.json();
+            if (data.approved) {
+              setTimeout(go, 1200);
+              return;
+            }
+          } catch (_) { /* retry */ }
+          if (tries < 25) setTimeout(poll, 2000);
+          else setTimeout(go, 1200);
+        };
+        poll();
+      } else {
+        setTimeout(go, 2800);
+      }
     }
   });
 </script>

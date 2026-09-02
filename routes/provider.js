@@ -392,6 +392,10 @@ router.post('/ubicacion', requireRole('provider'), requireModule('provider_ubica
   if (!loc) return res.status(403).json({ error: 'Ubicación no autorizada' });
 
   if (requestId) {
+    const request = store.requests.find((r) => r.id === requestId);
+    if (!request || request.providerId !== req.session.user.id) {
+      return res.status(403).json({ error: 'Pedido no asignado a este socio' });
+    }
     const io = req.app.get('io');
     io.to(`request_${requestId}`).emit(`provider_location_${requestId}`, {
       lat: loc.lat,

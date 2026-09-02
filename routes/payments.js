@@ -40,6 +40,62 @@ function getAdditionalCharge(request, chargeId) {
   return charge;
 }
 
+function paymentApproved(request, chargeId) {
+  const charge = getAdditionalCharge(request, chargeId);
+  if (charge) return charge.status === 'approved';
+  const ps = String(request?.paymentStatus || 'pending');
+  return ps === 'approved' || ps === 'paid';
+}
+
+async function syncMercadoPagoPayment(request, { paymentId, chargeId, io } = {}) {
+  if (!mp.isConfigured() || !request) return { synced: false };
+
+  const charge = getAdditionalCharge(request, chargeId);
+  if (paymentApproved(request, chargeId)) return { synced: true, alreadyApproved: true };
+
+  let payment = null;
+  if (paymentId) {
+    try {
+      payment = await mp.getPaymentInfo(paymentId);
+    } catch (_) {
+      payment = null;
+    }
+  }
+
+  if (!payment || payment.status !== 'approved') {
+    const reference = charge
+      ? `${request.id}::${charge.id}`
+      : (request.paymentReference || request.id);
+    const results = await mp.searchPaymentsByReference(reference);
+    payment = results.find((p) => p.status === 'approved') || results[0] || null;
+  }
+
+  if (!payment || payment.status !== 'approved') return { synced: false, payment };
+
+  const paidAmount = Math.round(Number(payment.transaction_amount || 0));
+  const expected = charge
+    ? Math.round(Number(charge.amountDue || 0))
+    : Math.round(Number(request.amountDue || request.estimatedVisit || 0));
+  if (expected > 0 && paidAmount > 0 && Math.abs(paidAmount - expected) > 1) {
+    console.error(`[mp-sync] monto mismatch request=${request.id} paid=${paidAmount} expected=${expected}`);
+    return { synced: false, payment, mismatch: true };
+  }
+
+  const mpId = String(payment.id || paymentId || '');
+  if (charge) {
+    store.markAdditionalPaymentApproved(request.id, mpId);
+  } else {
+    store.markPaymentApproved(request.id, mpId);
+    store.activateRequest(request.id);
+  }
+
+  const updated = store.requests.find((r) => r.id === request.id);
+  if (io && updated && !charge) {
+    notifyProvidersForRequest(io, updated);
+  }
+  return { synced: true, payment, request: updated };
+}
+
 function buildAdditionalPaymentRequest(request, charge) {
   return {
     ...request,
@@ -483,22 +539,49 @@ router.post('/demo/confirmar', requireRole('client'), (req, res) => {
   res.json({ success: true, redirect: paymentSuccessPath(request.id) });
 });
 
-router.get('/exito', requireRole('client'), (req, res) => {
+router.get('/exito', requireRole('client'), async (req, res) => {
   const request = store.requests.find(r => r.id === req.query.ref);
   if (!request || request.clientId !== req.session.user.id) {
     return res.redirect('/cliente');
   }
 
   const charge = getAdditionalCharge(request, req.query.charge);
-  // Seguridad: no aprobar pagos desde ?payment_id= en la URL.
-  // Solo webhook / commit de pasarela pueden marcar approved.
+  const chargeId = charge?.id || null;
+  const paymentId = req.query.payment_id || req.query.collection_id || null;
 
-  const beneficiaryWhatsapp = company.beneficiaryWhatsappLink(request);
-  const guardianUrl = company.guardianShareLink(request);
+  if (!paymentApproved(request, chargeId) && mp.isConfigured()) {
+    try {
+      await syncMercadoPagoPayment(request, {
+        paymentId,
+        chargeId,
+        io: req.app.get('io')
+      });
+    } catch (err) {
+      console.error('[pagos/exito] sync MP:', err.message);
+    }
+  }
+
+  const fresh = store.requests.find((r) => r.id === request.id);
+  const approved = paymentApproved(fresh, chargeId);
+  const pendingTransfer = fresh?.paymentStatus === 'pending_transfer';
+
+  if (!approved && !charge && pendingTransfer) {
+    return res.redirect(`/pagos/transferencia?ref=${fresh.id}`);
+  }
+  if (!approved && !charge && (fresh?.paymentStatus === 'pending' || paymentId)) {
+    return res.render('payments/pending', {
+      title: 'Confirmando pago — Fandez',
+      request: fresh,
+      pollPayment: true
+    });
+  }
+
+  const beneficiaryWhatsapp = company.beneficiaryWhatsappLink(fresh);
+  const guardianUrl = company.guardianShareLink(fresh);
 
   res.render('payments/success', {
     title: 'Pago exitoso — Fandez',
-    request,
+    request: fresh,
     formatCLP: store.formatCLP,
     beneficiaryWhatsapp,
     guardianUrl,
@@ -506,7 +589,41 @@ router.get('/exito', requireRole('client'), (req, res) => {
     additionalPayment: charge?.status === 'approved' ? charge : null,
     splitInvoicing: process.env.SPLIT_INVOICING !== 'false',
     checkoutStep: 3,
-    autoRedirect: !charge && req.query.auto === '1'
+    autoRedirect: approved && !charge && req.query.auto === '1'
+  });
+});
+
+router.get('/estado', requireRole('client'), async (req, res) => {
+  const request = store.requests.find((r) => r.id === req.query.ref && r.clientId === req.session.user.id);
+  if (!request) return res.status(404).json({ error: 'Solicitud no encontrada' });
+
+  const chargeId = req.query.charge || null;
+  const charge = getAdditionalCharge(request, chargeId);
+  const paymentId = req.query.payment_id || req.query.collection_id || null;
+
+  if (!paymentApproved(request, chargeId) && mp.isConfigured()) {
+    try {
+      await syncMercadoPagoPayment(request, {
+        paymentId,
+        chargeId,
+        io: req.app.get('io')
+      });
+    } catch (err) {
+      console.error('[pagos/estado] sync MP:', err.message);
+    }
+  }
+
+  const fresh = store.requests.find((r) => r.id === request.id);
+  const approved = paymentApproved(fresh, chargeId);
+
+  res.json({
+    approved,
+    paymentStatus: charge ? charge.status : fresh.paymentStatus,
+    status: fresh.status,
+    searching: fresh.status === 'searching',
+    redirect: approved && !charge
+      ? `/cliente/servicio/${fresh.serviceId}?tracking=${fresh.id}`
+      : null
   });
 });
 
@@ -527,6 +644,21 @@ router.get('/pendiente', requireRole('client'), (req, res) => {
 });
 
 router.post('/webhook', async (req, res) => {
+  const webhookSecret = process.env.MP_WEBHOOK_SECRET || '';
+  const dataId = req.body?.data?.id || req.query['data.id'] || req.query.id;
+  if (webhookSecret && dataId) {
+    const valid = mp.verifyWebhookSignature({
+      xSignature: req.headers['x-signature'],
+      xRequestId: req.headers['x-request-id'],
+      dataId: String(dataId),
+      secret: webhookSecret
+    });
+    if (!valid) {
+      console.warn('[webhook] firma MP inválida');
+      return res.status(401).send('invalid signature');
+    }
+  }
+
   const { type, data } = req.body;
 
   if (type === 'payment' && data?.id) {

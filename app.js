@@ -419,6 +419,8 @@ io.on('connection', (socket) => {
 
   socket.on('provider_location_broadcast', ({ requestId, lat, lng }) => {
     if (!socket.providerId || !requestId) return;
+    const request = store.requests.find((r) => r.id === requestId);
+    if (!request || request.providerId !== socket.providerId) return;
     store.updateProviderLocation(socket.providerId, lat, lng);
     io.to(`request_${requestId}`).emit(`provider_location_${requestId}`, {
       lat: parseFloat(lat),

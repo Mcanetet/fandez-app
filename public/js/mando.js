@@ -336,4 +336,39 @@
       });
     }
   }
+
+  let mandoLocationWatch = null;
+  function getMandoTrackingRequestId() {
+    let enCamino = null;
+    let fallback = null;
+    document.querySelectorAll('#mandoList [data-request-id]').forEach((card) => {
+      if (!fallback) fallback = card.dataset.requestId;
+      if (card.dataset.techStatus === 'en_camino') enCamino = card.dataset.requestId;
+    });
+    return enCamino || fallback;
+  }
+
+  function startMandoLocationWatch() {
+    if (!document.getElementById('mandoList') || !navigator.geolocation) return;
+    if (mandoLocationWatch != null) return;
+    mandoLocationWatch = navigator.geolocation.watchPosition(
+      (pos) => {
+        const requestId = getMandoTrackingRequestId();
+        if (!requestId) return;
+        fetch('/proveedor/ubicacion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            requestId
+          })
+        }).catch(() => {});
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+    );
+  }
+
+  startMandoLocationWatch();
 })();
