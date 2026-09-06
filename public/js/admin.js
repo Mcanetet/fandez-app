@@ -2530,8 +2530,6 @@
       }
     });
   });
-})();
-
 
   document.querySelectorAll('.btn-set-app-mode').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -2540,18 +2538,23 @@
       try {
         const res = await adminFetch('/modo', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          credentials: 'same-origin',
           body: JSON.stringify({ mode })
         });
-        const data = await res.json();
-        if (!data.success) {
-          FandezNotify.show(data.error || 'No se pudo cambiar el modo', 'error');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          FandezNotify.show(data.error || ('No se pudo cambiar el modo (' + res.status + ')'), 'error');
           return;
         }
         FandezNotify.show('Modo: ' + data.label, 'success');
         setTimeout(() => location.reload(), 700);
-      } catch (_) {
-        FandezNotify.show('Error al cambiar modo', 'error');
+      } catch (err) {
+        FandezNotify.show((err && err.message) || 'Error al cambiar modo', 'error');
       }
     });
   });
+})();

@@ -612,17 +612,21 @@ router.get('/modo', requireRole('admin'), requireAdminPermission('seguridad.view
 router.post('/modo', requireRole('admin'), requireAdminPermission('equipo.manage'), async (req, res) => {
   const access = req.adminAccess || {};
   if (!(access.isSuperAdmin || access.isFullAccess)) {
-    return res.status(403).json({ error: 'Solo superadmin o admin.mod pueden cambiar el modo.' });
+    return res.status(403).json({ success: false, error: 'Solo superadmin o admin.mod pueden cambiar el modo.' });
   }
   if (!canToggleModeFromAdmin()) {
-    return res.status(403).json({ error: 'El cambio de modo desde admin está bloqueado. Usa APP_MODE en el servidor o ALLOW_APP_MODE_TOGGLE=true.' });
+    return res.status(403).json({
+      success: false,
+      error: 'El cambio desde admin está bloqueado. Usa APP_MODE en el servidor o ALLOW_APP_MODE_TOGGLE=true.'
+    });
   }
   try {
     const status = await appModeStore.persistAppModeOverride(req.body.mode);
     store.logSecurityEvent('app_mode_change', status.mode, req);
     res.json({ success: true, ...status });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error('[admin/modo]', err.message);
+    res.status(400).json({ success: false, error: err.message || 'No se pudo guardar el modo.' });
   }
 });
 
