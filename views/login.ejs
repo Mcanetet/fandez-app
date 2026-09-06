@@ -27,6 +27,8 @@
         <div class="mb-4 p-3 rounded-xl bg-zilo-success/10 border border-zilo-success/30 text-zilo-success text-sm text-center"><%= success %></div>
       <% } %>
 
+      <%- include('partials/site-alert', { alertCompact: true }) %>
+
       <form action="/login" method="POST" class="space-y-4">
         <div>
           <label for="email" class="zilo-label block mb-1.5"><%= t('auth.email') %></label>

@@ -25,6 +25,8 @@
   </header>
 
   <main class="flex-1 px-5 py-5 pb-24">
+    <%- include('../partials/site-alert') %>
+
     <% const attentionList = typeof attentionItems !== 'undefined' ? attentionItems : []; %>
     <% const hasActive = activeRequests && activeRequests.length > 0; %>
     <% const isReturning = Boolean((typeof lastCompleted !== 'undefined' && lastCompleted) || (passport && passport.entries && passport.entries.length)); %>

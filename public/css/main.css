@@ -3380,3 +3380,103 @@ header.sticky.bg-zilo-bg\/90,
     height: 2.25rem;
   }
 }
+
+/* ——— Mensajes alerta del sitio ——— */
+.site-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.site-alerts--compact {
+  margin-bottom: 1rem;
+}
+.site-alert {
+  position: relative;
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--zilo-border);
+  background: #fff;
+}
+.site-alert--launch {
+  border-color: rgba(var(--zilo-accent-rgb), 0.35);
+  background: linear-gradient(135deg, #fff8f1 0%, #ffffff 55%);
+}
+.site-alert--info {
+  border-color: rgba(42, 106, 91, 0.25);
+  background: #f4faf8;
+}
+.site-alert--warning {
+  border-color: rgba(180, 120, 20, 0.35);
+  background: #fffbeb;
+}
+.site-alert--success {
+  border-color: rgba(47, 107, 79, 0.3);
+  background: #f3faf6;
+}
+.site-alert__media {
+  flex-shrink: 0;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--zilo-bg);
+}
+.site-alert__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.site-alert__body {
+  min-width: 0;
+  flex: 1;
+  padding-right: 1.25rem;
+}
+.site-alert__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--zilo-text);
+  margin: 0 0 0.25rem;
+  line-height: 1.25;
+}
+.site-alert__message {
+  font-size: 0.8125rem;
+  color: var(--zilo-muted);
+  margin: 0;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.site-alert__close {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.45rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--zilo-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.site-alert__close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--zilo-text);
+}
+.site-alert-preview-frame {
+  max-width: 24rem;
+  margin: 0 auto;
+  padding: 1rem;
+  border-radius: 1.25rem;
+  border: 1px dashed var(--zilo-border);
+  background: var(--zilo-bg);
+}
+.site-alert-preview-frame .site-alerts {
+  margin-bottom: 0;
+}
+

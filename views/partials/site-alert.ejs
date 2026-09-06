@@ -1,0 +1,58 @@
+<%
+  var alerts = typeof siteAlerts !== 'undefined' && Array.isArray(siteAlerts) ? siteAlerts : [];
+  var alertCompact = typeof alertCompact !== 'undefined' && alertCompact;
+%>
+<% if (alerts.length) { %>
+<div class="site-alerts <%= alertCompact ? 'site-alerts--compact' : '' %>" data-site-alerts>
+  <% alerts.forEach(function(alert) { %>
+    <aside
+      class="site-alert site-alert--<%= alert.tone || 'info' %>"
+      data-alert-id="<%= alert.id %>"
+      role="status"
+    >
+      <% if (alert.imageUrl) { %>
+        <div class="site-alert__media">
+          <img src="<%= alert.imageUrl %>" alt="" loading="lazy">
+        </div>
+      <% } %>
+      <div class="site-alert__body">
+        <% if (alert.title) { %>
+          <p class="site-alert__title"><%= alert.title %></p>
+        <% } %>
+        <p class="site-alert__message"><%= alert.message %></p>
+      </div>
+      <% if (alert.dismissible !== false) { %>
+        <button type="button" class="site-alert__close" data-dismiss-alert aria-label="Cerrar">×</button>
+      <% } %>
+    </aside>
+  <% }); %>
+</div>
+<script>
+(function () {
+  try {
+    var root = document.currentScript && document.currentScript.previousElementSibling;
+    if (!root || !root.getAttribute || root.getAttribute('data-site-alerts') == null) {
+      root = document.querySelector('[data-site-alerts]');
+    }
+    if (!root) return;
+    root.querySelectorAll('[data-alert-id]').forEach(function (el) {
+      var id = el.getAttribute('data-alert-id');
+      var key = 'fandez_alert_dismiss_' + id;
+      if (localStorage.getItem(key) === '1') {
+        el.remove();
+        return;
+      }
+      var btn = el.querySelector('[data-dismiss-alert]');
+      if (btn) {
+        btn.addEventListener('click', function () {
+          localStorage.setItem(key, '1');
+          el.remove();
+          if (!root.querySelector('[data-alert-id]')) root.remove();
+        });
+      }
+    });
+    if (!root.querySelector('[data-alert-id]')) root.remove();
+  } catch (e) { /* ignore */ }
+})();
+</script>
+<% } %>

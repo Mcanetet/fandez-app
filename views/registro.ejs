@@ -13,6 +13,8 @@
     <h1 class="zilo-display text-3xl text-center mb-1"><%= t('register.title') %></h1>
     <p class="text-zilo-muted text-center text-sm mb-6"><%= t('register.subtitle_full') %></p>
 
+    <%- include('partials/site-alert', { alertCompact: true }) %>
+
     <% if (typeof referralCode !== 'undefined' && referralCode) { %>
       <div class="mb-4 p-3 rounded-xl border border-zilo-accent/25 bg-zilo-accent-soft text-center">
         <p class="text-sm text-zilo-accent-strong"><%- t('auth.referral_code', { code: referralCode }) %></p>

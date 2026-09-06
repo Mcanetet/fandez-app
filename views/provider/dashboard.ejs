@@ -42,6 +42,8 @@
   </header>
 
   <main class="flex-1 px-5 py-5 pb-28">
+    <%- include('../partials/site-alert') %>
+
     <% if (mod('provider_verificacion') && typeof verificationCheck !== 'undefined' && verificationCheck && !verificationCheck.ok) { %>
     <a href="/proveedor/perfil#verificacion" data-tour="verification" class="block mb-4 p-4 rounded-2xl border border-zilo-warning/30 bg-zilo-warning/10 zilo-page-enter">
       <p class="text-sm font-semibold text-zilo-warning mb-1"><%= t('provider.verification_pending') %></p>

@@ -1812,6 +1812,83 @@ function hasPerm(key) {
       </div>
     </section>
 
+    <!-- MENSAJES ALERTA -->
+    <section class="<%= panelClass('alertas') %>" data-panel="alertas">
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div>
+          <h3 class="text-lg font-semibold"><%= t('admin.alertas.title') %></h3>
+          <p class="text-xs text-gray-500 mt-1"><%= t('admin.alertas.subtitle') %></p>
+        </div>
+        <% if (hasPerm('alertas.manage')) { %>
+        <button type="button" id="alertasNewBtn" class="admin-primary-btn !py-2 !px-3 text-sm"><%= t('admin.alertas.new') %></button>
+        <% } %>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-4">
+        <div>
+          <div id="alertasList" class="space-y-2 max-h-[32rem] overflow-y-auto"></div>
+        </div>
+        <div class="space-y-4">
+          <% if (hasPerm('alertas.manage')) { %>
+          <form id="alertasForm" class="p-4 rounded-2xl bg-zilo-card border border-gray-200 space-y-3">
+            <input type="hidden" name="id" id="alertaId" value="">
+            <input type="hidden" name="clearImage" id="alertaClearImage" value="0">
+            <div>
+              <label class="text-[10px] text-gray-500 uppercase block mb-1"><%= t('admin.alertas.audience') %></label>
+              <select name="audience" id="alertaAudience" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm" required>
+                <option value="clients"><%= t('admin.alertas.audience_clients') %></option>
+                <option value="providers"><%= t('admin.alertas.audience_providers') %></option>
+                <option value="all"><%= t('admin.alertas.audience_all') %></option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-500 uppercase block mb-1"><%= t('admin.alertas.alert_title') %></label>
+              <input type="text" name="title" id="alertaTitle" maxlength="120" required class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm" placeholder="Lanzamiento oficial: octubre 2026">
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-500 uppercase block mb-1"><%= t('admin.alertas.message') %></label>
+              <textarea name="message" id="alertaMessage" rows="4" maxlength="800" required class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm" placeholder="Mensaje de aliento…"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[10px] text-gray-500 uppercase block mb-1"><%= t('admin.alertas.tone') %></label>
+                <select name="tone" id="alertaTone" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
+                  <option value="launch">Lanzamiento</option>
+                  <option value="info">Info</option>
+                  <option value="warning">Aviso</option>
+                  <option value="success">Éxito</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-500 uppercase block mb-1"><%= t('admin.alertas.image') %></label>
+                <input type="file" id="alertaImage" accept="image/png,image/jpeg,image/webp" class="w-full text-xs">
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-3 text-xs">
+              <label class="inline-flex items-center gap-1.5"><input type="checkbox" id="alertaEnabled" checked class="accent-[#C45C14]"> <%= t('admin.alertas.enabled') %></label>
+              <label class="inline-flex items-center gap-1.5"><input type="checkbox" id="alertaDismissible" checked class="accent-[#C45C14]"> <%= t('admin.alertas.dismissible') %></label>
+              <label class="inline-flex items-center gap-1.5"><input type="checkbox" id="alertaShowAuth" checked class="accent-[#C45C14]"> <%= t('admin.alertas.show_auth') %></label>
+              <label class="inline-flex items-center gap-1.5"><input type="checkbox" id="alertaShowApp" checked class="accent-[#C45C14]"> <%= t('admin.alertas.show_app') %></label>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button type="submit" class="admin-primary-btn !py-2 !px-4 text-sm"><%= t('admin.alertas.save') %></button>
+              <button type="button" id="alertaClearImgBtn" class="admin-secondary-btn !py-2 !px-3 text-xs"><%= t('admin.alertas.clear_image') %></button>
+              <button type="button" id="alertaResetBtn" class="admin-secondary-btn !py-2 !px-3 text-xs"><%= t('admin.alertas.reset') %></button>
+            </div>
+          </form>
+          <% } %>
+
+          <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200">
+            <h4 class="text-sm font-semibold mb-2"><%= t('admin.alertas.preview') %></h4>
+            <p class="text-[11px] text-gray-500 mb-3"><%= t('admin.alertas.preview_hint') %></p>
+            <div class="site-alert-preview-frame">
+              <div class="site-alerts site-alerts--compact" id="alertaPreview"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- INFORMES AGENTES -->
     <section class="<%= panelClass('informes') %>" data-panel="informes">
       <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">

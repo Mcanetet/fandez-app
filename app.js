@@ -276,7 +276,9 @@ app.use(mediaRouter);
 app.use(seoRoutes);
 
 const assetVersion = getAssetVersion();
-app.use((req, res, next) => {
+const siteAlerts = require('./lib/siteAlerts');
+
+app.use(async (req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.currentPath = req.path;
   res.locals.currentQuery = req.url.includes('?') ? req.url.split('?')[1] : '';
@@ -292,6 +294,30 @@ app.use((req, res, next) => {
   res.locals.adminUrl = appMode.adminUrl;
   res.locals.appModeStatus = appMode.getPublicStatus();
   res.locals.requestTimeouts = getRequestTimeouts();
+
+  try {
+    const pathName = req.path || '';
+    const isAuthSurface = /^\/(login|registro|verificar-email|recuperar)/.test(pathName);
+    let authRoleHint = null;
+    if (isAuthSurface) {
+      if (req.query.role === 'provider' || req.query.socio || String(req.query.role || '') === 'socio') {
+        authRoleHint = 'provider';
+      } else if (pathName.startsWith('/registro')) {
+        authRoleHint = 'client';
+      } else {
+        authRoleHint = 'client';
+      }
+    }
+    const role = req.session?.user?.role || null;
+    res.locals.siteAlerts = await siteAlerts.getVisibleAlerts({
+      role,
+      surface: isAuthSurface || !role ? (isAuthSurface ? 'auth' : 'app') : 'app',
+      authRoleHint: isAuthSurface ? authRoleHint : null
+    });
+  } catch (_) {
+    res.locals.siteAlerts = [];
+  }
+
   // Evita que Safari/Chrome en móvil reutilicen HTML viejo (colores/logo antiguos)
   const accept = req.get('accept') || '';
   if (accept.includes('text/html')) {
@@ -581,6 +607,11 @@ async function initDatabase() {
       florencia.startScheduler(store, io);
       await aland.ensureConfig();
       await aland.syncKnowledgeFromApp(store);
+      try {
+        await require('./lib/siteAlerts').ensureHydrated();
+      } catch (err) {
+        console.warn('[siteAlerts] hydrate:', err.message);
+      }
       await backup.ensureStartupBackup(store);
       require('./lib/aland/journey').bind({ store, io });
       aland.startEscalationWatcher(store, io);

@@ -35,6 +35,7 @@ const appModeStore = require('../lib/appModeStore');
 const { resolveAdminAccess, hasFullSystemAccess } = require('../lib/adminPermissions');
 const florencia = require('../lib/florencia');
 const informes = require('../lib/informes');
+const siteAlerts = require('../lib/siteAlerts');
 
 function buildAdminAttentionInbox(storeRef, locale = 'es') {
   const inbox = [];
@@ -494,6 +495,69 @@ router.get('/informes/marketing', requireRole('admin'), requireAdminPermission('
     res.json({ success: true, marketing });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ——— Mensajes alerta (clientes / socios / todos) ———
+
+router.get('/alertas', requireRole('admin'), requireAdminPermission('alertas.view'), async (req, res) => {
+  try {
+    const alerts = await siteAlerts.listAlerts();
+    res.json({
+      success: true,
+      alerts,
+      audiences: Object.values(siteAlerts.AUDIENCES)
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/alertas', requireRole('admin'), requireAdminPermission('alertas.manage'), async (req, res) => {
+  try {
+    let imageUrl = req.body.imageUrl;
+    if (req.body.imageDataUrl) {
+      imageUrl = await siteAlerts.saveImageFromDataUrl(req.body.imageDataUrl);
+    }
+    if (req.body.clearImage) imageUrl = null;
+    const payload = {
+      id: req.body.id || undefined,
+      audience: req.body.audience,
+      title: req.body.title,
+      message: req.body.message,
+      enabled: req.body.enabled !== false && req.body.enabled !== 'false' && req.body.enabled !== 0,
+      tone: req.body.tone,
+      dismissible: req.body.dismissible !== false && req.body.dismissible !== 'false',
+      showOnAuth: req.body.showOnAuth !== false && req.body.showOnAuth !== 'false',
+      showOnApp: req.body.showOnApp !== false && req.body.showOnApp !== 'false'
+    };
+    if (imageUrl !== undefined) payload.imageUrl = imageUrl;
+    const alert = await siteAlerts.upsertAlert(payload);
+    store.logSecurityEvent('site_alert_upsert', `${alert.audience}:${alert.id}`, req);
+    res.json({ success: true, alert });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/alertas/:id/toggle', requireRole('admin'), requireAdminPermission('alertas.manage'), async (req, res) => {
+  try {
+    const enabled = req.body.enabled !== false && req.body.enabled !== 'false' && req.body.enabled !== 0;
+    const alert = await siteAlerts.setEnabled(req.params.id, enabled);
+    store.logSecurityEvent('site_alert_toggle', `${alert.id}:${enabled}`, req);
+    res.json({ success: true, alert });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+router.delete('/alertas/:id', requireRole('admin'), requireAdminPermission('alertas.manage'), async (req, res) => {
+  try {
+    await siteAlerts.deleteAlert(req.params.id);
+    store.logSecurityEvent('site_alert_delete', req.params.id, req);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 

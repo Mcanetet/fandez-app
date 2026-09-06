@@ -18,6 +18,7 @@
     proveedores: 'Socios',
     reclamos: 'Reclamos',
     informes: 'Informes',
+    alertas: 'Mensajes alerta',
     whatsapp: 'WhatsApp',
     aland: 'Aland IA',
     florencia: 'Florencia IA',
@@ -83,6 +84,9 @@
     window.history.replaceState({}, '', url.pathname + url.search);
     if (id === 'informes' && typeof window.__fandezLoadInformes === 'function') {
       window.__fandezLoadInformes();
+    }
+    if (id === 'alertas' && typeof window.__fandezLoadAlertas === 'function') {
+      window.__fandezLoadAlertas();
     }
   }
 
@@ -2147,6 +2151,206 @@
     window.__fandezLoadInformes = loadInformes;
     if (dashboard.dataset.initialTab === 'informes' || new URLSearchParams(window.location.search).get('tab') === 'informes') {
       loadInformes();
+    }
+  })();
+
+  /* ——— Mensajes alerta ——— */
+  (function initAlertas() {
+    const panel = document.querySelector('[data-panel="alertas"]');
+    if (!panel) return;
+    const listEl = document.getElementById('alertasList');
+    const form = document.getElementById('alertasForm');
+    const preview = document.getElementById('alertaPreview');
+    const canManage = Boolean(form);
+    let alerts = [];
+    let pendingImageDataUrl = null;
+    let editingImageUrl = null;
+
+    const audienceLabel = {
+      clients: 'Clientes',
+      providers: 'Socios',
+      all: 'Todos'
+    };
+
+    function esc(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+
+    function renderPreview(alert) {
+      if (!preview) return;
+      if (!alert || !alert.title) {
+        preview.innerHTML = '<p class="text-xs text-gray-500">Completa título y mensaje para ver el preview.</p>';
+        return;
+      }
+      const img = alert.imageUrl
+        ? `<div class="site-alert__media"><img src="${esc(alert.imageUrl)}" alt=""></div>`
+        : '';
+      preview.innerHTML = `
+        <aside class="site-alert site-alert--${esc(alert.tone || 'info')}">
+          ${img}
+          <div class="site-alert__body">
+            <p class="site-alert__title">${esc(alert.title)}</p>
+            <p class="site-alert__message">${esc(alert.message)}</p>
+          </div>
+        </aside>`;
+    }
+
+    function formSnapshot() {
+      return {
+        id: document.getElementById('alertaId')?.value || '',
+        audience: document.getElementById('alertaAudience')?.value || 'clients',
+        title: document.getElementById('alertaTitle')?.value || '',
+        message: document.getElementById('alertaMessage')?.value || '',
+        tone: document.getElementById('alertaTone')?.value || 'launch',
+        enabled: document.getElementById('alertaEnabled')?.checked !== false,
+        dismissible: document.getElementById('alertaDismissible')?.checked !== false,
+        showOnAuth: document.getElementById('alertaShowAuth')?.checked !== false,
+        showOnApp: document.getElementById('alertaShowApp')?.checked !== false,
+        imageUrl: pendingImageDataUrl || editingImageUrl
+      };
+    }
+
+    function fillForm(alert) {
+      if (!form) return;
+      document.getElementById('alertaId').value = alert?.id || '';
+      document.getElementById('alertaAudience').value = alert?.audience || 'clients';
+      document.getElementById('alertaTitle').value = alert?.title || '';
+      document.getElementById('alertaMessage').value = alert?.message || '';
+      document.getElementById('alertaTone').value = alert?.tone || 'launch';
+      document.getElementById('alertaEnabled').checked = alert ? alert.enabled !== false : true;
+      document.getElementById('alertaDismissible').checked = alert ? alert.dismissible !== false : true;
+      document.getElementById('alertaShowAuth').checked = alert ? alert.showOnAuth !== false : true;
+      document.getElementById('alertaShowApp').checked = alert ? alert.showOnApp !== false : true;
+      document.getElementById('alertaClearImage').value = '0';
+      document.getElementById('alertaImage').value = '';
+      pendingImageDataUrl = null;
+      editingImageUrl = alert?.imageUrl || null;
+      renderPreview(formSnapshot());
+    }
+
+    function renderList() {
+      if (!listEl) return;
+      if (!alerts.length) {
+        listEl.innerHTML = '<p class="text-xs text-gray-500 p-3 rounded-xl border bg-zilo-bg">Sin alertas aún.</p>';
+        return;
+      }
+      listEl.innerHTML = alerts.map((a) => `
+        <div class="p-3 rounded-xl border border-gray-200 bg-zilo-bg">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="text-[10px] font-bold uppercase text-gray-500">${audienceLabel[a.audience] || a.audience} · ${a.enabled ? 'ON' : 'OFF'}</p>
+              <strong class="text-sm block truncate">${esc(a.title)}</strong>
+              <p class="text-xs text-gray-500 mt-1 line-clamp-2">${esc(a.message)}</p>
+            </div>
+            <div class="flex flex-col gap-1 shrink-0">
+              ${canManage ? `<button type="button" class="text-xs px-2 py-1 rounded-lg border alerta-edit" data-id="${esc(a.id)}">Editar</button>` : ''}
+              ${canManage ? `<button type="button" class="text-xs px-2 py-1 rounded-lg border alerta-toggle" data-id="${esc(a.id)}" data-enabled="${a.enabled ? '0' : '1'}">${a.enabled ? 'Desactivar' : 'Activar'}</button>` : ''}
+              ${canManage ? `<button type="button" class="text-xs px-2 py-1 rounded-lg border border-red-200 text-red-600 alerta-del" data-id="${esc(a.id)}">Borrar</button>` : ''}
+            </div>
+          </div>
+        </div>`).join('');
+
+      listEl.querySelectorAll('.alerta-edit').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const alert = alerts.find((x) => x.id === btn.dataset.id);
+          if (alert) fillForm(alert);
+        });
+      });
+      listEl.querySelectorAll('.alerta-toggle').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const res = await fetch(`${ADMIN_BASE}/alertas/${btn.dataset.id}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ enabled: btn.dataset.enabled === '1' })
+          });
+          const data = await res.json();
+          if (!data.success) return FandezNotify.show(data.error || 'Error', 'error');
+          loadAlertas();
+        });
+      });
+      listEl.querySelectorAll('.alerta-del').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('¿Eliminar esta alerta?')) return;
+          const res = await fetch(`${ADMIN_BASE}/alertas/${btn.dataset.id}`, {
+            method: 'DELETE',
+            headers: { Accept: 'application/json' }
+          });
+          const data = await res.json();
+          if (!data.success) return FandezNotify.show(data.error || 'Error', 'error');
+          fillForm(null);
+          loadAlertas();
+        });
+      });
+    }
+
+    async function loadAlertas() {
+      const res = await fetch(`${ADMIN_BASE}/alertas`, { headers: { Accept: 'application/json' } });
+      const data = await res.json();
+      if (!data.success) {
+        if (listEl) listEl.innerHTML = `<p class="text-xs text-red-600">${esc(data.error || 'Error')}</p>`;
+        return;
+      }
+      alerts = data.alerts || [];
+      renderList();
+    }
+
+    form?.addEventListener('input', () => renderPreview(formSnapshot()));
+    form?.addEventListener('change', () => renderPreview(formSnapshot()));
+
+    document.getElementById('alertaImage')?.addEventListener('change', (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingImageDataUrl = reader.result;
+        document.getElementById('alertaClearImage').value = '0';
+        renderPreview(formSnapshot());
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('alertaClearImgBtn')?.addEventListener('click', () => {
+      pendingImageDataUrl = null;
+      editingImageUrl = null;
+      document.getElementById('alertaClearImage').value = '1';
+      document.getElementById('alertaImage').value = '';
+      renderPreview(formSnapshot());
+    });
+
+    document.getElementById('alertaResetBtn')?.addEventListener('click', () => fillForm(null));
+    document.getElementById('alertasNewBtn')?.addEventListener('click', () => fillForm(null));
+
+    form?.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const snap = formSnapshot();
+      const body = {
+        id: snap.id || undefined,
+        audience: snap.audience,
+        title: snap.title,
+        message: snap.message,
+        tone: snap.tone,
+        enabled: snap.enabled,
+        dismissible: snap.dismissible,
+        showOnAuth: snap.showOnAuth,
+        showOnApp: snap.showOnApp
+      };
+      if (pendingImageDataUrl) body.imageDataUrl = pendingImageDataUrl;
+      if (document.getElementById('alertaClearImage').value === '1') body.clearImage = true;
+      const res = await fetch(`${ADMIN_BASE}/alertas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!data.success) return FandezNotify.show(data.error || 'Error', 'error');
+      FandezNotify.show('Alerta guardada', 'success');
+      fillForm(data.alert);
+      loadAlertas();
+    });
+
+    window.__fandezLoadAlertas = loadAlertas;
+    if (dashboard.dataset.initialTab === 'alertas' || new URLSearchParams(window.location.search).get('tab') === 'alertas') {
+      loadAlertas();
     }
   })();
 
