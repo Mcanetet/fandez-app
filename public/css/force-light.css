@@ -1,60 +1,179 @@
 /**
- * Fondo blanco fijo — opt-out de auto-dark del navegador (ClassPass-style).
+ * Fandez — tema claro OBLIGATORIO (restrictivo).
+ * Bloquea auto-dark de Chrome Android, Samsung Internet, Safari iOS y PWA.
+ * Debe cargarse DESPUÉS de tailwind.css y main.css.
  */
-html,
-body,
-.fandez-landing {
+
+html {
   color-scheme: only light !important;
   background-color: #ffffff !important;
   background-image: linear-gradient(#ffffff, #ffffff) !important;
+  forced-color-adjust: none !important;
+  -webkit-tap-highlight-color: rgba(196, 92, 20, 0.15);
 }
 
-body {
+body,
+.zilo-body,
+.fandez-landing,
+.admin-page,
+.admin-shell,
+.admin-main,
+.admin-content,
+.min-h-screen,
+.min-h-full,
+#fandezSplash {
+  color-scheme: only light !important;
+  background-color: #ffffff !important;
+  background-image: linear-gradient(#ffffff, #ffffff) !important;
   color: #1a1814 !important;
+  forced-color-adjust: none !important;
+  -webkit-filter: none !important;
+  filter: none !important;
 }
 
 #fandezSplash {
   background: #ffffff !important;
 }
 
+.bg-white,
+.bg-zilo-bg,
+.bg-zilo-surface,
+.bg-zilo-card,
+.bg-zilo-elevated,
+.zilo-card-premium,
+.zilo-input,
+.nav-client-bar,
+.nav-provider-bar,
+.sticky-order-bar,
+.sticky-track-bar,
+.fandez-install-banner__card {
+  background-color: #ffffff !important;
+  forced-color-adjust: none !important;
+}
+
+.bg-white\/80,
+.bg-zilo-bg\/90,
+.bg-zilo-bg\/80 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.text-zilo-text,
+.zilo-display,
+.fandez-wordmark {
+  color: #1a1814 !important;
+}
+
+.text-zilo-muted,
+.zilo-label {
+  color: #6b635a !important;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe,
+picture {
+  forced-color-adjust: none !important;
+}
+
+/**
+ * Android Chrome “Force dark” / prefers-color-scheme: dark
+ * Reafirma tokens y superficies; no pinta botones de marca en blanco.
+ */
 @media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: only light !important;
+    --zilo-bg: #ffffff !important;
+    --zilo-surface: #ffffff !important;
+    --zilo-card: #ffffff !important;
+    --zilo-elevated: #ffffff !important;
+    --zilo-text: #1a1814 !important;
+    --zilo-muted: #6b635a !important;
+    --zilo-border: #e6e0d8 !important;
+    --zilo-header-bg: rgba(255, 255, 255, 0.97) !important;
+    --zilo-sticky-bar-bg: rgba(255, 255, 255, 0.98) !important;
+    --zilo-accent: #c45c14 !important;
+    --zilo-accent-soft: #f6e6d4 !important;
+    --zilo-accent-strong: #a84e10 !important;
+  }
+
   html,
   body,
+  .zilo-body,
   .fandez-landing,
-  #fandezSplash {
-    color-scheme: only light !important;
-    background-color: #ffffff !important;
-    background-image: linear-gradient(#ffffff, #ffffff) !important;
-    filter: none !important;
-    -webkit-filter: none !important;
-  }
-
-  body {
-    color: #1a1814 !important;
-  }
-
+  .admin-page,
+  .admin-shell,
+  .admin-main,
+  .admin-content,
+  .admin-sidebar,
+  .min-h-screen,
+  .min-h-full,
+  .max-w-lg.mx-auto.min-h-screen,
+  #fandezSplash,
+  main,
+  .zilo-card-premium,
+  .zilo-input,
   .bg-white,
   .bg-zilo-bg,
   .bg-zilo-surface,
-  .bg-zilo-card {
+  .bg-zilo-card,
+  .bg-zilo-elevated,
+  .nav-client-bar,
+  .nav-provider-bar,
+  .sticky-order-bar,
+  .sticky-track-bar,
+  .fandez-install-banner__card {
+    color-scheme: only light !important;
     background-color: #ffffff !important;
+    background-image: linear-gradient(#ffffff, #ffffff) !important;
+    color: #1a1814 !important;
+    forced-color-adjust: none !important;
+    -webkit-filter: none !important;
+    filter: none !important;
   }
 
-  .bg-white\/80 {
-    background-color: rgba(255, 255, 255, 0.88) !important;
+  header.sticky,
+  .sticky.top-0 {
+    background-color: rgba(255, 255, 255, 0.97) !important;
+    forced-color-adjust: none !important;
   }
 
   .text-zilo-text,
   .zilo-display,
   .fandez-wordmark,
-  h1,
-  h2,
-  h3 {
+  h1, h2, h3 {
     color: #1a1814 !important;
   }
 
   .text-zilo-muted,
   .zilo-label {
     color: #6b635a !important;
+  }
+
+  .bg-zilo-accent,
+  .zilo-btn-primary,
+  a.bg-zilo-accent,
+  button.bg-zilo-accent {
+    background-color: #c45c14 !important;
+    background-image: none !important;
+    color: #ffffff !important;
+  }
+
+  .text-zilo-accent {
+    color: #c45c14 !important;
+  }
+
+  .border-zilo-border {
+    border-color: #e6e0d8 !important;
+  }
+
+  img,
+  svg,
+  video,
+  canvas,
+  iframe,
+  picture {
+    forced-color-adjust: none !important;
   }
 }

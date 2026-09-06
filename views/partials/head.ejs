@@ -1,16 +1,24 @@
 <!DOCTYPE html>
-<html lang="<%= typeof locale !== 'undefined' ? locale : 'es' %>" class="h-full fandez-only-light">
+<html lang="<%= typeof locale !== 'undefined' ? locale : 'es' %>" class="h-full fandez-only-light" style="color-scheme:only light;background-color:#ffffff;background-image:linear-gradient(#ffffff,#ffffff)" data-color-scheme="light">
 <head>
   <meta charset="UTF-8">
+  <meta name="color-scheme" content="only light">
+  <meta name="supported-color-schemes" content="only light">
+  <meta name="night-mode" content="disable">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FFFFFF">
   <style id="fandez-theme-first-paint">
-    html { color-scheme: only light; background: #ffffff; }
-    body { color-scheme: only light; background: #ffffff; color: #1a1814; }
+    html, body {
+      color-scheme: only light !important;
+      background: #ffffff !important;
+      background-image: linear-gradient(#ffffff, #ffffff) !important;
+      forced-color-adjust: none !important;
+    }
+    body { color: #1a1814 !important; }
   </style>
   <script src="<%= typeof asset === 'function' ? asset('/js/force-light.js') : '/js/force-light.js' %>"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="color-scheme" content="only light">
-  <meta name="supported-color-schemes" content="only light">
-  <meta name="theme-color" content="#FFFFFF">
   <meta name="application-name" content="Fandez">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
