@@ -183,9 +183,9 @@ window.FandezAlerts = {
     if (!this.prefs().system) return null;
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return null;
     const { type = 'default', tag, requireInteraction = false, onClick, url } = opts;
-    const origin = window.location.origin;
-    const icon = origin + '/icons/fandez-v10-notify.png';
-    const badge = origin + '/icons/fandez-v10-badge-96.png';
+    // Same-origin siempre (evita Saturno Chrome por APP_URL incorrecta)
+    const icon = '/icons/fandez-v11-notify.png';
+    const badge = '/icons/fandez-v11-badge-96.png';
     const payload = {
       title: title || 'Fandez',
       body: body || '',
@@ -203,6 +203,8 @@ window.FandezAlerts = {
       if (!('serviceWorker' in navigator)) return Promise.resolve(false);
       return navigator.serviceWorker.ready.then((reg) => {
         if (!reg || typeof reg.showNotification !== 'function') return false;
+        // Forzar update de SW para no usar ícono cacheado viejo
+        try { reg.update(); } catch (_) { /* ignore */ }
         return reg.showNotification(payload.title, {
           body: payload.body,
           icon: payload.icon,

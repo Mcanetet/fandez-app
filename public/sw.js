@@ -1,16 +1,17 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v31';
+const SW_VERSION = 'fandez-sw-v32';
 
-/** Tile ámbar + ventosa ∞ (v10). Path nuevo = rompe caché CDN/Chrome “Saturno”. */
-const DEFAULT_ICON = '/icons/fandez-v10-notify.png';
-const DEFAULT_BADGE = '/icons/fandez-v10-badge-96.png';
+/** Ámbar + 2 semicírculos (v11). Path nuevo = rompe caché Saturno Chrome. */
+const DEFAULT_ICON = '/icons/fandez-v11-notify.png';
+const DEFAULT_BADGE = '/icons/fandez-v11-badge-96.png';
 
 const PRECACHE = [
   '/offline.html',
-  '/icons/fandez-v10-notify.png',
-  '/icons/fandez-v10-badge-96.png',
-  '/icons/fandez-v10-192.png',
-  '/icons/fandez-v10-96.png',
+  '/icons/fandez-v11-notify.png',
+  '/icons/fandez-v11-badge-96.png',
+  '/icons/fandez-v11-192.png',
+  '/icons/fandez-v11-96.png',
+  '/icon-192.png',
   '/favicon-32.png',
   '/favicon.ico'
 ];
@@ -38,7 +39,7 @@ self.addEventListener('fetch', (event) => {
   if (pathname.startsWith('/uploads/') || pathname.startsWith('/media/') || pathname.startsWith('/socket.io')) return;
 
   if (
-    pathname.startsWith('/icons/fandez-v10')
+    pathname.startsWith('/icons/fandez-v11')
     || pathname === '/favicon.ico'
     || pathname === '/favicon-32.png'
     || pathname === '/favicon.png'
@@ -57,6 +58,9 @@ self.addEventListener('fetch', (event) => {
         .catch(async () => {
           const cached = await caches.match(req) || await caches.match(pathname);
           if (cached) return cached;
+          // Fallback duro: icono raíz (mismo dibujo)
+          const fallback = await caches.match('/icon-192.png') || await caches.match('/icons/fandez-v11-notify.png');
+          if (fallback) return fallback;
           throw new Error('icon-offline');
         })
     );
@@ -87,13 +91,13 @@ function absUrl(path) {
 
 async function showFandezNotification(data = {}) {
   const title = data.title || 'Fandez';
-  // Siempre same-origin: evita 404 por APP_URL www/sin-www → ícono planeta Chrome
+  // SIEMPRE same-origin — evita Saturno de Chrome por APP_URL www/sin-www
   const icon = absUrl(DEFAULT_ICON);
   const badge = absUrl(DEFAULT_BADGE);
   const options = {
     body: data.body || '',
-    icon: data.icon && String(data.icon).includes(self.location.origin) ? data.icon : icon,
-    badge: data.badge && String(data.badge).includes(self.location.origin) ? data.badge : badge,
+    icon,
+    badge,
     image: data.image || undefined,
     tag: data.tag || 'fandez',
     renotify: data.renotify !== false,

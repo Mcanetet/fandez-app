@@ -156,9 +156,9 @@ app.get('/site.webmanifest', (req, res) => {
     background_color: '#FFFFFF',
     theme_color: '#FFFFFF',
     icons: [
-      { src: '/icons/fandez-v10-192.png?v=10', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fandez-v10-512.png?v=10', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fandez-v10-512.png?v=10', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: '/icons/fandez-v11-192.png?v=11', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-v11-512.png?v=11', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-v11-512.png?v=11', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   });
 });
@@ -209,14 +209,14 @@ function sendBrandAsset(res, relativePath) {
   ['/icons/fandez-v9-512.png', 'icons/fandez-v9-512.png'],
   ['/icons/fandez-v9.ico', 'icons/fandez-v9.ico'],
   ['/icons/fandez-v9-notify.png', 'icons/fandez-v9-notify.png'],
-  ['/icons/fandez-v10-48.png', 'icons/fandez-v10-48.png'],
-  ['/icons/fandez-v10-96.png', 'icons/fandez-v10-96.png'],
-  ['/icons/fandez-v10-180.png', 'icons/fandez-v10-180.png'],
-  ['/icons/fandez-v10-192.png', 'icons/fandez-v10-192.png'],
-  ['/icons/fandez-v10-512.png', 'icons/fandez-v10-512.png'],
-  ['/icons/fandez-v10.ico', 'icons/fandez-v10.ico'],
-  ['/icons/fandez-v10-notify.png', 'icons/fandez-v10-notify.png'],
-  ['/icons/fandez-v10-badge-96.png', 'icons/fandez-v10-badge-96.png'],
+  ['/icons/fandez-v11-48.png', 'icons/fandez-v11-48.png'],
+  ['/icons/fandez-v11-96.png', 'icons/fandez-v11-96.png'],
+  ['/icons/fandez-v11-180.png', 'icons/fandez-v11-180.png'],
+  ['/icons/fandez-v11-192.png', 'icons/fandez-v11-192.png'],
+  ['/icons/fandez-v11-512.png', 'icons/fandez-v11-512.png'],
+  ['/icons/fandez-v11.ico', 'icons/fandez-v11.ico'],
+  ['/icons/fandez-v11-notify.png', 'icons/fandez-v11-notify.png'],
+  ['/icons/fandez-v11-badge-96.png', 'icons/fandez-v11-badge-96.png'],
 ].forEach(([route, file]) => {
   app.get(route, (req, res) => sendBrandAsset(res, file));
 });
