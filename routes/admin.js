@@ -1175,6 +1175,41 @@ router.get('/precios', requireRole('admin'), requireAdminPermission('precios.vie
   });
 });
 
+router.get('/comercial', requireRole('admin'), requireAdminPermission('comercial.view', 'comercial.manage'), (req, res) => {
+  const commercialPlan = require('../lib/commercialPlan');
+  const pricing = store.getPricingConfig();
+  const access = resolveAdminAccess(req.session.user);
+  res.render('admin/comercial', {
+    title: 'Planificación comercial — Fandez Admin',
+    user: req.session.user,
+    pricing,
+    snapshot: commercialPlan.getCommercialPlanSnapshot(pricing),
+    canManage: hasPermission(access, 'comercial.manage') || hasFullSystemAccess(access),
+    query: req.query,
+    formatCLP: store.formatCLP
+  });
+});
+
+router.post('/comercial/aplicar-plan-a', requireRole('admin'), requireAdminPermission('comercial.manage'), (req, res) => {
+  const commercialPlan = require('../lib/commercialPlan');
+  try {
+    const current = store.getPricingConfig();
+    const updates = commercialPlan.buildPlanAPricingUpdate(current);
+    store.updatePricingConfig(updates);
+    store.logSecurityEvent('commercial_plan_a_applied', 'pricing', req);
+    if (req.xhr || (req.get('accept') || '').includes('application/json')) {
+      return res.json({ success: true, pricing: store.getPricingConfig() });
+    }
+    return res.redirect(adminUrl('/comercial?ok=plan_a'));
+  } catch (err) {
+    console.error('[comercial] plan A', err);
+    if (req.xhr || (req.get('accept') || '').includes('application/json')) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+    return res.redirect(adminUrl(`/comercial?error=${encodeURIComponent(err.message || 'Error')}`));
+  }
+});
+
 router.post('/precios', requireRole('admin'), requireAdminPermission('precios.manage'), (req, res) => {
   const body = req.body;
   const tiers = [];

@@ -29,13 +29,13 @@
         <div class="grid grid-cols-1 gap-3">
           <div>
             <label class="text-xs text-gray-500">Visita diagnóstico mínima (CLP)</label>
-            <input type="number" name="visitPrice" value="<%= pricing.visitPrice %>" min="50000" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Mínimo $50.000 si no se realiza trabajo.</p>
+            <input type="number" name="visitPrice" value="<%= pricing.visitPrice %>" min="35000" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Total al cliente (IVA incluido). Soft launch Plan A: $50.000. Mínimo técnico $35.000.</p>
           </div>
           <div>
             <label class="text-xs text-gray-500">Precio base del trabajo (CLP)</label>
-            <input type="number" name="servicePrice" value="<%= pricing.servicePrice %>" min="100000" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Base del cálculo dinámico (mín. $100.000). Sobre esto se aplican horario y urgencia.</p>
+            <input type="number" name="servicePrice" value="<%= pricing.servicePrice %>" min="55000" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Fallback del cálculo dinámico (mín. $55.000). Los SKUs del catálogo tienen prioridad. Precios = total cliente IVA incluido.</p>
           </div>
         </div>
       </section>
@@ -232,8 +232,8 @@
           <span class="text-[10px] text-gray-500"><%= (typeof catalogRows !== 'undefined' ? catalogRows.length : 0) %> actividades</span>
         </div>
         <p class="text-xs text-gray-500 mb-4">
-          Precio base en horario normal (CLP). El total al cliente aplica después recargo por horario × urgencia.
-          Mínimo <strong>$100.000</strong> por actividad.
+          Precio base en horario normal (CLP) = <strong>total al cliente (IVA incluido)</strong>.
+          Luego se aplica recargo por horario × urgencia. Mínimo técnico <strong>$55.000</strong> por actividad (Plan A soft launch).
         </p>
 
         <% if (typeof serviceCatalog !== 'undefined' && serviceCatalog.length) { %>
@@ -271,7 +271,7 @@
                               type="number"
                               name="catalogBasePrice"
                               value="<%= activity.basePrice %>"
-                              min="100000"
+                              min="55000"
                               step="1000"
                               class="zilo-input !py-2 text-sm w-full"
                               required

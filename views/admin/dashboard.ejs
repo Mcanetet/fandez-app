@@ -78,6 +78,11 @@ function hasPerm(key) {
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
           </a>
         <% } %>
+        <% if (hasPerm('comercial.view') || hasPerm('comercial.manage')) { %>
+          <a href="<%= adminBase %>/comercial" class="zilo-icon-btn" title="Planificación comercial">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          </a>
+        <% } %>
       </div>
     </header>
 
@@ -156,6 +161,9 @@ function hasPerm(key) {
         <h3 class="text-sm font-semibold mb-2"><%= as.resumen.configLegal %></h3>
         <div class="flex flex-wrap gap-2">
           <a href="<%= adminBase %>/precios" class="text-xs px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-700 hover:border-blue-500/50 font-medium"><%= as.resumen.pricing %></a>
+          <% if (hasPerm('comercial.view') || hasPerm('comercial.manage')) { %>
+          <a href="<%= adminBase %>/comercial" class="text-xs px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-800 hover:border-orange-500/50 font-medium">Planificación comercial</a>
+          <% } %>
           <button type="button" class="admin-goto-tab text-xs px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 hover:border-emerald-500/50 font-medium" data-tab="finanzas"><%= as.resumen.financeCenter %></button>
           <a href="/legal/privacidad" target="_blank" class="text-xs px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 hover:border-blue-500/50"><%= as.resumen.privacy %></a>
           <a href="/legal/terminos" target="_blank" class="text-xs px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 hover:border-blue-500/50"><%= as.resumen.terms %></a>

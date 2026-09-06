@@ -1,0 +1,171 @@
+<%- include('../partials/head', { bodyClass: 'admin-page' }) %>
+
+<div class="max-w-3xl mx-auto min-h-screen flex flex-col zilo-page-enter">
+  <header class="sticky top-0 z-50 bg-zilo-bg/95 backdrop-blur-xl border-b border-zilo-border px-5 py-4">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <a href="<%= typeof adminBase !== 'undefined' ? adminBase : '/admin' %>" class="zilo-icon-btn shrink-0" title="Volver al admin">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </a>
+        <div class="min-w-0">
+          <span class="zilo-label !text-[9px]">Admin · Soft launch</span>
+          <h1 class="text-base font-semibold truncate">Planificación comercial</h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <a href="<%= typeof adminBase !== 'undefined' ? adminBase : '/admin' %>/precios" class="text-xs font-medium text-zilo-accent px-2 py-1.5 rounded-lg border border-zilo-accent/30">Precios</a>
+        <a href="/logout" class="zilo-icon-btn" title="Cerrar sesión">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 px-5 py-5 pb-12 space-y-5">
+    <% if (typeof query !== 'undefined' && query.ok === 'plan_a') { %>
+      <div class="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-sm text-emerald-800">
+        Plan A aplicado. Visita <%= formatCLP(snapshot.planA.visitPrice) %> y catálogo B2C actualizado (precios finales al cliente, IVA incluido).
+      </div>
+    <% } %>
+    <% if (typeof query !== 'undefined' && query.error) { %>
+      <div class="p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-sm text-red-700"><%= query.error %></div>
+    <% } %>
+
+    <section class="rounded-2xl border border-zilo-border bg-white p-5">
+      <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+        <div>
+          <p class="zilo-label mb-1">Estado del plan</p>
+          <h2 class="text-sm font-semibold"><%= snapshot.planA.name %></h2>
+        </div>
+        <% if (snapshot.planApplied) { %>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Plan A activo</span>
+        <% } else { %>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-900">Pendiente de aplicar</span>
+        <% } %>
+      </div>
+      <p class="text-xs text-zilo-muted mb-4">
+        Visita actual: <strong><%= formatCLP(snapshot.currentVisit) %></strong>
+        · Objetivo Plan A: <strong><%= formatCLP(snapshot.planA.visitPrice) %></strong>
+        <% if (pricing.commercialPlanAppliedAt) { %>
+          · Aplicado: <%= new Date(pricing.commercialPlanAppliedAt).toLocaleString('es-CL') %>
+        <% } %>
+      </p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+        <% snapshot.planA.highlights.forEach(function(h) { %>
+          <div class="p-3 rounded-xl bg-zilo-bg border border-zilo-border">
+            <p class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= h.sku %></p>
+            <p class="text-sm font-bold text-zilo-accent"><%= formatCLP(h.price) %></p>
+            <p class="text-[10px] text-zilo-muted mt-1"><%= h.note %></p>
+          </div>
+        <% }); %>
+      </div>
+      <% if (canManage) { %>
+      <form method="POST" action="<%= typeof adminBase !== 'undefined' ? adminBase : '/admin' %>/comercial/aplicar-plan-a" onsubmit="return confirm('¿Aplicar Plan A? Se actualizarán visita y precios del catálogo B2C (totales IVA incluido).');">
+        <button type="submit" class="w-full sm:w-auto zilo-btn-primary !py-3 !px-5 !text-sm">
+          <%= snapshot.planApplied ? 'Reaplicar Plan A' : 'Aplicar Plan A ahora' %>
+        </button>
+      </form>
+      <% } else { %>
+        <p class="text-xs text-zilo-muted">Necesitas permiso <code>comercial.manage</code> para aplicar el plan.</p>
+      <% } %>
+    </section>
+
+    <section class="rounded-2xl border border-blue-200 bg-blue-50/60 p-5">
+      <p class="zilo-label mb-1 text-blue-800">IVA al cliente</p>
+      <h2 class="text-sm font-semibold text-blue-950 mb-2">Recomendación: <%= snapshot.ivaPolicy.label %></h2>
+      <p class="text-sm text-blue-900/90 mb-3"><%= snapshot.ivaPolicy.recommendation %></p>
+      <ul class="space-y-1.5 mb-3">
+        <% snapshot.ivaPolicy.why.forEach(function(line) { %>
+          <li class="text-xs text-blue-900/80 flex gap-2"><span class="text-blue-600 shrink-0">•</span><span><%= line %></span></li>
+        <% }); %>
+      </ul>
+      <p class="text-xs font-medium text-blue-950 border-t border-blue-200 pt-3"><%= snapshot.ivaPolicy.avoid %></p>
+      <p class="text-[11px] text-blue-800/70 mt-2">
+        Modo configurado: <strong><%= pricing.clientPriceMode === 'included' ? 'IVA incluido (recomendado)' : 'Neto + IVA' %></strong>
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-sm font-semibold mb-1">Agenda comercial</h2>
+      <p class="text-xs text-zilo-muted mb-4">Pasos por semana, qué hacer si no hay ventas e incentivos para clientes y socios.</p>
+      <div class="space-y-4">
+        <% snapshot.agenda.forEach(function(week) { %>
+          <article class="rounded-2xl border border-zilo-border bg-white p-5">
+            <div class="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+              <h3 class="text-sm font-semibold"><%= week.weekLabel %></h3>
+              <span class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= week.id %></span>
+            </div>
+            <p class="text-xs text-zilo-accent font-medium mb-3"><%= week.goal %></p>
+
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-muted mb-2">Pasos</p>
+            <ol class="space-y-2 mb-4">
+              <% week.steps.forEach(function(step, idx) { %>
+                <li class="flex gap-3 text-sm">
+                  <span class="w-6 h-6 rounded-lg bg-zilo-accent/10 text-zilo-accent text-xs font-bold flex items-center justify-center shrink-0"><%= idx + 1 %></span>
+                  <div class="min-w-0">
+                    <p class="font-medium text-zilo-text"><%= step.title %></p>
+                    <p class="text-[11px] text-zilo-muted">Owner: <%= step.owner %><% if (step.doneHint) { %> · <%= step.doneHint %><% } %></p>
+                  </div>
+                </li>
+              <% }); %>
+            </ol>
+
+            <div class="grid sm:grid-cols-3 gap-3">
+              <div class="p-3 rounded-xl bg-amber-50 border border-amber-200">
+                <p class="text-[10px] font-semibold uppercase text-amber-900 mb-1.5">Si no hay ventas</p>
+                <ul class="space-y-1">
+                  <% week.ifNoSales.forEach(function(t) { %>
+                    <li class="text-[11px] text-amber-950/80 leading-snug">• <%= t %></li>
+                  <% }); %>
+                </ul>
+              </div>
+              <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                <p class="text-[10px] font-semibold uppercase text-emerald-900 mb-1.5">Incentivos clientes</p>
+                <ul class="space-y-1">
+                  <% week.clientIncentives.forEach(function(t) { %>
+                    <li class="text-[11px] text-emerald-950/80 leading-snug">• <%= t %></li>
+                  <% }); %>
+                </ul>
+              </div>
+              <div class="p-3 rounded-xl bg-sky-50 border border-sky-200">
+                <p class="text-[10px] font-semibold uppercase text-sky-900 mb-1.5">Incentivos socios</p>
+                <ul class="space-y-1">
+                  <% week.partnerIncentives.forEach(function(t) { %>
+                    <li class="text-[11px] text-sky-950/80 leading-snug">• <%= t %></li>
+                  <% }); %>
+                </ul>
+              </div>
+            </div>
+          </article>
+        <% }); %>
+      </div>
+    </section>
+
+    <section class="rounded-2xl border border-zilo-border bg-white p-5">
+      <h2 class="text-sm font-semibold mb-2">Muestra de precios Plan A vs actuales</h2>
+      <p class="text-xs text-zilo-muted mb-3">Valores = total cliente (IVA incluido). Vacío en “Actual” = usa precio base del catálogo.</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-zilo-border text-zilo-muted">
+              <th class="py-2 pr-3 font-medium">SKU id</th>
+              <th class="py-2 pr-3 font-medium">Plan A</th>
+              <th class="py-2 font-medium">Actual override</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% snapshot.diffs.forEach(function(d) { %>
+              <tr class="border-b border-zilo-border/60">
+                <td class="py-2 pr-3 font-mono text-[11px]"><%= d.id %></td>
+                <td class="py-2 pr-3 font-semibold"><%= formatCLP(d.planPrice) %></td>
+                <td class="py-2"><%= d.currentPrice != null ? formatCLP(d.currentPrice) : '—' %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('../partials/scripts') %>
