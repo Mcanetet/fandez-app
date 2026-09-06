@@ -24,6 +24,9 @@
     <% if (error) { %>
       <div class="mb-4 p-3 rounded-xl bg-zilo-danger/10 border border-zilo-danger/30 text-zilo-danger text-sm text-center"><%= error %></div>
     <% } %>
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="mb-4 p-3 rounded-xl bg-zilo-success/10 border border-zilo-success/30 text-zilo-success text-sm text-center"><%= success %></div>
+    <% } %>
 
     <form action="/login" method="POST" class="space-y-4">
       <div>
@@ -39,6 +42,11 @@
           autocomplete: 'current-password',
           required: true
         }) %>
+        <div class="mt-2 flex justify-end">
+          <a href="/recuperar" class="text-sm font-semibold text-zilo-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-zilo-accent/40 rounded">
+            <%= t('auth.forgot_password') %>
+          </a>
+        </div>
       </div>
       <label class="flex items-center gap-2 text-sm text-zilo-muted cursor-pointer select-none">
         <input type="checkbox" id="remember" name="remember" value="1" class="rounded accent-zilo-accent shrink-0">
@@ -78,14 +86,29 @@
     const rememberInput = document.getElementById('remember');
     if (!form || !emailInput || !passwordInput || !rememberInput) return;
 
+    const params = new URLSearchParams(window.location.search);
+    const resetOk = params.get('reset') === '1';
+
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
       if (saved && saved.email) {
         emailInput.value = saved.email;
-        if (saved.password) passwordInput.value = saved.password;
+        // Tras recuperar contraseña, no rellenar la clave antigua guardada
+        if (saved.password && !resetOk) passwordInput.value = saved.password;
         rememberInput.checked = true;
+        if (resetOk && saved.password) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ email: saved.email }));
+        }
       }
     } catch (_) {}
+
+    if (params.get('email')) {
+      emailInput.value = params.get('email');
+    }
+    if (resetOk) {
+      passwordInput.focus();
+      history.replaceState({}, '', '/login');
+    }
 
     form.addEventListener('submit', () => {
       if (rememberInput.checked) {

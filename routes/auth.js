@@ -5,6 +5,8 @@ const company = require('../config/company');
 const { rateLimitLogin } = require('../middleware/security');
 const { validateRegistrationConsents } = require('../lib/consent-policy');
 const emailVerification = require('../lib/emailVerification');
+const passwordReset = require('../lib/passwordReset');
+const mailer = require('../lib/mailer');
 
 const PUBLIC_ROLES = ['client', 'provider', 'tecnico'];
 const ADMIN_SESSION_MS = 4 * 60 * 60 * 1000;
@@ -86,7 +88,9 @@ router.get('/login', (req, res) => {
     }
     return res.redirect(getDashboardPath(req.session.user.role));
   }
-  res.render('login', loginRenderOptions(req, { error: null }));
+  let success = null;
+  if (req.query.reset === '1') success = req.t('reset.success_login');
+  res.render('login', loginRenderOptions(req, { error: null, success }));
 });
 
 router.post('/login', rateLimitLogin(12), async (req, res) => {
@@ -592,6 +596,128 @@ router.post('/verificar-email/reenviar', async (req, res) => {
       cooldown: 0
     });
   }
+});
+
+function renderRecoverRequest(req, res, extra = {}) {
+  res.render('recuperar', {
+    title: req.t('reset.title') + ' — Fandez',
+    seo: buildPageMeta('login', req),
+    error: null,
+    sent: false,
+    email: '',
+    cooldown: 0,
+    demoHint: !mailer.isConfigured(),
+    ...extra
+  });
+}
+
+router.get('/recuperar', (req, res) => {
+  if (req.session.user) {
+    return res.redirect(getDashboardPath(req.session.user.role));
+  }
+  const email = String(req.query.email || '').trim().toLowerCase();
+  renderRecoverRequest(req, res, { email });
+});
+
+router.post('/recuperar', rateLimitLogin(8), async (req, res) => {
+  if (req.session.user) {
+    return res.redirect(getDashboardPath(req.session.user.role));
+  }
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const result = await store.requestPasswordReset(email, {
+    locale: req.locale || 'es',
+    respectCooldown: true
+  });
+
+  if (result.errorKey) {
+    return renderRecoverRequest(req, res, {
+      error: req.t(result.errorKey),
+      email
+    });
+  }
+
+  // UX: siempre mostrar “enviado” (no revelar si el correo existe).
+  // Si SMTP falló, mostrar tip demo / error suave sin filtrar existencia.
+  let noticeError = null;
+  if (result.authFailed) noticeError = req.t('verify.mail_auth_error');
+  else if (result.mailError) noticeError = req.t('verify.mail_error');
+
+  store.logSecurityEvent('password_reset_requested', email || 'unknown', req);
+
+  return res.render('recuperar', {
+    title: req.t('reset.sent_title') + ' — Fandez',
+    seo: buildPageMeta('login', req),
+    error: noticeError,
+    sent: true,
+    email,
+    cooldown: result.cooldown || passwordReset.resendCooldownSeconds(store.getUserByEmail(email)) || 0,
+    demoHint: Boolean(result.demo) || !mailer.isConfigured()
+  });
+});
+
+router.get('/recuperar/nueva', (req, res) => {
+  if (req.session.user) {
+    return res.redirect(getDashboardPath(req.session.user.role));
+  }
+  const token = String(req.query.token || '').trim();
+  const user = store.findUserByPasswordResetToken(token);
+  if (!user || !passwordReset.verifyToken(user, token).ok) {
+    return res.render('recuperar-nueva', {
+      title: req.t('reset.invalid_title') + ' — Fandez',
+      seo: buildPageMeta('login', req),
+      invalid: true,
+      error: req.t(user ? 'reset.error_token_expired' : 'reset.error_token_invalid'),
+      token: '',
+      email: null
+    });
+  }
+  return res.render('recuperar-nueva', {
+    title: req.t('reset.new_title') + ' — Fandez',
+    seo: buildPageMeta('login', req),
+    invalid: false,
+    error: null,
+    token,
+    email: user.email
+  });
+});
+
+router.post('/recuperar/nueva', rateLimitLogin(8), async (req, res) => {
+  if (req.session.user) {
+    return res.redirect(getDashboardPath(req.session.user.role));
+  }
+  const token = String(req.body.token || '').trim();
+  const password = req.body.password;
+  const passwordConfirm = req.body.passwordConfirm;
+  const result = await store.resetPasswordWithToken(token, password, passwordConfirm);
+
+  if (result.errorKey) {
+    const user = store.findUserByPasswordResetToken(token);
+    const fatal = result.errorKey === 'reset.error_token_invalid'
+      || result.errorKey === 'reset.error_token_expired'
+      || !user;
+    if (fatal) {
+      return res.render('recuperar-nueva', {
+        title: req.t('reset.invalid_title') + ' — Fandez',
+        seo: buildPageMeta('login', req),
+        invalid: true,
+        error: req.t(result.errorKey),
+        token: '',
+        email: null
+      });
+    }
+    return res.render('recuperar-nueva', {
+      title: req.t('reset.new_title') + ' — Fandez',
+      seo: buildPageMeta('login', req),
+      invalid: false,
+      error: req.t(result.errorKey),
+      token,
+      email: user.email
+    });
+  }
+
+  store.logSecurityEvent('password_reset_ok', result.user.email, req);
+  const qs = new URLSearchParams({ reset: '1', email: result.user.email });
+  return res.redirect(`/login?${qs.toString()}`);
 });
 
 router.get('/logout', (req, res) => {

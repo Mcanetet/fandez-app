@@ -1,0 +1,97 @@
+<%- include('partials/head') %>
+
+<div class="min-h-screen flex items-center justify-center p-5 relative verify-page">
+  <div class="fandez-landing-atmosphere" aria-hidden="true"></div>
+
+  <div class="absolute top-5 right-5 z-20">
+    <%- include('partials/lang-switcher') %>
+  </div>
+
+  <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-3xl p-6 sm:p-8 zilo-page-enter">
+    <a href="/login" class="inline-flex items-center gap-1.5 text-sm text-zilo-muted hover:text-zilo-accent transition mb-6">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      <%= t('reset.back_login') %>
+    </a>
+
+    <% if (typeof invalid !== 'undefined' && invalid) { %>
+      <div class="text-center">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-zilo-danger/10 flex items-center justify-center" aria-hidden="true">
+          <svg class="w-8 h-8 text-zilo-danger" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/>
+          </svg>
+        </div>
+        <h1 class="zilo-display text-[1.75rem] leading-tight mb-2"><%= t('reset.invalid_title') %></h1>
+        <p class="text-sm text-zilo-muted leading-relaxed mb-6"><%= error || t('reset.error_token_invalid') %></p>
+        <a href="/recuperar" class="zilo-btn-primary inline-flex justify-center"><%= t('reset.request_again') %></a>
+      </div>
+    <% } else { %>
+      <div class="text-center mb-6">
+        <div class="verify-welcome__mark mx-auto mb-4" aria-hidden="true">
+          <%- include('partials/logo', { className: 'w-14 h-14', logoId: 'reset-new', logoVariant: 'amber' }) %>
+        </div>
+        <p class="zilo-label mb-2"><%= t('app.name') %></p>
+        <h1 class="zilo-display text-[1.85rem] leading-tight mb-2"><%= t('reset.new_title') %></h1>
+        <p class="text-sm text-zilo-muted leading-relaxed"><%= t('reset.new_subtitle') %></p>
+        <% if (typeof email !== 'undefined' && email) { %>
+          <p class="mt-2 text-xs text-zilo-muted"><%= email %></p>
+        <% } %>
+      </div>
+
+      <% if (error) { %>
+        <div class="mb-4 p-3 rounded-xl bg-zilo-danger/10 border border-zilo-danger/30 text-zilo-danger text-sm text-center"><%= error %></div>
+      <% } %>
+
+      <form action="/recuperar/nueva" method="POST" class="space-y-4" id="resetNewForm" novalidate>
+        <input type="hidden" name="token" value="<%= token %>">
+        <div>
+          <%- include('partials/password-field', {
+            id: 'password',
+            name: 'password',
+            label: t('reset.new_password'),
+            hint: t('auth.password_hint'),
+            autocomplete: 'new-password',
+            minlength: 10,
+            required: true
+          }) %>
+        </div>
+        <div>
+          <%- include('partials/password-field', {
+            id: 'passwordConfirm',
+            name: 'passwordConfirm',
+            label: t('reset.confirm_password'),
+            autocomplete: 'new-password',
+            minlength: 10,
+            required: true
+          }) %>
+          <p id="resetMatchHint" class="hidden mt-1.5 text-xs text-zilo-danger"><%= t('reset.error_password_mismatch') %></p>
+        </div>
+        <button type="submit" class="zilo-btn-primary"><%= t('reset.save') %></button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<% if (!(typeof invalid !== 'undefined' && invalid)) { %>
+<script>
+(function () {
+  var form = document.getElementById('resetNewForm');
+  if (!form) return;
+  var a = document.getElementById('password');
+  var b = document.getElementById('passwordConfirm');
+  var hint = document.getElementById('resetMatchHint');
+  function check() {
+    var mismatch = b.value && a.value !== b.value;
+    if (hint) hint.classList.toggle('hidden', !mismatch);
+    b.setCustomValidity(mismatch ? (hint ? hint.textContent : 'Mismatch') : '');
+  }
+  a.addEventListener('input', check);
+  b.addEventListener('input', check);
+  form.addEventListener('submit', function (e) {
+    check();
+    if (a.value.length < 10 || a.value !== b.value) e.preventDefault();
+  });
+})();
+</script>
+<% } %>
+
+<%- include('partials/footer') %>

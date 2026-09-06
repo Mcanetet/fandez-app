@@ -5,6 +5,10 @@ const {
   createBillingSnapshot
 } = require('../lib/billing');
 const { validateRut, formatRut } = require('../lib/rut');
+const {
+  assertRutAvailableForAccount,
+  assertRutsAvailableForAccount
+} = require('../lib/rutAccountPolicy');
 const db = require('../lib/db');
 const repository = require('./repository');
 const { toServingUrl } = require('../lib/uploads');
@@ -86,6 +90,7 @@ const {
   getRegistrationConsentPayload
 } = require('../lib/consent-policy');
 const emailVerification = require('../lib/emailVerification');
+const passwordReset = require('../lib/passwordReset');
 
 let SERVICES = [];
 let MODULES = [];
@@ -462,6 +467,11 @@ function updateUserBilling(userId, data) {
   if (!canActAsClient(user)) return { error: 'Usuario no encontrado' };
   const result = validateBilling(data);
   if (!result.ok) return { error: result.errors[0] };
+  const rutGuard = assertRutAvailableForAccount(result.billing?.rut, {
+    users: USERS,
+    excludeUserId: userId
+  });
+  if (!rutGuard.ok) return { error: rutGuard.error, errorKey: rutGuard.errorKey };
   user.billing = result.billing;
   repository.persist(() => repository.saveUser(user), `facturación ${user.id}`);
   return { success: true, billing: user.billing };
@@ -1977,6 +1987,12 @@ function updateProviderContractDraft(providerId, payload) {
   if (payload.declarations) c.declarations = { ...c.declarations, ...payload.declarations };
   if (payload.signature) c.signature = { ...(c.signature || {}), ...payload.signature };
 
+  const rutGuard = assertRutsAvailableForAccount(
+    [c.legalEntity?.rut, c.legalRepresentative?.rut],
+    { users: USERS, excludeUserId: providerId }
+  );
+  if (!rutGuard.ok) return { error: rutGuard.error, errorKey: rutGuard.errorKey };
+
   c.status = computeContractStatus(c) === 'unsigned' ? 'incomplete' : computeContractStatus(c);
   provider.providerContract = normalizeProviderContract(c);
   repository.persist(() => repository.saveUser(provider), `contrato draft ${providerId}`);
@@ -2018,6 +2034,12 @@ function submitProviderContract(providerId, { signature, ip, userAgent }) {
 
   const validation = validateContractSubmission(c);
   if (!validation.ok) return { error: validation.errors[0], errors: validation.errors };
+
+  const rutGuard = assertRutsAvailableForAccount(
+    [c.legalEntity?.rut, c.legalRepresentative?.rut],
+    { users: USERS, excludeUserId: providerId }
+  );
+  if (!rutGuard.ok) return { error: rutGuard.error, errorKey: rutGuard.errorKey, errors: [rutGuard.error] };
 
   c.status = 'pending_review';
   c.submittedAt = new Date().toISOString();
@@ -2158,8 +2180,109 @@ async function changeUserPassword(userId, currentPassword, newPassword) {
   if (!check.ok) return { error: 'La contraseña actual no es correcta.' };
 
   user.password = await hashPassword(next);
+  user.passwordResetTokenHash = null;
+  user.passwordResetExpiresAt = null;
+  user.passwordResetSentAt = null;
   await repository.saveUser(user);
   return { success: true };
+}
+
+const PASSWORD_RESET_ROLES = new Set(['client', 'provider', 'tecnico']);
+
+/**
+ * Solicita recuperación. Siempre responde ok (no revela si el correo existe).
+ */
+async function requestPasswordReset(email, { locale = 'es', respectCooldown = true } = {}) {
+  ensureReady();
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalized)) {
+    return { errorKey: 'reset.error_email_invalid' };
+  }
+
+  const user = getUserByEmail(normalized);
+  // Respuesta genérica: no filtrar existencia / rol / bloqueo
+  if (!user || user.active === false || !PASSWORD_RESET_ROLES.has(user.role)) {
+    return { success: true, sent: false };
+  }
+
+  if (respectCooldown && !passwordReset.canResend(user)) {
+    return {
+      success: true,
+      sent: false,
+      skippedCooldown: true,
+      cooldown: passwordReset.resendCooldownSeconds(user)
+    };
+  }
+
+  const { getSiteUrl } = require('../lib/seo');
+  const prepared = passwordReset.prepareReset(user, { locale, appUrl: getSiteUrl() });
+  user.passwordResetTokenHash = prepared.tokenHash;
+  user.passwordResetExpiresAt = prepared.expiresAt;
+  user.passwordResetSentAt = prepared.sentAt;
+  await repository.saveUser(user);
+
+  const mailResult = await passwordReset.dispatchResetEmail(user, prepared);
+  if (mailResult?.error) {
+    // Limpiar sentAt para permitir reintento inmediato si falló el SMTP
+    const fresh = getUserById(user.id);
+    if (fresh && fresh.passwordResetTokenHash === prepared.tokenHash) {
+      fresh.passwordResetSentAt = null;
+      await repository.saveUser(fresh);
+    }
+    const authFailed = /invalid login|authentication|eauth|535/i.test(String(mailResult.error || ''));
+    return {
+      success: true,
+      sent: false,
+      mailError: true,
+      authFailed,
+      error: mailResult.error
+    };
+  }
+
+  return {
+    success: true,
+    sent: true,
+    demo: Boolean(mailResult?.demo),
+    cooldown: mailResult?.demo ? 0 : (passwordReset.RESEND_COOLDOWN_MS / 1000)
+  };
+}
+
+function findUserByPasswordResetToken(token) {
+  ensureReady();
+  const raw = String(token || '').trim();
+  if (!raw || raw.length < 20) return null;
+  const hash = passwordReset.hashToken(raw);
+  return USERS.find((u) => (
+    u
+    && u.passwordResetTokenHash === hash
+    && PASSWORD_RESET_ROLES.has(u.role)
+    && u.active !== false
+  )) || null;
+}
+
+async function resetPasswordWithToken(token, newPassword, confirmPassword) {
+  ensureReady();
+  const next = String(newPassword || '');
+  const confirm = String(confirmPassword || '');
+  if (next.length < 10) return { errorKey: 'reset.error_password_short' };
+  if (next !== confirm) return { errorKey: 'reset.error_password_mismatch' };
+
+  const user = findUserByPasswordResetToken(token);
+  if (!user) return { errorKey: 'reset.error_token_invalid' };
+
+  const check = passwordReset.verifyToken(user, token);
+  if (!check.ok) return { errorKey: check.errorKey };
+
+  user.password = await hashPassword(next);
+  user.passwordResetTokenHash = null;
+  user.passwordResetExpiresAt = null;
+  user.passwordResetSentAt = null;
+  // Si recuperan acceso, el correo queda implícitamente usable
+  if (!user.emailVerifiedAt) {
+    user.emailVerifiedAt = new Date().toISOString();
+  }
+  await repository.saveUser(user);
+  return { success: true, user };
 }
 
 function generateReferralCode(name) {
@@ -2172,6 +2295,12 @@ function attachProviderRegistrationDocuments(provider, {
   documents, companyRut, companyLegalName, repRut, repName
 }) {
   ensureProviderFields(provider);
+  const rutGuard = assertRutsAvailableForAccount([companyRut, repRut], {
+    users: USERS,
+    excludeUserId: provider.id
+  });
+  if (!rutGuard.ok) return { error: rutGuard.error, errorKey: rutGuard.errorKey };
+
   const c = provider.providerContract;
   c.entityType = 'empresa';
   c.legalEntity = {
@@ -2255,6 +2384,25 @@ async function registerUser({
     } else if (rut && !validateRut(rut)) {
       return { errorKey: 'register.error_client_rut_invalid' };
     }
+    if (rut) {
+      const rutGuard = assertRutAvailableForAccount(rut, { users: USERS });
+      if (!rutGuard.ok) return { errorKey: rutGuard.errorKey, error: rutGuard.error };
+    }
+  }
+
+  if (role === 'provider') {
+    const providerRuts = [companyRut, repRut].filter((r) => String(r || '').trim());
+    for (const r of providerRuts) {
+      if (!validateRut(r)) {
+        return {
+          errorKey: r === companyRut
+            ? 'register.error_company_rut_invalid'
+            : 'register.error_rep_rut_invalid'
+        };
+      }
+    }
+    const rutGuard = assertRutsAvailableForAccount(providerRuts, { users: USERS });
+    if (!rutGuard.ok) return { errorKey: rutGuard.errorKey, error: rutGuard.error };
   }
 
   const addr = (address || '').trim();
@@ -5694,6 +5842,9 @@ module.exports = {
   getUserByEmail,
   authenticateUser,
   changeUserPassword,
+  requestPasswordReset,
+  findUserByPasswordResetToken,
+  resetPasswordWithToken,
   registerUser,
   createTechnician,
   enableSelfOperator,

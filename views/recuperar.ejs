@@ -1,0 +1,126 @@
+<%- include('partials/head') %>
+
+<div class="min-h-screen flex items-center justify-center p-5 relative verify-page">
+  <div class="fandez-landing-atmosphere" aria-hidden="true"></div>
+
+  <div class="absolute top-5 right-5 z-20">
+    <%- include('partials/lang-switcher') %>
+  </div>
+
+  <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-3xl p-6 sm:p-8 zilo-page-enter">
+    <a href="/login" class="inline-flex items-center gap-1.5 text-sm text-zilo-muted hover:text-zilo-accent transition mb-6">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      <%= t('reset.back_login') %>
+    </a>
+
+    <% if (typeof sent !== 'undefined' && sent) { %>
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-zilo-accent/10 flex items-center justify-center" aria-hidden="true">
+          <svg class="w-8 h-8 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+            <path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/>
+          </svg>
+        </div>
+        <p class="zilo-label mb-2"><%= t('app.name') %></p>
+        <h1 class="zilo-display text-[1.75rem] leading-tight mb-2"><%= t('reset.sent_title') %></h1>
+        <p class="text-sm text-zilo-muted leading-relaxed"><%= t('reset.sent_body') %></p>
+        <% if (email) { %>
+          <p class="mt-3 text-sm font-semibold text-zilo-accent break-all"><%= email %></p>
+        <% } %>
+      </div>
+
+      <% if (typeof demoHint !== 'undefined' && demoHint) { %>
+        <div class="mb-4 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs text-center leading-relaxed">
+          <%= t('reset.demo_hint') %>
+        </div>
+      <% } %>
+
+      <ul class="space-y-2.5 mb-6 text-sm text-zilo-muted">
+        <li class="flex gap-2.5 items-start">
+          <span class="mt-0.5 w-5 h-5 shrink-0 rounded-full bg-zilo-accent/15 text-zilo-accent text-xs font-bold flex items-center justify-center">1</span>
+          <span><%= t('reset.tip_inbox') %></span>
+        </li>
+        <li class="flex gap-2.5 items-start">
+          <span class="mt-0.5 w-5 h-5 shrink-0 rounded-full bg-zilo-accent/15 text-zilo-accent text-xs font-bold flex items-center justify-center">2</span>
+          <span><%= t('reset.tip_spam') %></span>
+        </li>
+        <li class="flex gap-2.5 items-start">
+          <span class="mt-0.5 w-5 h-5 shrink-0 rounded-full bg-zilo-accent/15 text-zilo-accent text-xs font-bold flex items-center justify-center">3</span>
+          <span><%= t('reset.tip_ttl') %></span>
+        </li>
+      </ul>
+
+      <form action="/recuperar" method="POST" class="space-y-3" id="resetResendForm">
+        <input type="hidden" name="email" value="<%= email || '' %>">
+        <button type="submit" id="resetResendBtn" class="w-full py-3 rounded-xl border border-zilo-border text-sm font-semibold text-zilo-text hover:border-zilo-accent/40 transition" data-cooldown="<%= typeof cooldown !== 'undefined' ? cooldown : 0 %>">
+          <%= t('reset.resend') %>
+        </button>
+      </form>
+
+      <p class="text-center text-sm text-zilo-muted mt-6">
+        <a href="/login" class="text-zilo-accent font-semibold hover:underline"><%= t('reset.back_login') %></a>
+      </p>
+    <% } else { %>
+      <div class="text-center mb-6">
+        <div class="verify-welcome__mark mx-auto mb-4" aria-hidden="true">
+          <%- include('partials/logo', { className: 'w-14 h-14', logoId: 'reset', logoVariant: 'amber' }) %>
+        </div>
+        <p class="zilo-label mb-2"><%= t('app.name') %></p>
+        <h1 class="zilo-display text-[1.85rem] leading-tight mb-2"><%= t('reset.title') %></h1>
+        <p class="text-sm text-zilo-muted leading-relaxed"><%= t('reset.subtitle') %></p>
+      </div>
+
+      <% if (error) { %>
+        <div class="mb-4 p-3 rounded-xl bg-zilo-danger/10 border border-zilo-danger/30 text-zilo-danger text-sm text-center"><%= error %></div>
+      <% } %>
+
+      <form action="/recuperar" method="POST" class="space-y-4">
+        <div>
+          <label for="email" class="zilo-label block mb-1.5"><%= t('auth.email') %></label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            autofocus
+            autocomplete="email"
+            inputmode="email"
+            value="<%= typeof email !== 'undefined' && email ? email : '' %>"
+            placeholder="<%= t('auth.email_placeholder') %>"
+            class="zilo-input"
+          >
+        </div>
+        <button type="submit" class="zilo-btn-primary"><%= t('reset.submit') %></button>
+      </form>
+
+      <p class="text-center text-sm text-zilo-muted mt-6">
+        <%= t('reset.remember') %>
+        <a href="/login" class="text-zilo-accent font-semibold hover:underline"><%= t('auth.login_link') %></a>
+      </p>
+    <% } %>
+  </div>
+</div>
+
+<% if (typeof sent !== 'undefined' && sent) { %>
+<script>
+(function () {
+  var btn = document.getElementById('resetResendBtn');
+  if (!btn) return;
+  var left = parseInt(btn.getAttribute('data-cooldown') || '0', 10);
+  var label = btn.textContent;
+  function tick() {
+    if (left <= 0) {
+      btn.disabled = false;
+      btn.textContent = label;
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = label + ' (' + left + 's)';
+    left -= 1;
+    setTimeout(tick, 1000);
+  }
+  if (left > 0) tick();
+})();
+</script>
+<% } %>
+
+<%- include('partials/footer') %>

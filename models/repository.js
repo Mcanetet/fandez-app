@@ -345,6 +345,11 @@ function rowToUser(row) {
       ? new Date(row.email_verification_expires_at).toISOString() : null,
     emailVerificationSentAt: row.email_verification_sent_at
       ? new Date(row.email_verification_sent_at).toISOString() : null,
+    passwordResetTokenHash: row.password_reset_token_hash || null,
+    passwordResetExpiresAt: row.password_reset_expires_at
+      ? new Date(row.password_reset_expires_at).toISOString() : null,
+    passwordResetSentAt: row.password_reset_sent_at
+      ? new Date(row.password_reset_sent_at).toISOString() : null,
     clientEnabled: Boolean(row.client_enabled)
   };
 
@@ -423,6 +428,9 @@ function userToRow(user) {
     email_verification_code_hash: user.emailVerificationCodeHash || null,
     email_verification_expires_at: user.emailVerificationExpiresAt || null,
     email_verification_sent_at: user.emailVerificationSentAt || null,
+    password_reset_token_hash: user.passwordResetTokenHash || null,
+    password_reset_expires_at: user.passwordResetExpiresAt || null,
+    password_reset_sent_at: user.passwordResetSentAt || null,
     client_enabled: user.clientEnabled ? 1 : 0
   };
 }
@@ -595,6 +603,22 @@ async function migrate() {
   await ensureUserClientEnabledColumn();
   await ensureUserParentIdsColumn();
   await ensureAlandMonitorColumns();
+  await ensurePasswordResetColumns();
+}
+
+async function ensurePasswordResetColumns() {
+  const alters = [
+    'ALTER TABLE users ADD COLUMN password_reset_token_hash VARCHAR(128) NULL',
+    'ALTER TABLE users ADD COLUMN password_reset_expires_at DATETIME NULL',
+    'ALTER TABLE users ADD COLUMN password_reset_sent_at DATETIME NULL'
+  ];
+  for (const statement of alters) {
+    try {
+      await db.raw(statement);
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+    }
+  }
 }
 
 async function ensureUserParentIdsColumn() {
@@ -1136,8 +1160,9 @@ async function saveUser(user) {
       used_welcome_promo, used_referral, member_since,
       onboarding_completed, onboarding_completed_at,
       specialties, rating, reviews_count, online, avatar, bio, reviews, verification, location_share, billing, mfa, admin_access, provider_contract, active,
-      email_verified_at, email_verification_code_hash, email_verification_expires_at, email_verification_sent_at, client_enabled
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      email_verified_at, email_verification_code_hash, email_verification_expires_at, email_verification_sent_at,
+      password_reset_token_hash, password_reset_expires_at, password_reset_sent_at, client_enabled
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       email = VALUES(email),
       password = VALUES(password),
@@ -1178,6 +1203,9 @@ async function saveUser(user) {
       email_verification_code_hash = VALUES(email_verification_code_hash),
       email_verification_expires_at = VALUES(email_verification_expires_at),
       email_verification_sent_at = VALUES(email_verification_sent_at),
+      password_reset_token_hash = VALUES(password_reset_token_hash),
+      password_reset_expires_at = VALUES(password_reset_expires_at),
+      password_reset_sent_at = VALUES(password_reset_sent_at),
       client_enabled = VALUES(client_enabled)`,
     [
       row.id, row.email, row.password, row.name, row.role, row.parent_id, row.parent_ids, row.phone, row.address, row.address_lat, row.address_lng, row.address_place_id, row.referral_code,
@@ -1185,7 +1213,8 @@ async function saveUser(user) {
       row.used_welcome_promo ? 1 : 0, row.used_referral ? 1 : 0, row.member_since,
       row.onboarding_completed ? 1 : 0, row.onboarding_completed_at,
       row.specialties, row.rating, row.reviews_count, row.online ? 1 : 0, row.avatar, row.bio, row.reviews, row.verification, row.location_share, row.billing, row.mfa, row.admin_access, row.provider_contract, row.active,
-      row.email_verified_at, row.email_verification_code_hash, row.email_verification_expires_at, row.email_verification_sent_at, row.client_enabled ? 1 : 0
+      row.email_verified_at, row.email_verification_code_hash, row.email_verification_expires_at, row.email_verification_sent_at,
+      row.password_reset_token_hash, row.password_reset_expires_at, row.password_reset_sent_at, row.client_enabled ? 1 : 0
     ]
   );
 }
