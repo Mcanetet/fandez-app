@@ -757,32 +757,58 @@
 
   function applyCancelPreview(data) {
     const moneyCard = document.getElementById('cancelMoneyCard');
+    const policyList = document.getElementById('cancelPolicyList');
+    const paidEl = document.getElementById('cancelPaidAmount');
     const feeEl = document.getElementById('cancelFeeSummary');
     const refundEl = document.getElementById('cancelRefundSummary');
     const lossEl = document.getElementById('cancelLossHint');
     const hookEl = document.getElementById('cancelRetentionHook');
     const fmt = (n) => '$' + Number(n || 0).toLocaleString('es-CL');
     const fee = Number(data?.fee || 0);
+    const paid = Number(data?.paid || 0);
     const refund = Number(data?.refundAmount || 0);
     const tier = data?.tier || 'beforeAccepted';
+    const policy = data?.policy || {};
+    const labels = data?.policyLabels || {};
+    const afterLabel = labels.afterTechAccepted || fmt(policy.afterTechAccepted || 15000);
+    const enRouteLabel = labels.enRouteOrOnSite || fmt(policy.enRouteOrOnSite || 30000);
+    const beforeLabel = labels.beforeAccepted || fmt(policy.beforeAccepted || 0);
 
     if (hookEl) {
-      if (tier === 'enRouteOrOnSite') hookEl.textContent = t('client.service.cancel_hook_onsite');
-      else if (tier === 'afterTechAccepted') hookEl.textContent = t('client.service.cancel_hook_accepted');
-      else hookEl.textContent = t('client.service.cancel_retention_hook');
+      if (tier === 'enRouteOrOnSite') {
+        hookEl.textContent = t('client.service.cancel_hook_onsite', { fee: data.feeLabel || enRouteLabel });
+      } else if (tier === 'afterTechAccepted') {
+        hookEl.textContent = t('client.service.cancel_hook_accepted', { fee: data.feeLabel || afterLabel });
+      } else {
+        hookEl.textContent = t('client.service.cancel_retention_hook');
+      }
     }
 
+    if (policyList) {
+      policyList.innerHTML = `
+        <li class="${tier === 'beforeAccepted' ? 'is-current' : ''}">
+          <span>${t('client.service.cancel_policy_before')}</span>
+          <strong>${beforeLabel}</strong>
+        </li>
+        <li class="${tier === 'afterTechAccepted' ? 'is-current' : ''}">
+          <span>${t('client.service.cancel_policy_accepted')}</span>
+          <strong>${afterLabel}</strong>
+        </li>
+        <li class="${tier === 'enRouteOrOnSite' ? 'is-current' : ''}">
+          <span>${t('client.service.cancel_policy_enroute')}</span>
+          <strong>${enRouteLabel}</strong>
+        </li>`;
+    }
+
+    if (paidEl) paidEl.textContent = data.paidLabel || fmt(paid);
     if (feeEl) {
       feeEl.textContent = fee > 0
-        ? t('client.service.cancel_fee_label', { fee: data.feeLabel || fmt(fee) })
-        : t('client.service.cancel_fee_free');
+        ? (data.feeLabel || fmt(fee))
+        : t('client.service.cancel_fee_free_short');
     }
     if (refundEl) {
-      const refundText = refund > 0
-        ? t('client.service.cancel_refund_label', { refund: data.refundLabel || fmt(refund) })
-        : (fee > 0 ? t('client.service.cancel_refund_none') : '');
-      refundEl.textContent = refundText;
-      refundEl.classList.toggle('hidden', !refundText);
+      refundEl.textContent = data.refundLabel || fmt(refund);
+      refundEl.classList.remove('hidden');
     }
     if (lossEl) {
       lossEl.textContent = fee > 0
@@ -859,12 +885,14 @@
       stopSearchExperience();
       loaderOverlay?.classList.add('hidden');
       hideScheduledPanel();
-      const fmt = (n) => '$' + Number(n || 0).toLocaleString('es-CL');
-      const okBody = data.retentionFee > 0
-        ? `Retención ${fmt(data.retentionFee)}. Devolución ${fmt(data.refundAmount)}.`
-        : (data.refundAmount > 0
-          ? `Devolución completa ${fmt(data.refundAmount)}.`
-          : t('client.service.cancel_search_ok_body'));
+      const paidLabel = data.paidLabel || ('$' + Number(data.paid || 0).toLocaleString('es-CL'));
+      const retentionLabel = data.retentionLabel || ('$' + Number(data.retentionFee || 0).toLocaleString('es-CL'));
+      const refundLabel = data.refundLabel || ('$' + Number(data.refundAmount || 0).toLocaleString('es-CL'));
+      const okBody = t('client.service.cancel_search_ok_breakdown', {
+        paid: paidLabel,
+        retention: retentionLabel,
+        refund: refundLabel
+      });
       if (window.FandezAlerts) {
         FandezAlerts.notify({
           type: 'success',
@@ -875,7 +903,7 @@
       } else {
         FandezNotify.show(okBody, 'success');
       }
-      setTimeout(() => { window.location.href = '/cliente'; }, 1000);
+      setTimeout(() => { window.location.href = '/cliente'; }, 1800);
     } catch (err) {
       if (btn) btn.disabled = !cancelSelectedReason;
       if (keepBtn) keepBtn.disabled = false;

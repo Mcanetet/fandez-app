@@ -1381,6 +1381,63 @@ html {
   background: #FFF8F4;
   border: 1px solid rgba(184, 58, 46, 0.16);
 }
+.cancel-policy-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+.cancel-policy-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--zilo-muted);
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.55rem;
+}
+.cancel-policy-list li.is-current {
+  background: rgba(var(--zilo-accent-rgb), 0.1);
+  color: var(--zilo-text);
+  font-weight: 600;
+}
+.cancel-policy-list li strong {
+  color: var(--zilo-text);
+  white-space: nowrap;
+}
+.cancel-money-divider {
+  height: 1px;
+  background: rgba(184, 58, 46, 0.12);
+  margin: 0.65rem 0;
+}
+.cancel-money-rows {
+  display: grid;
+  gap: 0.4rem;
+}
+.cancel-money-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--zilo-muted);
+}
+.cancel-money-row strong {
+  color: var(--zilo-text);
+  font-weight: 600;
+}
+.cancel-money-row--total {
+  margin-top: 0.15rem;
+  padding-top: 0.45rem;
+  border-top: 1px dashed rgba(184, 58, 46, 0.18);
+  color: var(--zilo-text);
+  font-weight: 600;
+}
+.cancel-money-row--total strong {
+  color: var(--zilo-accent);
+}
 .cancel-reason-list {
   display: grid;
   gap: 0.5rem;

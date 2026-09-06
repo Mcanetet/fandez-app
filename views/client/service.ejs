@@ -640,8 +640,24 @@
         </div>
 
         <div id="cancelMoneyCard" class="cancel-money-card hidden" aria-live="polite">
-          <p id="cancelFeeSummary" class="text-sm font-medium text-zilo-text"></p>
-          <p id="cancelRefundSummary" class="text-xs text-zilo-accent font-medium mt-0.5"></p>
+          <p class="text-xs font-semibold text-zilo-text mb-2"><%= t('client.service.cancel_policy_title') %></p>
+          <ul id="cancelPolicyList" class="cancel-policy-list mb-3"></ul>
+          <div class="cancel-money-divider"></div>
+          <p class="text-xs font-semibold text-zilo-text mb-2"><%= t('client.service.cancel_breakdown_title') %></p>
+          <div class="cancel-money-rows">
+            <div class="cancel-money-row">
+              <span><%= t('client.service.cancel_paid_label') %></span>
+              <strong id="cancelPaidAmount">—</strong>
+            </div>
+            <div class="cancel-money-row">
+              <span><%= t('client.service.cancel_retention_label') %></span>
+              <strong id="cancelFeeSummary">—</strong>
+            </div>
+            <div class="cancel-money-row cancel-money-row--total">
+              <span><%= t('client.service.cancel_refund_total_label') %></span>
+              <strong id="cancelRefundSummary">—</strong>
+            </div>
+          </div>
           <p id="cancelLossHint" class="text-xs text-zilo-muted mt-2 leading-relaxed"></p>
         </div>
 

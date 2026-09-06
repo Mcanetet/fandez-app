@@ -103,9 +103,9 @@
     if (typeof Notification === 'undefined') return;
     if (Notification.permission === 'granted') {
       try {
-        new Notification(title, { body, icon: '/icons/fandez-v8-notify.png?v=20260906v8', badge: '/icons/fandez-v8-notify.png?v=20260906v8', requireInteraction: true, tag: 'fandez-tech-wall' });
+        new Notification(title, { body, icon: '/icons/fandez-v9-notify.png', badge: '/icons/fandez-v9-notify.png', requireInteraction: true, tag: 'fandez-tech-wall' });
       } catch (_) {
-        new Notification(title, { body, icon: '/icons/fandez-v8-notify.png?v=20260906v8', badge: '/icons/fandez-v8-notify.png?v=20260906v8' });
+        new Notification(title, { body, icon: '/icons/fandez-v9-notify.png', badge: '/icons/fandez-v9-notify.png' });
       }
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission();

@@ -623,8 +623,12 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
     return res.json({
       success: true,
       request: payload.request,
+      paid: result.paid != null ? result.paid : (updated.visitPricePaid || 0),
+      paidLabel: store.formatCLP(result.paid != null ? result.paid : (updated.visitPricePaid || 0)),
       retentionFee: retention,
+      retentionLabel: store.formatCLP(retention),
       refundAmount: refundAmt,
+      refundLabel: store.formatCLP(refundAmt),
       tier: result.tier || updated.cancellationTier
     });
   } catch (err) {
@@ -636,11 +640,18 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
 router.get('/solicitud/:id/cancelacion', requireRole('client'), (req, res) => {
   const preview = store.previewCancellationFee(req.params.id, req.session.user.id);
   if (preview.error) return res.status(400).json({ success: false, error: preview.error });
+  const policy = preview.policy || {};
   return res.json({
     success: true,
     ...preview,
+    paidLabel: store.formatCLP(preview.paid),
     feeLabel: store.formatCLP(preview.fee),
-    refundLabel: store.formatCLP(preview.refundAmount)
+    refundLabel: store.formatCLP(preview.refundAmount),
+    policyLabels: {
+      beforeAccepted: store.formatCLP(policy.beforeAccepted || 0),
+      afterTechAccepted: store.formatCLP(policy.afterTechAccepted || 0),
+      enRouteOrOnSite: store.formatCLP(policy.enRouteOrOnSite || 0)
+    }
   });
 });
 
@@ -686,8 +697,12 @@ router.post('/solicitud/:id/cancelar', requireRole('client'), async (req, res) =
     return res.json({
       success: true,
       request: payload.request,
+      paid: result.paid != null ? result.paid : (updated.visitPricePaid || 0),
+      paidLabel: store.formatCLP(result.paid != null ? result.paid : (updated.visitPricePaid || 0)),
       retentionFee: retention,
+      retentionLabel: store.formatCLP(retention),
       refundAmount: refundAmt,
+      refundLabel: store.formatCLP(refundAmt),
       tier: result.tier || updated.cancellationTier
     });
   } catch (err) {

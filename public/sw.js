@@ -1,15 +1,17 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v29';
-const ICON_VER = '20260906v8';
+const SW_VERSION = 'fandez-sw-v30';
 
-const DEFAULT_ICON = `/icons/fandez-v8-notify.png?v=${ICON_VER}`;
-const DEFAULT_BADGE = `/icons/fandez-v8-notify.png?v=${ICON_VER}`;
+/** Tile ámbar + isotipo oficial (2 semicírculos). Ruta nueva = rompe caché CDN/Chrome. */
+const DEFAULT_ICON = '/icons/fandez-v9-notify.png';
+const DEFAULT_BADGE = '/icons/fandez-v9-notify.png';
 
 const PRECACHE = [
   '/offline.html',
-  '/icons/fandez-v8-notify.png',
-  '/icons/fandez-v8-192.png',
-  '/icons/fandez-v8-96.png'
+  '/icons/fandez-v9-notify.png',
+  '/icons/fandez-v9-192.png',
+  '/icons/fandez-v9-96.png',
+  '/favicon-32.png',
+  '/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
@@ -34,8 +36,14 @@ self.addEventListener('fetch', (event) => {
   try { pathname = new URL(req.url).pathname; } catch (_) { return; }
   if (pathname.startsWith('/uploads/') || pathname.startsWith('/media/') || pathname.startsWith('/socket.io')) return;
 
-  // Iconos de notificación: red + fallback a caché (evita el globo/Saturno de Chrome)
-  if (pathname.startsWith('/icons/fandez-v8')) {
+  if (
+    pathname.startsWith('/icons/fandez-v9')
+    || pathname === '/favicon.ico'
+    || pathname === '/favicon-32.png'
+    || pathname === '/favicon.png'
+    || pathname === '/apple-touch-icon.png'
+    || pathname === '/icon-192.png'
+  ) {
     event.respondWith(
       fetch(req)
         .then((res) => {
@@ -79,7 +87,6 @@ function absUrl(path) {
 async function showFandezNotification(data = {}) {
   const title = data.title || 'Fandez';
   const icon = data.icon || absUrl(DEFAULT_ICON);
-  // Mismo tile ámbar para icon y badge: el badge blanco/transparente se veía como “Saturno”.
   const badge = data.badge || icon;
   const options = {
     body: data.body || '',
