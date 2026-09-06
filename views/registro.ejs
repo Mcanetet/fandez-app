@@ -1,12 +1,11 @@
 <%- include('partials/head', { useMap: typeof useMap !== 'undefined' ? useMap : false }) %>
 
 <div class="min-h-screen flex items-center justify-center p-5 relative">
-  <div class="absolute top-5 right-5 z-20">
-    <%- include('partials/lang-switcher') %>
-  </div>
+  <div class="auth-shell auth-shell--wide relative z-10">
+    <%- include('partials/auth-topbar', { backHref: '/', backLabel: t('auth.back_home'), backShort: t('auth.back_home_short') }) %>
 
-  <div class="relative z-10 w-full max-w-lg zilo-card-premium rounded-2xl p-5 sm:p-8 zilo-page-enter">
-    <a href="/" class="flex flex-col items-center mb-6">
+    <div class="zilo-card-premium rounded-2xl p-5 sm:p-8 zilo-page-enter">
+    <a href="/" class="flex flex-col items-center mb-6" aria-label="<%= t('app.name') %>">
       <%- include('partials/logo', { className: 'w-14 h-14 mb-3', logoId: 'registro' }) %>
       <span class="fandez-wordmark text-2xl tracking-tight"><%= t('app.name') %></span>
     </a>
@@ -212,6 +211,7 @@
       <%= t('register.has_account') %>
       <a href="/login" class="text-zilo-accent font-semibold hover:underline"><%= t('auth.login_link') %></a>
     </p>
+    </div>
   </div>
 </div>
 

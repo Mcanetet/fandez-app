@@ -9,11 +9,10 @@
 <div class="min-h-screen flex items-center justify-center p-5 relative verify-page">
   <div class="fandez-landing-atmosphere" aria-hidden="true"></div>
 
-  <div class="absolute top-5 right-5 z-20">
-    <%- include('partials/lang-switcher') %>
-  </div>
+  <div class="auth-shell relative z-10">
+    <%- include('partials/auth-topbar', { backHref: '/', backLabel: t('auth.back_home'), backShort: t('auth.back_home_short') }) %>
 
-  <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-3xl p-6 sm:p-8 zilo-page-enter" data-tour="welcome">
+    <div class="zilo-card-premium rounded-3xl p-6 sm:p-8 zilo-page-enter" data-tour="welcome">
     <% if (showWelcome) { %>
       <div class="text-center mb-5 verify-welcome">
         <div class="verify-welcome__mark mx-auto mb-4" aria-hidden="true">
@@ -120,6 +119,7 @@
       <summary class="cursor-pointer font-medium text-zilo-text"><%= t('verify.law_title') %></summary>
       <p class="mt-2 leading-relaxed">Al verificar tu correo confirmas que puedes acceder a esta cuenta. Fandez trata tus datos según nuestra <a href="/legal/privacidad" class="text-zilo-accent underline">Política de Privacidad</a>. Puedes ejercer tus derechos ARCO+ escribiendo a <a href="mailto:<%= company.dpoEmail %>" class="text-zilo-accent underline"><%= company.dpoEmail %></a> o en <a href="/legal/mis-datos" class="text-zilo-accent underline">Mis datos personales</a>.</p>
     </details>
+    </div>
   </div>
 </div>
 

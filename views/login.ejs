@@ -1,91 +1,79 @@
 <%- include('partials/head') %>
 
 <div class="min-h-screen flex items-center justify-center p-5 relative">
-  <div class="absolute top-5 left-5 z-20">
-    <a href="/" class="inline-flex items-center gap-1.5 text-sm font-semibold text-zilo-muted hover:text-zilo-accent transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-zilo-accent/40 px-1 py-0.5">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-      <%= t('auth.back_home') %>
-    </a>
-  </div>
-  <div class="absolute top-5 right-5 z-20">
-    <%- include('partials/lang-switcher') %>
-  </div>
+  <div class="auth-shell relative z-10">
+    <%- include('partials/auth-topbar', { backHref: '/', backLabel: t('auth.back_home'), backShort: t('auth.back_home_short') }) %>
 
-  <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-2xl p-8">
-    <a href="/" class="flex flex-col items-center mb-8" aria-label="<%= t('auth.back_home') %>">
-      <%- include('partials/logo', { className: 'w-14 h-14 mb-3', logoId: 'login' }) %>
-      <span class="fandez-wordmark text-2xl tracking-tight"><%= t('app.name') %></span>
-    </a>
-
-    <h1 class="zilo-display text-3xl text-center mb-1"><%= t('auth.welcome') %></h1>
-    <p class="text-zilo-muted text-center text-sm mb-6"><%= t('auth.login_subtitle') %></p>
-
-    <% if (typeof referralCode !== 'undefined' && referralCode) { %>
-      <div class="mb-4 p-3 rounded-xl border border-zilo-accent/25 bg-zilo-accent/5 text-center">
-        <p class="text-sm text-zilo-accent"><%- t('auth.referral_code', { code: referralCode }) %></p>
-        <p class="text-xs text-zilo-muted mt-1"><%= t('auth.referral_credit') %></p>
-      </div>
-    <% } %>
-
-    <% if (error) { %>
-      <div class="mb-4 p-3 rounded-xl bg-zilo-danger/10 border border-zilo-danger/30 text-zilo-danger text-sm text-center"><%= error %></div>
-    <% } %>
-    <% if (typeof success !== 'undefined' && success) { %>
-      <div class="mb-4 p-3 rounded-xl bg-zilo-success/10 border border-zilo-success/30 text-zilo-success text-sm text-center"><%= success %></div>
-    <% } %>
-
-    <form action="/login" method="POST" class="space-y-4">
-      <div>
-        <label for="email" class="zilo-label block mb-1.5"><%= t('auth.email') %></label>
-        <input type="email" id="email" name="email" required autocomplete="email" placeholder="<%= t('auth.email_placeholder') %>" class="zilo-input">
-      </div>
-      <div>
-        <%- include('partials/password-field', {
-          id: 'password',
-          name: 'password',
-          label: t('auth.password'),
-          hint: t('auth.password_hint'),
-          autocomplete: 'current-password',
-          required: true
-        }) %>
-        <div class="mt-2 flex justify-end">
-          <a href="/recuperar" class="text-sm font-semibold text-zilo-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-zilo-accent/40 rounded">
-            <%= t('auth.forgot_password') %>
-          </a>
-        </div>
-      </div>
-      <label class="flex items-center gap-2 text-sm text-zilo-muted cursor-pointer select-none">
-        <input type="checkbox" id="remember" name="remember" value="1" class="rounded accent-zilo-accent shrink-0">
-        <span><%= t('auth.remember_password') %></span>
-      </label>
-      <button type="submit" class="zilo-btn-primary"><%= t('auth.login') %></button>
-    </form>
-
-    <p class="text-center text-sm text-zilo-muted mt-6">
-      <%= t('auth.no_account') %>
-      <a href="/registro" class="text-zilo-accent font-semibold hover:underline"><%= t('auth.register_link') %></a>
-    </p>
-    <p class="text-center mt-4">
-      <a href="/" class="inline-flex items-center gap-1.5 text-sm font-semibold text-zilo-accent hover:underline">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-        <%= t('auth.back_home') %>
+    <div class="zilo-card-premium rounded-2xl p-8">
+      <a href="/" class="flex flex-col items-center mb-8" aria-label="<%= t('app.name') %>">
+        <%- include('partials/logo', { className: 'w-14 h-14 mb-3', logoId: 'login' }) %>
+        <span class="fandez-wordmark text-2xl tracking-tight"><%= t('app.name') %></span>
       </a>
-    </p>
 
-    <% var activeDemos = (typeof demoAccounts !== 'undefined' ? demoAccounts : []).filter(function(a){ return a.active; }); %>
-    <% if (activeDemos.length) { %>
-    <details class="mt-6 pt-6 border-t border-zilo-border">
-      <summary class="text-xs text-zilo-muted text-center cursor-pointer uppercase tracking-wider"><%= t('auth.demo_access') %></summary>
-      <div class="space-y-2 mt-4">
-        <% activeDemos.forEach(function(acc){ %>
-        <button type="button" class="demo-card w-full flex justify-between items-center p-3 rounded-xl zilo-card-premium hover:border-zilo-accent/30 transition text-left text-sm" data-email="<%= acc.email %>" data-password="<%= acc.password %>">
-          <span class="font-medium"><%= acc.label %></span>
-          <span class="text-xs text-zilo-muted"><%= acc.name %></span>
-        </button>
-        <% }); %>
-      </div>
-    </details>
-    <% } %>
+      <h1 class="zilo-display text-3xl text-center mb-1"><%= t('auth.welcome') %></h1>
+      <p class="text-zilo-muted text-center text-sm mb-6"><%= t('auth.login_subtitle') %></p>
+
+      <% if (typeof referralCode !== 'undefined' && referralCode) { %>
+        <div class="mb-4 p-3 rounded-xl border border-zilo-accent/25 bg-zilo-accent/5 text-center">
+          <p class="text-sm text-zilo-accent"><%- t('auth.referral_code', { code: referralCode }) %></p>
+          <p class="text-xs text-zilo-muted mt-1"><%= t('auth.referral_credit') %></p>
+        </div>
+      <% } %>
+
+      <% if (error) { %>
+        <div class="mb-4 p-3 rounded-xl bg-zilo-danger/10 border border-zilo-danger/30 text-zilo-danger text-sm text-center"><%= error %></div>
+      <% } %>
+      <% if (typeof success !== 'undefined' && success) { %>
+        <div class="mb-4 p-3 rounded-xl bg-zilo-success/10 border border-zilo-success/30 text-zilo-success text-sm text-center"><%= success %></div>
+      <% } %>
+
+      <form action="/login" method="POST" class="space-y-4">
+        <div>
+          <label for="email" class="zilo-label block mb-1.5"><%= t('auth.email') %></label>
+          <input type="email" id="email" name="email" required autocomplete="email" placeholder="<%= t('auth.email_placeholder') %>" class="zilo-input">
+        </div>
+        <div>
+          <%- include('partials/password-field', {
+            id: 'password',
+            name: 'password',
+            label: t('auth.password'),
+            hint: t('auth.password_hint'),
+            autocomplete: 'current-password',
+            required: true
+          }) %>
+          <div class="mt-2 flex justify-end">
+            <a href="/recuperar" class="text-sm font-semibold text-zilo-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-zilo-accent/40 rounded">
+              <%= t('auth.forgot_password') %>
+            </a>
+          </div>
+        </div>
+        <label class="flex items-center gap-2 text-sm text-zilo-muted cursor-pointer select-none">
+          <input type="checkbox" id="remember" name="remember" value="1" class="rounded accent-zilo-accent shrink-0">
+          <span><%= t('auth.remember_password') %></span>
+        </label>
+        <button type="submit" class="zilo-btn-primary"><%= t('auth.login') %></button>
+      </form>
+
+      <p class="text-center text-sm text-zilo-muted mt-6">
+        <%= t('auth.no_account') %>
+        <a href="/registro" class="text-zilo-accent font-semibold hover:underline"><%= t('auth.register_link') %></a>
+      </p>
+
+      <% var activeDemos = (typeof demoAccounts !== 'undefined' ? demoAccounts : []).filter(function(a){ return a.active; }); %>
+      <% if (activeDemos.length) { %>
+      <details class="mt-6 pt-6 border-t border-zilo-border">
+        <summary class="text-xs text-zilo-muted text-center cursor-pointer uppercase tracking-wider"><%= t('auth.demo_access') %></summary>
+        <div class="space-y-2 mt-4">
+          <% activeDemos.forEach(function(acc){ %>
+          <button type="button" class="demo-card w-full flex justify-between items-center p-3 rounded-xl zilo-card-premium hover:border-zilo-accent/30 transition text-left text-sm" data-email="<%= acc.email %>" data-password="<%= acc.password %>">
+            <span class="font-medium"><%= acc.label %></span>
+            <span class="text-xs text-zilo-muted"><%= acc.name %></span>
+          </button>
+          <% }); %>
+        </div>
+      </details>
+      <% } %>
+    </div>
   </div>
 </div>
 
@@ -105,7 +93,6 @@
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
       if (saved && saved.email) {
         emailInput.value = saved.email;
-        // Tras recuperar contraseña, no rellenar la clave antigua guardada
         if (saved.password && !resetOk) passwordInput.value = saved.password;
         rememberInput.checked = true;
         if (resetOk && saved.password) {

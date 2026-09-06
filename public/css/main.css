@@ -3304,3 +3304,79 @@ header.sticky.bg-zilo-bg\/90,
   flex-shrink: 0;
 }
 
+
+/* Auth topbar — volver + idioma alineados al ancho de la tarjeta */
+.auth-shell {
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.auth-shell--wide {
+  max-width: 32rem;
+}
+.auth-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0 0.15rem;
+}
+.auth-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-decoration: none;
+  color: var(--zilo-muted);
+  transition: color 0.15s ease, transform 0.15s ease;
+  border-radius: 9999px;
+  -webkit-tap-highlight-color: transparent;
+}
+.auth-back:hover {
+  color: var(--zilo-accent);
+}
+.auth-back:active {
+  transform: scale(0.98);
+}
+.auth-back:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--zilo-accent) 45%, transparent);
+  outline-offset: 3px;
+}
+.auth-back__chip {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--zilo-card);
+  border: 1px solid var(--zilo-border);
+  box-shadow: 0 1px 2px rgba(26, 24, 20, 0.04);
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.auth-back:hover .auth-back__chip {
+  border-color: color-mix(in srgb, var(--zilo-accent) 35%, var(--zilo-border));
+  box-shadow: 0 2px 8px rgba(196, 92, 20, 0.12);
+}
+.auth-back__text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.auth-topbar__lang {
+  flex-shrink: 0;
+}
+@media (max-width: 360px) {
+  .auth-back__text {
+    font-size: 0.8125rem;
+  }
+  .auth-back__chip {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}

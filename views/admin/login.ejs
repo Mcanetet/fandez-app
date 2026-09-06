@@ -5,43 +5,39 @@
     <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl"></div>
   </div>
 
-  <div class="absolute top-5 right-5 z-20">
-    <%- include('../partials/lang-switcher') %>
-  </div>
+  <div class="auth-shell relative z-10">
+    <%- include('../partials/auth-topbar', { backHref: '/', backLabel: t('admin.login.back'), backShort: t('auth.back_home_short') }) %>
 
-  <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-3xl p-8 border border-gray-200">
-    <div class="flex flex-col items-center mb-8">
-      <%- include('../partials/logo', { className: 'w-12 h-12 mb-3' }) %>
-      <span class="zilo-label !text-[9px]"><%= t('admin.operations') %></span>
-      <h1 class="text-xl font-semibold mt-1"><%= t('admin.title') %></h1>
-      <p class="text-xs text-gray-500 mt-1 text-center"><%= t('admin.login.subtitle') %></p>
+    <div class="zilo-card-premium rounded-3xl p-8 border border-gray-200">
+      <div class="flex flex-col items-center mb-8">
+        <%- include('../partials/logo', { className: 'w-12 h-12 mb-3' }) %>
+        <span class="zilo-label !text-[9px]"><%= t('admin.operations') %></span>
+        <h1 class="text-xl font-semibold mt-1"><%= t('admin.title') %></h1>
+        <p class="text-xs text-gray-500 mt-1 text-center"><%= t('admin.login.subtitle') %></p>
+      </div>
+
+      <% if (error) { %>
+        <div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-700 text-sm text-center"><%= error %></div>
+      <% } %>
+
+      <form action="<%= typeof adminBase !== 'undefined' ? adminBase : '/admin' %>/login" method="POST" class="space-y-4">
+        <div>
+          <label for="email" class="zilo-label block mb-1.5"><%= t('admin.login.email') %></label>
+          <input type="email" id="email" name="email" required autocomplete="username" placeholder="admin@fandez.cl" class="zilo-input">
+        </div>
+        <div>
+          <%- include('../partials/password-field', {
+            id: 'password',
+            name: 'password',
+            label: t('auth.password'),
+            hint: t('auth.password_hint'),
+            autocomplete: 'current-password',
+            required: true
+          }) %>
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary"><%= t('admin.login.submit') %></button>
+      </form>
     </div>
-
-    <% if (error) { %>
-      <div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-700 text-sm text-center"><%= error %></div>
-    <% } %>
-
-    <form action="<%= typeof adminBase !== 'undefined' ? adminBase : '/admin' %>/login" method="POST" class="space-y-4">
-      <div>
-        <label for="email" class="zilo-label block mb-1.5"><%= t('admin.login.email') %></label>
-        <input type="email" id="email" name="email" required autocomplete="username" placeholder="admin@fandez.cl" class="zilo-input">
-      </div>
-      <div>
-        <%- include('../partials/password-field', {
-          id: 'password',
-          name: 'password',
-          label: t('auth.password'),
-          hint: t('auth.password_hint'),
-          autocomplete: 'current-password',
-          required: true
-        }) %>
-      </div>
-      <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary"><%= t('admin.login.submit') %></button>
-    </form>
-
-    <p class="text-center text-xs text-gray-500 mt-6">
-      <a href="/" class="hover:text-gray-700 underline"><%= t('admin.login.back') %></a>
-    </p>
   </div>
 </div>
 

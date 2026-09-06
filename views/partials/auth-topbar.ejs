@@ -1,0 +1,21 @@
+<%
+  var backHref = typeof backHref !== 'undefined' ? backHref : '/';
+  var backLabel = typeof backLabel !== 'undefined' ? backLabel : (typeof t === 'function' ? t('auth.back_home') : 'Volver al inicio');
+  var backShort = typeof backShort !== 'undefined' ? backShort : (typeof t === 'function' ? t('auth.back_home_short') : 'Inicio');
+  var showLang = typeof showLang === 'undefined' || showLang;
+%>
+<div class="auth-topbar">
+  <a href="<%= backHref %>" class="auth-back" aria-label="<%= backLabel %>">
+    <span class="auth-back__chip" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+    </span>
+    <span class="auth-back__text"><%= backShort %></span>
+  </a>
+  <% if (showLang) { %>
+    <div class="auth-topbar__lang">
+      <%- include('lang-switcher') %>
+    </div>
+  <% } %>
+</div>

@@ -3,16 +3,10 @@
 <div class="min-h-screen flex items-center justify-center p-5 relative verify-page">
   <div class="fandez-landing-atmosphere" aria-hidden="true"></div>
 
-  <div class="absolute top-5 right-5 z-20">
-    <%- include('partials/lang-switcher') %>
-  </div>
+  <div class="auth-shell relative z-10">
+    <%- include('partials/auth-topbar', { backHref: '/login', backLabel: t('reset.back_login'), backShort: t('reset.back_login_short') }) %>
 
-  <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-3xl p-6 sm:p-8 zilo-page-enter">
-    <a href="/login" class="inline-flex items-center gap-1.5 text-sm text-zilo-muted hover:text-zilo-accent transition mb-6">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-      <%= t('reset.back_login') %>
-    </a>
-
+    <div class="zilo-card-premium rounded-3xl p-6 sm:p-8 zilo-page-enter">
     <% if (typeof invalid !== 'undefined' && invalid) { %>
       <div class="text-center">
         <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-zilo-danger/10 flex items-center justify-center" aria-hidden="true">
@@ -68,6 +62,7 @@
         <button type="submit" class="zilo-btn-primary"><%= t('reset.save') %></button>
       </form>
     <% } %>
+    </div>
   </div>
 </div>
 
