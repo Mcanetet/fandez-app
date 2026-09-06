@@ -6,6 +6,7 @@ const company = require('../config/company');
 const { getClientOnboardingSteps } = require('../lib/onboarding');
 const { localizeServices } = require('../lib/i18n-admin');
 const { getPhotoTips } = require('../lib/photoTips');
+const { getServiceOverview } = require('../lib/serviceOverviews');
 const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
 const { requireModule } = require('../middleware/modules');
 const unassignedRequestWatcher = require('../lib/unassignedRequestWatcher');
@@ -381,6 +382,11 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
   const urgencyTiers = store.getUrgencyTiersForClient();
   const activities = store.getActivitiesForService(serviceRaw.id);
   const catalogServices = localizeServices(store.getActiveServices(), req.t);
+  const serviceOverview = getServiceOverview(serviceRaw.id, {
+    activities,
+    service,
+    locale: req.locale
+  });
   res.render('client/service', {
     title: `${service.name} — Fandez`,
     user: req.session.user,
@@ -390,6 +396,7 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     pricing,
     urgencyTiers,
     activities,
+    serviceOverview,
     photoTips: getPhotoTips(serviceRaw.id, req.locale),
     trustStats: store.getClientTrustStats(),
     formatCLP: store.formatCLP,
