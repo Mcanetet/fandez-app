@@ -17,6 +17,7 @@
     solicitudes: 'Solicitudes',
     proveedores: 'Socios',
     reclamos: 'Reclamos',
+    informes: 'Informes',
     whatsapp: 'WhatsApp',
     aland: 'Aland IA',
     florencia: 'Florencia IA',
@@ -80,6 +81,9 @@
     const url = new URL(window.location.href);
     url.searchParams.set('tab', id);
     window.history.replaceState({}, '', url.pathname + url.search);
+    if (id === 'informes' && typeof window.__fandezLoadInformes === 'function') {
+      window.__fandezLoadInformes();
+    }
   }
 
   tabs.forEach(tab => {
@@ -1987,6 +1991,164 @@
     loadMensajesList();
     setInterval(loadMensajesList, 45000);
   }
+
+  /* ——— Informes agentes ——— */
+  (function initInformes() {
+    const panel = document.querySelector('[data-panel="informes"]');
+    if (!panel) return;
+    const dateInput = document.getElementById('informesDate');
+    const refreshBtn = document.getElementById('informesRefresh');
+    const statusEl = document.getElementById('informesStatus');
+    let lastTodayCaption = '';
+
+    function money(n) {
+      return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n || 0);
+    }
+
+    function checklistTone(status) {
+      if (status === 'action') return 'border-amber-300 bg-amber-50 text-amber-900';
+      if (status === 'watch') return 'border-blue-200 bg-blue-50 text-blue-900';
+      if (status === 'ok') return 'border-emerald-200 bg-emerald-50 text-emerald-900';
+      return 'border-gray-200 bg-zilo-bg text-gray-700';
+    }
+
+    function listBlock(title, items, mapFn) {
+      if (!items || !items.length) return `<p class="text-gray-500">${title}: sin datos</p>`;
+      return `<div><p class="font-semibold text-gray-800 mb-1">${title}</p><ul class="space-y-1">${items.map(mapFn).join('')}</ul></div>`;
+    }
+
+    async function loadInformes() {
+      if (statusEl) statusEl.textContent = 'Generando informes…';
+      const q = dateInput?.value ? `?date=${encodeURIComponent(dateInput.value)}` : '';
+      try {
+        const res = await fetch(`${ADMIN_BASE}/informes${q}`, { headers: { Accept: 'application/json' } });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error');
+
+        const ops = data.ops || {};
+        const fin = data.finance || {};
+        const mkt = data.marketing || {};
+
+        const setText = (id, text) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = text || '—';
+        };
+        setText('informesOpsNarrative', ops.narrative);
+        setText('informesFinanceNarrative', fin.narrative);
+        setText('informesMktNarrative', mkt.narrative);
+
+        const metricsEl = document.getElementById('informesOpsMetrics');
+        if (metricsEl) {
+          const m = ops.metrics || {};
+          const cards = [
+            ['Llegaron', m.arrived],
+            ['Resueltos', m.resolved],
+            ['En proceso', m.inProcess],
+            ['Sin socio', m.searching],
+            ['Urgencias', m.emergencies],
+            ['Reclamos abiertos', m.complaintsOpen],
+            ['Devoluciones', m.refundsOpen],
+            ['Chats → admin', m.sofia?.awaitingAdmin]
+          ];
+          metricsEl.innerHTML = cards.map(([label, val]) => `
+            <div class="p-3 rounded-xl bg-zilo-card border border-gray-200 text-center">
+              <strong class="block text-lg">${val ?? 0}</strong>
+              <span class="text-[10px] text-gray-500 uppercase">${label}</span>
+            </div>`).join('');
+        }
+
+        const listsEl = document.getElementById('informesOpsLists');
+        if (listsEl) {
+          const L = ops.lists || {};
+          const row = (r) => `<li class="flex justify-between gap-2 border-b border-gray-100 py-1"><span>${r.urgent ? '⚠ ' : ''}${r.serviceName || '—'} · ${r.clientName || '—'}</span><span class="text-gray-500 shrink-0">${r.status}</span></li>`;
+          listsEl.innerHTML = [
+            listBlock('Urgencias', L.emergencies, row),
+            listBlock('En proceso', L.inProcess, row),
+            listBlock('Reclamos', L.complaints, (c) => `<li class="py-1 border-b border-gray-100">${c.subject} · ${c.clientName || '—'} · ${c.status}</li>`),
+            listBlock('Devoluciones', L.refunds, row),
+            listBlock('Nuevos socios', L.newProviders, (p) => `<li class="py-1 border-b border-gray-100">${p.name} · ${p.email || ''}</li>`)
+          ].join('');
+        }
+
+        const checkEl = document.getElementById('informesFinanceChecklist');
+        if (checkEl) {
+          checkEl.innerHTML = (fin.checklist || []).map((c) => `
+            <div class="p-2.5 rounded-xl border ${checklistTone(c.status)}">
+              <p class="font-semibold">${c.title}</p>
+              <p class="mt-0.5 opacity-90">${c.detail}</p>
+            </div>`).join('') || '<p class="text-gray-500">Sin checklist</p>';
+        }
+
+        const payEl = document.getElementById('informesPayroll');
+        if (payEl) {
+          payEl.innerHTML = (fin.payroll || []).length
+            ? fin.payroll.map((p) => `<div class="flex justify-between py-1 border-b border-gray-100"><span>${p.name || 'Socio'}</span><strong>${money(p.pending)}</strong></div>`).join('')
+            : '<p class="text-gray-500">Nada pendiente</p>';
+        }
+
+        const issuesEl = document.getElementById('informesPaymentIssues');
+        if (issuesEl) {
+          issuesEl.innerHTML = (fin.paymentIssues || []).length
+            ? fin.paymentIssues.map((i) => `<div class="py-1 border-b border-gray-100"><span class="font-medium">${i.label}</span><br>${i.detail}</div>`).join('')
+            : '<p class="text-gray-500">Sin alertas</p>';
+        }
+
+        const today = mkt.today || {};
+        lastTodayCaption = today.caption || '';
+        setText('informesTodayMeta', today.date
+          ? `${today.date} · ${today.channel} · ${today.hook || ''}`
+          : '—');
+        setText('informesTodayCaption', lastTodayCaption || '—');
+
+        const cal = document.getElementById('informesSeptCalendar');
+        if (cal) {
+          const todayKey = new Date().toISOString().slice(0, 10);
+          cal.innerHTML = (mkt.days || []).map((d) => {
+            const isToday = d.date === todayKey;
+            return `<button type="button" class="informes-day text-left p-2.5 rounded-xl border ${isToday ? 'border-zilo-accent bg-zilo-accent-soft/50' : 'border-gray-200 bg-zilo-bg'} hover:border-zilo-accent/40" data-caption="${encodeURIComponent(d.caption || '')}" data-meta="${encodeURIComponent(`${d.date} · ${d.channel} · ${d.hook}`)}">
+              <span class="font-semibold">${d.day} ${d.weekday}</span>
+              <span class="block text-[10px] text-gray-500 uppercase mt-0.5">${d.channel}</span>
+              <span class="block mt-1 text-gray-800">${d.hook}</span>
+            </button>`;
+          }).join('');
+          cal.querySelectorAll('.informes-day').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const caption = decodeURIComponent(btn.dataset.caption || '');
+              const meta = decodeURIComponent(btn.dataset.meta || '');
+              lastTodayCaption = caption;
+              setText('informesTodayCaption', caption);
+              setText('informesTodayMeta', meta);
+            });
+          });
+        }
+
+        if (statusEl) {
+          statusEl.textContent = `Actualizado ${new Date(data.generatedAt || Date.now()).toLocaleString('es-CL')}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = err.message || 'No se pudo cargar';
+        if (window.FandezNotify) FandezNotify.show(err.message || 'Error al cargar informes', 'error');
+      }
+    }
+
+    document.getElementById('informesCopyToday')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(lastTodayCaption || '');
+        if (window.FandezNotify) FandezNotify.show('Caption copiado', 'success');
+      } catch (_) {
+        if (window.FandezNotify) FandezNotify.show('No se pudo copiar', 'error');
+      }
+    });
+
+    refreshBtn?.addEventListener('click', loadInformes);
+    if (dateInput && !dateInput.value) {
+      dateInput.value = new Date().toISOString().slice(0, 10);
+    }
+    window.__fandezLoadInformes = loadInformes;
+    if (dashboard.dataset.initialTab === 'informes' || new URLSearchParams(window.location.search).get('tab') === 'informes') {
+      loadInformes();
+    }
+  })();
 
   /* ——— Florencia IA ——— */
   const florenciaAgenda = document.getElementById('florenciaAgenda');

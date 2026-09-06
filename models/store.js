@@ -2344,8 +2344,9 @@ function attachProviderRegistrationDocuments(provider, {
 
 async function registerUser({
   name, email, password, phone, role, address, addressLat, addressLng, addressPlaceId, specialties,
-  addressUnit, addressRegion, addressCommune, companyRut, companyLegalName, repRut, providerDocuments,
-  clientBillingType, clientRut, clientLegalName, clientGiro
+  addressUnit, addressRegion, addressCommune, companyRut, companyLegalName, repRut, repName, providerDocuments,
+  clientBillingType, clientRut, clientLegalName, clientGiro,
+  otherServiceName, otherServiceDescription
 }) {
   name = (name || '').trim();
   email = (email || '').trim().toLowerCase();
@@ -2360,10 +2361,26 @@ async function registerUser({
   }
 
   let cleanSpecialties = [];
+  let otherService = null;
   if (role === 'provider') {
     const raw = Array.isArray(specialties) ? specialties : (specialties ? [specialties] : []);
-    cleanSpecialties = raw.filter(id => SERVICES.some(s => s.id === id));
-    if (cleanSpecialties.length === 0) return { errorKey: 'register.error_specialties' };
+    cleanSpecialties = raw.filter((id) => id !== 'otros' && SERVICES.some((s) => s.id === id));
+    const otherName = String(otherServiceName || '').trim();
+    const otherDesc = String(otherServiceDescription || '').trim();
+    if (otherName || otherDesc) {
+      if (otherName.length < 3) return { errorKey: 'register.error_other_service_name' };
+      if (otherDesc.length < 10) return { errorKey: 'register.error_other_service_desc' };
+      otherService = {
+        id: `req-${uuidv4().slice(0, 8)}`,
+        name: otherName.slice(0, 120),
+        description: otherDesc.slice(0, 1000),
+        status: 'pending_review',
+        createdAt: new Date().toISOString()
+      };
+    }
+    if (cleanSpecialties.length === 0 && !otherService) {
+      return { errorKey: 'register.error_specialties' };
+    }
   }
 
   let resolvedAddress = null;
@@ -2514,6 +2531,27 @@ async function registerUser({
 
   let user;
   if (role === 'provider') {
+    const contract = defaultProviderContract();
+    if ((companyLegalName || '').trim() || (companyRut || '').trim()) {
+      contract.entityType = 'empresa';
+      contract.legalEntity = {
+        ...contract.legalEntity,
+        rut: (companyRut || '').trim() ? formatRut(companyRut) : '',
+        legalName: (companyLegalName || '').trim(),
+        email,
+        phone: (phone || '').trim() || ''
+      };
+    }
+    contract.legalRepresentative = {
+      ...contract.legalRepresentative,
+      fullName: (repName || name || '').trim(),
+      rut: (repRut || '').trim() ? formatRut(repRut) : '',
+      email,
+      phone: (phone || '').trim() || ''
+    };
+    if (otherService) {
+      contract.serviceRequests = [otherService];
+    }
     user = {
       ...baseUser,
       address: resolvedAddress,
@@ -2529,7 +2567,7 @@ async function registerUser({
       reviews: [],
       verification: defaultProviderVerification(),
       locationShare: defaultLocationShare(),
-      providerContract: defaultProviderContract()
+      providerContract: contract
     };
   } else {
     user = {
@@ -2558,7 +2596,7 @@ async function registerUser({
     console.error('Error registrando usuario:', err.message);
     return { error: 'No se pudo crear la cuenta. Intenta nuevamente.' };
   }
-  return { success: true, user };
+  return { success: true, user, otherService };
 }
 
 function normalizeSpecialtyIds(raw) {

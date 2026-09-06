@@ -7,6 +7,7 @@ const { validateRegistrationConsents } = require('../lib/consent-policy');
 const emailVerification = require('../lib/emailVerification');
 const passwordReset = require('../lib/passwordReset');
 const mailer = require('../lib/mailer');
+const { notifyProviderSignup } = require('../lib/sofiaProviderSignup');
 
 const PUBLIC_ROLES = ['client', 'provider', 'tecnico'];
 const ADMIN_SESSION_MS = 4 * 60 * 60 * 1000;
@@ -194,6 +195,9 @@ function registerFormFromBody(body) {
     companyRut: body.company_rut || body.companyRut,
     companyLegalName: body.company_legal_name || body.companyLegalName,
     repRut: body.rep_rut || body.repRut,
+    repName: body.rep_name || body.repName,
+    otherServiceName: body.other_service_name || body.otherServiceName,
+    otherServiceDescription: body.other_service_description || body.otherServiceDescription,
     clientBillingType: body.client_billing_type || body.clientBillingType || 'natural',
     clientRut: body.client_rut || body.clientRut,
     clientLegalName: body.client_legal_name || body.clientLegalName,
@@ -345,7 +349,8 @@ router.post('/registro', async (req, res) => {
   try {
   const form = registerFormFromBody(req.body);
   const { name, email, password, phone, role, address, addressUnit, addressLat, addressLng, addressPlaceId, addressRegion, addressCommune, specialties,
-    companyRut, companyLegalName, repRut, clientBillingType, clientRut, clientLegalName, clientGiro } = form;
+    companyRut, companyLegalName, repRut, repName, clientBillingType, clientRut, clientLegalName, clientGiro,
+    otherServiceName, otherServiceDescription } = form;
   const providerDocuments = req.body.provider_documents || req.body.providerDocuments;
 
   const consentCheck = validateRegistrationConsents(req.body);
@@ -362,8 +367,9 @@ router.post('/registro', async (req, res) => {
   const result = await store.registerUser({
     name, email, password, phone, role, address,
     addressUnit, addressLat, addressLng, addressPlaceId, addressRegion, addressCommune, specialties,
-    companyRut, companyLegalName, repRut, providerDocuments,
-    clientBillingType, clientRut, clientLegalName, clientGiro
+    companyRut, companyLegalName, repRut, repName, providerDocuments,
+    clientBillingType, clientRut, clientLegalName, clientGiro,
+    otherServiceName, otherServiceDescription
   });
 
   if (!result.success) {
@@ -427,6 +433,18 @@ router.post('/registro', async (req, res) => {
   store.logSecurityEvent('registro_ok', email, req);
   store.recordRegistrationConsents(req, user.id, req.body);
   req.session.consentGranted = true;
+
+  if (user.role === 'provider') {
+    const otherService = result.otherService
+      || (user.providerContract?.serviceRequests || [])[0]
+      || null;
+    notifyProviderSignup({
+      user,
+      store,
+      otherService,
+      io: req.app.get('io')
+    }).catch((err) => console.error('[registro] sofia socio:', err.message));
+  }
 
   if (user.role === 'client' && req.session.pendingReferral) {
     const referral = store.applyReferralCode(user.id, req.session.pendingReferral);

@@ -34,6 +34,7 @@ const { adminUrl, getPublicStatus, canToggleModeFromAdmin, isProductionMode } = 
 const appModeStore = require('../lib/appModeStore');
 const { resolveAdminAccess, hasFullSystemAccess } = require('../lib/adminPermissions');
 const florencia = require('../lib/florencia');
+const informes = require('../lib/informes');
 
 function buildAdminAttentionInbox(storeRef, locale = 'es') {
   const inbox = [];
@@ -448,6 +449,51 @@ router.get('/', requireRole('admin'), async (req, res) => {
       message: 'No se pudo cargar el panel de administración. Si acabas de actualizar, redeploya la app completa en Hostinger.',
       code: 500
     });
+  }
+});
+
+// ——— Informes de agentes (Sofía / Clara / Florencia) ———
+
+router.get('/informes', requireRole('admin'), requireAdminPermission('informes.view'), async (req, res) => {
+  try {
+    const date = req.query.date ? new Date(`${req.query.date}T12:00:00`) : new Date();
+    const bundle = await informes.buildInformesBundle(store, {
+      date: Number.isFinite(date.getTime()) ? date : new Date()
+    });
+    res.json({ success: true, ...bundle });
+  } catch (err) {
+    console.error('[admin/informes]', err.message);
+    res.status(500).json({ success: false, error: err.message || 'No se pudo generar el informe' });
+  }
+});
+
+router.get('/informes/ops', requireRole('admin'), requireAdminPermission('informes.view'), async (req, res) => {
+  try {
+    const date = req.query.date ? new Date(`${req.query.date}T12:00:00`) : new Date();
+    const ops = await informes.buildDailyOpsReport(store, { date });
+    res.json({ success: true, ops });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get('/informes/finance', requireRole('admin'), requireAdminPermission('informes.view'), (req, res) => {
+  try {
+    const date = req.query.date ? new Date(`${req.query.date}T12:00:00`) : new Date();
+    const finance = informes.buildWeeklyFinanceReport(store, { date });
+    res.json({ success: true, finance });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get('/informes/marketing', requireRole('admin'), requireAdminPermission('informes.view'), (req, res) => {
+  try {
+    const year = parseInt(req.query.year, 10) || new Date().getFullYear();
+    const marketing = informes.buildSeptemberPartnerCalendar(year);
+    res.json({ success: true, marketing });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
