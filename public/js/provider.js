@@ -499,10 +499,24 @@
       if (btn) btn.disabled = false;
       return;
     }
+    const body = { technicianId };
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 30000
+          });
+        });
+        body.lat = pos.coords.latitude;
+        body.lng = pos.coords.longitude;
+      } catch (_) {}
+    }
     const res = await fetch(`/proveedor/accept/${requestId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ technicianId })
+      body: JSON.stringify(body)
     });
     const data = await res.json();
 
@@ -517,7 +531,8 @@
     closeModal();
 
     if (data.selfOperator) {
-      FandezNotify.show('Pedido tomado. Entrando a la visita…', 'success');
+      const etaNote = data.request?.etaLabel ? ` ETA ${data.request.etaLabel}.` : '';
+      FandezNotify.show(`Pedido tomado.${etaNote} Entrando a la visita…`, 'success');
       try {
         const enter = await fetch('/proveedor/entrar-terreno', {
           method: 'POST',

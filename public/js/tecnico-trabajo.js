@@ -47,10 +47,24 @@
     const btn = event.currentTarget;
     btn.disabled = true;
     try {
+      const body = { techStatus: btn.dataset.nextStatus };
+      if (navigator.geolocation) {
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 30000
+            });
+          });
+          body.lat = pos.coords.latitude;
+          body.lng = pos.coords.longitude;
+        } catch (_) {}
+      }
       const res = await fetch(`/tecnico/status/${requestId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ techStatus: btn.dataset.nextStatus })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo actualizar el estado');

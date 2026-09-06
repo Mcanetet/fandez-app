@@ -120,6 +120,20 @@
     { min: 120, max: 180, label: '2–3 h' }
   ];
 
+  function getCurrentCoords(timeoutMs = 12000) {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocalización no disponible'));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => reject(err || new Error('GPS denegado')),
+        { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30000 }
+      );
+    });
+  }
+
   function askEtaRange() {
     return new Promise((resolve) => {
       const existing = document.getElementById('techEtaModal');
@@ -129,9 +143,9 @@
       modal.className = 'fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-4 bg-black/50';
       modal.innerHTML = `
         <div class="w-full max-w-md rounded-2xl bg-zilo-surface border border-zilo-border p-5 shadow-xl">
-          <p class="text-xs font-semibold text-zilo-accent mb-1">Antes de tomar el pedido</p>
+          <p class="text-xs font-semibold text-zilo-accent mb-1">Sin GPS disponible</p>
           <h3 class="text-base font-semibold mb-1">¿Cuál es tu hora estimada de llegada?</h3>
-          <p class="text-xs text-zilo-muted mb-4">El cliente lo verá al instante en el chat del servicio.</p>
+          <p class="text-xs text-zilo-muted mb-4">Activa la ubicación la próxima vez para calcular el viaje en auto automáticamente.</p>
           <div class="grid grid-cols-1 gap-2" data-role="eta-options"></div>
           <button type="button" data-role="eta-cancel" class="mt-3 w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm">Cancelar</button>
         </div>`;
@@ -161,17 +175,27 @@
     });
   }
 
+  async function resolveAcceptPayload() {
+    try {
+      const coords = await getCurrentCoords();
+      return { lat: coords.lat, lng: coords.lng };
+    } catch (_) {
+      notify(t('tecnico.js.enable_gps'), 'warning');
+      return askEtaRange();
+    }
+  }
+
   async function acceptFromWall(requestId, btn) {
     if (btn) btn.disabled = true;
-    const eta = await askEtaRange();
-    if (!eta) {
+    const payload = await resolveAcceptPayload();
+    if (!payload) {
       if (btn) btn.disabled = false;
       return;
     }
     const res = await fetch(`/tecnico/accept/${requestId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(eta)
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
     if (!data.success) {
@@ -182,7 +206,8 @@
     }
     removeWallItem(requestId);
     stopRepeatingAlert();
-    notify(t('tecnico.js.job_taken_reload'), 'success');
+    const etaNote = data.request?.etaLabel ? ` · ETA ${data.request.etaLabel}` : '';
+    notify((t('tecnico.js.job_taken_reload') || 'Pedido tomado') + etaNote, 'success');
     setTimeout(() => location.reload(), 800);
   }
 
@@ -296,11 +321,16 @@
     } catch (_) {}
   }
 
-  async function postStatus(jobId, techStatus) {
+  async function postStatus(jobId, techStatus, coords = null) {
+    const body = { techStatus };
+    if (coords?.lat != null && coords?.lng != null) {
+      body.lat = coords.lat;
+      body.lng = coords.lng;
+    }
     const res = await fetch(`/tecnico/status/${jobId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ techStatus })
+      body: JSON.stringify(body)
     });
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.error || 'Error');
@@ -308,18 +338,24 @@
   }
 
   async function ensureEtaThenStatus(jobId, techStatus) {
+    let coords = null;
+    try {
+      coords = await getCurrentCoords();
+    } catch (_) {}
+
     if (techStatus === 'aceptado') {
-      const eta = await askEtaRange();
-      if (!eta) throw new Error('Debes indicar tu hora estimada de llegada');
+      const payload = coords || await askEtaRange();
+      if (!payload) throw new Error('Activa el GPS o indica tu hora estimada de llegada');
       const etaRes = await fetch(`/tecnico/trabajo/${jobId}/eta`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(eta)
+        body: JSON.stringify(payload)
       });
       const etaData = await etaRes.json();
       if (!etaRes.ok || !etaData.success) throw new Error(etaData.error || 'No se pudo guardar la ETA');
+      if (payload.lat != null) coords = payload;
     }
-    return postStatus(jobId, techStatus);
+    return postStatus(jobId, techStatus, coords);
   }
 
   function startSharing(card) {

@@ -153,7 +153,9 @@ router.post('/toggle-online', requireRole('provider'), requireModule('provider_o
 
 router.post('/accept/:requestId', requireRole('provider'), requireModule('provider_aceptar'), (req, res) => {
   const result = store.tryAcceptRequest(req.params.requestId, req.session.user.id, {
-    technicianId: req.body?.technicianId
+    technicianId: req.body?.technicianId,
+    lat: req.body?.lat,
+    lng: req.body?.lng
   });
   if (result.error) {
     return res.status(result.code === 'taken' ? 409 : 400).json({ error: result.error, success: false });

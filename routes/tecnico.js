@@ -143,7 +143,9 @@ router.post('/toggle-online', requireRole('tecnico'), (req, res) => {
 router.post('/accept/:requestId', requireRole('tecnico'), (req, res) => {
   const result = store.tryAcceptRequest(req.params.requestId, req.session.user.id, {
     etaMinutesMin: req.body?.etaMinutesMin,
-    etaMinutesMax: req.body?.etaMinutesMax
+    etaMinutesMax: req.body?.etaMinutesMax,
+    lat: req.body?.lat,
+    lng: req.body?.lng
   });
   if (result.error) {
     return res.status(result.code === 'taken' ? 409 : 400).json({ success: false, error: result.error });
@@ -162,33 +164,72 @@ router.post('/accept/:requestId', requireRole('tecnico'), (req, res) => {
   io.to(`request_${request.id}`).emit(`request_update_${request.id}`, payload);
   io.to(store.technicianSockets.get(req.session.user.id) || '').emit(`tecnico_assignment_${req.session.user.id}`, { request: serializeJob(request) });
 
+  if (request.liveEtaMinutes != null && request.coords) {
+    const loc = store.resolveActorCoords(req.session.user.id, req.body?.lat, req.body?.lng);
+    if (loc) {
+      io.to(`request_${request.id}`).emit(`provider_location_${request.id}`, {
+        lat: loc.lat,
+        lng: loc.lng,
+        updatedAt: new Date().toISOString(),
+        etaMinutes: request.liveEtaMinutes,
+        distanceKm: request.etaDistanceKm || null
+      });
+    }
+  }
+
   res.json({ success: true, request: serializeJob(request), chatMessage: result.chatMessage || null });
 });
 
 router.post('/trabajo/:requestId/eta', requireRole('tecnico'), (req, res) => {
   const result = store.setTechnicianEta(req.params.requestId, req.session.user.id, {
     etaMinutesMin: req.body?.etaMinutesMin,
-    etaMinutesMax: req.body?.etaMinutesMax
+    etaMinutesMax: req.body?.etaMinutesMax,
+    lat: req.body?.lat,
+    lng: req.body?.lng
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   const payload = { request: result.request, chatMessage: result.chatMessage || null };
   req.app.get('io').emit(`request_update_${result.request.id}`, payload);
+  if (result.request.liveEtaMinutes != null) {
+    const loc = store.resolveActorCoords(req.session.user.id, req.body?.lat, req.body?.lng);
+    if (loc) {
+      req.app.get('io').to(`request_${result.request.id}`).emit(`provider_location_${result.request.id}`, {
+        lat: loc.lat,
+        lng: loc.lng,
+        updatedAt: new Date().toISOString(),
+        etaMinutes: result.request.liveEtaMinutes,
+        distanceKm: result.request.etaDistanceKm || null
+      });
+    }
+  }
   res.json({ success: true, request: serializeJob(result.request), chatMessage: result.chatMessage || null });
 });
 
 router.post('/status/:requestId', requireRole('tecnico'), (req, res) => {
-  const { techStatus } = req.body;
+  const { techStatus, lat, lng } = req.body;
   const valid = ['aceptado', 'en_camino', 'en_sitio'];
   if (!valid.includes(techStatus)) return res.status(400).json({ success: false, error: 'Estado inválido' });
 
-  const request = store.updateTechStatus(req.params.requestId, req.session.user.id, techStatus);
+  const request = store.updateTechStatus(req.params.requestId, req.session.user.id, techStatus, { lat, lng });
   if (!request) return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
   if (request.error) return res.status(400).json({ success: false, error: request.error });
 
   const io = req.app.get('io');
   io.emit(`request_update_${request.id}`, { request });
+  if (request.liveEtaMinutes != null) {
+    const loc = store.resolveActorCoords(req.session.user.id, lat, lng);
+    if (loc) {
+      io.to(`request_${request.id}`).emit(`provider_location_${request.id}`, {
+        lat: loc.lat,
+        lng: loc.lng,
+        updatedAt: new Date().toISOString(),
+        etaMinutes: request.liveEtaMinutes,
+        distanceKm: request.etaDistanceKm || null
+      });
+    }
+  }
 
-  res.json({ success: true, request: { id: request.id, status: request.status, techStatus: request.techStatus } });
+  res.json({ success: true, request: { id: request.id, status: request.status, techStatus: request.techStatus, etaLabel: request.etaLabel, liveEtaMinutes: request.liveEtaMinutes || null } });
 });
 
 router.post('/trabajo/:requestId/confirmar-servicio', requireRole('tecnico'), (req, res) => {
@@ -373,7 +414,12 @@ router.post('/ubicacion', requireRole('tecnico'), requireModule('provider_ubicac
     const request = store.requests.find(r => r.id === requestId);
     if (request && request.technicianId === req.session.user.id) {
       if (request.coords) {
-        eta = store.computeEtaMinutes(loc.lat, loc.lng, request.coords.lat, request.coords.lng);
+        eta = store.applyDrivingEtaToRequest(request, loc.lat, loc.lng);
+        if (eta.error) {
+          eta = store.computeEtaMinutes(loc.lat, loc.lng, request.coords.lat, request.coords.lng);
+        } else {
+          eta = eta.drive;
+        }
       }
       const io = req.app.get('io');
       io.to(`request_${requestId}`).emit(`provider_location_${requestId}`, {
@@ -383,6 +429,9 @@ router.post('/ubicacion', requireRole('tecnico'), requireModule('provider_ubicac
         etaMinutes: eta ? eta.etaMinutes : null,
         distanceKm: eta ? eta.distanceKm : null
       });
+      if (eta?.etaMinutes != null) {
+        io.emit(`request_update_${requestId}`, { request });
+      }
     }
   }
 
