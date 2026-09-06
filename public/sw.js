@@ -1,8 +1,8 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v27';
+const SW_VERSION = 'fandez-sw-v28';
 
-const DEFAULT_ICON = '/icons/fandez-v6-192.png';
-const DEFAULT_BADGE = '/icons/fandez-v6-96.png';
+const DEFAULT_ICON = '/icons/fandez-v7-192.png';
+const DEFAULT_BADGE = '/icons/fandez-v7-badge-96.png';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

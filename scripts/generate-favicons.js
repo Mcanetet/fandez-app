@@ -1,5 +1,5 @@
 /**
- * Genera favicon.ico, PNGs y manifest desde public/favicon.svg
+ * Genera favicon.ico, PNGs y badge de notificaciones desde public/favicon.svg
  * Uso: node scripts/generate-favicons.js
  */
 const fs = require('fs');
@@ -16,6 +16,7 @@ async function main() {
 
   const publicDir = path.join(__dirname, '../public');
   const svg = fs.readFileSync(path.join(publicDir, 'favicon.svg'));
+  const badgeSvg = fs.readFileSync(path.join(publicDir, 'icons', 'fandez-badge.svg'));
 
   const sizes = [
     ['favicon-16.png', 16],
@@ -26,7 +27,6 @@ async function main() {
     ['apple-touch-icon.png', 180],
     ['icon-192.png', 192],
     ['icon-512.png', 512],
-    // Rutas nuevas para PWA / pantalla de inicio (evitar caché de iOS)
     ['icons/fandez-96.png', 96],
     ['icons/fandez-180.png', 180],
     ['icons/fandez-192.png', 192],
@@ -35,21 +35,23 @@ async function main() {
     ['icons/fandez-v3-180.png', 180],
     ['icons/fandez-v3-192.png', 192],
     ['icons/fandez-v3-512.png', 512],
-    // v4 — ámbar marca (rompe caché de iOS/Android)
     ['icons/fandez-v4-96.png', 96],
     ['icons/fandez-v4-180.png', 180],
     ['icons/fandez-v4-192.png', 192],
     ['icons/fandez-v4-512.png', 512],
-    // v5 — rutas nuevas (Hostinger CDN cachea 1 año; path distinto = cache miss)
     ['icons/fandez-v5-96.png', 96],
     ['icons/fandez-v5-180.png', 180],
     ['icons/fandez-v5-192.png', 192],
     ['icons/fandez-v5-512.png', 512],
-    // v6 — favicon ámbar actualizado (cache bust CDN)
     ['icons/fandez-v6-96.png', 96],
     ['icons/fandez-v6-180.png', 180],
     ['icons/fandez-v6-192.png', 192],
-    ['icons/fandez-v6-512.png', 512]
+    ['icons/fandez-v6-512.png', 512],
+    // v7 — isotipo más grande + rutas nuevas (rompe caché CDN/Android)
+    ['icons/fandez-v7-96.png', 96],
+    ['icons/fandez-v7-180.png', 180],
+    ['icons/fandez-v7-192.png', 192],
+    ['icons/fandez-v7-512.png', 512]
   ];
 
   fs.mkdirSync(path.join(publicDir, 'icons'), { recursive: true });
@@ -58,6 +60,12 @@ async function main() {
     await sharp(svg).resize(size, size).png().toFile(path.join(publicDir, name));
     console.log('✓', name);
   }
+
+  // Badge Android: silueta blanca transparente (96 / 192)
+  await sharp(badgeSvg).resize(96, 96).png().toFile(path.join(publicDir, 'icons', 'fandez-v7-badge-96.png'));
+  console.log('✓ icons/fandez-v7-badge-96.png');
+  await sharp(badgeSvg).resize(192, 192).png().toFile(path.join(publicDir, 'icons', 'fandez-v7-badge-192.png'));
+  console.log('✓ icons/fandez-v7-badge-192.png');
 
   const ico16 = await sharp(svg).resize(16, 16).png().toBuffer();
   const ico32 = await sharp(svg).resize(32, 32).png().toBuffer();
@@ -70,6 +78,8 @@ async function main() {
   console.log('✓ icons/fandez-v5.ico');
   fs.writeFileSync(path.join(publicDir, 'icons', 'fandez-v6.ico'), ico);
   console.log('✓ icons/fandez-v6.ico');
+  fs.writeFileSync(path.join(publicDir, 'icons', 'fandez-v7.ico'), ico);
+  console.log('✓ icons/fandez-v7.ico');
 }
 
 main().catch((err) => {

@@ -103,12 +103,13 @@
       try {
         new Notification(title, {
           body,
-          icon: '/favicon-32.png',
+          icon: '/icons/fandez-v7-192.png',
+          badge: '/icons/fandez-v7-badge-96.png',
           requireInteraction: true,
           tag: 'fandez-work-wall'
         });
       } catch (_) {
-        new Notification(title, { body, icon: '/favicon-32.png' });
+        new Notification(title, { body, icon: '/icons/fandez-v7-192.png', badge: '/icons/fandez-v7-badge-96.png' });
       }
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission();
