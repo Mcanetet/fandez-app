@@ -669,8 +669,9 @@
       startLocationWatch();
       loadWorkWall();
       syncStickyBar();
-      if (window.FandezAlerts) FandezAlerts.ensurePermission();
-      else if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      if (window.FandezAlerts) {
+        FandezAlerts.ensurePermission().then(() => FandezAlerts.enablePush());
+      } else if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
         Notification.requestPermission();
       }
     } else {

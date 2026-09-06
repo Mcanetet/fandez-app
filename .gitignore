@@ -8,6 +8,7 @@ npm-debug.log*
 # Backups locales (se generan en el servidor)
 data/backups/
 data/backup-config.json
+data/vapid-keys.json
 data/dte/
 data/vouchers/
 data/finance-state.json

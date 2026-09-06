@@ -375,6 +375,7 @@ app.use('/seguimiento', trackingRoutes);
 app.use('/documentos', documentosRoutes);
 app.use('/lang', langRoutes);
 app.use('/aland', alandRoutes);
+app.use('/push', require('./routes/push'));
 
 app.use((req, res, next) => {
   if (store.isReady() || req.path === '/health') return next();
@@ -490,6 +491,11 @@ async function initDatabase() {
     try {
       await store.init();
       global.__ziloInitError = null;
+      try {
+        require('./lib/webPush').init();
+      } catch (err) {
+        console.warn('[web-push] init:', err.message);
+      }
       const florencia = require('./lib/florencia');
       await florencia.ensureSchema();
       const openaiUsage = require('./lib/openaiUsage');

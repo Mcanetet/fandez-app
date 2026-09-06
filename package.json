@@ -40,7 +40,8 @@
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.1",
     "transbank-sdk": "^6.1.1",
-    "uuid": "^11.0.5"
+    "uuid": "^11.0.5",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",

@@ -183,25 +183,102 @@ window.FandezAlerts = {
     if (!this.prefs().system) return null;
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return null;
     const { type = 'default', tag, requireInteraction = false, onClick, url } = opts;
+    const origin = window.location.origin;
+    const icon = origin + '/icons/fandez-v6-192.png';
+    const badge = origin + '/icons/fandez-v6-96.png';
+    const payload = {
+      title: title || 'Fandez',
+      body: body || '',
+      icon,
+      badge,
+      tag: tag || ('fandez-' + type),
+      renotify: true,
+      vibrate: this.VIBRATE[type] || this.VIBRATE.default,
+      requireInteraction: !!requireInteraction,
+      url: url || window.location.pathname || '/'
+    };
+
+    // Preferir Service Worker: sale en la barra del SO con ícono Fandez (como WhatsApp)
+    const viaSw = () => {
+      if (!('serviceWorker' in navigator)) return Promise.resolve(false);
+      return navigator.serviceWorker.ready.then((reg) => {
+        if (!reg || typeof reg.showNotification !== 'function') return false;
+        return reg.showNotification(payload.title, {
+          body: payload.body,
+          icon: payload.icon,
+          badge: payload.badge,
+          tag: payload.tag,
+          renotify: true,
+          requireInteraction: payload.requireInteraction,
+          vibrate: payload.vibrate,
+          data: { url: payload.url, tag: payload.tag }
+        }).then(() => true);
+      }).catch(() => false);
+    };
+
+    viaSw().then((ok) => {
+      if (ok) return;
+      try {
+        const n = new Notification(payload.title, {
+          body: payload.body,
+          icon: payload.icon,
+          badge: payload.badge,
+          tag: payload.tag,
+          renotify: true,
+          vibrate: payload.vibrate,
+          requireInteraction: payload.requireInteraction
+        });
+        n.onclick = () => {
+          try { window.focus(); } catch (_) {}
+          if (typeof onClick === 'function') { try { onClick(); } catch (_) {} }
+          else if (url) { try { window.location.href = url; } catch (_) {} }
+          n.close();
+        };
+      } catch (_) { /* ignore */ }
+    });
+    return true;
+  },
+
+  async enablePush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      return { ok: false, reason: 'unsupported' };
+    }
+    const permission = await this.ensurePermission();
+    if (permission !== 'granted') return { ok: false, reason: permission };
+
     try {
-      const n = new Notification(title || 'Fandez', {
-        body: body || '',
-        icon: '/icons/fandez-v6-192.png',
-        badge: '/icons/fandez-v6-96.png',
-        tag: tag || ('fandez-' + type),
-        renotify: true,
-        vibrate: this.VIBRATE[type] || this.VIBRATE.default,
-        requireInteraction: !!requireInteraction
-      });
-      n.onclick = () => {
-        try { window.focus(); } catch (_) {}
-        if (typeof onClick === 'function') { try { onClick(); } catch (_) {} }
-        else if (url) { try { window.location.href = url; } catch (_) {} }
-        n.close();
+      const reg = await navigator.serviceWorker.ready;
+      const keyRes = await fetch('/push/vapid-public-key', { credentials: 'same-origin' });
+      const keyData = await keyRes.json();
+      if (!keyData.success || !keyData.publicKey) return { ok: false, reason: 'no-vapid' };
+
+      const urlBase64ToUint8Array = (base64String) => {
+        const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(base64);
+        const out = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+        return out;
       };
-      return n;
-    } catch (_) {
-      return null;
+
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
+        });
+      }
+
+      const save = await fetch('/push/subscribe', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON() })
+      });
+      const saved = await save.json();
+      return { ok: !!saved.success, reason: saved.error || null };
+    } catch (err) {
+      return { ok: false, reason: err.message || 'subscribe-failed' };
     }
   },
 
@@ -233,12 +310,37 @@ window.FandezAlerts = {
     this.playSound(type);
     this.vibrate(type);
 
-    const wantSystem = opts.system === true || (opts.system !== false && document.hidden);
+    // Pedidos / alertas: siempre notificación del sistema (barra + ícono Fandez)
+    const wantSystem = opts.system === true
+      || type === 'order'
+      || type === 'alert'
+      || type === 'payment'
+      || (opts.system !== false && document.hidden);
     if (wantSystem) this.system(title, body, { type, tag, requireInteraction, onClick, url });
   }
 };
 
 FandezAlerts.init();
+
+// Activar push del sistema (barra del celular) para usuarios logueados
+(function bootstrapPush() {
+  function maybeEnable() {
+    if (!window.FandezAlerts || typeof FandezAlerts.enablePush !== 'function') return;
+    if (typeof Notification === 'undefined') return;
+    const path = window.location.pathname || '';
+    const isWorker = path.startsWith('/proveedor') || path.startsWith('/tecnico') || path.startsWith('/cliente');
+    if (!isWorker) return;
+    FandezAlerts.enablePush().catch(() => {});
+  }
+  const run = () => {
+    maybeEnable();
+    ['pointerdown', 'touchstart', 'click'].forEach((ev) => {
+      window.addEventListener(ev, () => maybeEnable(), { once: true, passive: true });
+    });
+  };
+  if (document.readyState === 'complete') setTimeout(run, 1200);
+  else window.addEventListener('load', () => setTimeout(run, 1200));
+})();
 
 window.FundezNotify = window.FandezNotify;
 window.FundezAlerts = window.FandezAlerts;
