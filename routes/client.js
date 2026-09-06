@@ -428,7 +428,7 @@ router.get('/precio-preview', requireRole('client'), (req, res) => {
         visitTotal: store.formatCLP(preview.visitTotal),
         servicePrice: store.formatCLP(preview.servicePrice),
         estimatedTotal: store.formatCLP(preview.estimatedTotal),
-        diagnosticVisitMin: store.formatCLP(preview.diagnosticVisitMin || 50000)
+        diagnosticVisitMin: store.formatCLP(preview.diagnosticVisitMin || 19990)
       }
     }
   });
