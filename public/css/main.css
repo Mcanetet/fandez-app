@@ -1344,6 +1344,116 @@ html {
   box-shadow: 0 8px 20px rgba(109, 40, 217, 0.25);
 }
 
+/* Modal cancelación / retención */
+.cancel-keep-card {
+  padding: 0.85rem 1rem;
+  border-radius: 0.95rem;
+  background: var(--zilo-accent-soft);
+  border: 1px solid rgba(var(--zilo-accent-rgb), 0.18);
+}
+.cancel-keep-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.45rem;
+}
+.cancel-keep-list li {
+  position: relative;
+  padding-left: 1.15rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--zilo-text);
+}
+.cancel-keep-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--zilo-accent);
+}
+.cancel-money-card {
+  padding: 0.85rem 1rem;
+  border-radius: 0.95rem;
+  background: #FFF8F4;
+  border: 1px solid rgba(184, 58, 46, 0.16);
+}
+.cancel-reason-list {
+  display: grid;
+  gap: 0.5rem;
+}
+.cancel-reason-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--zilo-border);
+  background: var(--zilo-surface);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.cancel-reason-option:hover {
+  border-color: rgba(var(--zilo-accent-rgb), 0.35);
+}
+.cancel-reason-option.is-selected {
+  border-color: rgba(var(--zilo-accent-rgb), 0.55);
+  background: rgba(var(--zilo-accent-rgb), 0.06);
+  box-shadow: inset 0 0 0 1px rgba(var(--zilo-accent-rgb), 0.12);
+}
+.cancel-reason-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.cancel-reason-check {
+  flex: 0 0 auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.1rem;
+  border-radius: 999px;
+  border: 1.5px solid #C4BBB0;
+  background: #fff;
+  box-shadow: inset 0 0 0 0 var(--zilo-accent);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cancel-reason-option.is-selected .cancel-reason-check {
+  border-color: var(--zilo-accent);
+  box-shadow: inset 0 0 0 0.28rem var(--zilo-accent);
+}
+.cancel-reason-text {
+  flex: 1;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--zilo-text);
+}
+.cancel-soft-tip {
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.85rem;
+  background: #F7F4EF;
+  border: 1px solid var(--zilo-border);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--zilo-muted);
+}
+.cancel-confirm-btn {
+  color: #9F1239;
+  background: transparent;
+  border: 1px solid rgba(244, 63, 94, 0.28);
+  opacity: 1;
+  transition: background 0.15s, opacity 0.15s;
+}
+.cancel-confirm-btn:hover:not(:disabled) {
+  background: #FFF1F2;
+}
+.cancel-confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Radar de búsqueda + desatascador girando */
 .zilo-radar-wrap {
   position: relative;

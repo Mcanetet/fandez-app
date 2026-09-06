@@ -13,6 +13,7 @@ const unassignedRequestWatcher = require('../lib/unassignedRequestWatcher');
 const { getRequestTimeouts } = require('../lib/requestTimeouts');
 const aland = require('../lib/aland');
 const notifications = require('../lib/notifications');
+const { CANCELLATION_REASONS } = require('../lib/pricing');
 
 function isAlreadyNoProviderRefund(request) {
   if (!request) return false;
@@ -406,7 +407,8 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     photoTips: getPhotoTips(serviceRaw.id, req.locale),
     trustStats: store.getClientTrustStats(),
     formatCLP: store.formatCLP,
-    tracking: req.query.tracking || null
+    tracking: req.query.tracking || null,
+    cancellationReasons: CANCELLATION_REASONS
   });
 });
 
@@ -577,6 +579,12 @@ router.get('/solicitud/:id', requireRole('client'), (req, res) => {
     }
   }
   res.json({ request: store.enrichRequestForClient(request, req.locale || 'es'), provider });
+});
+
+router.get('/solicitud/:id/llamada', requireRole('client'), (req, res) => {
+  const result = store.getClientServiceCallContact(req.params.id, req.session.user.id);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  return res.json(result);
 });
 
 router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (req, res) => {

@@ -1334,9 +1334,6 @@ function cancelClientSearch(requestId, clientId, { reasonCode = null, reasonText
   if (!reasonCode || !CANCELLATION_REASONS.some((r) => r.id === reasonCode)) {
     return { error: 'Selecciona el motivo de cancelación.' };
   }
-  if (reasonCode === 'other' && !String(reasonText || '').trim()) {
-    return { error: 'Cuéntanos el motivo de la cancelación.' };
-  }
 
   const wasScheduled = request.status === 'scheduled';
   const money = applyCancellationWithRetention(request, {
@@ -1363,9 +1360,6 @@ function cancelClientRequest(requestId, clientId, { reasonCode = null, reasonTex
   }
   if (!reasonCode || !CANCELLATION_REASONS.some((r) => r.id === reasonCode)) {
     return { error: 'Selecciona el motivo de cancelación.' };
-  }
-  if (reasonCode === 'other' && !String(reasonText || '').trim()) {
-    return { error: 'Cuéntanos el motivo de la cancelación.' };
   }
 
   // Sin asignación: misma lógica que cancelar búsqueda
@@ -1840,7 +1834,7 @@ function canProviderGoOnline(provider) {
   return { ok: missing.length === 0, missing, contract: contractSummary };
 }
 
-function getPublicProviderProfile(provider) {
+function getPublicProviderProfile(provider, { includeContact = false } = {}) {
   if (!provider) return null;
   ensureProviderFields(provider);
   const v = provider.verification;
@@ -1853,11 +1847,11 @@ function getPublicProviderProfile(provider) {
 
   const loc = provider.locationShare;
   const adherence = getProviderAdherenceStats(provider);
-  return {
+  const profile = {
     id: provider.id,
     name: provider.name,
-    phone: provider.phone,
-    email: provider.email,
+    hasPhone: Boolean(provider.phone?.trim()),
+    hasEmail: Boolean(provider.email?.trim()),
     rating: provider.rating,
     reviewsCount: provider.reviewsCount,
     bio: provider.bio,
@@ -1880,6 +1874,56 @@ function getPublicProviderProfile(provider) {
       lng: loc.lng,
       updatedAt: loc.updatedAt
     } : null
+  };
+  if (includeContact) {
+    profile.phone = provider.phone || null;
+    profile.email = provider.email || null;
+  }
+  return profile;
+}
+
+/** Teléfono de coordinación solo para llamada in-app (sin exponer correo). */
+const CLIENT_CALL_TECH_STATUSES = new Set([
+  'aceptado',
+  'en_camino',
+  'en_sitio',
+  'diagnostico',
+  'reparando',
+  'comprando',
+  'presupuesto_pendiente',
+  'presupuesto_aprobado'
+]);
+
+function getClientServiceCallContact(requestId, clientId) {
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (request.clientId !== clientId) return { error: 'No autorizado.' };
+  if (!['assigned', 'in_progress'].includes(request.status)) {
+    return { success: true, canCall: false, reason: 'not_active' };
+  }
+  if (!CLIENT_CALL_TECH_STATUSES.has(String(request.techStatus || ''))) {
+    return { success: true, canCall: false, reason: 'too_early' };
+  }
+
+  let phone = null;
+  let label = 'técnico';
+  if (request.technicianId) {
+    const tech = getUserById(request.technicianId);
+    phone = tech?.phone || request.technicianPhone || null;
+    label = 'técnico';
+  }
+  if (!phone && request.providerId) {
+    const provider = getUserById(request.providerId);
+    phone = provider?.phone || null;
+    label = 'socio';
+  }
+  if (!phone) return { success: true, canCall: false, reason: 'no_phone' };
+
+  return {
+    success: true,
+    canCall: true,
+    phone: String(phone).trim(),
+    label
   };
 }
 
@@ -4823,8 +4867,17 @@ function enrichRequestForClient(request, locale = 'es') {
         url: `/documentos/factura-socio/${request.id}`
       }
     : null;
+  const techStatus = String(request.techStatus || '');
+  const canCallTechnician = ['assigned', 'in_progress'].includes(request.status)
+    && CLIENT_CALL_TECH_STATUSES.has(techStatus);
+  const {
+    technicianPhone: _technicianPhone,
+    providerPhone: _providerPhone,
+    providerEmail: _providerEmail,
+    ...safeRequest
+  } = request;
   return {
-    ...request,
+    ...safeRequest,
     serviceName: localizeServiceName(request.serviceId, request.serviceName, locale),
     statusLabel: getRequestStatusLabel(request, locale),
     clientTotals: clientTotals.completed ? clientTotals : null,
@@ -4839,7 +4892,8 @@ function enrichRequestForClient(request, locale = 'es') {
       && ['assigned', 'in_progress'].includes(request.status)
       && !['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado', 'completado'].includes(request.techStatus)
     ),
-    awaitingProviderReassign: Boolean(request.awaitingProviderReassign)
+    awaitingProviderReassign: Boolean(request.awaitingProviderReassign),
+    canCallTechnician
   };
 }
 
@@ -5843,6 +5897,7 @@ module.exports = {
   reviewProviderContract,
   getContractStats,
   getPublicProviderProfile,
+  getClientServiceCallContact,
   saveProviderDocument,
   saveProviderSelfie,
   setLocationConsent,
