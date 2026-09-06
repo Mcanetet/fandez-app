@@ -57,13 +57,13 @@ function run() {
     horaSolicitud: '10:00',
     tiempoRespuestaMinutos: 180
   });
-  assertEqual(forced.valorBaseAplicado, MIN_WORK_BASE_CLP, 'Fuerza mínimo $100.000');
+  assertEqual(forced.valorBaseAplicado, MIN_WORK_BASE_CLP, `Fuerza mínimo $${MIN_WORK_BASE_CLP}`);
   assertEqual(forced.total, MIN_WORK_BASE_CLP, 'Total mínimo en horario normal programado');
 
   let threw = false;
   try {
     calculateDynamicTariff({
-      valorBase: 80000,
+      valorBase: Math.max(1000, MIN_WORK_BASE_CLP - 1000),
       horaSolicitud: '10:00',
       tiempoRespuestaMinutos: 180,
       strictBase: true
@@ -148,8 +148,16 @@ function run() {
     valorBase: 100000,
     timeZone: 'America/Santiago'
   });
-  assertEqual(tomorrowPreview.visitTotal, 100000, 'calculateVisitPricing mañana sin recargo');
-  assertEqual(tomorrowPreview.adjustmentAmount, 0, 'calculateVisitPricing mañana sin ajuste');
+  assertEqual(tomorrowPreview.visitTotal, 90000, 'calculateVisitPricing mañana con −10%');
+  assertEqual(tomorrowPreview.adjustmentAmount, -10000, 'calculateVisitPricing mañana descuento');
+
+  const todayPreview = calculateVisitPricing({}, 'today', {
+    horaSolicitud: '19:57',
+    valorBase: 100000,
+    timeZone: 'America/Santiago'
+  });
+  assertEqual(todayPreview.visitTotal, 100000, 'Hoy sin recargo ni horario');
+  assertEqual(todayPreview.adjustmentAmount, 0, 'Hoy sin ajuste');
 
   const twoDaysPreview = calculateVisitPricing({}, 'two_days', {
     horaSolicitud: '19:57',
