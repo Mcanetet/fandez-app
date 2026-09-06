@@ -184,8 +184,8 @@ window.FandezAlerts = {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return null;
     const { type = 'default', tag, requireInteraction = false, onClick, url } = opts;
     const origin = window.location.origin;
-    const icon = origin + '/icons/fandez-v9-notify.png';
-    const badge = icon;
+    const icon = origin + '/icons/fandez-v10-notify.png';
+    const badge = origin + '/icons/fandez-v10-badge-96.png';
     const payload = {
       title: title || 'Fandez',
       body: body || '',

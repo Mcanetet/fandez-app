@@ -1,15 +1,16 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v30';
+const SW_VERSION = 'fandez-sw-v31';
 
-/** Tile ámbar + isotipo oficial (2 semicírculos). Ruta nueva = rompe caché CDN/Chrome. */
-const DEFAULT_ICON = '/icons/fandez-v9-notify.png';
-const DEFAULT_BADGE = '/icons/fandez-v9-notify.png';
+/** Tile ámbar + ventosa ∞ (v10). Path nuevo = rompe caché CDN/Chrome “Saturno”. */
+const DEFAULT_ICON = '/icons/fandez-v10-notify.png';
+const DEFAULT_BADGE = '/icons/fandez-v10-badge-96.png';
 
 const PRECACHE = [
   '/offline.html',
-  '/icons/fandez-v9-notify.png',
-  '/icons/fandez-v9-192.png',
-  '/icons/fandez-v9-96.png',
+  '/icons/fandez-v10-notify.png',
+  '/icons/fandez-v10-badge-96.png',
+  '/icons/fandez-v10-192.png',
+  '/icons/fandez-v10-96.png',
   '/favicon-32.png',
   '/favicon.ico'
 ];
@@ -37,7 +38,7 @@ self.addEventListener('fetch', (event) => {
   if (pathname.startsWith('/uploads/') || pathname.startsWith('/media/') || pathname.startsWith('/socket.io')) return;
 
   if (
-    pathname.startsWith('/icons/fandez-v9')
+    pathname.startsWith('/icons/fandez-v10')
     || pathname === '/favicon.ico'
     || pathname === '/favicon-32.png'
     || pathname === '/favicon.png'
@@ -45,7 +46,7 @@ self.addEventListener('fetch', (event) => {
     || pathname === '/icon-192.png'
   ) {
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-store' })
         .then((res) => {
           if (res && res.ok) {
             const copy = res.clone();
@@ -86,12 +87,13 @@ function absUrl(path) {
 
 async function showFandezNotification(data = {}) {
   const title = data.title || 'Fandez';
-  const icon = data.icon || absUrl(DEFAULT_ICON);
-  const badge = data.badge || icon;
+  // Siempre same-origin: evita 404 por APP_URL www/sin-www → ícono planeta Chrome
+  const icon = absUrl(DEFAULT_ICON);
+  const badge = absUrl(DEFAULT_BADGE);
   const options = {
     body: data.body || '',
-    icon,
-    badge,
+    icon: data.icon && String(data.icon).includes(self.location.origin) ? data.icon : icon,
+    badge: data.badge && String(data.badge).includes(self.location.origin) ? data.badge : badge,
     image: data.image || undefined,
     tag: data.tag || 'fandez',
     renotify: data.renotify !== false,

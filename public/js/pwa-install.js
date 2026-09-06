@@ -208,7 +208,7 @@
     bannerEl.innerHTML = `
       <div class="fandez-install-banner__sheet">
         <div class="fandez-install-banner__card">
-          <img class="fandez-install-banner__icon" src="/icons/fandez-v9-96.png" width="48" height="48" alt="">
+          <img class="fandez-install-banner__icon" src="/icons/fandez-v10-96.png" width="48" height="48" alt="">
           <div class="fandez-install-banner__text">
             <p class="fandez-install-banner__title" data-install-title></p>
             <p class="fandez-install-banner__body" data-install-body></p>
@@ -273,7 +273,7 @@
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     const register = () => {
-      navigator.serviceWorker.register('/sw.js?v=30', { scope: '/' })
+      navigator.serviceWorker.register('/sw.js?v=31', { scope: '/' })
         .then((reg) => {
           try { reg.update(); } catch (_) { /* ignore */ }
         })

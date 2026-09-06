@@ -1,5 +1,5 @@
 /**
- * Genera favicon.ico, PNGs y badge de notificaciones desde public/favicon.svg
+ * Genera favicons + iconos PWA/notificación v10 desde public/favicon.svg
  * Uso: node scripts/generate-favicons.js
  */
 const fs = require('fs');
@@ -31,27 +31,13 @@ async function main() {
     ['icons/fandez-180.png', 180],
     ['icons/fandez-192.png', 192],
     ['icons/fandez-512.png', 512],
-    ['icons/fandez-v3-96.png', 96],
-    ['icons/fandez-v3-180.png', 180],
-    ['icons/fandez-v3-192.png', 192],
-    ['icons/fandez-v3-512.png', 512],
-    ['icons/fandez-v4-96.png', 96],
-    ['icons/fandez-v4-180.png', 180],
-    ['icons/fandez-v4-192.png', 192],
-    ['icons/fandez-v4-512.png', 512],
-    ['icons/fandez-v5-96.png', 96],
-    ['icons/fandez-v5-180.png', 180],
-    ['icons/fandez-v5-192.png', 192],
-    ['icons/fandez-v5-512.png', 512],
-    ['icons/fandez-v6-96.png', 96],
-    ['icons/fandez-v6-180.png', 180],
-    ['icons/fandez-v6-192.png', 192],
-    ['icons/fandez-v6-512.png', 512],
-    // v7 — isotipo más grande + rutas nuevas (rompe caché CDN/Android)
-    ['icons/fandez-v7-96.png', 96],
-    ['icons/fandez-v7-180.png', 180],
-    ['icons/fandez-v7-192.png', 192],
-    ['icons/fandez-v7-512.png', 512]
+    // v10 — rompe caché CDN / PWA / notificaciones (Saturno Chrome)
+    ['icons/fandez-v10-48.png', 48],
+    ['icons/fandez-v10-96.png', 96],
+    ['icons/fandez-v10-180.png', 180],
+    ['icons/fandez-v10-192.png', 192],
+    ['icons/fandez-v10-512.png', 512],
+    ['icons/fandez-v10-notify.png', 192]
   ];
 
   fs.mkdirSync(path.join(publicDir, 'icons'), { recursive: true });
@@ -61,11 +47,8 @@ async function main() {
     console.log('✓', name);
   }
 
-  // Badge Android: silueta blanca transparente (96 / 192)
-  await sharp(badgeSvg).resize(96, 96).png().toFile(path.join(publicDir, 'icons', 'fandez-v7-badge-96.png'));
-  console.log('✓ icons/fandez-v7-badge-96.png');
-  await sharp(badgeSvg).resize(192, 192).png().toFile(path.join(publicDir, 'icons', 'fandez-v7-badge-192.png'));
-  console.log('✓ icons/fandez-v7-badge-192.png');
+  await sharp(badgeSvg).resize(96, 96).png().toFile(path.join(publicDir, 'icons', 'fandez-v10-badge-96.png'));
+  console.log('✓ icons/fandez-v10-badge-96.png');
 
   const ico16 = await sharp(svg).resize(16, 16).png().toBuffer();
   const ico32 = await sharp(svg).resize(32, 32).png().toBuffer();
@@ -74,12 +57,8 @@ async function main() {
   const ico = await toIco([ico16, ico32, ico48]);
   fs.writeFileSync(path.join(publicDir, 'favicon.ico'), ico);
   console.log('✓ favicon.ico');
-  fs.writeFileSync(path.join(publicDir, 'icons', 'fandez-v5.ico'), ico);
-  console.log('✓ icons/fandez-v5.ico');
-  fs.writeFileSync(path.join(publicDir, 'icons', 'fandez-v6.ico'), ico);
-  console.log('✓ icons/fandez-v6.ico');
-  fs.writeFileSync(path.join(publicDir, 'icons', 'fandez-v7.ico'), ico);
-  console.log('✓ icons/fandez-v7.ico');
+  fs.writeFileSync(path.join(publicDir, 'icons', 'fandez-v10.ico'), ico);
+  console.log('✓ icons/fandez-v10.ico');
 }
 
 main().catch((err) => {
