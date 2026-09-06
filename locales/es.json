@@ -303,7 +303,7 @@
 
   "client.welcome_label": "Bienvenida",
   "client.services": "Servicios",
-  "client.from_price": "precio promedio",
+  "client.from_price": "desde",
   "client.in_progress": "En curso",
   "client.requests_paused": "Solicitudes pausadas",
   "client.requests_paused_desc": "La solicitud de servicios no está disponible en este momento.",

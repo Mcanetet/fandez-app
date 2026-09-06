@@ -304,7 +304,7 @@
 
   "client.welcome_label": "Welcome",
   "client.services": "Services",
-  "client.from_price": "average price",
+  "client.from_price": "from",
   "client.in_progress": "In progress",
   "client.requests_paused": "Requests paused",
   "client.requests_paused_desc": "Service requests are not available at this time.",

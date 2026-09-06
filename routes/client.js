@@ -376,11 +376,16 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
       code: 404
     });
   }
-  const service = localizeServices([serviceRaw], req.t)[0];
-  const profile = store.getUserById(req.session.user.id);
   const pricing = store.getPricingConfig();
   const urgencyTiers = store.getUrgencyTiersForClient();
   const activities = store.getActivitiesForService(serviceRaw.id);
+  const serviceFromPrice = store.getServiceFromPrice(serviceRaw.id);
+  const service = localizeServices([{
+    ...serviceRaw,
+    fromPrice: serviceFromPrice,
+    averagePrice: serviceFromPrice
+  }], req.t)[0];
+  const profile = store.getUserById(req.session.user.id);
   const catalogServices = localizeServices(store.getActiveServices(), req.t);
   const serviceOverview = getServiceOverview(serviceRaw.id, {
     activities,
@@ -394,6 +399,7 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     service,
     catalogServices,
     pricing,
+    serviceFromPrice,
     urgencyTiers,
     activities,
     serviceOverview,

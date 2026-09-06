@@ -100,7 +100,10 @@
     const opt = activitySelect?.selectedOptions?.[0];
     const base = opt?.dataset?.base;
     const n = base ? parseInt(base, 10) : NaN;
-    return Number.isFinite(n) && n > 0 ? n : null;
+    if (Number.isFinite(n) && n > 0) return n;
+    const fromAttr = page?.dataset?.fromPrice || page?.dataset?.visitPrice;
+    const from = fromAttr ? parseInt(fromAttr, 10) : NaN;
+    return Number.isFinite(from) && from > 0 ? from : null;
   }
   activitySelect?.addEventListener('change', () => {
     toggleClientOtherFields();
@@ -950,6 +953,9 @@
   }
 
   function declaredEtaMinutes(request) {
+    if (request?.liveEtaMinutes != null && Number.isFinite(Number(request.liveEtaMinutes))) {
+      return Math.max(1, Math.round(Number(request.liveEtaMinutes)));
+    }
     if (request?.etaMinutesMin != null && request?.etaMinutesMax != null) {
       return Math.round((Number(request.etaMinutesMin) + Number(request.etaMinutesMax)) / 2);
     }
@@ -968,6 +974,7 @@
 
     const deferred = isDeferredUrgency(request);
     const enRoute = request?.techStatus === 'en_camino';
+    const accepted = request?.techStatus === 'aceptado';
     const live = isLiveTrackingActive(request);
     const declared = declaredEtaMinutes(request);
     const displayEta = etaMinutes != null ? etaMinutes : declared;
@@ -986,7 +993,7 @@
       return;
     }
 
-    if (enRoute || hasLocation || request?.etaLabel || live) {
+    if (enRoute || accepted || hasLocation || request?.etaLabel || live) {
       etaBox.classList.remove('is-waiting');
       if (etaMin) {
         etaMin.innerHTML = displayEta != null
@@ -994,23 +1001,33 @@
           : '—<small>min</small>';
       }
       if (title) {
-        title.textContent = enRoute || hasLocation
-          ? t('client.service.live_enroute_title')
-          : (request?.technicianName
-            ? `${request.technicianName} tomó tu pedido`
-            : t('client.service.live_assigned_title'));
-      }
-      if (sub) {
-        if (request?.etaLabel && !hasLocation) {
-          sub.textContent = `Llegada estimada: ${request.etaLabel}`;
+        if (enRoute) {
+          title.textContent = t('client.service.live_enroute_title');
+        } else if (request?.technicianName) {
+          title.textContent = t('client.service.live_accepted_title', { name: request.technicianName });
         } else {
-          const dist = distanceKm != null ? t('client.js.live_distance', { km: distanceKm }) : '';
-          sub.textContent = displayEta != null
-            ? `${t('client.js.live_eta', { n: displayEta })} ${dist}`.trim()
-            : (request?.etaLabel ? `Llegada estimada: ${request.etaLabel}` : t('client.service.live_enroute_sub'));
+          title.textContent = t('client.service.live_assigned_title');
         }
       }
-      if (badge) badge.textContent = enRoute ? t('client.service.live_badge_enroute') : t('client.service.assigned_badge');
+      if (sub) {
+        const dist = distanceKm != null
+          ? t('client.js.live_distance', { km: distanceKm })
+          : (request?.etaDistanceKm != null ? t('client.js.live_distance', { km: request.etaDistanceKm }) : '');
+        if (displayEta != null) {
+          sub.textContent = `${t('client.js.live_eta', { n: displayEta })} ${dist}`.trim();
+        } else if (request?.etaLabel) {
+          sub.textContent = t('client.request.eta_label', { eta: request.etaLabel });
+        } else if (enRoute) {
+          sub.textContent = t('client.service.live_enroute_sub');
+        } else {
+          sub.textContent = t('client.service.live_assigned_sub');
+        }
+      }
+      if (badge) {
+        badge.textContent = enRoute
+          ? t('client.service.live_badge_enroute')
+          : t('client.service.assigned_badge');
+      }
       return;
     }
 
@@ -1733,13 +1750,18 @@
       if (tripEta && payload.etaMinutes) {
         tripEta.textContent = `ETA ${payload.etaMinutes} min`;
       }
+      if (lastTrackedRequest && payload.etaMinutes != null) {
+        lastTrackedRequest.liveEtaMinutes = payload.etaMinutes;
+        if (payload.distanceKm != null) lastTrackedRequest.etaDistanceKm = payload.distanceKm;
+      }
       updateLiveTrackBanner(lastTrackedRequest || {
-        techStatus: 'en_camino',
+        techStatus: page.dataset.techStatus || 'aceptado',
         providerId: true,
         urgencyTier: page.dataset.urgencyTier || 'immediate'
       }, { etaMinutes: payload.etaMinutes, distanceKm: payload.distanceKm, hasLocation: true });
-      if (lastTrackedRequest) lastTrackedRequest.techStatus = 'en_camino';
-      advanceTripStep('enroute');
+      if (lastTrackedRequest?.techStatus === 'en_camino') {
+        advanceTripStep('enroute');
+      }
     });
     pollForProvider(requestId);
   }

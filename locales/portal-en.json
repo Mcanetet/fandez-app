@@ -378,7 +378,7 @@
   "client.guide.extra_gift_body": "When paying for a gift you can notify the beneficiary via WhatsApp with a ready message and tracking link.",
   "client.js.referral_bonus": "${{amount}} credit for your referral!",
   "client.js.no_services": "No services available.",
-  "client.js.from_price": "average price",
+  "client.js.from_price": "from",
   "client.js.loader_step1_text": "Looking for a nearby technician…",
   "client.js.loader_step1_sub": "Contacting available partners in your area",
   "client.js.loader_step2_text": "Expanding the search…",

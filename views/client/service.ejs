@@ -5,7 +5,8 @@
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="servicePage"
   data-service-id="<%= service.id %>"
   data-service-name="<%= service.name %>"
-  data-visit-price="<%= service.visitPrice %>"
+  data-visit-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
+  data-from-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
   data-whatsapp="<%= company.whatsapp %>"
   data-brand-optional="<%= brandOptional ? '1' : '0' %>">
@@ -29,9 +30,10 @@
 
     <div class="p-5 rounded-2xl zilo-card-premium mb-5 zilo-page-enter-delay-1" id="pricingBox">
       <p class="zilo-label mb-4"><%= t('client.service.rates') %></p>
+      <% const displayFrom = typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice); %>
       <div class="flex justify-between py-3 border-b border-zilo-border">
         <span class="text-zilo-muted text-sm"><%= t('client.service.work_base') %></span>
-        <strong class="text-zilo-accent font-semibold" id="displayVisitPrice"><%= formatCLP(pricing.servicePrice) %></strong>
+        <strong class="text-zilo-accent font-semibold" id="displayVisitPrice"><%= formatCLP(displayFrom) %></strong>
       </div>
       <div id="urgencyAdjustmentRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
         <span class="text-zilo-muted" id="urgencyAdjustmentLabel"><%= t('client.service.dynamic_surcharge') %></span>
@@ -43,7 +45,7 @@
       </div>
       <div class="flex justify-between py-3">
         <span class="text-zilo-muted text-sm font-medium"><%= t('client.service.total_est') %></span>
-        <strong class="text-zilo-accent font-semibold" id="displayTotalPrice"><%= formatCLP(pricing.servicePrice) %></strong>
+        <strong class="text-zilo-accent font-semibold" id="displayTotalPrice"><%= formatCLP(displayFrom) %></strong>
       </div>
       <p class="text-[11px] text-zilo-muted/70 mt-3"><%= t('client.service.pay_hint_dynamic') %></p>
       <details class="mt-3 text-left">
@@ -248,7 +250,7 @@
       <div class="sticky-order-inner max-w-lg mx-auto">
         <div class="min-w-0">
           <p class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= t('client.service.visit_est') %></p>
-          <strong class="text-zilo-accent text-base" id="stickyTotal"><%= formatCLP(pricing.servicePrice) %></strong>
+          <strong class="text-zilo-accent text-base" id="stickyTotal"><%= formatCLP(typeof displayFrom !== 'undefined' ? displayFrom : (service.fromPrice || pricing.servicePrice)) %></strong>
         </div>
         <button type="button" id="btnRequestSticky" class="sticky-order-btn"><%= t('client.service.continue') %></button>
       </div>

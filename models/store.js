@@ -35,6 +35,8 @@ const {
   quoteActivityForRequest,
   findCatalogActivity,
   getServiceAveragePrice,
+  getServiceFromPrice,
+  getServicePriceSummary,
   MIN_WORK_BASE_CLP,
   CANCELLATION_REASONS,
   resolveCancellationTier,
@@ -1546,10 +1548,13 @@ function getServiceById(id) {
 
 function decorateServiceForClient(service) {
   if (!service) return service;
-  const averagePrice = getServiceAveragePrice(getPricingConfig(), service.id);
+  const summary = getServicePriceSummary(getPricingConfig(), service.id);
   return {
     ...service,
-    averagePrice
+    fromPrice: summary.fromPrice,
+    averagePrice: summary.fromPrice,
+    averagePriceExact: summary.averagePrice,
+    maxPrice: summary.maxPrice
   };
 }
 
@@ -1714,7 +1719,12 @@ function updatePricingConfig(updates) {
     urgencyTiers: updates.urgencyTiers || current.urgencyTiers,
     scheduleSurcharges: updates.scheduleSurcharges || current.scheduleSurcharges,
     paymentGateways: updates.paymentGateways || current.paymentGateways,
-    catalogPrices: updates.catalogPrices != null ? updates.catalogPrices : current.catalogPrices
+    catalogPrices: updates.catalogPrices != null ? updates.catalogPrices : current.catalogPrices,
+    commercialPlanId: updates.commercialPlanId != null ? updates.commercialPlanId : current.commercialPlanId,
+    commercialPlanAppliedAt: updates.commercialPlanAppliedAt != null
+      ? updates.commercialPlanAppliedAt
+      : current.commercialPlanAppliedAt,
+    clientPriceMode: updates.clientPriceMode != null ? updates.clientPriceMode : current.clientPriceMode
   });
   PRICING_CONFIG = merged;
   repository.persist(() => repository.savePricingConfig(merged), 'pricing');
@@ -3192,7 +3202,7 @@ function normalizeEtaRange(etaMinutesMin, etaMinutesMax) {
   };
 }
 
-function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, technicianId } = {}) {
+function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, technicianId, lat, lng } = {}) {
   const request = requests.find(r => r.id === requestId);
   if (!request || request.status !== 'searching') {
     return { error: 'Solicitud ya no está disponible', code: 'taken' };
@@ -3250,12 +3260,18 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
     bumpProviderCounter(user.id, 'jobsTakenCount', 1);
 
     if (tecnico.isSelfOperator) {
-      // El socio opera la visita: acepta al instante (sin espera de 10 min).
       request.techStatus = 'aceptado';
-      request.etaMinutesMin = 45;
-      request.etaMinutesMax = 90;
-      request.etaLabel = formatEtaRangeLabel(45, 90, 'es');
-      request.etaDeclaredAt = new Date().toISOString();
+      const actorCoords = resolveActorCoords(tecnico.id, lat, lng)
+        || resolveActorCoords(user.id, null, null);
+      if (actorCoords && request.coords) {
+        applyDrivingEtaToRequest(request, actorCoords.lat, actorCoords.lng, { persist: false });
+      } else {
+        request.etaMinutesMin = 45;
+        request.etaMinutesMax = 90;
+        request.etaLabel = formatEtaRangeLabel(45, 90, 'es');
+        request.etaDeclaredAt = new Date().toISOString();
+        request.etaSource = 'fallback';
+      }
     } else {
       request.techStatus = 'asignado';
     }
@@ -3272,8 +3288,25 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
       .find((s) => s && Array.isArray(s.specialties) && s.specialties.includes(request.serviceId));
     if (!socio) return { error: 'Ninguno de tus socios ofrece este servicio actualmente.' };
 
-    const eta = normalizeEtaRange(etaMinutesMin, etaMinutesMax);
-    if (eta.error) return { error: eta.error };
+    const actorCoords = resolveActorCoords(user.id, lat, lng);
+    let etaApplied = null;
+    if (actorCoords && request.coords) {
+      etaApplied = applyDrivingEtaToRequest(request, actorCoords.lat, actorCoords.lng, { persist: false });
+      if (etaApplied.error) return { error: etaApplied.error };
+      updateTechnicianLocation(user.id, actorCoords.lat, actorCoords.lng);
+    } else {
+      const eta = normalizeEtaRange(etaMinutesMin, etaMinutesMax);
+      if (eta.error) {
+        return {
+          error: 'Activa la ubicación GPS para calcular tu llegada en auto, o indica una ETA manual.'
+        };
+      }
+      request.etaMinutesMin = eta.etaMinutesMin;
+      request.etaMinutesMax = eta.etaMinutesMax;
+      request.etaLabel = eta.etaLabel;
+      request.etaDeclaredAt = new Date().toISOString();
+      request.etaSource = 'manual';
+    }
 
     request.providerId = socio.id;
     request.technicianId = user.id;
@@ -3286,10 +3319,6 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
     request.serviceConfirmStatus = 'pending';
     request.serviceConfirmedAt = null;
     request.serviceConfirmMode = null;
-    request.etaMinutesMin = eta.etaMinutesMin;
-    request.etaMinutesMax = eta.etaMinutesMax;
-    request.etaLabel = eta.etaLabel;
-    request.etaDeclaredAt = new Date().toISOString();
   } else {
     return { error: 'Rol no autorizado' };
   }
@@ -3332,19 +3361,29 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
   };
 }
 
-function setTechnicianEta(requestId, technicianId, { etaMinutesMin, etaMinutesMax } = {}) {
+function setTechnicianEta(requestId, technicianId, { etaMinutesMin, etaMinutesMax, lat, lng } = {}) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (!['aceptado', 'asignado', 'en_camino'].includes(request.techStatus)) {
     return { error: 'Ya no puedes cambiar la ETA en este estado.' };
   }
-  const eta = normalizeEtaRange(etaMinutesMin, etaMinutesMax);
-  if (eta.error) return { error: eta.error };
+
   const wasFirstEta = !(request.etaMinutesMin && request.etaMinutesMax);
-  request.etaMinutesMin = eta.etaMinutesMin;
-  request.etaMinutesMax = eta.etaMinutesMax;
-  request.etaLabel = eta.etaLabel;
-  request.etaDeclaredAt = new Date().toISOString();
+  const actorCoords = resolveActorCoords(technicianId, lat, lng);
+  if (actorCoords && request.coords) {
+    const applied = applyDrivingEtaToRequest(request, actorCoords.lat, actorCoords.lng, { persist: false });
+    if (applied.error) return applied;
+    updateTechnicianLocation(technicianId, actorCoords.lat, actorCoords.lng);
+  } else {
+    const eta = normalizeEtaRange(etaMinutesMin, etaMinutesMax);
+    if (eta.error) return { error: eta.error };
+    request.etaMinutesMin = eta.etaMinutesMin;
+    request.etaMinutesMax = eta.etaMinutesMax;
+    request.etaLabel = eta.etaLabel;
+    request.etaDeclaredAt = new Date().toISOString();
+    request.etaSource = 'manual';
+  }
+
   const techName = request.technicianName || getUserById(technicianId)?.name || 'El técnico';
   const message = appendChatMessage(request, {
     senderType: 'system',
@@ -3920,7 +3959,7 @@ function getEligibleTechniciansForProvider(providerId, serviceId) {
     }));
 }
 
-function updateTechStatus(requestId, technicianId, techStatus) {
+function updateTechStatus(requestId, technicianId, techStatus, { lat, lng } = {}) {
   const request = requests.find(r => r.id === requestId);
   if (!request || request.technicianId !== technicianId) return null;
   if (
@@ -3940,8 +3979,15 @@ function updateTechStatus(requestId, technicianId, techStatus) {
   if (techStatus === 'aceptado' && !request.serviceConfirmStatus) {
     request.serviceConfirmStatus = 'pending';
   }
+
+  const actorCoords = resolveActorCoords(technicianId, lat, lng);
+  if (['aceptado', 'en_camino'].includes(techStatus) && actorCoords && request.coords) {
+    applyDrivingEtaToRequest(request, actorCoords.lat, actorCoords.lng, { persist: false });
+    updateTechnicianLocation(technicianId, actorCoords.lat, actorCoords.lng);
+  }
+
   if (techStatus === 'aceptado' && !(request.etaMinutesMin && request.etaMinutesMax)) {
-    return { error: 'Indica tu hora estimada de llegada antes de aceptar el pedido.' };
+    return { error: 'Activa el GPS para calcular tu llegada en auto, o declara una ETA antes de aceptar.' };
   }
   request.techStatus = techStatus;
   const map = {
@@ -4446,7 +4492,7 @@ function updateTechnicianLocation(technicianId, lat, lng) {
   return tecnico.locationShare;
 }
 
-function computeEtaMinutes(fromLat, fromLng, toLat, toLng, avgKmh = 30) {
+function computeEtaMinutes(fromLat, fromLng, toLat, toLng, avgKmh = 22) {
   const toRad = (d) => (d * Math.PI) / 180;
   const R = 6371;
   const dLat = toRad(toLat - fromLat);
@@ -4454,8 +4500,62 @@ function computeEtaMinutes(fromLat, fromLng, toLat, toLng, avgKmh = 30) {
   const a = Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(fromLat)) * Math.cos(toRad(toLat)) * Math.sin(dLng / 2) ** 2;
   const distanceKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const minutes = Math.round((distanceKm / avgKmh) * 60);
-  return { distanceKm: Math.round(distanceKm * 10) / 10, etaMinutes: Math.max(1, minutes) };
+  // Factor urbano: el trayecto en auto no es línea recta (Santiago ~1.35–1.45).
+  const roadFactor = 1.4;
+  const roadKm = distanceKm * roadFactor;
+  const speed = Math.max(12, Number(avgKmh) || 22);
+  const driveMinutes = Math.round((roadKm / speed) * 60);
+  const etaMinutes = Math.max(1, driveMinutes + 2);
+  const etaMinutesMin = Math.max(1, Math.round(etaMinutes * 0.85));
+  const etaMinutesMax = Math.max(etaMinutesMin + 1, Math.round(etaMinutes * 1.25) + 2);
+  return {
+    distanceKm: Math.round(distanceKm * 10) / 10,
+    roadKm: Math.round(roadKm * 10) / 10,
+    etaMinutes,
+    etaMinutesMin,
+    etaMinutesMax
+  };
+}
+
+function resolveActorCoords(userId, overrideLat, overrideLng) {
+  const lat = parseFloat(overrideLat);
+  const lng = parseFloat(overrideLng);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { lat, lng, source: 'live' };
+  }
+  const user = getUserById(userId);
+  const share = user?.locationShare;
+  if (share?.lat != null && share?.lng != null) {
+    return {
+      lat: parseFloat(share.lat),
+      lng: parseFloat(share.lng),
+      source: 'stored'
+    };
+  }
+  return null;
+}
+
+function applyDrivingEtaToRequest(request, fromLat, fromLng, { locale = 'es', persist = true } = {}) {
+  if (!request?.coords?.lat || !request?.coords?.lng) {
+    return { error: 'La solicitud no tiene coordenadas de domicilio.' };
+  }
+  const fromLatN = parseFloat(fromLat);
+  const fromLngN = parseFloat(fromLng);
+  if (!Number.isFinite(fromLatN) || !Number.isFinite(fromLngN)) {
+    return { error: 'Ubicación del técnico no disponible.' };
+  }
+  const drive = computeEtaMinutes(fromLatN, fromLngN, request.coords.lat, request.coords.lng);
+  request.etaMinutesMin = drive.etaMinutesMin;
+  request.etaMinutesMax = drive.etaMinutesMax;
+  request.etaLabel = formatEtaRangeLabel(drive.etaMinutesMin, drive.etaMinutesMax, locale);
+  request.etaDeclaredAt = new Date().toISOString();
+  request.etaSource = 'driving';
+  request.etaDistanceKm = drive.distanceKm;
+  request.liveEtaMinutes = drive.etaMinutes;
+  if (persist) {
+    repository.persist(() => repository.saveRequest(request), `eta driving ${request.id}`);
+  }
+  return { success: true, request, drive };
 }
 
 function enableClientPortal(userId) {
@@ -5556,6 +5656,8 @@ module.exports = {
   getServiceCatalog,
   getCatalogPriceRows,
   getActivitiesForService: (serviceId) => getActivitiesForAppService(getPricingConfig(), serviceId),
+  getServiceFromPrice: (serviceId) => getServiceFromPrice(getPricingConfig(), serviceId),
+  getServicePriceSummary: (serviceId) => getServicePriceSummary(getPricingConfig(), serviceId),
   proposeActivityChange,
   respondActivityChange,
   getUrgencyTiersForClient,
@@ -5641,6 +5743,8 @@ module.exports = {
   getRequestsByTechnician,
   updateTechnicianLocation,
   computeEtaMinutes,
+  applyDrivingEtaToRequest,
+  resolveActorCoords,
   setProviderOnline,
   getRequestsByClient,
   getUnassignedRequestsAwaitingNotice,
