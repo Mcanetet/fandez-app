@@ -103,13 +103,13 @@
       try {
         new Notification(title, {
           body,
-          icon: '/icons/fandez-v7-192.png',
-          badge: '/icons/fandez-v7-badge-96.png',
+          icon: '/icons/fandez-v8-notify.png?v=20260906v8',
+          badge: '/icons/fandez-v8-notify.png?v=20260906v8',
           requireInteraction: true,
           tag: 'fandez-work-wall'
         });
       } catch (_) {
-        new Notification(title, { body, icon: '/icons/fandez-v7-192.png', badge: '/icons/fandez-v7-badge-96.png' });
+        new Notification(title, { body, icon: '/icons/fandez-v8-notify.png?v=20260906v8', badge: '/icons/fandez-v8-notify.png?v=20260906v8' });
       }
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission();
