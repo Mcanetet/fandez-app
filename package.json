@@ -22,7 +22,11 @@
     "go-live:check": "node scripts/go-live-check.js",
     "test:e2e:ui": "playwright test --ui",
     "test:tariffs": "node scripts/test-dynamic-tariffs.js",
-    "admin:reset": "node scripts/reset-admin.js"
+    "admin:reset": "node scripts/reset-admin.js",
+    "backup:export": "node scripts/disaster-recovery.js export",
+    "backup:restore": "node scripts/disaster-recovery.js restore",
+    "backup:status": "node scripts/disaster-recovery.js status",
+    "disaster:recover": "node scripts/disaster-recovery.js recover"
   },
   "engines": {
     "node": "20.x"

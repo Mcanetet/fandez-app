@@ -1423,6 +1423,19 @@ function hasPerm(key) {
         <button type="submit" class="w-full py-2.5 rounded-xl bg-zilo-accent/20 border border-zilo-accent/30 text-sm font-medium text-zilo-accent">Guardar configuración</button>
       </form>
 
+      <div class="p-4 rounded-2xl bg-red-500/10 border border-red-500/25 text-xs text-gray-700 mb-4">
+        <strong class="text-red-700 block mb-1">Plan de emergencia (virus / hackeo)</strong>
+        <ol class="list-decimal list-inside space-y-1.5">
+          <li><strong>Antes:</strong> genera backup aquí y <em>descárgalo fuera del servidor</em> (Drive/USB). Activa backups automáticos.</li>
+          <li><strong>Si entran:</strong> Redeploy limpio desde GitHub <code class="font-mono text-[10px]">fandez-app</code> (código fresco).</li>
+          <li><strong>Recuperar datos:</strong> sube el JSON aquí → “Importar y restaurar”, o por SSH:
+            <code class="block mt-1 font-mono text-[10px] bg-white/70 px-2 py-1 rounded">npm run disaster:recover -- ./fandez-backup-….json --yes --password=TuClaveNueva</code>
+          </li>
+          <li><strong>Cerrar la puerta:</strong> cambia <code class="font-mono">SESSION_SECRET</code>, <code class="font-mono">ADMIN_PASSWORD</code>, claves MP/SMTP y reinicia.</li>
+        </ol>
+        <p class="mt-2 text-gray-500">La restauración crea sola un backup “pre-restore” por si hay que deshacer.</p>
+      </div>
+
       <div class="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/25 text-xs text-gray-600 mb-4">
         <strong class="text-blue-300 block mb-1">Estándar del mercado (GFS)</strong>
         <ul class="space-y-1 list-disc list-inside">

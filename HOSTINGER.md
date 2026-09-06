@@ -170,6 +170,41 @@ Esto crea las tablas e inserta los usuarios demo:
 
 > **Backups:** el historial se guarda en **MySQL** (`app_backups`), no en archivos del deploy. Al subir una nueva versión desde GitHub el historial se conserva. Los documentos KYC (carpeta uploads) siguen en disco del servidor.
 
+### Si entra un virus o te hackean (recuperar BD + resetear web)
+
+1. **Tener copias fuera del servidor**  
+   En admin → **Backups** → Generar / Descargar el JSON, o por SSH:
+   ```bash
+   npm run backup:export
+   ```
+   Guarda el archivo en Drive, USB u otro PC.
+
+2. **Código limpio**  
+   Redeploy desde GitHub `Mcanetet/fandez-app` (sobrescribe archivos infectados del deploy).
+
+3. **Restaurar datos + admin** (SSH en Hostinger):
+   ```bash
+   npm run disaster:recover -- ./fandez-backup-vX-YYYY-MM-DD.json --yes --password=ClaveNuevaSegura
+   ```
+   También puedes restaurar desde admin → Backups → Subir JSON → **Importar y restaurar**.
+
+4. **Rotar secretos** en variables de entorno Hostinger:
+   - `SESSION_SECRET` (nueva, ≥24 caracteres)
+   - `ADMIN_PASSWORD`
+   - `MP_ACCESS_TOKEN` / `MP_WEBHOOK_SECRET` si aplica
+   - `SMTP_PASS`
+   Reinicia la app y verifica `https://tudominio.cl/health`.
+
+5. Revisar usuarios admin y desactivar cuentas dudosas.
+
+Comandos útiles:
+```bash
+npm run backup:status
+npm run backup:export
+npm run backup:restore -- ./archivo.json --yes
+npm run admin:reset -- MiClaveSegura
+```
+
 ### Recuperar acceso admin
 
 En **Variables de entorno** de Hostinger agrega:
