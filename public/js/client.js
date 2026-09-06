@@ -951,27 +951,27 @@
     }
   }
 
-  async function openMaskedCall(requestId) {
+  async function openInAppCall(requestId) {
     if (!requestId) {
       FandezNotify.show(t('client.service.call_unavailable'), 'info');
       return;
     }
+    const peer = document.getElementById('jobChatPeer')?.textContent
+      || document.getElementById('tripProviderLabel')?.textContent
+      || t('call.team');
     try {
-      const res = await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/llamada`, {
-        headers: { Accept: 'application/json' },
-        credentials: 'same-origin'
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || t('client.service.call_unavailable'));
+      if (!window.FandezCall) throw new Error(t('call.start_error'));
+      if (!window.__fandezCallReady) {
+        FandezCall.init({
+          socket,
+          role: 'client',
+          name: page.dataset.userName || 'Cliente'
+        });
+        window.__fandezCallReady = true;
       }
-      if (!data.canCall || !data.phone) {
-        FandezNotify.show(t('client.service.call_unavailable'), 'info');
-        return;
-      }
-      window.location.href = `tel:${data.phone}`;
+      await FandezCall.start(requestId, peer);
     } catch (err) {
-      FandezNotify.show(err.message || t('client.service.call_unavailable'), 'warning');
+      FandezNotify.show(err.message || t('call.start_error'), 'warning');
     }
   }
 
@@ -1045,7 +1045,7 @@
           el.dataset.callBound = '1';
           el.addEventListener('click', (ev) => {
             ev.preventDefault();
-            openMaskedCall(request?.id || el.dataset.requestId);
+            openInAppCall(request?.id || el.dataset.requestId);
           });
         }
       } else {
@@ -1607,7 +1607,7 @@
         phoneBtn.dataset.callBound = '1';
         phoneBtn.addEventListener('click', (ev) => {
           ev.preventDefault();
-          openMaskedCall(request?.id || phoneBtn.dataset.requestId || currentRequestId);
+          openInAppCall(request?.id || phoneBtn.dataset.requestId || currentRequestId);
         });
       }
     }

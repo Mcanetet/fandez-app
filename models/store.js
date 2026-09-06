@@ -1882,48 +1882,22 @@ function getPublicProviderProfile(provider, { includeContact = false } = {}) {
   return profile;
 }
 
-/** Teléfono de coordinación solo para llamada in-app (sin exponer correo). */
-const CLIENT_CALL_TECH_STATUSES = new Set([
-  'aceptado',
-  'en_camino',
-  'en_sitio',
-  'diagnostico',
-  'reparando',
-  'comprando',
-  'presupuesto_pendiente',
-  'presupuesto_aprobado'
-]);
-
+/** Contacto de coordinación: solo canal in-app (sin teléfono). */
 function getClientServiceCallContact(requestId, clientId) {
   const request = requests.find((r) => r.id === requestId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (request.clientId !== clientId) return { error: 'No autorizado.' };
-  if (!['assigned', 'in_progress'].includes(request.status)) {
+  if (!['assigned', 'in_progress'].includes(request.status) || !request.providerId) {
     return { success: true, canCall: false, reason: 'not_active' };
   }
-  if (!CLIENT_CALL_TECH_STATUSES.has(String(request.techStatus || ''))) {
-    return { success: true, canCall: false, reason: 'too_early' };
+  if (String(request.techStatus || '') === 'completado') {
+    return { success: true, canCall: false, reason: 'completed' };
   }
-
-  let phone = null;
-  let label = 'técnico';
-  if (request.technicianId) {
-    const tech = getUserById(request.technicianId);
-    phone = tech?.phone || request.technicianPhone || null;
-    label = 'técnico';
-  }
-  if (!phone && request.providerId) {
-    const provider = getUserById(request.providerId);
-    phone = provider?.phone || null;
-    label = 'socio';
-  }
-  if (!phone) return { success: true, canCall: false, reason: 'no_phone' };
-
+  // Contacto solo in-app: no devolvemos teléfono ni correo.
   return {
     success: true,
     canCall: true,
-    phone: String(phone).trim(),
-    label
+    channel: 'in_app_chat'
   };
 }
 
@@ -4869,7 +4843,8 @@ function enrichRequestForClient(request, locale = 'es') {
     : null;
   const techStatus = String(request.techStatus || '');
   const canCallTechnician = ['assigned', 'in_progress'].includes(request.status)
-    && CLIENT_CALL_TECH_STATUSES.has(techStatus);
+    && techStatus !== 'completado'
+    && Boolean(request.providerId);
   const {
     technicianPhone: _technicianPhone,
     providerPhone: _providerPhone,

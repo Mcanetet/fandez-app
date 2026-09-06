@@ -9,7 +9,8 @@
   data-from-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
   data-whatsapp="<%= company.whatsapp %>"
-  data-brand-optional="<%= brandOptional ? '1' : '0' %>">
+  data-brand-optional="<%= brandOptional ? '1' : '0' %>"
+  data-user-name="<%= user && user.name ? user.name : 'Cliente' %>">
 
   <%- include('../partials/back-header', {
     backUrl: '/cliente',
@@ -264,7 +265,7 @@
         </div>
         <div class="sticky-track-actions">
           <button type="button" id="stickyTrackChat" class="sticky-track-btn sticky-track-btn--primary">Mensajes</button>
-          <a id="stickyTrackCall" href="tel:" class="sticky-track-btn sticky-track-btn--ghost hidden">Llamar</a>
+          <a id="stickyTrackCall" href="#" class="sticky-track-btn sticky-track-btn--ghost hidden">Llamar</a>
         </div>
       </div>
     </div>
@@ -475,7 +476,7 @@
         <p id="tripStatusSub" class="text-sm text-zilo-muted mt-1 leading-relaxed">Te avisamos en cuanto el técnico acepte y salga hacia ti.</p>
         <div class="flex gap-2 mt-3">
           <button type="button" id="tripHeroChat" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-xs">Mensajes</button>
-          <a id="tripHeroCall" href="tel:" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-center hidden">Llamar</a>
+          <a id="tripHeroCall" href="#" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-center hidden">Llamar</a>
         </div>
       </div>
       <div class="p-4 rounded-2xl zilo-card-premium">
@@ -529,7 +530,7 @@
         <div id="reviewsList" class="space-y-2 mb-4"></div>
         <p id="contactPrivacyHint" class="text-[11px] text-zilo-muted mb-3 leading-relaxed"><%= t('client.service.contact_privacy_hint') %></p>
         <button type="button" id="openJobChatBtn" class="hidden zilo-btn-primary w-full mb-2 !text-sm"><%= t('client.service.chat_partner') %></button>
-        <a id="providerPhone" href="tel:" class="hidden zilo-btn-ghost w-full mb-2"><%= t('client.service.call_tech') %></a>
+        <a id="providerPhone" href="#" class="hidden zilo-btn-ghost w-full mb-2"><%= t('client.service.call_tech') %></a>
         <button type="button" id="btnChangeProvider" class="hidden w-full mb-2 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-semibold">Cambiar de socio (seguir buscando)</button>
         <button type="button" id="btnCancelService" class="w-full mb-2 py-2.5 rounded-xl border border-red-200 bg-white text-red-700 text-xs font-semibold"><%= t('client.service.cancel_track') %></button>
         <a id="whatsappSupport" href="#aland-support" data-open-aland class="zilo-btn-ghost w-full text-aland-strong border-aland/25"><%= t('client.service.concierge') %></a>
@@ -664,7 +665,8 @@
   </div>
 </div>
 
-<%- include('../partials/footer', { pageScript: '/js/client.js' }) %>
+<%- include('../partials/call-overlay') %>
+<%- include('../partials/footer', { pageScript: '/js/client.js', extraScripts: ['/js/webrtc-call.js'] }) %>
 <% if (typeof mod === 'function' && mod('client_aland')) { %>
 <script src="/js/aland-chat.js"></script>
 <% } %>

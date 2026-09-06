@@ -643,6 +643,23 @@
   });
   socket.emit('register_client', requestId);
 
+  if (window.FandezCall && !window.__fandezCallReady) {
+    FandezCall.init({
+      socket,
+      role: isObserver ? 'provider' : 'tecnico',
+      name: page.dataset.userName || (isObserver ? 'Socio' : 'Técnico')
+    });
+    window.__fandezCallReady = true;
+  }
+
+  document.getElementById('btnJobVoiceCall')?.addEventListener('click', async () => {
+    try {
+      await FandezCall.start(requestId, chatTitle?.textContent || 'Cliente');
+    } catch (err) {
+      notify(err.message || 'No se pudo iniciar la llamada', 'error');
+    }
+  });
+
   function resumeFieldJob() {
     socket.emit('register_client', requestId);
     if (isObserver || !navigator.geolocation || !requestId) return;

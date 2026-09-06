@@ -157,9 +157,12 @@
         <h2 id="jobChatTitle" class="text-sm font-semibold text-zilo-text"><%= t('provider.mando_page.chat_client') %></h2>
         <p id="jobChatYouAre" class="text-[10px] text-zilo-muted mt-0.5"><%= t('provider.mando_page.chat_as') %></p>
       </div>
-      <button type="button" class="zilo-icon-btn" data-role="chat-close" aria-label="<%= t('client.historial.cancel') %>">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
+      <div class="flex items-center gap-2">
+        <button type="button" id="btnJobVoiceCall" class="px-3 py-2 rounded-xl border border-zilo-border text-xs font-semibold text-zilo-text bg-white">Llamar</button>
+        <button type="button" class="zilo-icon-btn" data-role="chat-close" aria-label="<%= t('client.historial.cancel') %>">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
     </div>
     <div id="jobChatThread" class="job-chat-thread flex-1 overflow-y-auto px-4 py-4 space-y-2.5 min-h-[220px]"></div>
     <form id="jobChatForm" class="job-chat-composer">
@@ -173,7 +176,8 @@
   </div>
 </div>
 
-<%- include('../partials/footer', { pageScript: '/js/mando.js', extraScripts: ['/js/map.js'] }) %>
+<%- include('../partials/call-overlay') %>
+<%- include('../partials/footer', { pageScript: '/js/mando.js', extraScripts: ['/js/map.js', '/js/webrtc-call.js'] }) %>
 <script>
   window.MANDO_TECH_MARKERS = <%- JSON.stringify(typeof technicianMarkers !== 'undefined' ? technicianMarkers : []) %>;
 </script>

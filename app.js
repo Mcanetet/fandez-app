@@ -435,6 +435,73 @@ io.on('connection', (socket) => {
     socket.requestId = requestId;
   });
 
+  function canJoinRequestCall(socket, requestId) {
+    const sessionUser = socket.request?.session?.user;
+    if (!sessionUser || !requestId || !store.isReady()) return false;
+    const request = store.requests.find((r) => r.id === requestId);
+    if (!request) return false;
+    if (sessionUser.role === 'admin') return true;
+    if (sessionUser.role === 'client' && request.clientId === sessionUser.id) return true;
+    if (sessionUser.role === 'provider' && request.providerId === sessionUser.id) return true;
+    if (sessionUser.role === 'tecnico' && request.technicianId === sessionUser.id) return true;
+    return false;
+  }
+
+  socket.on('call_invite', (payload) => {
+    const requestId = payload?.requestId;
+    if (!canJoinRequestCall(socket, requestId) || !payload?.callId || !payload?.sdp) return;
+    socket.join(`request_${requestId}`);
+    socket.to(`request_${requestId}`).emit('call_invite', {
+      requestId,
+      callId: payload.callId,
+      fromRole: payload.fromRole || socket.request?.session?.user?.role || 'client',
+      fromName: payload.fromName || socket.request?.session?.user?.name || 'Usuario',
+      sdp: payload.sdp
+    });
+  });
+
+  socket.on('call_accept', (payload) => {
+    const requestId = payload?.requestId;
+    if (!canJoinRequestCall(socket, requestId) || !payload?.callId || !payload?.sdp) return;
+    socket.to(`request_${requestId}`).emit('call_accept', {
+      requestId,
+      callId: payload.callId,
+      fromRole: payload.fromRole || socket.request?.session?.user?.role,
+      fromName: payload.fromName || socket.request?.session?.user?.name,
+      sdp: payload.sdp
+    });
+  });
+
+  socket.on('call_reject', (payload) => {
+    const requestId = payload?.requestId;
+    if (!canJoinRequestCall(socket, requestId) || !payload?.callId) return;
+    socket.to(`request_${requestId}`).emit('call_reject', {
+      requestId,
+      callId: payload.callId,
+      reason: payload.reason || 'rejected',
+      fromName: payload.fromName || socket.request?.session?.user?.name
+    });
+  });
+
+  socket.on('call_hangup', (payload) => {
+    const requestId = payload?.requestId;
+    if (!canJoinRequestCall(socket, requestId) || !payload?.callId) return;
+    socket.to(`request_${requestId}`).emit('call_hangup', {
+      requestId,
+      callId: payload.callId
+    });
+  });
+
+  socket.on('call_signal', (payload) => {
+    const requestId = payload?.requestId;
+    if (!canJoinRequestCall(socket, requestId) || !payload?.callId || !payload?.candidate) return;
+    socket.to(`request_${requestId}`).emit('call_signal', {
+      requestId,
+      callId: payload.callId,
+      candidate: payload.candidate
+    });
+  });
+
   socket.on('provider_location_broadcast', ({ requestId, lat, lng }) => {
     if (!socket.providerId || !requestId) return;
     const request = store.requests.find((r) => r.id === requestId);

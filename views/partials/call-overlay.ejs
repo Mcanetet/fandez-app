@@ -1,0 +1,16 @@
+<div id="fandezCallOverlay" class="fandez-call-overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="fandezCallPeer">
+  <div class="fandez-call-card">
+    <p class="zilo-label !text-[9px] text-center"><%= typeof t === 'function' ? t('call.eyebrow') : 'Llamada Fandez' %></p>
+    <h2 id="fandezCallPeer" class="fandez-call-peer">Equipo Fandez</h2>
+    <p id="fandezCallStatus" class="fandez-call-status">…</p>
+    <div id="fandezCallIncomingActions" class="fandez-call-actions hidden">
+      <button type="button" id="fandezCallReject" class="fandez-call-btn fandez-call-btn--danger"><%= typeof t === 'function' ? t('call.reject') : 'Rechazar' %></button>
+      <button type="button" id="fandezCallAccept" class="fandez-call-btn fandez-call-btn--ok"><%= typeof t === 'function' ? t('call.accept') : 'Contestar' %></button>
+    </div>
+    <div id="fandezCallActiveActions" class="fandez-call-actions hidden">
+      <button type="button" id="fandezCallMute" class="fandez-call-btn fandez-call-btn--ghost"><%= typeof t === 'function' ? t('call.mute') : 'Silenciar' %></button>
+      <button type="button" id="fandezCallHangup" class="fandez-call-btn fandez-call-btn--danger"><%= typeof t === 'function' ? t('call.hangup') : 'Colgar' %></button>
+    </div>
+    <p class="fandez-call-hint"><%= typeof t === 'function' ? t('call.privacy') : 'Voz dentro de la app · sin WhatsApp ni número' %></p>
+  </div>
+</div>

@@ -91,6 +91,14 @@
         const socket = window.__fandezMandoSocket || io();
         window.__fandezMandoSocket = socket;
         socket.emit('register_client', requestId);
+        if (window.FandezCall && !window.__fandezCallReady) {
+          FandezCall.init({
+            socket,
+            role: 'provider',
+            name: document.body?.dataset?.userName || 'Socio'
+          });
+          window.__fandezCallReady = true;
+        }
         const event = `request_chat_${requestId}`;
         if (!socket.__fandezChatHandlers) socket.__fandezChatHandlers = new Set();
         if (!socket.__fandezChatHandlers.has(event)) {
@@ -371,4 +379,22 @@
   }
 
   startMandoLocationWatch();
+
+  document.getElementById('btnJobVoiceCall')?.addEventListener('click', async () => {
+    if (!activeChatId) {
+      notify('Abre el chat de un servicio para llamar.', 'warning');
+      return;
+    }
+    try {
+      const socket = window.__fandezMandoSocket || io();
+      window.__fandezMandoSocket = socket;
+      if (window.FandezCall && !window.__fandezCallReady) {
+        FandezCall.init({ socket, role: 'provider', name: 'Socio' });
+        window.__fandezCallReady = true;
+      }
+      await FandezCall.start(activeChatId, chatTitle?.textContent || 'Cliente');
+    } catch (err) {
+      notify(err.message || 'No se pudo iniciar la llamada', 'error');
+    }
+  });
 })();

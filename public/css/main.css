@@ -1454,6 +1454,76 @@ html {
   cursor: not-allowed;
 }
 
+/* Llamada WebRTC in-app */
+.fandez-call-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 520;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(26, 24, 20, 0.45);
+  backdrop-filter: blur(6px);
+}
+.fandez-call-overlay.hidden { display: none; }
+@media (min-width: 640px) {
+  .fandez-call-overlay { align-items: center; }
+}
+.fandez-call-card {
+  width: 100%;
+  max-width: 22rem;
+  border-radius: 1.35rem;
+  background: #fff;
+  border: 1px solid var(--zilo-border);
+  box-shadow: var(--zilo-shadow-md);
+  padding: 1.25rem 1.15rem 1rem;
+  text-align: center;
+}
+.fandez-call-peer {
+  margin: 0.35rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--zilo-text);
+}
+.fandez-call-status {
+  margin: 0.35rem 0 1rem;
+  font-size: 0.875rem;
+  color: var(--zilo-muted);
+}
+.fandez-call-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+.fandez-call-btn {
+  border-radius: 0.95rem;
+  padding: 0.85rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.fandez-call-btn--ok {
+  background: var(--zilo-accent);
+  color: #fff;
+}
+.fandez-call-btn--danger {
+  background: #FFF1F2;
+  color: #9F1239;
+  border-color: rgba(244, 63, 94, 0.28);
+}
+.fandez-call-btn--ghost {
+  background: #F7F4EF;
+  color: var(--zilo-text);
+  border-color: var(--zilo-border);
+}
+.fandez-call-hint {
+  margin: 0.85rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--zilo-muted);
+}
+
 /* Radar de búsqueda + desatascador girando */
 .zilo-radar-wrap {
   position: relative;
