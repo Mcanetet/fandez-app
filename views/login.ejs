@@ -1,12 +1,18 @@
 <%- include('partials/head') %>
 
 <div class="min-h-screen flex items-center justify-center p-5 relative">
+  <div class="absolute top-5 left-5 z-20">
+    <a href="/" class="inline-flex items-center gap-1.5 text-sm font-semibold text-zilo-muted hover:text-zilo-accent transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-zilo-accent/40 px-1 py-0.5">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      <%= t('auth.back_home') %>
+    </a>
+  </div>
   <div class="absolute top-5 right-5 z-20">
     <%- include('partials/lang-switcher') %>
   </div>
 
   <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-2xl p-8">
-    <a href="/" class="flex flex-col items-center mb-8">
+    <a href="/" class="flex flex-col items-center mb-8" aria-label="<%= t('auth.back_home') %>">
       <%- include('partials/logo', { className: 'w-14 h-14 mb-3', logoId: 'login' }) %>
       <span class="fandez-wordmark text-2xl tracking-tight"><%= t('app.name') %></span>
     </a>
@@ -58,6 +64,12 @@
     <p class="text-center text-sm text-zilo-muted mt-6">
       <%= t('auth.no_account') %>
       <a href="/registro" class="text-zilo-accent font-semibold hover:underline"><%= t('auth.register_link') %></a>
+    </p>
+    <p class="text-center mt-4">
+      <a href="/" class="inline-flex items-center gap-1.5 text-sm font-semibold text-zilo-accent hover:underline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        <%= t('auth.back_home') %>
+      </a>
     </p>
 
     <% var activeDemos = (typeof demoAccounts !== 'undefined' ? demoAccounts : []).filter(function(a){ return a.active; }); %>

@@ -118,6 +118,7 @@
   "auth.login": "Ingresar",
   "auth.remember_password": "Guardar correo y contraseña en este dispositivo",
   "auth.forgot_password": "¿Olvidaste tu contraseña?",
+  "auth.back_home": "Volver al inicio",
   "reset.title": "Recuperar contraseña",
   "reset.subtitle": "Escribe el correo de tu cuenta. Te enviaremos un enlace seguro para crear una nueva.",
   "reset.submit": "Enviar enlace",

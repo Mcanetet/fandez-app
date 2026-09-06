@@ -118,6 +118,7 @@
   "auth.login": "Sign in",
   "auth.remember_password": "Save email and password on this device",
   "auth.forgot_password": "Forgot your password?",
+  "auth.back_home": "Back to home",
   "reset.title": "Reset password",
   "reset.subtitle": "Enter your account email. We’ll send a secure link to create a new password.",
   "reset.submit": "Send reset link",
