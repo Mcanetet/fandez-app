@@ -3260,9 +3260,10 @@ function isDemoAccount(userOrId) {
   return Boolean(id && DEMO_ACCOUNT_IDS.includes(id));
 }
 
-function getDemoAccounts() {
+function getDemoAccounts({ forLogin = false } = {}) {
   const appMode = require('../lib/appMode');
-  if (appMode.isProductionMode()) return [];
+  // En login/producción nunca mostrar atajos demo
+  if (forLogin && appMode.isProductionMode()) return [];
   return DEMO_ACCOUNT_IDS
     .map(id => USERS.find(u => u.id === id))
     .filter(Boolean)
@@ -3272,7 +3273,8 @@ function getDemoAccounts() {
       name: u.name,
       email: u.email,
       password: DEMO_ACCOUNT_PASSWORDS[u.id] || '',
-      active: u.active !== false
+      active: u.active !== false,
+      loginVisible: appMode.isDemoMode() && u.active !== false
     }));
 }
 

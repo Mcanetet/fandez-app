@@ -979,7 +979,15 @@ function hasPerm(key) {
         <h3 class="text-lg font-semibold"><%= t('admin.demo.title') %></h3>
         <span class="text-xs text-gray-500"><%= t('admin.demo.visible', { active: demoAccounts.filter(a => a.active).length, total: demoAccounts.length }) %></span>
       </div>
-      <p class="text-xs text-gray-500 mb-4"><%= t('admin.demo.hint') %></p>
+      <p class="text-xs text-gray-500 mb-4">
+        <%= t('admin.demo.hint') %>
+        <% const modeDemoHint = typeof appModeStatus !== 'undefined' ? appModeStatus : null; %>
+        <% if (modeDemoHint && modeDemoHint.isProduction) { %>
+          <span class="block mt-1 text-amber-800">Modo producción: estas cuentas <strong>no aparecen</strong> en el login de cliente/socio.</span>
+        <% } else { %>
+          <span class="block mt-1">Modo demo: si están activas, aparecen abajo en el login.</span>
+        <% } %>
+      </p>
       <div id="demoAccountsList" class="space-y-2">
         <% demoAccounts.forEach(acc => { %>
           <div class="demo-account-item flex items-center justify-between p-4 rounded-2xl bg-zilo-card border border-gray-200 <%= acc.active ? '' : 'opacity-50' %>" data-user-id="<%= acc.id %>">
@@ -2014,19 +2022,32 @@ function hasPerm(key) {
       <% const modePanel = typeof appModeStatus !== 'undefined' ? appModeStatus : { mode: 'demo', label: 'Modo demo', isDemo: true, canToggle: true, adminBasePath: '/admin' }; %>
       <div class="p-4 rounded-2xl border mb-4 <%= modePanel.isProduction ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-amber-500/10 border-amber-500/30' %>">
         <div class="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div class="min-w-0 flex-1">
             <h4 class="text-sm font-semibold"><%= modePanel.isProduction ? 'Producción' : 'Modo demo' %></h4>
             <p class="text-xs text-gray-600 mt-1">
               <% if (modePanel.isDemo) { %>
-                Pagos simulados activos para pruebas. Las pasarelas reales no son obligatorias.
+                Pruebas: pagos simulados, atajos demo en el login y el mismo RUT puede usarse en cuenta cliente y socio.
               <% } else { %>
-                Pagos reales obligatorios. El pago demo está bloqueado.
+                Real: pagos reales, sin atajos demo en el login y cada RUT solo en una cuenta (cliente y socio = cuentas distintas).
               <% } %>
             </p>
-            <p class="text-[11px] text-gray-500 mt-2">URL admin: <code class="bg-white/70 px-1 rounded"><%= modePanel.adminBasePath %>/login</code></p>
+            <ul class="mt-2 text-[11px] text-gray-600 space-y-1 list-disc pl-4">
+              <li>Usuarios demo en login: <strong><%= modePanel.isDemo ? 'visibles' : 'ocultos' %></strong></li>
+              <li>Mismo RUT cliente + socio: <strong><%= modePanel.allowSameRutAcrossAccounts ? 'permitido' : 'bloqueado' %></strong></li>
+              <li>Pagos: <strong><%= modePanel.isDemo ? 'demo / simulados' : 'reales' %></strong></li>
+            </ul>
+            <p class="text-[11px] text-gray-500 mt-2">URL admin: <code class="bg-white/70 px-1 rounded"><%= modePanel.adminBasePath %>/login</code>
+              <% if (modePanel.overrideActive) { %> · override activo (env: <%= modePanel.envMode %>)<% } %>
+            </p>
+            <% if (!modePanel.canToggle) { %>
+              <p class="text-[11px] text-amber-800 mt-2 rounded-lg bg-amber-50 border border-amber-200 px-2 py-1.5">
+                El cambio desde admin está bloqueado porque <code>APP_MODE=production</code> en el servidor.
+                Para habilitarlo: <code>ALLOW_APP_MODE_TOGGLE=true</code> o cambia <code>APP_MODE</code> en Hostinger.
+              </p>
+            <% } %>
           </div>
           <% if (modePanel.canToggle && (adminAccess.isSuperAdmin || adminAccess.isFullAccess)) { %>
-            <div class="flex gap-2">
+            <div class="flex gap-2 shrink-0">
               <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isDemo ? 'bg-white border-amber-400' : 'bg-white/50' %>" data-mode="demo">Demo</button>
               <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isProduction ? 'bg-white border-emerald-500' : 'bg-white/50' %>" data-mode="production">Producción</button>
             </div>

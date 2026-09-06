@@ -74,7 +74,7 @@ function loginRenderOptions(req, extra = {}) {
   return {
     title: 'Iniciar sesión',
     seo: buildPageMeta('login', req),
-    demoAccounts: store.getDemoAccounts(),
+    demoAccounts: store.getDemoAccounts({ forLogin: true }),
     referralCode: req.session.pendingReferral || null,
     ...extra
   };
