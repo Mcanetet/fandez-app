@@ -496,7 +496,7 @@ router.get('/informes/finance', requireRole('admin'), requireAdminPermission('in
 router.get('/informes/marketing', requireRole('admin'), requireAdminPermission('informes.view'), (req, res) => {
   try {
     const year = parseInt(req.query.year, 10) || 2026;
-    const month = parseInt(req.query.month, 10) || 10;
+    const month = parseInt(req.query.month, 10) || 9;
     const marketing = informes.buildPartnerMarketingCalendar({ year, month });
     res.json({ success: true, marketing });
   } catch (err) {
@@ -507,7 +507,7 @@ router.get('/informes/marketing', requireRole('admin'), requireAdminPermission('
 router.get('/florencia/calendar', requireRole('admin'), requireAdminPermission('florencia.view', 'informes.view'), (req, res) => {
   try {
     const year = parseInt(req.query.year, 10) || 2026;
-    const month = parseInt(req.query.month, 10) || 10;
+    const month = parseInt(req.query.month, 10) || 9;
     const marketing = informes.buildPartnerMarketingCalendar({ year, month });
     res.json({ success: true, marketing });
   } catch (err) {

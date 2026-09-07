@@ -2489,7 +2489,7 @@
 
     async function loadFlorenciaCalendar() {
       if (statusEl) statusEl.textContent = 'Generando gráficas y calendario…';
-      const month = monthSel?.value || '10';
+      const month = monthSel?.value || '9';
       const year = yearInput?.value || '2026';
       try {
         const res = await fetch(`${ADMIN_BASE}/florencia/calendar?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`, {
@@ -2523,16 +2523,20 @@
 
         const weekEl = document.getElementById('florenciaThisWeek');
         const weekMeta = document.getElementById('florenciaWeekMeta');
-        if (weekMeta) weekMeta.textContent = `${mkt.monthLabel || ''} · America/Santiago`;
+        if (weekMeta) {
+          weekMeta.textContent = mkt.campaignStartDate
+            ? `${mkt.monthLabel || ''} · desde ${mkt.campaignStartDate} · Chile`
+            : `${mkt.monthLabel || ''} · America/Santiago`;
+        }
         if (weekEl) {
-          const list = (mkt.thisWeek && mkt.thisWeek.length) ? mkt.thisWeek : (mkt.days || []).slice(0, 7);
+          const list = (mkt.thisWeek && mkt.thisWeek.length) ? mkt.thisWeek : (mkt.activeDaysCount ? (mkt.days || []).filter((d) => d.active).slice(0, 7) : (mkt.days || []).slice(0, 7));
           weekEl.innerHTML = list.map((d) => `
             <button type="button" class="w-full text-left p-3 rounded-xl border border-gray-200 bg-white hover:border-fuchsia-300" data-florencia-date="${d.date}">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <span class="text-sm font-semibold">${d.date} · ${d.weekday}</span>
-                <span class="text-[11px] px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800 font-semibold">${d.postAt} Chile</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800 font-semibold">${d.postAt || 'prep'} Chile</span>
               </div>
-              <p class="text-[11px] text-gray-500 mt-1">${d.channelLabel || d.channel} · ${d.formatLabel || ''}</p>
+              <p class="text-[11px] text-gray-500 mt-1">${d.channelLabel || d.channel || '—'} · ${d.formatLabel || ''}</p>
               <p class="text-xs text-gray-800 mt-1">${d.hook || ''}</p>
             </button>`).join('');
           bindDayButtons(weekEl);
@@ -2552,10 +2556,17 @@
           const todayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
           grid.innerHTML = (mkt.days || []).map((d) => {
             const isToday = d.date === todayKey;
-            return `<button type="button" class="text-left p-2.5 rounded-xl border ${isToday ? 'border-fuchsia-500 bg-fuchsia-50' : 'border-gray-200 bg-white'} hover:border-fuchsia-300" data-florencia-date="${d.date}">
-              <span class="font-semibold">${d.day} ${d.weekday}</span>
-              <span class="block text-[10px] text-fuchsia-700 font-semibold mt-0.5">${d.postAt} · ${d.channelLabel || d.channel}</span>
-              <span class="block mt-1 text-gray-800">${d.hook}</span>
+            const isStart = d.date === mkt.campaignStartDate;
+            const prep = d.active === false;
+            const border = isToday || isStart
+              ? 'border-fuchsia-500 bg-fuchsia-50'
+              : prep
+                ? 'border-dashed border-gray-200 bg-gray-50 opacity-80'
+                : 'border-gray-200 bg-white';
+            return `<button type="button" class="text-left p-2.5 rounded-xl border ${border} hover:border-fuchsia-300" data-florencia-date="${d.date}">
+              <span class="font-semibold">${d.day} ${d.weekday}${isStart ? ' · INICIO' : ''}</span>
+              <span class="block text-[10px] text-fuchsia-700 font-semibold mt-0.5">${prep ? 'Preparación' : `${d.postAt || ''} · ${d.channelLabel || d.channel || ''}`}</span>
+              <span class="block mt-1 text-gray-800">${d.hook || ''}</span>
             </button>`;
           }).join('');
           bindDayButtons(grid);
@@ -2563,7 +2574,7 @@
 
         if (mkt.today) showDay(mkt.today);
         if (statusEl) {
-          statusEl.textContent = `${mkt.monthLabel || ''} · ${mkt.days?.length || 0} piezas · CTA: ${mkt.cta || 'Quiero ser socio'}`;
+          statusEl.textContent = `${mkt.monthLabel || ''} · desde ${mkt.campaignStartDate || '—'} · ${mkt.activeDaysCount || 0} publicaciones · CTA: ${mkt.cta || 'Quiero ser socio'}`;
         }
       } catch (err) {
         if (statusEl) statusEl.textContent = err.message || 'No se pudo cargar';
