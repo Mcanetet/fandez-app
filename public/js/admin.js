@@ -2726,11 +2726,35 @@
       if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo generar');
       FandezNotify.show(`Florencia creó ${data.items?.length || 0} piezas para aprobación`, 'success');
       await loadFlorenciaAgenda();
+      if (typeof window.__fandezLoadFlorenciaCalendar === 'function') window.__fandezLoadFlorenciaCalendar();
     } catch (err) {
       FandezNotify.show(err.message || 'Error al generar el plan', 'error');
     } finally {
       button.disabled = false;
       button.textContent = 'Generar estrategia y agenda';
+    }
+  });
+
+  document.getElementById('btnFlorenciaCampaignAssets')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btnFlorenciaCampaignAssets');
+    if (!btn) return;
+    btn.disabled = true;
+    const prev = btn.textContent;
+    btn.textContent = 'Generando gráficas con logo oficial…';
+    try {
+      const res = await adminFetch('/florencia/campaign-assets', {
+        method: 'POST',
+        headers: { Accept: 'application/json' }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo regenerar');
+      FandezNotify.show(data.message || `${data.count} gráficas listas`, 'success');
+      if (typeof window.__fandezLoadFlorenciaCalendar === 'function') window.__fandezLoadFlorenciaCalendar();
+    } catch (err) {
+      FandezNotify.show(err.message || 'Error al generar gráficas', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = prev;
     }
   });
 

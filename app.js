@@ -339,18 +339,22 @@ app.get('/', (req, res) => {
   if (req.query.ref) {
     req.session.pendingReferral = String(req.query.ref).trim().toUpperCase();
   }
+  // Admin con sesión activa: no mostrar landing/CTA público (evita “Empezar gratis” → panel)
+  if (req.session.user?.role === 'admin' || req.session.isAdminSession) {
+    return res.redirect(ADMIN_BASE);
+  }
   if (req.session.user && store.isReady()) {
     const dashboards = {
       client: '/cliente',
       provider: '/proveedor',
-      tecnico: '/tecnico',
-      admin: ADMIN_BASE
+      tecnico: '/tecnico'
     };
     return res.redirect(dashboards[req.session.user.role] || '/login');
   }
   if (req.session.user && !store.isReady()) {
     req.session.destroy(() => {});
   }
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   const seo = buildPageMeta('home', req);
   res.render('landing', {
     title: seo.title,

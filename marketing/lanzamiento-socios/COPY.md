@@ -2,8 +2,14 @@
 
 Link canónico: https://fandez.cl/registro?role=provider
 
+## Identidad visual (obligatoria)
+- Logo: isotipo oficial contorno ámbar `#C45C14` (destapador/infinito) + wordmark **Fandez**
+- Nunca usar el isotipo inventado de “dos cabezas”
+- Tipografía marca: Unbounded Bold
+- CTA color: `#C45C14` sobre crema `#F7F3EE` / negro `#0B0A09`
+
 ## Frase madre
-Fandez te trae pedidos verificados en tu zona. Tú eliges cuáles tomar.
+Pedidos listos. Tú eliges.
 
 ## CTA único
 Quiero ser socio
@@ -44,11 +50,14 @@ Postula: fandez.cl/registro (rol Socio) o escríbenos para activación asistida.
 
 ---
 
-## Piezas en esta carpeta
+## Piezas (logo oficial)
+Regenerar con: `node scripts/generate-partner-campaign-graphics.js`
+O en Admin → Florencia → “Regenerar gráficas campaña socios”.
+
 - fandez-ig-feed-hook.png → Feed IG
 - fandez-story-tiktok-cta.png → Stories / TikTok
 - fandez-linkedin-banner.png → LinkedIn
-- fandez-ig-carousel-01.png / 02 / 03 → Carrusel “cómo funciona”
+- fandez-ig-carousel-01.png / 02 / 03 → Carrusel
 
 ## Regla de oro
 No prometas “en un minuto estás cobrando”. Di: cuenta en minutos, activación guiada 24–72 h.

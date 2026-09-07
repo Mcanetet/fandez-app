@@ -622,6 +622,21 @@ router.post('/florencia/generate-plan', requireRole('admin'), requireAdminPermis
   }
 });
 
+router.post('/florencia/campaign-assets', requireRole('admin'), requireAdminPermission('florencia.manage'), async (req, res) => {
+  try {
+    const results = await florencia.generatePartnerCampaignSet();
+    store.logSecurityEvent('florencia_campaign_assets', `${results.length} piezas`, req);
+    res.json({
+      success: true,
+      count: results.length,
+      files: results.map((r) => path.basename(r.path)),
+      message: 'Gráficas regeneradas con logo oficial Fandez.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message || 'No se pudieron generar las gráficas' });
+  }
+});
+
 router.post('/florencia/items/:id/image', requireRole('admin'), requireAdminPermission('florencia.manage'), async (req, res) => {
   try {
     const item = await florencia.getItem(req.params.id);

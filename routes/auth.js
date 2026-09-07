@@ -13,6 +13,54 @@ const PUBLIC_ROLES = ['client', 'provider', 'tecnico'];
 const ADMIN_SESSION_MS = 4 * 60 * 60 * 1000;
 const DEFAULT_SESSION_MS = 24 * 60 * 60 * 1000;
 const REMEMBER_SESSION_MS = 30 * 24 * 60 * 60 * 1000;
+const SESSION_COOKIE_NAME = 'fandez.sid';
+
+function sessionCookieOptions() {
+  return {
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  };
+}
+
+function clearSessionCookie(res) {
+  res.clearCookie(SESSION_COOKIE_NAME, sessionCookieOptions());
+}
+
+function isAdminSessionUser(req) {
+  return Boolean(
+    req.session?.user?.role === 'admin'
+    || req.session?.isAdminSession
+    || req.session?.pendingAdminMfa
+  );
+}
+
+/** Cierra sesión por completo (cookie + datos) y redirige. */
+function logoutAndRedirect(req, res, redirectTo = '/') {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Clear-Site-Data', '"cookies", "storage"');
+
+  if (req.session) {
+    req.session.user = null;
+    delete req.session.isAdminSession;
+    delete req.session.adminMfaVerified;
+    delete req.session.pendingAdminMfa;
+    delete req.session.adminAccess;
+  }
+
+  const finish = () => {
+    clearSessionCookie(res);
+    res.redirect(redirectTo);
+  };
+
+  if (!req.session) return finish();
+  req.session.destroy((err) => {
+    if (err) console.error('[logout]', err.message);
+    finish();
+  });
+}
 
 function setSessionUser(req, user, { admin = false, remember = false, activeRole = null } = {}) {
   const primaryRole = user.role;
@@ -87,6 +135,11 @@ function loginRenderOptions(req, extra = {}) {
 }
 
 router.get('/login', (req, res) => {
+  // Sesión admin no usa el login público
+  if (isAdminSessionUser(req)) {
+    const { adminUrl } = require('../lib/appMode');
+    return res.redirect(adminUrl('/login'));
+  }
   if (req.session.user) {
     const user = store.getUserById(req.session.user.id);
     if (user && !store.isEmailVerified(user)) {
@@ -337,6 +390,14 @@ router.post('/registro/direcciones/validar', async (req, res) => {
 });
 
 router.get('/registro', (req, res) => {
+  // Bug: tras salir del admin, "Empezar gratis" redirigía otra vez al panel si la cookie seguía viva.
+  // En registro público nunca reutilizar sesión admin: cerrar y mostrar el formulario.
+  if (isAdminSessionUser(req)) {
+    const dest = req.originalUrl && req.originalUrl.startsWith('/registro')
+      ? req.originalUrl
+      : '/registro';
+    return logoutAndRedirect(req, res, dest);
+  }
   if (req.session.user) {
     const user = store.getUserById(req.session.user.id);
     if (user && !store.isEmailVerified(user)) return res.redirect('/verificar-email');
@@ -748,13 +809,10 @@ router.post('/recuperar/nueva', rateLimitLogin(8), async (req, res) => {
 });
 
 router.get('/logout', (req, res) => {
-  const wasAdmin = req.session.user?.role === 'admin' || req.session.isAdminSession || req.session.pendingAdminMfa;
-  delete req.session.pendingAdminMfa;
-  delete req.session.adminMfaVerified;
+  const wasAdmin = isAdminSessionUser(req);
+  // Admin vuelve al login admin; resto a la home pública
   const { adminUrl } = require('../lib/appMode');
-  req.session.destroy(() => {
-    res.redirect(wasAdmin ? adminUrl('/login') : '/');
-  });
+  logoutAndRedirect(req, res, wasAdmin ? adminUrl('/login') : '/');
 });
 
 router.post('/cuenta/password', async (req, res) => {

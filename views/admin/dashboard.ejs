@@ -1730,9 +1730,9 @@ function hasPerm(key) {
     <section class="<%= panelClass('florencia') %>" data-panel="florencia">
       <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
-          <p class="zilo-label text-fuchsia-700 mb-1">Directora de marketing</p>
+          <p class="zilo-label text-fuchsia-700 mb-1">Gerente de marketing · Diseño + UX</p>
           <h3 class="text-xl font-semibold">Florencia IA</h3>
-          <p class="text-xs text-gray-500 mt-1">Crea estrategia, agenda, textos, imágenes y email marketing. Nada se publica sin tu aprobación.</p>
+          <p class="text-xs text-gray-500 mt-1">Diseñadora gráfica senior (20+ años), marketing digital y UX/UI. Usa el logo oficial Fandez (isotipo contorno ámbar). Nada se publica sin tu aprobación.</p>
         </div>
         <span class="px-3 py-1.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/25 text-xs font-semibold text-fuchsia-700">Aprobación humana obligatoria</span>
       </div>
@@ -1755,8 +1755,8 @@ function hasPerm(key) {
         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
           <div>
             <p class="text-[10px] font-bold uppercase tracking-wider text-fuchsia-700">Florencia · Publicidad socios</p>
-            <h4 class="text-base font-semibold mt-0.5">Instagram y redes: contenido y horarios</h4>
-            <p class="text-xs text-gray-500 mt-1">Gráficas del mes, hora Chile para subir, caption listo y piezas visuales.</p>
+            <h4 class="text-base font-semibold mt-0.5">Campaña reclutamiento · Instagram y redes</h4>
+            <p class="text-xs text-gray-500 mt-1">Gráficas con logo oficial Fandez, horarios Chile, caption y piezas listas para subir.</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <select id="florenciaCalMonth" class="px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm">
@@ -1844,14 +1844,15 @@ function hasPerm(key) {
             <option value="90">90 días</option>
           </select>
         </div>
-        <input name="objective" class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm" placeholder="Objetivo: captar clientes, lanzar servicio, retención…" required>
-        <input name="audience" class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm" placeholder="Audiencia: hogares, administradores de edificios…">
-        <input name="budget" class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm" placeholder="Presupuesto y restricciones">
+        <input name="objective" class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm" placeholder="Objetivo: reclutar socios en Instagram, LinkedIn…" value="Campaña reclutamiento de socios Fandez en Instagram, Stories, Reels, TikTok y LinkedIn" required>
+        <input name="audience" class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm" placeholder="Audiencia: empresas de gasfitería, electricidad…" value="Empresas y profesionales de servicios del hogar en Santiago (socios)">
+        <input name="budget" class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm" placeholder="Presupuesto y restricciones" value="Orgánico + creatividades con logo oficial Fandez">
         <label class="flex items-center gap-2 text-xs text-gray-700">
           <input type="checkbox" name="autoImages" value="true" checked class="accent-fuchsia-600">
           Generar automáticamente las imágenes de las piezas (usa OpenAI Images)
         </label>
         <button type="submit" class="w-full py-2.5 rounded-xl bg-fuchsia-600 text-white text-sm font-semibold">Generar estrategia y agenda</button>
+        <button type="button" id="btnFlorenciaCampaignAssets" class="w-full py-2.5 rounded-xl border border-fuchsia-300 bg-white text-fuchsia-800 text-sm font-semibold">Regenerar gráficas campaña socios (logo oficial)</button>
       </form>
       <% } %>
 
