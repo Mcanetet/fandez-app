@@ -8,9 +8,9 @@
   <div class="relative z-10 w-full max-w-md zilo-card-premium rounded-3xl p-8 border border-gray-200">
     <div class="flex flex-col items-center mb-6">
       <%- include('../partials/logo', { className: 'w-12 h-12 mb-3' }) %>
-      <span class="zilo-label !text-[9px]">Verificación en dos pasos</span>
+      <span class="zilo-label !text-[9px]">Google Authenticator</span>
       <h1 class="text-xl font-semibold mt-1">Código de autenticación</h1>
-      <p class="text-xs text-gray-500 mt-2 text-center">Ingresa el código de 6 dígitos de tu app autenticadora para <strong><%= email %></strong></p>
+      <p class="text-xs text-gray-500 mt-2 text-center">Abre <strong>Google Authenticator</strong> e ingresa el código de 6 dígitos. No enviamos correo al admin.</p>
     </div>
 
     <% if (error) { %>

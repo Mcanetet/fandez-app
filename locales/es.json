@@ -376,7 +376,7 @@
   "provider.profile": "Mi perfil",
 
   "admin.menu_open": "Abrir menú",
-  "admin.login.subtitle": "Acceso restringido al equipo de administración",
+  "admin.login.subtitle": "Contraseña + Google Authenticator. No enviamos códigos por correo.",
   "admin.login.email": "Correo corporativo",
   "admin.login.submit": "Ingresar al panel",
   "admin.login.back": "Volver al sitio público",

@@ -122,6 +122,10 @@ const MFA_PENDING_MS = 5 * 60 * 1000;
 
 function completeAdminSession(req, user, done) {
   const finish = () => {
+    // Admin no usa correo activo: marcar verificado al entrar (solo MFA / Authenticator)
+    if (user && user.role === 'admin' && !user.emailVerifiedAt) {
+      store.forceVerifyEmail(user.id).catch(() => {});
+    }
     req.session.user = {
       id: user.id,
       email: user.email,
@@ -1529,6 +1533,12 @@ router.post('/usuarios/verificar-email/reenviar', requireRole('admin'), requireA
   if (!email) return res.status(400).json({ success: false, error: 'Ingresa un correo.' });
   const user = store.getUserByEmail(email);
   if (!user) return res.status(404).json({ success: false, error: 'No hay cuenta con ese correo.' });
+  if (user.role === 'admin') {
+    return res.status(400).json({
+      success: false,
+      error: 'Los administradores no reciben código por correo. Usan solo Google Authenticator.'
+    });
+  }
   if (store.isEmailVerified(user)) {
     return res.json({ success: true, already: true, message: 'Ese correo ya está verificado.' });
   }

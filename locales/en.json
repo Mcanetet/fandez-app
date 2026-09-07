@@ -377,7 +377,7 @@
   "provider.profile": "My profile",
 
   "admin.menu_open": "Open menu",
-  "admin.login.subtitle": "Restricted access for the administration team",
+  "admin.login.subtitle": "Password + Google Authenticator. No email codes are sent.",
   "admin.login.email": "Corporate email",
   "admin.login.submit": "Enter panel",
   "admin.login.back": "Back to public site",

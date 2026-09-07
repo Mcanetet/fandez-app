@@ -3037,7 +3037,8 @@ async function createAdminUser({ name, email, password, profileId, permissions, 
     phone: null,
     active: true,
     adminAccess,
-    memberSince: new Date().toISOString().slice(0, 10)
+    memberSince: new Date().toISOString().slice(0, 10),
+    emailVerifiedAt: new Date().toISOString()
   };
 
   USERS.push(user);
@@ -5286,7 +5287,8 @@ function isEmailVerified(user) {
 
 async function issueEmailVerification(userId, { locale = 'es', respectCooldown = false, waitForMail = false } = {}) {
   const user = getUserById(userId);
-  if (!user || isEmailVerified(user)) return { skipped: true };
+  // Admin: solo MFA (Google Authenticator). Nunca enviar código por correo.
+  if (!user || user.role === 'admin' || isEmailVerified(user)) return { skipped: true, reason: 'admin_or_verified' };
   if (isDemoAccount(user)) return { skipped: true, demo: true };
 
   if (respectCooldown && !emailVerification.canResend(user)) {

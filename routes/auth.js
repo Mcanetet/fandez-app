@@ -51,6 +51,11 @@ function getDashboardPath(role) {
 }
 
 async function redirectAfterAuth(req, res, user) {
+  // Admin nunca usa verificación por correo: solo login admin + Google Authenticator
+  if (user?.role === 'admin') {
+    const { adminUrl } = require('../lib/appMode');
+    return res.redirect(adminUrl('/login'));
+  }
   if (!store.isEmailVerified(user)) {
     const qs = new URLSearchParams({ pending: '1' });
     try {
@@ -506,6 +511,10 @@ router.get('/verificar-email', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   const user = store.getUserById(req.session.user.id);
   if (!user) return res.redirect('/logout');
+  if (user.role === 'admin') {
+    const { adminUrl } = require('../lib/appMode');
+    return res.redirect(adminUrl('/login'));
+  }
   if (store.isEmailVerified(user)) {
     return res.redirect(getDashboardPath(user.role));
   }
