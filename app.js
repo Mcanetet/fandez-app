@@ -242,6 +242,14 @@ app.use(express.static(path.join(__dirname, 'public'), {
     }
   }
 }));
+
+// Piezas de campaña socios (Instagram / redes) para el panel Florencia
+app.use('/assets/marketing', express.static(path.join(__dirname, 'marketing'), {
+  maxAge: '7d',
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 app.use(express.json({ limit: appMode.isProductionMode() ? '12mb' : '25mb' }));
 

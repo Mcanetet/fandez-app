@@ -3160,18 +3160,29 @@ function getManagedUsers({ q = '', role = '', limit = 40 } = {}) {
     })
     .sort((a, b) => String(b.memberSince || '').localeCompare(String(a.memberSince || '')))
     .slice(0, Math.min(100, Math.max(1, Number(limit) || 40)))
-    .map((u) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      phone: u.phone || '',
-      role: u.role,
-      active: u.active !== false,
-      emailVerified: Boolean(u.emailVerifiedAt),
-      online: Boolean(u.online),
-      parentId: u.parentId || null,
-      memberSince: u.memberSince || null
-    }));
+    .map((u) => {
+      const specialtyIds = Array.isArray(u.specialties) ? u.specialties : [];
+      const services = u.role === 'provider' || u.role === 'technician'
+        ? specialtyIds.map((id) => {
+          const s = (SERVICES || []).find((x) => x.id === id);
+          return { id, name: s?.name || id };
+        })
+        : [];
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone || '',
+        role: u.role,
+        active: u.active !== false,
+        emailVerified: Boolean(u.emailVerifiedAt),
+        online: Boolean(u.online),
+        parentId: u.parentId || null,
+        memberSince: u.memberSince || null,
+        specialties: specialtyIds,
+        services
+      };
+    });
 }
 
 function adminUpdateManagedUser(userId, patch = {}, actorId) {
@@ -5590,6 +5601,62 @@ function getProviderPayouts() {
   return Object.values(payouts);
 }
 
+/** Directorio admin: socios + servicios que prestan (seguimiento operativo) */
+function getAdminProvidersDirectory() {
+  ensureReady();
+  const serviceById = new Map((SERVICES || []).map((s) => [s.id, s]));
+  return USERS
+    .filter((u) => u.role === 'provider')
+    .map((p) => {
+      const specialtyIds = Array.isArray(p.specialties) ? p.specialties : [];
+      const services = specialtyIds.map((id) => {
+        const s = serviceById.get(id);
+        return {
+          id,
+          name: s?.name || id,
+          icon: s?.icon || null,
+          enabledCatalog: s ? s.enabled !== false : false
+        };
+      });
+      const status = getProviderServicesStatus(p.id);
+      const enabled = status.filter((s) => s.enabled);
+      const withoutTech = enabled.filter((s) => !s.covered).map((s) => ({ id: s.id, name: s.name }));
+      const otherReqs = Array.isArray(p.providerContract?.serviceRequests)
+        ? p.providerContract.serviceRequests
+        : [];
+      const contractSummary = (() => {
+        try {
+          return getContractSummary(p.providerContract);
+        } catch (_) {
+          return { status: null };
+        }
+      })();
+      return {
+        id: p.id,
+        name: p.name || 'Sin nombre',
+        email: p.email || '',
+        phone: p.phone || '',
+        avatar: p.avatar || String(p.name || '?').slice(0, 2).toUpperCase(),
+        active: p.active !== false,
+        online: Boolean(p.online),
+        rating: p.rating || 0,
+        reviewsCount: p.reviewsCount || 0,
+        memberSince: p.memberSince || null,
+        services,
+        servicesCount: services.length,
+        coveredCount: enabled.filter((s) => s.covered).length,
+        withoutTech,
+        otherServiceRequests: otherReqs.map((r) => ({
+          name: r.name || r.title || 'Otro servicio',
+          description: r.description || '',
+          status: r.status || 'pending'
+        })),
+        contractStatus: contractSummary?.status || null
+      };
+    })
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'es', { sensitivity: 'base' }));
+}
+
 function updateComplaintStatus(id, status) {
   const c = COMPLAINTS.find(x => x.id === id);
   if (!c) return null;
@@ -6006,6 +6073,7 @@ module.exports = {
   get CHATS() { return CHATS; },
   getPayments,
   getProviderPayouts,
+  getAdminProvidersDirectory,
   getAdminStats,
   getFinancialReport,
   getAccountingPack,

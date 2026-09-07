@@ -1876,6 +1876,10 @@ html {
   background: #fff;
   border: 1px solid var(--zilo-border);
 }
+.florencia-chart svg {
+  display: block;
+  max-width: 100%;
+}
 .admin-field-label {
   display: block;
   font-size: 0.625rem;

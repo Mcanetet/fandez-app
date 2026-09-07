@@ -451,7 +451,7 @@
   "admin.panels.seguridad": "Seguridad",
 
   "admin.informes.title": "Informes de agentes",
-  "admin.informes.subtitle": "Sofía (ops diario), Clara (finanzas semanal) y Florencia (contenido socios · septiembre).",
+  "admin.informes.subtitle": "Sofía (ops diario), Clara (finanzas semanal) y Florencia (publicidad socios + horarios).",
   "admin.informes.refresh": "Actualizar",
   "admin.informes.ops_lists": "Detalle operativo",
   "admin.informes.finance_checklist": "Checklist finanzas",
@@ -459,7 +459,7 @@
   "admin.informes.payment_issues": "Problemas de pago / devoluciones",
   "admin.informes.today_content": "Contenido de hoy (copiar y publicar)",
   "admin.informes.copy": "Copiar caption",
-  "admin.informes.sept_calendar": "Calendario septiembre · incorporación socios",
+  "admin.informes.sept_calendar": "Calendario campaña socios · cuándo subir",
 
   "admin.alertas.title": "Mensajes alerta",
   "admin.alertas.subtitle": "Avisos a clientes, socios o todos. Activa/desactiva, agrega imagen y previsualiza cómo se verá.",

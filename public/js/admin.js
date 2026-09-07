@@ -88,6 +88,9 @@
     if (id === 'alertas' && typeof window.__fandezLoadAlertas === 'function') {
       window.__fandezLoadAlertas();
     }
+    if (id === 'florencia' && typeof window.__fandezLoadFlorenciaCalendar === 'function') {
+      window.__fandezLoadFlorenciaCalendar();
+    }
   }
 
   tabs.forEach(tab => {
@@ -280,6 +283,9 @@
             <span class="text-[10px] uppercase ml-2 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">${u.role}</span>
             <p class="text-xs text-gray-500 truncate">${u.email || ''}${u.phone ? ' · ' + u.phone : ''}</p>
             <p class="text-[10px] text-gray-400 mt-1">${u.active ? 'Activo' : 'Inactivo'} · ${u.emailVerified ? 'Email OK' : 'Email pendiente'}</p>
+            ${(u.services && u.services.length)
+              ? `<div class="flex flex-wrap gap-1 mt-2">${u.services.map((s) => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-800">${escapeHtml(s.name || s.id || '')}</span>`).join('')}</div>`
+              : (u.role === 'provider' ? '<p class="text-[10px] text-amber-700 mt-1">Sin servicios activados</p>' : '')}
           </div>
           <div class="flex flex-wrap gap-2 shrink-0 items-center">
             <label class="inline-flex items-center gap-1.5 text-xs">
@@ -338,6 +344,35 @@
     }
   });
   bindManagedUserActions();
+
+  /* ——— Directorio socios + servicios ——— */
+  (function initProvidersDirectory() {
+    const search = document.getElementById('providersDirSearch');
+    const filter = document.getElementById('providersDirFilter');
+    const list = document.getElementById('providersDirectoryList');
+    const countEl = document.getElementById('providersDirCount');
+    if (!list) return;
+
+    function applyFilter() {
+      const q = String(search?.value || '').trim().toLowerCase();
+      const mode = filter?.value || '';
+      let visible = 0;
+      list.querySelectorAll('.provider-dir-card').forEach((card) => {
+        const hay = `${card.dataset.name || ''} ${card.dataset.email || ''} ${card.dataset.services || ''}`;
+        let ok = !q || hay.includes(q);
+        if (ok && mode === 'with') ok = card.dataset.hasServices === '1';
+        if (ok && mode === 'without') ok = card.dataset.hasServices !== '1';
+        if (ok && mode === 'online') ok = card.dataset.online === '1';
+        if (ok && mode === 'gap') ok = card.dataset.gap === '1';
+        card.classList.toggle('hidden', !ok);
+        if (ok) visible += 1;
+      });
+      if (countEl) countEl.textContent = `${visible} socio(s)`;
+    }
+
+    search?.addEventListener('input', applyFilter);
+    filter?.addEventListener('change', applyFilter);
+  })();
 
   document.querySelectorAll('.btn-edit-admin').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2100,18 +2135,24 @@
         const today = mkt.today || {};
         lastTodayCaption = today.caption || '';
         setText('informesTodayMeta', today.date
-          ? `${today.date} · ${today.channel} · ${today.hook || ''}`
+          ? `${today.postWhen || `${today.date} · ${today.postAt || ''}`} · ${today.channelLabel || today.channel} · ${today.hook || ''}`
           : '—');
         setText('informesTodayCaption', lastTodayCaption || '—');
 
+        const chartsHost = document.getElementById('informesMktCharts');
+        if (chartsHost && typeof window.__fandezRenderMktCharts === 'function') {
+          window.__fandezRenderMktCharts(chartsHost, mkt.charts || {});
+        }
+
         const cal = document.getElementById('informesSeptCalendar');
         if (cal) {
-          const todayKey = new Date().toISOString().slice(0, 10);
+          const todayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
           cal.innerHTML = (mkt.days || []).map((d) => {
             const isToday = d.date === todayKey;
-            return `<button type="button" class="informes-day text-left p-2.5 rounded-xl border ${isToday ? 'border-zilo-accent bg-zilo-accent-soft/50' : 'border-gray-200 bg-zilo-bg'} hover:border-zilo-accent/40" data-caption="${encodeURIComponent(d.caption || '')}" data-meta="${encodeURIComponent(`${d.date} · ${d.channel} · ${d.hook}`)}">
+            const meta = `${d.postWhen || d.date} · ${d.channelLabel || d.channel} · ${d.hook || ''}`;
+            return `<button type="button" class="informes-day text-left p-2.5 rounded-xl border ${isToday ? 'border-zilo-accent bg-zilo-accent-soft/50' : 'border-gray-200 bg-zilo-bg'} hover:border-zilo-accent/40" data-caption="${encodeURIComponent(d.caption || '')}" data-meta="${encodeURIComponent(meta)}">
               <span class="font-semibold">${d.day} ${d.weekday}</span>
-              <span class="block text-[10px] text-gray-500 uppercase mt-0.5">${d.channel}</span>
+              <span class="block text-[10px] text-fuchsia-700 font-semibold mt-0.5">${d.postAt || ''} · ${d.channelLabel || d.channel}</span>
               <span class="block mt-1 text-gray-800">${d.hook}</span>
             </button>`;
           }).join('');
@@ -2351,6 +2392,197 @@
     window.__fandezLoadAlertas = loadAlertas;
     if (dashboard.dataset.initialTab === 'alertas' || new URLSearchParams(window.location.search).get('tab') === 'alertas') {
       loadAlertas();
+    }
+  })();
+
+  /* ——— Gráficas marketing (Florencia / Informes) ——— */
+  function renderFlorenciaBarChart(el, series, { color = '#c026d3' } = {}) {
+    if (!el) return;
+    const rows = Array.isArray(series) ? series : [];
+    if (!rows.length) {
+      el.innerHTML = '<p class="text-[11px] text-gray-400 py-6 text-center">Sin datos</p>';
+      return;
+    }
+    const max = Math.max(...rows.map((r) => Number(r.count) || 0), 1);
+    const w = 320;
+    const h = 140;
+    const padL = 8;
+    const padB = 28;
+    const padT = 12;
+    const gap = 6;
+    const barW = Math.max(10, (w - padL * 2 - gap * (rows.length - 1)) / rows.length);
+    const chartH = h - padB - padT;
+    const bars = rows.map((r, i) => {
+      const val = Number(r.count) || 0;
+      const bh = Math.max(2, (val / max) * chartH);
+      const x = padL + i * (barW + gap);
+      const y = padT + chartH - bh;
+      const label = String(r.label || '').slice(0, 14);
+      return `<g>
+        <rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="4" fill="${color}" opacity="0.9"></rect>
+        <text x="${x + barW / 2}" y="${h - 10}" text-anchor="middle" font-size="8" fill="#6b7280">${label.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>
+        <text x="${x + barW / 2}" y="${y - 3}" text-anchor="middle" font-size="9" font-weight="600" fill="#374151">${val}</text>
+      </g>`;
+    }).join('');
+    el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" class="w-full h-auto" role="img" aria-label="Gráfico de barras">${bars}</svg>`;
+  }
+
+  window.__fandezRenderMktCharts = function renderMktCharts(host, charts) {
+    if (!host) return;
+    const blocks = [
+      { title: 'Por red', data: charts.byChannel, color: '#c026d3' },
+      { title: 'Por hora Chile', data: charts.byHour, color: '#d97706' },
+      { title: 'Por formato', data: charts.byFormat, color: '#2563eb' },
+      { title: 'Por día semana', data: charts.byWeekday, color: '#059669' }
+    ];
+    host.innerHTML = blocks.map((b, idx) => `
+      <div class="p-3 rounded-2xl bg-zilo-card border border-gray-200">
+        <p class="text-[10px] font-bold uppercase text-gray-500 mb-1">${b.title}</p>
+        <div data-mkt-chart="${idx}" class="florencia-chart min-h-[8rem]"></div>
+      </div>`).join('');
+    blocks.forEach((b, idx) => {
+      renderFlorenciaBarChart(host.querySelector(`[data-mkt-chart="${idx}"]`), b.data, { color: b.color });
+    });
+  };
+
+  (function initFlorenciaCalendar() {
+    const panel = document.getElementById('florenciaCampaignPanel');
+    if (!panel) return;
+    let lastCaption = '';
+    let daysByDate = {};
+    const statusEl = document.getElementById('florenciaCalStatus');
+    const narrativeEl = document.getElementById('florenciaCalNarrative');
+    const monthSel = document.getElementById('florenciaCalMonth');
+    const yearInput = document.getElementById('florenciaCalYear');
+
+    function showDay(day) {
+      if (!day) return;
+      lastCaption = day.caption || '';
+      const detail = document.getElementById('florenciaDayDetail');
+      const title = document.getElementById('florenciaDayTitle');
+      const meta = document.getElementById('florenciaDayMeta');
+      const caption = document.getElementById('florenciaDayCaption');
+      const img = document.getElementById('florenciaDayAsset');
+      if (detail) detail.classList.remove('hidden');
+      if (title) title.textContent = `${day.hook || 'Pieza'} · ${day.channelLabel || day.channel}`;
+      if (meta) meta.textContent = `${day.postWhen || day.date} · ${day.formatLabel || ''} · CTA: ${day.cta || 'Quiero ser socio'}`;
+      if (caption) caption.textContent = lastCaption;
+      if (img) {
+        if (day.assetUrl) {
+          img.src = day.assetUrl;
+          img.alt = day.asset || 'Pieza';
+          img.classList.remove('hidden');
+        } else {
+          img.classList.add('hidden');
+        }
+      }
+    }
+
+    function bindDayButtons(root) {
+      root?.querySelectorAll('[data-florencia-date]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const day = daysByDate[btn.dataset.florenciaDate];
+          if (day) showDay(day);
+        });
+      });
+    }
+
+    async function loadFlorenciaCalendar() {
+      if (statusEl) statusEl.textContent = 'Generando gráficas y calendario…';
+      const month = monthSel?.value || '10';
+      const year = yearInput?.value || '2026';
+      try {
+        const res = await fetch(`${ADMIN_BASE}/florencia/calendar?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`, {
+          headers: { Accept: 'application/json' }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error');
+        const mkt = data.marketing || {};
+        const charts = mkt.charts || {};
+        daysByDate = {};
+        (mkt.days || []).forEach((d) => { daysByDate[d.date] = d; });
+
+        if (narrativeEl) {
+          narrativeEl.textContent = mkt.narrative || '';
+          narrativeEl.classList.remove('hidden');
+        }
+        renderFlorenciaBarChart(document.getElementById('florenciaChartChannel'), charts.byChannel, { color: '#c026d3' });
+        renderFlorenciaBarChart(document.getElementById('florenciaChartHour'), charts.byHour, { color: '#d97706' });
+        renderFlorenciaBarChart(document.getElementById('florenciaChartFormat'), charts.byFormat, { color: '#2563eb' });
+        renderFlorenciaBarChart(document.getElementById('florenciaChartWeekday'), charts.byWeekday, { color: '#059669' });
+
+        const bestEl = document.getElementById('florenciaBestTimes');
+        if (bestEl) {
+          bestEl.innerHTML = (mkt.bestTimes || []).map((b) => `
+            <div class="flex flex-wrap items-baseline justify-between gap-1 p-2 rounded-xl bg-zilo-bg border border-gray-100">
+              <strong class="text-gray-800">${b.label}</strong>
+              <span class="font-mono text-fuchsia-700">${(b.times || []).join(' · ')}</span>
+              <span class="w-full text-[10px] text-gray-500">${b.tip || ''}</span>
+            </div>`).join('') || '<p class="text-gray-500">—</p>';
+        }
+
+        const weekEl = document.getElementById('florenciaThisWeek');
+        const weekMeta = document.getElementById('florenciaWeekMeta');
+        if (weekMeta) weekMeta.textContent = `${mkt.monthLabel || ''} · America/Santiago`;
+        if (weekEl) {
+          const list = (mkt.thisWeek && mkt.thisWeek.length) ? mkt.thisWeek : (mkt.days || []).slice(0, 7);
+          weekEl.innerHTML = list.map((d) => `
+            <button type="button" class="w-full text-left p-3 rounded-xl border border-gray-200 bg-white hover:border-fuchsia-300" data-florencia-date="${d.date}">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-sm font-semibold">${d.date} · ${d.weekday}</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800 font-semibold">${d.postAt} Chile</span>
+              </div>
+              <p class="text-[11px] text-gray-500 mt-1">${d.channelLabel || d.channel} · ${d.formatLabel || ''}</p>
+              <p class="text-xs text-gray-800 mt-1">${d.hook || ''}</p>
+            </button>`).join('');
+          bindDayButtons(weekEl);
+        }
+
+        const assetsEl = document.getElementById('florenciaAssets');
+        if (assetsEl) {
+          assetsEl.innerHTML = (mkt.assets || []).map((a) => `
+            <a href="${a.url}" target="_blank" rel="noopener" class="block p-2 rounded-xl border border-gray-200 bg-white hover:border-fuchsia-300">
+              <img src="${a.url}" alt="${a.use || a.file}" class="w-full h-20 object-cover rounded-lg mb-1.5" loading="lazy">
+              <p class="text-[10px] font-medium text-gray-700 leading-tight">${a.use || a.file}</p>
+            </a>`).join('');
+        }
+
+        const grid = document.getElementById('florenciaMonthGrid');
+        if (grid) {
+          const todayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+          grid.innerHTML = (mkt.days || []).map((d) => {
+            const isToday = d.date === todayKey;
+            return `<button type="button" class="text-left p-2.5 rounded-xl border ${isToday ? 'border-fuchsia-500 bg-fuchsia-50' : 'border-gray-200 bg-white'} hover:border-fuchsia-300" data-florencia-date="${d.date}">
+              <span class="font-semibold">${d.day} ${d.weekday}</span>
+              <span class="block text-[10px] text-fuchsia-700 font-semibold mt-0.5">${d.postAt} · ${d.channelLabel || d.channel}</span>
+              <span class="block mt-1 text-gray-800">${d.hook}</span>
+            </button>`;
+          }).join('');
+          bindDayButtons(grid);
+        }
+
+        if (mkt.today) showDay(mkt.today);
+        if (statusEl) {
+          statusEl.textContent = `${mkt.monthLabel || ''} · ${mkt.days?.length || 0} piezas · CTA: ${mkt.cta || 'Quiero ser socio'}`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = err.message || 'No se pudo cargar';
+        if (window.FandezNotify) FandezNotify.show(err.message || 'Error calendario Florencia', 'error');
+      }
+    }
+
+    document.getElementById('florenciaCopyDay')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(lastCaption || '');
+        if (window.FandezNotify) FandezNotify.show('Caption copiado', 'success');
+      } catch (_) {
+        if (window.FandezNotify) FandezNotify.show('No se pudo copiar', 'error');
+      }
+    });
+    document.getElementById('florenciaCalRefresh')?.addEventListener('click', loadFlorenciaCalendar);
+    window.__fandezLoadFlorenciaCalendar = loadFlorenciaCalendar;
+    if (dashboard.dataset.initialTab === 'florencia' || new URLSearchParams(window.location.search).get('tab') === 'florencia') {
+      loadFlorenciaCalendar();
     }
   })();
 

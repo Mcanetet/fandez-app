@@ -405,6 +405,7 @@ router.get('/', requireRole('admin'), async (req, res) => {
     requests: allRequests.slice(0, 30),
     payments: store.getPayments(),
     payouts: store.getProviderPayouts(),
+    providersDirectory: store.getAdminProvidersDirectory(),
     pendingTransfers: store.getAllRequests().filter(r => r.paymentStatus === 'pending_transfer'),
     dispatchQueue: store.getAdminDispatchQueue(req.locale || 'es'),
     complaints: store.COMPLAINTS,
@@ -494,8 +495,20 @@ router.get('/informes/finance', requireRole('admin'), requireAdminPermission('in
 
 router.get('/informes/marketing', requireRole('admin'), requireAdminPermission('informes.view'), (req, res) => {
   try {
-    const year = parseInt(req.query.year, 10) || new Date().getFullYear();
-    const marketing = informes.buildSeptemberPartnerCalendar(year);
+    const year = parseInt(req.query.year, 10) || 2026;
+    const month = parseInt(req.query.month, 10) || 10;
+    const marketing = informes.buildPartnerMarketingCalendar({ year, month });
+    res.json({ success: true, marketing });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get('/florencia/calendar', requireRole('admin'), requireAdminPermission('florencia.view', 'informes.view'), (req, res) => {
+  try {
+    const year = parseInt(req.query.year, 10) || 2026;
+    const month = parseInt(req.query.month, 10) || 10;
+    const marketing = informes.buildPartnerMarketingCalendar({ year, month });
     res.json({ success: true, marketing });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

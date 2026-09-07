@@ -1120,6 +1120,83 @@ function hasPerm(key) {
     <section class="<%= panelClass('proveedores') %>" data-panel="proveedores">
       <h3 class="text-lg font-semibold mb-1"><%= t('admin.proveedores.title') %></h3>
       <p class="text-xs text-gray-500 mb-4"><%= t('admin.proveedores.subtitle', { labor: Math.round(pricing.laborCommissionRate * 100), materials: Math.round(pricing.materialsCommissionRate * 100) }) %></p>
+
+      <!-- Directorio socios + servicios -->
+      <div class="mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-3">
+          <div>
+            <h4 class="text-sm font-semibold"><%= t('admin.proveedores.directory_title') %></h4>
+            <p class="text-[11px] text-gray-500 mt-0.5"><%= t('admin.proveedores.directory_subtitle') %></p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <input type="search" id="providersDirSearch" class="zilo-input !py-2 text-sm min-w-[12rem]" placeholder="<%= t('admin.proveedores.search_placeholder') %>" autocomplete="off">
+            <select id="providersDirFilter" class="zilo-input !py-2 text-sm">
+              <option value=""><%= t('admin.proveedores.filter_all') %></option>
+              <option value="with"><%= t('admin.proveedores.filter_with_services') %></option>
+              <option value="without"><%= t('admin.proveedores.filter_without_services') %></option>
+              <option value="online"><%= t('admin.proveedores.filter_online') %></option>
+              <option value="gap"><%= t('admin.proveedores.filter_no_tech') %></option>
+            </select>
+          </div>
+        </div>
+        <p class="text-[11px] text-gray-500 mb-3" id="providersDirCount">
+          <%= t('admin.proveedores.directory_count', { count: (typeof providersDirectory !== 'undefined' ? providersDirectory : []).length }) %>
+        </p>
+        <div id="providersDirectoryList" class="space-y-3">
+          <% (typeof providersDirectory !== 'undefined' ? providersDirectory : []).forEach(function(dir) { %>
+            <article
+              class="p-4 rounded-2xl bg-zilo-card border border-gray-200 provider-dir-card"
+              data-name="<%= (dir.name || '').toLowerCase() %>"
+              data-email="<%= (dir.email || '').toLowerCase() %>"
+              data-services="<%= (dir.services || []).map(function(s){ return (s.name || '').toLowerCase(); }).join(' ') %>"
+              data-has-services="<%= dir.servicesCount > 0 ? '1' : '0' %>"
+              data-online="<%= dir.online ? '1' : '0' %>"
+              data-gap="<%= (dir.withoutTech && dir.withoutTech.length) ? '1' : '0' %>"
+            >
+              <div class="flex items-start gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-xs font-bold shrink-0"><%= dir.avatar %></div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <strong class="text-sm"><%= dir.name %></strong>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded <%= dir.active ? 'bg-emerald-500/15 text-emerald-700' : 'bg-red-500/15 text-red-700' %>"><%= dir.active ? t('admin.common.active') : t('admin.common.paused') %></span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded <%= dir.online ? 'bg-emerald-500/15 text-emerald-700' : 'bg-gray-100 text-gray-500' %>"><%= dir.online ? t('admin.common.online') : t('admin.common.offline') %></span>
+                    <% if (dir.contractStatus) { %>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600"><%= dir.contractStatus %></span>
+                    <% } %>
+                  </div>
+                  <p class="text-xs text-gray-500 truncate mt-0.5"><%= dir.email %><% if (dir.phone) { %> · <%= dir.phone %><% } %></p>
+                  <p class="text-[10px] text-gray-400 mt-1"><%= dir.rating %>★ · <%= dir.reviewsCount || 0 %> reseñas · <%= dir.servicesCount %> servicio(s)<% if (dir.coveredCount != null) { %> · <%= dir.coveredCount %> con técnico listo<% } %></p>
+                </div>
+              </div>
+              <% if (dir.services && dir.services.length) { %>
+                <div class="flex flex-wrap gap-1.5 mb-2">
+                  <% dir.services.forEach(function(svc) { %>
+                    <span class="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-blue-500/10 text-blue-800 border border-blue-500/15"><%= svc.name %></span>
+                  <% }); %>
+                </div>
+              <% } else { %>
+                <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-2"><%= t('admin.proveedores.no_services') %></p>
+              <% } %>
+              <% if (dir.withoutTech && dir.withoutTech.length) { %>
+                <p class="text-[11px] text-orange-700 mb-1"><%= t('admin.proveedores.no_tech_hint') %>: <%= dir.withoutTech.map(function(s){ return s.name; }).join(', ') %></p>
+              <% } %>
+              <% if (dir.otherServiceRequests && dir.otherServiceRequests.length) { %>
+                <div class="mt-2 p-2.5 rounded-xl bg-violet-50 border border-violet-200">
+                  <p class="text-[10px] font-bold uppercase text-violet-700 mb-1"><%= t('admin.proveedores.other_requests') %></p>
+                  <% dir.otherServiceRequests.forEach(function(req) { %>
+                    <p class="text-xs text-violet-900"><strong><%= req.name %></strong><% if (req.description) { %> — <%= req.description %><% } %></p>
+                  <% }); %>
+                </div>
+              <% } %>
+            </article>
+          <% }); %>
+          <% if (!(typeof providersDirectory !== 'undefined' && providersDirectory.length)) { %>
+            <p class="text-sm text-gray-500 text-center py-6"><%= t('admin.proveedores.directory_empty') %></p>
+          <% } %>
+        </div>
+      </div>
+
+      <h4 class="text-sm font-semibold mb-2"><%= t('admin.proveedores.payouts_section') %></h4>
       <div class="space-y-3">
         <% payouts.forEach(p => { %>
           <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200">
@@ -1128,6 +1205,13 @@ function hasPerm(key) {
               <div class="flex-1">
                 <strong class="text-sm"><%= p.provider.name %></strong>
                 <span class="text-xs text-gray-500 block"><%= p.jobs %> <%= t('admin.common.jobs') %> · <%= p.provider.rating %>★</span>
+                <% const payoutSvcs = (p.provider.specialties || []).map(function(sid) {
+                  const svc = (typeof services !== 'undefined' ? services : []).find(function(s){ return s.id === sid; });
+                  return svc ? svc.name : sid;
+                }); %>
+                <% if (payoutSvcs.length) { %>
+                  <span class="text-[10px] text-gray-500 block mt-0.5"><%= payoutSvcs.join(' · ') %></span>
+                <% } %>
               </div>
               <span class="text-xs <%= p.provider.online ? 'text-emerald-600' : 'text-gray-500' %>"><%= p.provider.online ? t('admin.common.online') : t('admin.common.offline') %></span>
             </div>
@@ -1308,6 +1392,15 @@ function hasPerm(key) {
                 <%= u.active ? 'Activo' : 'Inactivo' %>
                 · <%= u.emailVerified ? 'Email OK' : 'Email pendiente' %>
               </p>
+              <% if (u.services && u.services.length) { %>
+                <div class="flex flex-wrap gap-1 mt-2">
+                  <% u.services.forEach(function(svc) { %>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-800"><%= svc.name %></span>
+                  <% }); %>
+                </div>
+              <% } else if (u.role === 'provider') { %>
+                <p class="text-[10px] text-amber-700 mt-1">Sin servicios activados</p>
+              <% } %>
             </div>
             <% if (hasPerm('usuarios.manage')) { %>
               <div class="flex flex-wrap gap-2 shrink-0">
@@ -1609,7 +1702,7 @@ function hasPerm(key) {
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <p class="text-sm font-semibold">Base de conocimiento</p>
           <% if (adminAccess.isSuperAdmin || adminAccess.isFullAccess) { %>
-          <button type="button" id="btnAlandSyncKb" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">Sincronizar empresa y servicios</button>
+          <button type="button" id="btnAlandSyncKb" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-700 border border-emerald-500/25">Sincronizar empresa, servicios y mapa del sistema</button>
           <% } %>
         </div>
         <p class="text-[11px] text-gray-500 mb-2">Solo superadmin / admin.mod pueden agregar, editar o eliminar entradas.</p>
@@ -1655,6 +1748,86 @@ function hasPerm(key) {
           <% }); %>
         </div>
         <p class="text-[11px] text-gray-500 mt-3">Las credenciales se guardan como variables seguras del servidor; nunca se muestran en el panel.</p>
+      </div>
+
+      <!-- Campaña socios: gráficas + cuándo subir -->
+      <div class="p-4 rounded-2xl bg-gradient-to-br from-fuchsia-50 via-white to-amber-50 border border-fuchsia-200 mb-4" id="florenciaCampaignPanel">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-fuchsia-700">Florencia · Publicidad socios</p>
+            <h4 class="text-base font-semibold mt-0.5">Instagram y redes: contenido y horarios</h4>
+            <p class="text-xs text-gray-500 mt-1">Gráficas del mes, hora Chile para subir, caption listo y piezas visuales.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="florenciaCalMonth" class="px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm">
+              <option value="9">Septiembre</option>
+              <option value="10" selected>Octubre (lanzamiento)</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+            <input type="number" id="florenciaCalYear" value="2026" min="2026" max="2030" class="w-20 px-2 py-2 rounded-xl bg-white border border-gray-200 text-sm">
+            <button type="button" id="florenciaCalRefresh" class="px-3 py-2 rounded-xl bg-fuchsia-600 text-white text-sm font-medium">Actualizar</button>
+          </div>
+        </div>
+
+        <p id="florenciaCalStatus" class="text-xs text-gray-500 mb-3">Cargando calendario…</p>
+        <pre id="florenciaCalNarrative" class="hidden text-xs text-gray-700 whitespace-pre-wrap font-sans leading-relaxed mb-4 p-3 rounded-xl bg-white/80 border border-fuchsia-100"></pre>
+
+        <div class="grid lg:grid-cols-3 gap-3 mb-4">
+          <div class="p-3 rounded-2xl bg-white border border-gray-200">
+            <p class="text-[10px] font-bold uppercase text-gray-500 mb-2">Piezas por red</p>
+            <div id="florenciaChartChannel" class="florencia-chart min-h-[9rem]"></div>
+          </div>
+          <div class="p-3 rounded-2xl bg-white border border-gray-200">
+            <p class="text-[10px] font-bold uppercase text-gray-500 mb-2">Horarios de publicación (Chile)</p>
+            <div id="florenciaChartHour" class="florencia-chart min-h-[9rem]"></div>
+          </div>
+          <div class="p-3 rounded-2xl bg-white border border-gray-200">
+            <p class="text-[10px] font-bold uppercase text-gray-500 mb-2">Formato de contenido</p>
+            <div id="florenciaChartFormat" class="florencia-chart min-h-[9rem]"></div>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-3 mb-4">
+          <div class="p-3 rounded-2xl bg-white border border-gray-200">
+            <p class="text-[10px] font-bold uppercase text-gray-500 mb-2">Distribución por día de la semana</p>
+            <div id="florenciaChartWeekday" class="florencia-chart min-h-[8rem]"></div>
+          </div>
+          <div class="p-3 rounded-2xl bg-white border border-gray-200">
+            <p class="text-[10px] font-bold uppercase text-gray-500 mb-2">Mejores horas por canal</p>
+            <div id="florenciaBestTimes" class="space-y-2 text-xs"></div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <h5 class="text-sm font-semibold">Esta semana · qué subir y cuándo</h5>
+            <span class="text-[10px] text-gray-500" id="florenciaWeekMeta">hora Chile</span>
+          </div>
+          <div id="florenciaThisWeek" class="space-y-2"></div>
+        </div>
+
+        <div class="mb-4">
+          <h5 class="text-sm font-semibold mb-2">Piezas visuales listas</h5>
+          <div id="florenciaAssets" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2"></div>
+        </div>
+
+        <div>
+          <h5 class="text-sm font-semibold mb-2">Calendario del mes</h5>
+          <div id="florenciaMonthGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 max-h-[22rem] overflow-y-auto text-xs"></div>
+        </div>
+
+        <div id="florenciaDayDetail" class="hidden mt-4 p-4 rounded-2xl bg-white border border-fuchsia-200">
+          <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+            <div>
+              <p class="text-sm font-semibold" id="florenciaDayTitle">—</p>
+              <p class="text-[11px] text-gray-500" id="florenciaDayMeta">—</p>
+            </div>
+            <button type="button" id="florenciaCopyDay" class="px-3 py-1.5 rounded-lg bg-fuchsia-600 text-white text-xs font-medium">Copiar caption</button>
+          </div>
+          <pre id="florenciaDayCaption" class="text-xs bg-zilo-bg border border-gray-200 rounded-xl p-3 whitespace-pre-wrap font-sans mb-3">—</pre>
+          <img id="florenciaDayAsset" src="" alt="" class="hidden max-h-48 rounded-xl border border-gray-200 object-cover">
+        </div>
       </div>
 
       <% if (hasPerm('florencia.manage')) { %>
@@ -1918,6 +2091,8 @@ function hasPerm(key) {
           <pre id="informesMktNarrative" class="text-xs text-gray-700 whitespace-pre-wrap font-sans leading-relaxed min-h-[8rem]">—</pre>
         </div>
       </div>
+
+      <div id="informesMktCharts" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6"></div>
 
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-6" id="informesOpsMetrics"></div>
 
