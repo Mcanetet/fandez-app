@@ -624,15 +624,22 @@ router.post('/florencia/generate-plan', requireRole('admin'), requireAdminPermis
 
 router.post('/florencia/campaign-assets', requireRole('admin'), requireAdminPermission('florencia.manage'), async (req, res) => {
   try {
-    const results = await florencia.generatePartnerCampaignSet();
+    const outcome = await florencia.generatePartnerCampaignSet();
+    const results = outcome.results || outcome;
     store.logSecurityEvent('florencia_campaign_assets', `${results.length} piezas`, req);
     res.json({
       success: true,
       count: results.length,
-      files: results.map((r) => path.basename(r.path)),
-      message: 'Gráficas regeneradas con logo oficial Fandez.'
+      mode: outcome.mode || 'generated',
+      sharp: Boolean(outcome.sharp),
+      files: results.map((r) => r.file || path.basename(r.path)),
+      urls: results.map((r) => r.url || `/uploads/marketing/campana-socios/${path.basename(r.path)}`),
+      message: outcome.sharp === false
+        ? 'Gráficas con logo oficial publicadas (piezas empaquetadas). Soft-refresh para verlas.'
+        : 'Gráficas regeneradas con logo oficial Fandez (isotipo app).'
     });
   } catch (err) {
+    console.error('[florencia/campaign-assets]', err.message);
     res.status(500).json({ success: false, error: err.message || 'No se pudieron generar las gráficas' });
   }
 });

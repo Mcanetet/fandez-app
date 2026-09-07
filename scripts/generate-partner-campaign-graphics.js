@@ -7,11 +7,12 @@ const path = require('path');
 const { generatePartnerCampaignSet } = require('../lib/florencia/composeCreative');
 
 async function main() {
-  const outDir = path.join(__dirname, '../marketing/lanzamiento-socios');
-  console.log('Generando campaña socios con isotipo oficial…');
-  const results = await generatePartnerCampaignSet(outDir);
-  results.forEach((r) => console.log('✓', path.basename(r.path), `${r.width}x${r.height}`));
-  console.log('Listo:', outDir);
+  console.log('Generando campaña socios con isotipo oficial (app mark)…');
+  const outcome = await generatePartnerCampaignSet();
+  const results = outcome.results || [];
+  console.log('mode:', outcome.mode, 'sharp:', outcome.sharp);
+  results.forEach((r) => console.log('✓', r.file || path.basename(r.path), r.url || ''));
+  console.log('Listo');
 }
 
 main().catch((err) => {

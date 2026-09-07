@@ -32,4 +32,6 @@ public/uploads/requests/*
 !public/uploads/requests/.gitkeep
 public/uploads/marketing/*
 !public/uploads/marketing/.gitkeep
+!public/uploads/marketing/campana-socios/
+!public/uploads/marketing/campana-socios/**
 .preview/

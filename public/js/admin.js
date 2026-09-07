@@ -2545,8 +2545,8 @@
         const assetsEl = document.getElementById('florenciaAssets');
         if (assetsEl) {
           assetsEl.innerHTML = (mkt.assets || []).map((a) => `
-            <a href="${a.url}" target="_blank" rel="noopener" class="block p-2 rounded-xl border border-gray-200 bg-white hover:border-fuchsia-300">
-              <img src="${a.url}" alt="${a.use || a.file}" class="w-full h-20 object-cover rounded-lg mb-1.5" loading="lazy">
+            <a href="${a.url}?v=${Date.now()}" target="_blank" rel="noopener" class="block p-2 rounded-xl border border-gray-200 bg-white hover:border-fuchsia-300">
+              <img src="${a.url}?v=${Date.now()}" alt="${a.use || a.file}" class="w-full h-20 object-cover rounded-lg mb-1.5" loading="lazy">
               <p class="text-[10px] font-medium text-gray-700 leading-tight">${a.use || a.file}</p>
             </a>`).join('');
         }
@@ -2760,6 +2760,11 @@
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo regenerar');
       FandezNotify.show(data.message || `${data.count} gráficas listas`, 'success');
+      // Cache-bust miniaturas
+      document.querySelectorAll('#florenciaAssets img').forEach((img) => {
+        const base = img.src.split('?')[0];
+        img.src = `${base}?v=${Date.now()}`;
+      });
       if (typeof window.__fandezLoadFlorenciaCalendar === 'function') window.__fandezLoadFlorenciaCalendar();
     } catch (err) {
       FandezNotify.show(err.message || 'Error al generar gráficas', 'error');
