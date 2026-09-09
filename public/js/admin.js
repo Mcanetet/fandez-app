@@ -511,9 +511,36 @@
     }
   }
 
+  async function reviewContractDocument(row, status) {
+    const notes = row.querySelector('.doc-notes')?.value?.trim() || '';
+    if ((status === 'rejected' || status === 'needs_info') && !notes) {
+      FandezNotify.show('Escribe la observación de este documento', 'warning');
+      row.querySelector('.doc-notes')?.focus();
+      return;
+    }
+    try {
+      const res = await adminFetch(`/contratos/${row.dataset.providerId}/documentos/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docKey: row.dataset.docKey, status, notes })
+      });
+      const data = await res.json();
+      if (data.success) {
+        FandezNotify.show(
+          status === 'approved' ? 'Documento aprobado' :
+          status === 'rejected' ? 'Documento rechazado' : 'Corrección solicitada en este documento',
+          status === 'approved' ? 'success' : 'warning'
+        );
+        setTimeout(() => location.reload(), 600);
+      } else FandezNotify.show(data.error || 'Error', 'error');
+    } catch (_) {
+      FandezNotify.show('Error de conexión', 'error');
+    }
+  }
+
   document.querySelectorAll('.btn-contract-approve').forEach((btn) => {
     btn.addEventListener('click', () => {
-      if (!confirm('¿Aprobar expediente y activar al socio en producción?')) return;
+      if (!confirm('¿Aprobar expediente y activar al socio? Primero debe estar aprobado cada documento esencial.')) return;
       reviewContract(btn.dataset.id, 'approve', { notes: '' });
     });
   });
@@ -527,6 +554,34 @@
     btn.addEventListener('click', () => {
       if (!confirm('¿Suspender operación de este socio?')) return;
       reviewContract(btn.dataset.id, 'suspend');
+    });
+  });
+  document.querySelectorAll('.btn-doc-approve').forEach((btn) => {
+    btn.addEventListener('click', () => reviewContractDocument(btn.closest('.contract-doc-row'), 'approved'));
+  });
+  document.querySelectorAll('.btn-doc-reject').forEach((btn) => {
+    btn.addEventListener('click', () => reviewContractDocument(btn.closest('.contract-doc-row'), 'rejected'));
+  });
+  document.querySelectorAll('.btn-doc-needs').forEach((btn) => {
+    btn.addEventListener('click', () => reviewContractDocument(btn.closest('.contract-doc-row'), 'needs_info'));
+  });
+  document.querySelectorAll('.btn-contract-ai-review').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Revisando…';
+      try {
+        const res = await adminFetch(`/contratos/${btn.dataset.id}/ai-review`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          FandezNotify.show('Prechequeo IA actualizado', 'success');
+          setTimeout(() => location.reload(), 600);
+        } else FandezNotify.show(data.error || 'Error', 'error');
+      } catch (_) {
+        FandezNotify.show('Error de conexión', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Re-chequear IA';
+      }
     });
   });
 

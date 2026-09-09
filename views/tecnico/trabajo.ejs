@@ -402,11 +402,11 @@
             <strong id="setCharged">—</strong>
           </div>
           <div class="flex justify-between text-zilo-muted">
-            <span id="setCardLabel">Tarjeta y administración 5%</span>
+            <span id="setCardLabel">Mercado Pago valor presente</span>
             <span id="setCard">—</span>
           </div>
           <div class="flex justify-between text-zilo-muted">
-            <span id="setAppLabel">Comisión Fandez 20%</span>
+            <span id="setAppLabel">Comisión Fandez 12% IVA incl.</span>
             <span id="setApp">—</span>
           </div>
           <div class="flex justify-between text-zilo-success" id="setMaterialsKeepRow">
@@ -418,7 +418,7 @@
             <span id="setMaterials">—</span>
           </div>
           <div class="flex justify-between text-zilo-muted">
-            <span id="setIvaLabel">IVA sobre comisión/cargos</span>
+            <span id="setIvaLabel">IVA incluido (desglose)</span>
             <span id="setIva">—</span>
           </div>
           <div class="flex justify-between pt-2 mt-1 border-t border-zilo-border">
@@ -427,7 +427,7 @@
           </div>
         </div>
       </details>
-      <p class="text-[11px] text-zilo-muted/80">De la mano de obra: 5% tarjeta/admin y 20% comisión Fandez. Los materiales son 100% tuyos.</p>
+      <p class="text-[11px] text-zilo-muted/80">De la mano de obra: 12% Fandez (IVA incluido) y el costo Mercado Pago a valor presente. Los materiales son 100% tuyos. El cliente no paga recargo de tarjeta.</p>
       <a href="<%= typeof returnUrl !== 'undefined' ? returnUrl : '/tecnico' %>" class="mt-4 block w-full text-center py-3 rounded-xl zilo-btn-primary">Volver al panel</a>
     </section>
   </main>
@@ -471,4 +471,4 @@
 </div>
 
 <%- include('../partials/call-overlay') %>
-<%- include('../partials/footer', { pageScript: '/js/tecnico-trabajo.js', extraScripts: ['/js/map.js', '/js/webrtc-call.js'] }) %>
+<%- include('../partials/footer', { pageScript: '/js/tecnico-trabajo.js', extraScripts: ['/js/image-upload.js', '/js/map.js', '/js/webrtc-call.js'] }) %>

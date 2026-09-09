@@ -27,7 +27,10 @@
     <%- include('../partials/trust-strip', { trustStats: typeof trustStats !== 'undefined' ? trustStats : {} }) %>
 
     <div class="zilo-card-premium rounded-2xl p-5">
-      <p class="text-xs text-zilo-muted mb-1"><%= request.address %></p>
+        <p class="text-xs text-zilo-muted mb-1"><%= request.address %></p>
+      <% if (request.squareMeters) { %>
+        <p class="text-xs text-zilo-muted mt-1"><%= request.squareMeters %> m² · <%= request.activityName || service.name %></p>
+      <% } %>
       <% if (request.urgencyTierLabel) { %>
         <p class="text-xs text-zilo-accent mt-2">Urgencia: <strong><%= request.urgencyTierLabel %></strong></p>
       <% } %>
@@ -85,7 +88,7 @@
         <input type="radio" name="paymentMethod" value="card" <%= (summary.paymentMethod || 'card') === 'card' ? 'checked' : '' %> class="mt-0.5 accent-[#C45C14]">
         <div class="flex-1">
           <strong class="text-sm block">Tarjeta débito / crédito</strong>
-          <span class="text-xs text-zilo-muted">Pago seguro · sin recargo adicional en el total</span>
+          <span class="text-xs text-zilo-muted">Pago seguro · crédito hasta <%= Number(summary.maxCardInstallments) || 3 %> cuotas · sin recargo en el total</span>
           <% if (enabledCardGateways.length === 1) { %>
             <p class="text-[10px] text-zilo-muted mt-0.5">Procesado por <%= enabledCardGateways[0].label %></p>
           <% } %>

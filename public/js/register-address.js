@@ -76,15 +76,14 @@
 
   function syncAddressCopy() {
     if (addressLabel) {
-      addressLabel.textContent = isProviderRole()
-        ? t('register.address_company')
-        : t('register.address_street');
+      addressLabel.textContent = t('register.address_street');
     }
     if (addressHint) {
       addressHint.textContent = isProviderRole()
-        ? t('register.address_provider_hint')
-        : t('register.address_hint');
+        ? t('register.zone_hint')
+        : t('register.zone_hint_client');
     }
+    if (unitInput) unitInput.required = !isProviderRole();
     if (lastCoverage && !lastCoverage.covered) showCoverage(lastCoverage);
   }
 
@@ -671,7 +670,7 @@
       addressInput.reportValidity();
       return;
     }
-    if (unitInput && unitInput.value.trim().length < 2) {
+    if (!isProviderRole() && unitInput && unitInput.value.trim().length < 2) {
       e.preventDefault();
       unitInput.setCustomValidity(t('register.error_address_unit_required'));
       unitInput.reportValidity();

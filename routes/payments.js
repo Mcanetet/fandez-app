@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const store = require('../models/store');
 const mp = require('../lib/mercadopago');
+const { readGatewayInstallments } = require('../lib/mercadopagoFees');
 const transbank = require('../lib/transbank');
 const gateways = require('../lib/payments/gateways');
 const cardCheckout = require('../lib/payments/cardCheckout');
@@ -9,6 +10,10 @@ const { notifyProvidersForRequest } = require('../lib/dispatch');
 const { requireRole } = require('../middleware/auth');
 const company = require('../config/company');
 const appMode = require('../lib/appMode');
+
+function cardInstallmentsExtras(payload) {
+  return { cardInstallments: readGatewayInstallments(payload) };
+}
 
 function getBaseUrl(req) {
   if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, '');
@@ -82,10 +87,11 @@ async function syncMercadoPagoPayment(request, { paymentId, chargeId, io } = {})
   }
 
   const mpId = String(payment.id || paymentId || '');
+  const extras = cardInstallmentsExtras(payment);
   if (charge) {
-    store.markAdditionalPaymentApproved(request.id, mpId);
+    store.markAdditionalPaymentApproved(request.id, mpId, extras);
   } else {
-    store.markPaymentApproved(request.id, mpId);
+    store.markPaymentApproved(request.id, mpId, extras);
     store.activateRequest(request.id);
   }
 
@@ -440,12 +446,13 @@ router.post('/transbank/retorno', requireRole('client'), async (req, res) => {
       (paidAmount == null || paidAmount === expectedAmount)
     ) {
       const paymentId = transbank.getAuthorizationId(result) || `tbk-${Date.now()}`;
+      const extras = cardInstallmentsExtras(result);
       if (chargeId && charge) {
-        store.markAdditionalPaymentApproved(request.id, String(paymentId));
+        store.markAdditionalPaymentApproved(request.id, String(paymentId), extras);
         req.app.get('io').emit(`request_update_${request.id}`, { request });
         return res.redirect(`/pagos/exito?ref=${ref}&charge=${encodeURIComponent(charge.id)}`);
       }
-      store.markPaymentApproved(request.id, String(paymentId));
+      store.markPaymentApproved(request.id, String(paymentId), extras);
       store.activateRequest(request.id);
       notifyProviders(req, request);
         return res.redirect(paymentSuccessPath(ref));
@@ -679,12 +686,12 @@ router.post('/webhook', async (req, res) => {
           return res.sendStatus(200);
         }
         if (chargeId && charge) {
-          store.markAdditionalPaymentApproved(request.id, String(data.id));
+          store.markAdditionalPaymentApproved(request.id, String(data.id), cardInstallmentsExtras(payment));
           const io = req.app.get('io');
           if (io) io.emit(`request_update_${request.id}`, { request });
           return res.sendStatus(200);
         }
-        store.markPaymentApproved(request.id, String(data.id));
+        store.markPaymentApproved(request.id, String(data.id), cardInstallmentsExtras(payment));
         store.activateRequest(request.id);
         const io = req.app.get('io');
         if (io) notifyProvidersForRequest(io, request);

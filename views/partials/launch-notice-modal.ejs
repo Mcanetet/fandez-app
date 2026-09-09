@@ -1,0 +1,90 @@
+<% if (typeof launchNoticeActive !== 'undefined' && launchNoticeActive) { %>
+<%
+  var launchMode = typeof launchNoticeMode !== 'undefined' ? launchNoticeMode : 'home';
+  var isClientLaunch = launchMode === 'client';
+%>
+<div
+  id="launchNoticeModal"
+  class="launch-notice hidden"
+  data-launch-notice
+  data-mode="<%= launchMode %>"
+  data-storage-key="<%= isClientLaunch ? 'fandez_launch_client_v1' : 'fandez_launch_home_v1' %>"
+  role="dialog"
+  aria-modal="true"
+  aria-hidden="true"
+  aria-labelledby="launchNoticeTitle"
+>
+  <div class="launch-notice__backdrop"></div>
+  <div class="launch-notice__card" role="document">
+    <p class="launch-notice__kicker"><%= isClientLaunch ? t('launch.client.kicker') : t('launch.home.kicker') %></p>
+    <h2 id="launchNoticeTitle" class="launch-notice__title"><%= isClientLaunch ? t('launch.client.title') : t('launch.home.title') %></h2>
+    <% if (isClientLaunch) { %>
+      <p class="launch-notice__lead"><%= t('launch.client.body') %></p>
+      <p class="launch-notice__note"><%= t('launch.client.note') %></p>
+      <button type="button" class="zilo-btn-primary launch-notice__btn" data-launch-dismiss>
+        <%= t('launch.client.cta') %>
+      </button>
+    <% } else { %>
+      <p class="launch-notice__lead"><%= t('launch.home.body') %></p>
+      <ul class="launch-notice__list">
+        <li><%= t('launch.home.point_partners') %></li>
+        <li><%= t('launch.home.point_clients') %></li>
+      </ul>
+      <div class="launch-notice__actions">
+        <a href="/registro?role=provider" class="zilo-btn-primary launch-notice__btn"><%= t('launch.home.cta_partner') %></a>
+        <a href="/registro?role=client" class="zilo-btn-ghost launch-notice__btn"><%= t('launch.home.cta_client') %></a>
+        <button type="button" class="launch-notice__text-btn" data-launch-dismiss><%= t('launch.home.dismiss') %></button>
+      </div>
+    <% } %>
+  </div>
+</div>
+<script>
+(function () {
+  var root = document.getElementById('launchNoticeModal');
+  if (!root) return;
+  var key = root.getAttribute('data-storage-key') || 'fandez_launch_home_v1';
+  var mode = root.getAttribute('data-mode') || 'home';
+  try {
+    if (sessionStorage.getItem(key) === '1') return;
+  } catch (e) {}
+
+  function open() {
+    root.classList.remove('hidden');
+    root.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('launch-notice-open');
+    var focusEl = root.querySelector('[data-launch-dismiss], .launch-notice__btn');
+    if (focusEl && focusEl.focus) focusEl.focus();
+  }
+
+  function close() {
+    root.classList.add('hidden');
+    root.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('launch-notice-open');
+    try { sessionStorage.setItem(key, '1'); } catch (e) {}
+  }
+
+  root.querySelectorAll('[data-launch-dismiss]').forEach(function (el) {
+    el.addEventListener('click', close);
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && !root.classList.contains('hidden')) close();
+  });
+
+  if (mode === 'client') {
+    window.FandezOpenClientLaunchNotice = function () {
+      try {
+        if (sessionStorage.getItem(key) === '1') return;
+      } catch (e) {}
+      open();
+    };
+    return;
+  }
+
+  var delay = 400;
+  try {
+    if (window.matchMedia('(max-width: 900px)').matches) delay = 1400;
+  } catch (e) {}
+  setTimeout(open, delay);
+})();
+</script>
+<% } %>

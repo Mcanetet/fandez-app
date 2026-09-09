@@ -6,11 +6,14 @@
   const returnUrl = page.dataset.returnUrl || '/tecnico';
   const notify = (msg, type) => { if (window.FandezNotify) window.FandezNotify.show(msg, type); };
 
-  function fileToBase64(input) {
+  async function fileToBase64(input) {
+    const file = input?.files?.[0];
+    if (!file) throw new Error('Selecciona un archivo');
+    if (window.FandezUpload?.prepareUploadFile) {
+      return window.FandezUpload.prepareUploadFile(file);
+    }
+    if (file.size > 5 * 1024 * 1024) throw new Error('Máximo 5 MB');
     return new Promise((resolve, reject) => {
-      const file = input?.files?.[0];
-      if (!file) return reject(new Error('Selecciona un archivo'));
-      if (file.size > 6 * 1024 * 1024) return reject(new Error('Máximo 6 MB'));
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
       reader.onerror = reject;
@@ -418,9 +421,9 @@
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
     set('setCharged', fmt(s.grandTotal));
-    set('setCardLabel', `Tarjeta y administración ${s.merchantCardFeePercent || 0}%`);
+    set('setCardLabel', `Mercado Pago valor presente ${s.merchantCardFeePercent || 0}%`);
     set('setCard', `−${fmt(s.cardFee)}`);
-    set('setAppLabel', `Comisión Fandez ${Math.round((s.laborCommissionRate || 0) * 100)}%`);
+    set('setAppLabel', `Comisión Fandez ${Math.round((s.laborCommissionRate || 0) * 100)}% IVA incl.`);
     set('setApp', `−${fmt(s.laborCommission)}`);
     if (s.materialsTotal) {
       set('setMaterialsKeep', fmt(s.materialsTotal));
@@ -428,8 +431,8 @@
       document.getElementById('setMaterialsKeepRow')?.classList.add('hidden');
     }
     document.getElementById('setMaterialsRow')?.classList.add('hidden');
-    set('setIvaLabel', `IVA ${Math.round((s.ivaRate || 0) * 100)}% sobre comisión/cargos`);
-    set('setIva', `−${fmt(s.ivaOnFees)}`);
+    set('setIvaLabel', `IVA incluido en comisión y MP (desglose)`);
+    set('setIva', fmt(s.ivaOnFees));
     set('setPayout', fmt(s.providerPayout));
     set('setPayoutHero', fmt(s.providerPayout));
 

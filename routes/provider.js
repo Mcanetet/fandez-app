@@ -18,6 +18,48 @@ const {
   getContractSummary
 } = require('../lib/contracts');
 const company = require('../config/company');
+const { reviewIdentityDocument } = require('../lib/documentReview');
+
+async function runKycAi(providerId, type, url) {
+  const ai = await reviewIdentityDocument({ url, docKey: type });
+  store.setVerificationDocReview(providerId, type, { ai });
+  return ai;
+}
+
+async function runContractAi(providerId, docKey, url) {
+  const ai = await reviewIdentityDocument({ url, docKey });
+  store.setContractDocumentAiReview(providerId, docKey, ai);
+  return ai;
+}
+
+async function ensureProviderAiReviews(providerId) {
+  const provider = store.getUserById(providerId);
+  if (!provider) return;
+  const tasks = [];
+  const v = provider.verification || {};
+  if (v.idCardFront && v.idCardFront !== 'demo' && (!v.reviews?.idFront?.ai || v.reviews.idFront.ai.status === 'pending')) {
+    tasks.push(runKycAi(providerId, 'idFront', v.idCardFront));
+  }
+  if (v.idCardBack && v.idCardBack !== 'demo' && (!v.reviews?.idBack?.ai || v.reviews.idBack.ai.status === 'pending')) {
+    tasks.push(runKycAi(providerId, 'idBack', v.idCardBack));
+  }
+  if (v.selfie && v.selfie !== 'demo' && (!v.reviews?.selfie?.ai || v.reviews.selfie.ai.status === 'pending')) {
+    tasks.push(runKycAi(providerId, 'selfie', v.selfie));
+  }
+  const contract = provider.providerContract || {};
+  Object.entries(contract.documents || {}).forEach(([key, doc]) => {
+    if (doc?.url && (!doc.ai || doc.ai.status === 'pending')) {
+      tasks.push(runContractAi(providerId, key, doc.url));
+    }
+  });
+  (contract.technicalCerts || []).forEach((cert, idx) => {
+    if (cert?.url && (!cert.ai || cert.ai.status === 'pending')) {
+      tasks.push(runContractAi(providerId, `technical_certs:${idx}`, cert.url));
+    }
+  });
+  if (tasks.length) await Promise.all(tasks);
+}
+
 const { CONSENT_DEFINITIONS, POLICY_VERSION } = require('../lib/consent-policy');
 const { serializeFieldJob } = require('../lib/fieldJob');
 const { ATTENTION_CHECKLIST } = require('../lib/onboarding');
@@ -286,7 +328,7 @@ router.post('/modo-cliente', requireRole('provider'), (req, res) => {
   res.json({ success: true, redirect: '/cliente' });
 });
 
-router.post('/verificacion/documento', requireRole('provider'), requireModule('provider_verificacion'), (req, res) => {
+router.post('/verificacion/documento', requireRole('provider'), requireModule('provider_verificacion'), async (req, res) => {
   const { type, data, label, consent_kyc } = req.body;
   const valid = ['idFront', 'idBack', 'certificate'];
   if (!valid.includes(type) || !data) {
@@ -317,15 +359,21 @@ router.post('/verificacion/documento', requireRole('provider'), requireModule('p
 
   try {
     const url = saveProviderFile(req.session.user.id, type, data);
-    const verification = store.saveProviderDocument(req.session.user.id, type, url, label);
-    res.json({ success: true, url, verification });
+    let verification = store.saveProviderDocument(req.session.user.id, type, url, label);
+    let ai = null;
+    if (type === 'idFront' || type === 'idBack') {
+      ai = await reviewIdentityDocument({ url, docKey: type });
+      store.setVerificationDocReview(req.session.user.id, type, { ai });
+      verification = store.getUserById(req.session.user.id).verification;
+    }
+    res.json({ success: true, url, verification, ai });
   } catch (err) {
     console.error('Error subiendo documento:', err.message);
-    res.status(500).json({ error: 'No se pudo guardar el documento' });
+    res.status(400).json({ error: err.message || 'No se pudo guardar el documento' });
   }
 });
 
-router.post('/verificacion/selfie', requireRole('provider'), requireModule('provider_verificacion'), (req, res) => {
+router.post('/verificacion/selfie', requireRole('provider'), requireModule('provider_verificacion'), async (req, res) => {
   const { data, consent_kyc } = req.body;
   if (!data) return res.status(400).json({ error: 'Imagen requerida' });
 
@@ -356,10 +404,13 @@ router.post('/verificacion/selfie', requireRole('provider'), requireModule('prov
 
   try {
     const url = saveProviderFile(req.session.user.id, 'selfie', data);
-    const verification = store.saveProviderSelfie(req.session.user.id, url, faceResult);
-    res.json({ success: true, url, verification, faceResult });
+    let verification = store.saveProviderSelfie(req.session.user.id, url, faceResult);
+    const ai = await reviewIdentityDocument({ url, docKey: 'selfie' });
+    store.setVerificationDocReview(req.session.user.id, 'selfie', { ai });
+    verification = store.getUserById(req.session.user.id).verification;
+    res.json({ success: true, url, verification, faceResult, ai });
   } catch (err) {
-    res.status(500).json({ error: 'Error al guardar la selfie' });
+    res.status(400).json({ error: err.message || 'Error al guardar la selfie' });
   }
 });
 
@@ -480,7 +531,7 @@ router.post('/equipo/:id/expediente/documento', requireRole('provider'), require
     if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json({ success: true, check: result.check });
   } catch (err) {
-    res.status(400).json({ success: false, error: 'No se pudo guardar el documento.' });
+    res.status(400).json({ success: false, error: err.message || 'No se pudo guardar el documento.' });
   }
 });
 
@@ -722,21 +773,31 @@ router.post('/contrato/draft', requireRole('provider'), requireModule('provider_
   res.json(result);
 });
 
-router.post('/contrato/documento', requireRole('provider'), requireModule('provider_contrato'), (req, res) => {
+router.post('/contrato/documento', requireRole('provider'), requireModule('provider_contrato'), async (req, res) => {
   const { docKey, data, label } = req.body;
   if (!docKey || !data) return res.status(400).json({ error: 'Documento inválido.' });
   try {
     const url = saveProviderFile(req.session.user.id, `contract-${docKey}`, data);
-    const contract = store.saveContractDocument(req.session.user.id, docKey, url, label);
-    res.json({ success: true, url, contract, summary: getContractSummary(contract) });
+    let contract = store.saveContractDocument(req.session.user.id, docKey, url, label);
+    const reviewKey = docKey === 'technical_certs'
+      ? `technical_certs:${Math.max(0, (contract.technicalCerts || []).length - 1)}`
+      : docKey;
+    const ai = await runContractAi(req.session.user.id, reviewKey, url);
+    contract = store.getProviderContract(req.session.user.id);
+    res.json({ success: true, url, contract, ai, summary: getContractSummary(contract) });
   } catch (err) {
     res.status(400).json({ error: err.message || 'No se pudo guardar el documento.' });
   }
 });
 
-router.post('/contrato/enviar', requireRole('provider'), requireModule('provider_contrato'), (req, res) => {
+router.post('/contrato/enviar', requireRole('provider'), requireModule('provider_contrato'), async (req, res) => {
   const draft = store.updateProviderContractDraft(req.session.user.id, req.body);
   if (draft.error) return res.status(400).json({ error: draft.error });
+  try {
+    await ensureProviderAiReviews(req.session.user.id);
+  } catch (err) {
+    console.error('IA antecedentes:', err.message);
+  }
   const result = store.submitProviderContract(req.session.user.id, {
     signature: req.body.signature || {},
     ip: getClientIp(req),

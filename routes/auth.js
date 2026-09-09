@@ -8,6 +8,7 @@ const emailVerification = require('../lib/emailVerification');
 const passwordReset = require('../lib/passwordReset');
 const mailer = require('../lib/mailer');
 const { notifyProviderSignup } = require('../lib/sofiaProviderSignup');
+const { localizeServices } = require('../lib/i18n-admin');
 
 const PUBLIC_ROLES = ['client', 'provider', 'tecnico'];
 const ADMIN_SESSION_MS = 4 * 60 * 60 * 1000;
@@ -218,7 +219,7 @@ function registerRenderOptions(req, extra = {}) {
   const pageId = form.role === 'provider' || req.query.role === 'provider' ? 'register_provider' : 'register';
   const selectedRegion = form.addressRegion || '';
   return {
-    services: store.getActiveServices(),
+    services: localizeServices(store.getActiveServices(), req.t),
     referralCode: req.session.pendingReferral || null,
     useMap: true,
     pageScript: '/js/register-address.js',

@@ -172,6 +172,72 @@ function run() {
   if (catalogCount < 20) throw new Error(`Catálogo demasiado corto: ${catalogCount}`);
   console.log(`✓ Catálogo: ${SERVICE_CATALOG.length} especialidades, ${catalogCount} subservicios`);
 
+  const {
+    resolveM2QuoteBase,
+    GARDEN_MIN_JOB_CLP,
+    isPerM2Service
+  } = require('../lib/serviceCatalogData');
+  const { getServiceFromPrice, quoteActivityForRequest } = require('../lib/pricing');
+
+  if (!isPerM2Service('jardineria')) throw new Error('jardineria debe cobrarse por m²');
+  assertEqual(getServiceFromPrice({}, 'jardineria'), 3500, 'Desde jardinería = $3.500 / m²');
+  assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 40), 140000, '40 m² corte césped');
+  assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 10), GARDEN_MIN_JOB_CLP, '10 m² aplica mínimo de salida $40.000');
+
+  const gardenQuote = quoteActivityForRequest({}, 'jard-cesped', {
+    horaSolicitud: '14:00',
+    tierId: 'today',
+    squareMeters: 40
+  });
+  assertEqual(gardenQuote.visitTotal, 140000, 'Cotización 40 m² corte en horario normal');
+
+  const gardenFloor = calculateDynamicTariff({
+    valorBase: 40000,
+    horaSolicitud: '14:00',
+    tiempoRespuestaMinutos: 180,
+    skipWorkFloor: true
+  });
+  assertEqual(gardenFloor.valorBaseAplicado, 40000, 'Jardinería no pisa el mínimo de $55.000');
+
+  console.log('\n— Liquidación 12% IVA incl. + Mercado Pago —');
+  const { computeRequestFinancials, calculatePaymentSurcharge } = require('../lib/pricing');
+
+  const finCash = computeRequestFinancials({
+    visitPricePaid: 100000,
+    additionalPaymentsTotal: 0,
+    paymentMethod: 'mercadopago',
+    cardInstallments: 1
+  }, {});
+  assertEqual(finCash.laborCommission, 12000, 'Comisión 12% IVA incluido');
+  assertEqual(finCash.cardFee, 3796, 'MP 3,19% + IVA 19% (1 cuota)');
+  assertEqual(finCash.appTotal, 15796, 'App + MP sin apilar IVA otra vez');
+  assertEqual(finCash.providerTotal, 84204, 'Neto socio 1 cuota');
+  assertEqual(finCash.ivaOnFeesIncluded, true, 'IVA ya viene incluido');
+
+  const fin12 = computeRequestFinancials({
+    visitPricePaid: 100000,
+    additionalPaymentsTotal: 0,
+    paymentMethod: 'mercadopago',
+    cardInstallments: 12
+  }, {});
+  assertEqual(fin12.cardFee, 21408, 'MP valor presente 12 cuotas');
+  assertEqual(fin12.providerTotal, 66592, 'Neto socio 12 cuotas (el cliente sigue pagando $100.000)');
+
+  const clientCard = calculatePaymentSurcharge({}, 100000, 'card');
+  assertEqual(clientCard.amount, 0, 'Cliente: $0 recargo tarjeta');
+  assertEqual(clientCard.subtotal, 100000, 'Cliente paga el precio publicado');
+
+  const { normalizePricing } = require('../lib/pricing');
+  const { buildPreferencePaymentMethods } = require('../lib/mercadopago');
+  assertEqual(normalizePricing({}).maxCardInstallments, 3, 'Tope de cuotas default = 3');
+  assertEqual(buildPreferencePaymentMethods(3).installments, 3, 'Preferencia MP máximo 3 cuotas');
+  assertEqual(buildPreferencePaymentMethods(12).installments, 12, 'Admin puede subir el tope');
+  assertEqual(buildPreferencePaymentMethods(1).installments, 1, 'Se puede dejar solo contado');
+
+  const { isPreOperations } = require('../lib/launchNotice');
+  assertEqual(isPreOperations(Date.parse('2026-09-15T12:00:00-03:00')), true, 'Aviso activo en septiembre');
+  assertEqual(isPreOperations(Date.parse('2026-10-01T00:00:00-03:00')), false, 'Aviso se apaga el 1 de octubre');
+
   console.log('\nTodos los tests OK');
 }
 

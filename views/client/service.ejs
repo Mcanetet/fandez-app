@@ -1,12 +1,14 @@
 <%- include('../partials/head', { useMap: true }) %>
 
-<% const brandOptionalServices = ['pintura', 'cerrajero']; %>
+<% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria']; %>
 <% const brandOptional = brandOptionalServices.indexOf(String(service.id || '').toLowerCase()) !== -1; %>
+<% const perM2 = String(service.id || '') === 'jardineria' || service.pricingUnit === 'm2'; %>
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="servicePage"
   data-service-id="<%= service.id %>"
   data-service-name="<%= service.name %>"
   data-visit-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
   data-from-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
+  data-pricing-unit="<%= perM2 ? 'm2' : 'job' %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
   data-whatsapp="<%= company.whatsapp %>"
   data-brand-optional="<%= brandOptional ? '1' : '0' %>"
@@ -33,8 +35,8 @@
       <p class="zilo-label mb-4"><%= t('client.service.rates') %></p>
       <% const displayFrom = typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice); %>
       <div class="flex justify-between py-3 border-b border-zilo-border">
-        <span class="text-zilo-muted text-sm"><%= t('client.service.work_base') %></span>
-        <strong class="text-zilo-accent font-semibold" id="displayVisitPrice"><%= formatCLP(displayFrom) %></strong>
+        <span class="text-zilo-muted text-sm"><%= perM2 ? t('client.service.work_base_m2') : t('client.service.work_base') %></span>
+        <strong class="text-zilo-accent font-semibold" id="displayVisitPrice"><%= formatCLP(displayFrom) %><% if (perM2) { %> / m²<% } %></strong>
       </div>
       <div id="urgencyAdjustmentRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
         <span class="text-zilo-muted" id="urgencyAdjustmentLabel"><%= t('client.service.dynamic_surcharge') %></span>
@@ -46,7 +48,7 @@
       </div>
       <div class="flex justify-between py-3">
         <span class="text-zilo-muted text-sm font-medium"><%= t('client.service.total_est') %></span>
-        <strong class="text-zilo-accent font-semibold" id="displayTotalPrice"><%= formatCLP(displayFrom) %></strong>
+        <strong class="text-zilo-accent font-semibold" id="displayTotalPrice"><%= perM2 ? '—' : formatCLP(displayFrom) %></strong>
       </div>
       <p class="text-[11px] text-zilo-muted/70 mt-3"><%= t('client.service.pay_hint_dynamic') %></p>
       <details class="mt-3 text-left">
@@ -191,11 +193,13 @@
         <select id="activityId" name="activityId" required class="zilo-input">
           <option value=""><%= t('client.service.subservice_ph') %></option>
           <% activities.forEach(function(act) { %>
-            <option value="<%= act.id %>" data-base="<%= act.basePrice %>">
-              <%= act.name %> — <%= formatCLP(act.basePrice) %>
+            <option value="<%= act.id %>" data-base="<%= act.basePrice %>" data-unit="<%= act.pricingUnit || 'job' %>" data-per-m2="<%= act.pricePerM2 || act.basePrice %>" data-min-m2="<%= act.minM2 || 15 %>">
+              <%= act.name %> — <%= act.pricingUnit === 'm2' ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m²') : formatCLP(act.basePrice) %>
             </option>
           <% }); %>
-          <option value="otro" data-base="100000">Otro — describir (desde $100.000)</option>
+          <option value="otro" data-base="<%= perM2 ? 5500 : 100000 %>" data-unit="<%= perM2 ? 'm2' : 'job' %>" data-per-m2="<%= perM2 ? 5500 : '' %>" data-min-m2="15">
+            <%= perM2 ? 'Otro — describir (desde $5.500 / m²)' : 'Otro — describir (desde $100.000)' %>
+          </option>
         </select>
         <p class="text-[11px] text-zilo-muted mt-1"><%= t('client.service.subservice_hint') %></p>
         <div id="customActivityFields" class="hidden mt-3 space-y-2 p-3 rounded-xl border border-zilo-border bg-zilo-surface/40">
@@ -206,15 +210,23 @@
       </div>
       <% } %>
 
+      <% if (perM2) { %>
+      <div>
+        <label for="squareMeters" class="zilo-label block mb-1.5"><%= t('client.service.area_m2') %> *</label>
+        <input type="number" id="squareMeters" name="squareMeters" min="10" step="1" inputmode="numeric" required class="zilo-input" placeholder="<%= t('client.service.area_m2_ph') %>">
+        <p class="text-[11px] text-zilo-muted mt-1"><%= t('client.service.area_m2_hint') %></p>
+      </div>
+      <% } %>
+
       <div>
         <label for="notes" class="zilo-label block mb-1.5"><%= t('client.service.detail') %> *</label>
-        <textarea id="notes" rows="3" required placeholder="<%= t('client.service.detail_ph') %>" class="zilo-input resize-none"></textarea>
+        <textarea id="notes" rows="3" required placeholder="<%= perM2 ? t('client.service.detail_garden_ph') : t('client.service.detail_ph') %>" class="zilo-input resize-none"></textarea>
       </div>
 
       <div class="space-y-4">
         <div>
-          <label class="zilo-label block mb-1.5"><%= t('client.service.photo') %> <span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span></label>
-          <p class="text-[11px] text-zilo-muted mb-2"><%= t('client.service.photo_optional_hint') %></p>
+          <label class="zilo-label block mb-1.5"><%= perM2 ? t('client.service.photo_garden') : t('client.service.photo') %> <% if (!perM2) { %><span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span><% } else { %><span class="font-normal text-zilo-muted">*</span><% } %></label>
+          <p class="text-[11px] text-zilo-muted mb-2"><%= perM2 ? t('client.service.photo_garden_hint') : t('client.service.photo_optional_hint') %></p>
           <button type="button" id="btnPhotoHelp" class="w-full mb-3 py-2.5 px-3 rounded-xl border border-zilo-accent/30 bg-zilo-accent/10 text-zilo-accent text-xs font-semibold text-left flex items-center gap-2">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <span><%= t('client.service.photo_help_link') %></span>
@@ -251,7 +263,7 @@
       <div class="sticky-order-inner max-w-lg mx-auto">
         <div class="min-w-0">
           <p class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= t('client.service.visit_est') %></p>
-          <strong class="text-zilo-accent text-base" id="stickyTotal"><%= formatCLP(typeof displayFrom !== 'undefined' ? displayFrom : (service.fromPrice || pricing.servicePrice)) %></strong>
+          <strong class="text-zilo-accent text-base" id="stickyTotal"><%= perM2 ? '—' : formatCLP(typeof displayFrom !== 'undefined' ? displayFrom : (service.fromPrice || pricing.servicePrice)) %></strong>
         </div>
         <button type="button" id="btnRequestSticky" class="sticky-order-btn"><%= t('client.service.continue') %></button>
       </div>
@@ -682,7 +694,7 @@
 </div>
 
 <%- include('../partials/call-overlay') %>
-<%- include('../partials/footer', { pageScript: '/js/client.js', extraScripts: ['/js/webrtc-call.js'] }) %>
+<%- include('../partials/footer', { pageScript: '/js/client.js', extraScripts: ['/js/image-upload.js', '/js/webrtc-call.js'] }) %>
 <% if (typeof mod === 'function' && mod('client_aland')) { %>
 <script src="/js/aland-chat.js"></script>
 <% } %>

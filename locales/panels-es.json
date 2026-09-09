@@ -119,7 +119,7 @@
   "admin.documentos.empty": "Aún no hay documentos tributarios emitidos.",
 
   "admin.contratos.title": "Contratos y cumplimiento legal",
-  "admin.contratos.subtitle": "Expedientes de socios con contrato de prestación, cédula del representante legal y antecedentes societarios. Solo los aprobados operan en producción.",
+  "admin.contratos.subtitle": "La IA prechequea cada antecedente (real o posible falso). El equipo aprueba o rechaza documento por documento, con observaciones, antes de activar al socio.",
   "admin.contratos.pending_review": "En revisión",
   "admin.contratos.needs_info": "Antecedentes",
   "admin.contratos.approved": "Aprobados",

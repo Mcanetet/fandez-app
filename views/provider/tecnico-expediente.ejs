@@ -37,12 +37,12 @@
 
     <% const dossier = tecnico.verification || {}; %>
     <% const docs = [
-      ['photo','Foto personal',dossier.photo,'image/*','user'],
-      ['idCardFront','Carnet de identidad — frente',dossier.idCardFront,'image/*','environment'],
-      ['idCardBack','Carnet de identidad — reverso',dossier.idCardBack,'image/*','environment'],
-      ['criminalRecord','Certificado de antecedentes',dossier.criminalRecord,'image/*,application/pdf',''],
-      ['studyCertificate','Certificado de estudios',dossier.studyCertificates && dossier.studyCertificates.length,'image/*,application/pdf',''],
-      ['otherCertificate','Otro certificado (opcional)',dossier.otherCertificates && dossier.otherCertificates.length,'image/*,application/pdf','']
+      ['photo','Foto personal',dossier.photo,'image/jpeg,image/png,image/webp,image/heic,image/heif',''],
+      ['idCardFront','Carnet de identidad — frente',dossier.idCardFront,'image/jpeg,image/png,image/webp,image/heic,image/heif',''],
+      ['idCardBack','Carnet de identidad — reverso',dossier.idCardBack,'image/jpeg,image/png,image/webp,image/heic,image/heif',''],
+      ['criminalRecord','Certificado de antecedentes',dossier.criminalRecord,'image/jpeg,image/png,image/webp,application/pdf',''],
+      ['studyCertificate','Certificado de estudios',dossier.studyCertificates && dossier.studyCertificates.length,'image/jpeg,image/png,image/webp,application/pdf',''],
+      ['otherCertificate','Otro certificado (opcional)',dossier.otherCertificates && dossier.otherCertificates.length,'image/jpeg,image/png,image/webp,application/pdf','']
     ]; %>
     <% docs.forEach(([type,label,done,accept,capture]) => { %>
     <section class="zilo-card-premium rounded-2xl p-4">
@@ -60,4 +60,4 @@
     <p class="text-[11px] text-zilo-muted">Los documentos se almacenan en el expediente del técnico. El socio es responsable de verificar su vigencia y autenticidad.</p>
   </main>
 </div>
-<%- include('../partials/footer', { pageScript: '/js/tecnico-expediente.js' }) %>
+<%- include('../partials/footer', { pageScript: '/js/tecnico-expediente.js', extraScripts: ['/js/image-upload.js'] }) %>

@@ -695,21 +695,60 @@ function hasPerm(key) {
                     <p><strong>Firma:</strong> <%= c.signature.signerName %> · <%= new Date(c.signature.signedAt).toLocaleString('es-CL') %></p>
                   <% } %>
                 </div>
-                <div class="space-y-2">
-                  <p class="font-semibold text-gray-700">Documentos</p>
-                  <% Object.keys(c.documents || {}).forEach(function(docKey) {
-                    const doc = c.documents[docKey];
-                    const docDef = documentCatalog[docKey];
-                    if (!doc?.url) return;
-                  %>
-                    <a href="<%= doc.url %>" target="_blank" class="block text-blue-600 hover:underline"><%= docDef ? docDef.label : docKey %> ↗</a>
-                  <% }); %>
-                  <% (c.technicalCerts || []).forEach(function(cert, idx) { %>
-                    <a href="<%= cert.url %>" target="_blank" class="block text-blue-600 hover:underline">Certificación <%= idx + 1 %>: <%= cert.label %> ↗</a>
-                  <% }); %>
-                  <% if (!Object.keys(c.documents || {}).length && !(c.technicalCerts||[]).length) { %>
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between gap-2">
+                    <p class="font-semibold text-gray-700">Documentos</p>
+                    <% if (hasPerm('contratos.review') && ['pending_review','needs_info'].includes(item.summary.status)) { %>
+                      <button type="button" class="btn-contract-ai-review text-[10px] px-2 py-1 rounded-lg bg-blue-500/10 text-blue-700" data-id="<%= item.id %>">Re-chequear IA</button>
+                    <% } %>
+                  </div>
+                  <% const reviewDocs = typeof listProviderReviewDocuments === 'function' ? listProviderReviewDocuments(item.id) : []; %>
+                  <% if (!reviewDocs.length) { %>
                     <p class="text-gray-500">Sin documentos cargados aún.</p>
                   <% } %>
+                  <% reviewDocs.forEach(function(doc) {
+                    const ai = doc.ai || {};
+                    const human = doc.human || {};
+                    const aiColors = {
+                      verified: 'bg-emerald-500/15 text-emerald-700',
+                      suspicious: 'bg-amber-500/15 text-amber-800',
+                      fake: 'bg-red-500/15 text-red-700',
+                      unreadable: 'bg-slate-200 text-slate-700',
+                      pending_manual: 'bg-blue-500/15 text-blue-700',
+                      pending: 'bg-gray-100 text-gray-500'
+                    };
+                    const humanColors = {
+                      approved: 'bg-emerald-500/15 text-emerald-700',
+                      rejected: 'bg-red-500/15 text-red-700',
+                      needs_info: 'bg-amber-500/15 text-amber-800',
+                      pending: 'bg-gray-100 text-gray-500'
+                    };
+                    const aiLabel = { verified: 'IA: verificado', suspicious: 'IA: sospechoso', fake: 'IA: posible falso', unreadable: 'IA: ilegible', pending_manual: 'IA: revisión humana', pending: 'IA: pendiente' }[ai.status] || 'IA: pendiente';
+                    const humanLabel = { approved: 'Equipo: aprobado', rejected: 'Equipo: rechazado', needs_info: 'Equipo: corrección', pending: 'Equipo: pendiente' }[human.status] || 'Equipo: pendiente';
+                  %>
+                    <div class="p-3 rounded-xl border border-gray-200 bg-white space-y-2 contract-doc-row" data-provider-id="<%= item.id %>" data-doc-key="<%= doc.key %>">
+                      <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <a href="<%= doc.url %>" target="_blank" class="text-blue-600 hover:underline font-medium"><%= (doc.def && doc.def.label) || doc.key %> ↗</a>
+                          <div class="flex flex-wrap gap-1 mt-1">
+                            <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded <%= aiColors[ai.status] || aiColors.pending %>"><%= aiLabel %></span>
+                            <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded <%= humanColors[human.status] || humanColors.pending %>"><%= humanLabel %></span>
+                          </div>
+                        </div>
+                      </div>
+                      <% if (ai.reason) { %><p class="text-[11px] text-gray-500">IA: <%= ai.reason %></p><% } %>
+                      <% if (hasPerm('contratos.review') && ['pending_review','needs_info','approved'].includes(item.summary.status)) { %>
+                        <textarea class="doc-notes w-full text-xs border border-gray-200 rounded-lg p-2" rows="2" placeholder="Observaciones de este documento"><%= human.notes || '' %></textarea>
+                        <div class="flex flex-wrap gap-1.5">
+                          <button type="button" class="btn-doc-approve text-[10px] px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-700">Aprobar</button>
+                          <button type="button" class="btn-doc-needs text-[10px] px-2 py-1 rounded-lg bg-amber-500/10 text-amber-800">Pedir corrección</button>
+                          <button type="button" class="btn-doc-reject text-[10px] px-2 py-1 rounded-lg bg-red-500/10 text-red-700">Rechazar</button>
+                        </div>
+                      <% } else if (human.notes) { %>
+                        <p class="text-[11px] text-gray-600">Equipo: <%= human.notes %></p>
+                      <% } %>
+                    </div>
+                  <% }); %>
                 </div>
               </div>
               <% if (c.review?.reviewNotes) { %>

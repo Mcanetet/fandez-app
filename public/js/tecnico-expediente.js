@@ -3,14 +3,22 @@
   if (!page) return;
 
   function fileToDataUrl(input) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const file = input.files?.[0];
       if (!file) return reject(new Error('Selecciona un archivo'));
-      if (file.size > 6 * 1024 * 1024) return reject(new Error('El archivo supera 6 MB'));
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
-      reader.readAsDataURL(file);
+      try {
+        if (window.FandezUpload?.prepareUploadFile) {
+          resolve(await window.FandezUpload.prepareUploadFile(file));
+          return;
+        }
+        if (file.size > 5 * 1024 * 1024) return reject(new Error('El archivo supera 5 MB'));
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+        reader.readAsDataURL(file);
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 

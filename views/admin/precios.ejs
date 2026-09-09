@@ -66,42 +66,69 @@
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
         <h2 class="text-sm font-semibold mb-4">Comisiones y liquidación al socio</h2>
         <p class="text-xs text-gray-500 mb-4">
-          Fandez <strong>recauda el 100%</strong> del cliente. Al socio: al tomar solo ve <strong>Te pagamos</strong>;
-          al completar ve cobrado − comisión app − fee tarjeta − IVA (IVA solo sobre comisión/cargos Fandez).
-          Contabilidad: Fandez factura su margen; el socio factura su parte (confirmar con contador).
+          El cliente paga <strong>un solo precio</strong> (IVA incluido). No le sumamos recargo de tarjeta.
+          Fandez recauda el 100% y al socio se descuenta: <strong>12% de la app (IVA incluido)</strong>
+          + <strong>costo Mercado Pago a valor presente</strong>. Materiales al socio al 100%.
         </p>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-xs text-gray-500">Comisión app — mano de obra (%)</label>
-            <input type="number" name="laborCommissionPercent" value="<%= Math.round(pricing.laborCommissionRate * 100) %>" min="0" max="100" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Default 20%.</p>
+            <input type="number" name="laborCommissionPercent" value="<%= Math.round(pricing.laborCommissionRate * 1000) / 10 %>" min="0" max="100" step="0.1" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Default 12%. IVA incluido: no se le suma 19% encima.</p>
           </div>
           <div>
             <label class="text-xs text-gray-500">Comisión app — materiales</label>
             <input type="hidden" name="materialsCommissionPercent" value="0">
             <div class="zilo-input w-full mt-1 text-gray-500 bg-gray-50">0% · a costo</div>
-            <p class="text-[10px] text-gray-400 mt-1">El material se entrega íntegro al socio y no aumenta comisiones ni cargos.</p>
+            <p class="text-[10px] text-gray-400 mt-1">El material se entrega íntegro al socio.</p>
           </div>
           <div>
-            <label class="text-xs text-gray-500">Fee tarjeta/admin al liquidar socio (%)</label>
-            <input type="number" name="merchantCardFeePercent" value="<%= pricing.merchantCardFeePercent != null ? pricing.merchantCardFeePercent : 5 %>" min="0" max="100" step="1" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Default 5%. Se descuenta del total de mano de obra al socio (no se suma al cliente).</p>
+            <label class="text-xs text-gray-500">Mercado Pago online, 1 cuota (% sin IVA)</label>
+            <input type="number" name="mpOnlineRatePercent" value="<%= pricing.mpOnlineRatePercent != null ? pricing.mpOnlineRatePercent : 3.19 %>" min="0" max="20" step="0.01" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Publicado MP Chile ~3,19%. Con IVA 19% ≈ <%= (Number(pricing.merchantCardFeePercent) || 3.8).toFixed(2) %>% efectivo al contado.</p>
           </div>
           <div>
-            <label class="text-xs text-gray-500">IVA sobre comisiones (%)</label>
+            <label class="text-xs text-gray-500">IVA para desglose y fee MP (%)</label>
             <input type="number" name="ivaPercent" value="<%= Math.round((pricing.ivaRate != null ? pricing.ivaRate : 0.19) * 100) %>" min="0" max="100" step="1" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Default 19%. IVA = (comisión app + fee tarjeta) × IVA.</p>
+            <p class="text-[10px] text-gray-400 mt-1">Solo desglose contable + para calcular el costo MP. No se cobra extra al cliente ni se apila sobre el 12%.</p>
           </div>
         </div>
+        <p class="text-[11px] text-gray-500 mt-3">
+          Ejemplo $100.000 de mano de obra con tarjeta 1 cuota:
+          app $12.000 + MP ≈ $3.796 → socio $84.204.
+          Si el cliente paga en más cuotas, MP descuenta más (valor presente) y eso también sale del socio, no del cliente.
+        </p>
+        <% const pvExtra = pricing.mpPresentValueExtra || {}; %>
+        <p class="text-xs font-medium text-gray-600 mt-4 mb-2">Extra valor presente MP (% sin IVA, sobre la tasa online)</p>
+        <div class="grid grid-cols-5 gap-2">
+          <% [1, 3, 6, 9, 12].forEach((cuotas) => { %>
+            <div>
+              <label class="text-[10px] text-gray-400"><%= cuotas %> cuota<%= cuotas > 1 ? 's' : '' %></label>
+              <input type="number" name="mpPvExtra<%= cuotas %>" value="<%= Math.round((Number(pvExtra[cuotas]) || 0) * 10000) / 100 %>" min="0" max="40" step="0.1" class="zilo-input w-full mt-1">
+            </div>
+          <% }); %>
+        </div>
+        <p class="text-[10px] text-gray-400 mt-1">1 cuota = 0. En 3/6/9/12 MP deja menos plata hoy; ese extra se descuenta al socio. Ajústalo si cambia la tabla de MP Chile.</p>
       </section>
 
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
         <h2 class="text-sm font-semibold mb-4">Pagos</h2>
         <div class="grid grid-cols-1 gap-3 mb-4">
           <div>
-            <label class="text-xs text-gray-500">Recargo tarjeta al cliente (%)</label>
-            <input type="number" name="cardSurchargePercent" value="<%= pricing.cardSurchargePercent %>" min="0" max="100" step="1" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Obsoleto en checkout: el cliente ya no paga recargo. Déjalo en 0. El 5% se aplica solo en liquidación al socio.</p>
+            <p class="text-sm text-gray-700">Recargo tarjeta al cliente: <strong>0%</strong></p>
+            <input type="hidden" name="cardSurchargePercent" value="0">
+            <p class="text-[10px] text-gray-400 mt-1">El cliente no paga recargo por tarjeta. El costo MP se descuenta al socio.</p>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">Máximo de cuotas en crédito</label>
+            <select name="maxCardInstallments" class="zilo-input w-full mt-1">
+              <% [1, 3, 6, 9, 12].forEach((n) => { %>
+                <option value="<%= n %>" <%= Number(pricing.maxCardInstallments) === n ? 'selected' : '' %>>
+                  <%= n === 1 ? 'Solo 1 pago (sin cuotas)' : `Hasta ${n} cuotas` %>
+                </option>
+              <% }); %>
+            </select>
+            <p class="text-[10px] text-gray-400 mt-1">En Mercado Pago el cliente no verá 6/9/12 si el tope es 3. Débito y pago al contado siguen en 1 cuota. Transbank se configura en el portal del comercio.</p>
           </div>
           <div class="flex flex-wrap gap-4">
             <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -259,7 +286,7 @@
                           <td class="px-3 py-2.5">
                             <input type="hidden" name="catalogActivityId" value="<%= activity.id %>">
                             <p class="font-medium text-gray-800"><%= activity.name %></p>
-                            <p class="text-[10px] font-mono text-gray-400"><%= activity.id %></p>
+                            <p class="text-[10px] font-mono text-gray-400"><%= activity.id %><% if (activity.pricingUnit === 'm2') { %> · cobro por m²<% } %></p>
                           </td>
                           <td class="px-3 py-2.5">
                             <span class="text-[10px] px-2 py-0.5 rounded-full <%= activity.kind === 'correctiva' ? 'bg-orange-50 text-orange-700' : 'bg-emerald-50 text-emerald-700' %>">
@@ -271,11 +298,12 @@
                               type="number"
                               name="catalogBasePrice"
                               value="<%= activity.basePrice %>"
-                              min="55000"
-                              step="1000"
+                              min="<%= activity.pricingUnit === 'm2' ? 1000 : 55000 %>"
+                              step="<%= activity.pricingUnit === 'm2' ? 100 : 1000 %>"
                               class="zilo-input !py-2 text-sm w-full"
                               required
                             >
+                            <% if (activity.pricingUnit === 'm2') { %><p class="text-[10px] text-gray-500 mt-1">CLP / m²</p><% } %>
                           </td>
                         </tr>
                       <% }); %>
@@ -306,7 +334,8 @@
           { id: 'lavavajillas', name: 'Lavavajillas' },
           { id: 'calderas', name: 'Calderas' },
           { id: 'generadores', name: 'Generadores' },
-          { id: 'pintura', name: 'Pintura' }
+          { id: 'pintura', name: 'Pintura' },
+          { id: 'jardineria', name: 'Jardinería' }
         ]; %>
         <div class="overflow-x-auto rounded-xl border border-gray-100 mb-3">
           <table class="w-full text-sm min-w-[720px]">
@@ -407,7 +436,7 @@
     </form>
 
     <section class="mt-6 p-4 rounded-2xl bg-zilo-accent/5 border border-zilo-accent/20">
-      <p class="text-xs text-gray-600"><strong>Vista previa:</strong> Diagnóstico mínimo <%= formatCLP(pricing.visitPrice) %>. Trabajo base (servicePrice) <%= formatCLP(pricing.servicePrice) %> — el total del cliente aplica horario × urgencia. Comisión app: <%= Math.round(pricing.laborCommissionRate * 100) %>% mano de obra, <%= Math.round(pricing.materialsCommissionRate * 100) %>% materiales.</p>
+      <p class="text-xs text-gray-600"><strong>Vista previa:</strong> Diagnóstico mínimo <%= formatCLP(pricing.visitPrice) %>. Trabajo base (servicePrice) <%= formatCLP(pricing.servicePrice) %> — el total del cliente aplica horario × urgencia. Liquidación: <%= Math.round(pricing.laborCommissionRate * 100) %>% Fandez IVA incl. + Mercado Pago valor presente. Materiales 0% comisión.</p>
     </section>
   </main>
 </div>

@@ -13,6 +13,7 @@ const { dispatchPendingToProvider, dispatchPendingToTechnician } = require('./li
 const { securityHeaders, rateLimitSimple } = require('./middleware/security');
 const backup = require('./lib/backup');
 const { i18nMiddleware } = require('./middleware/i18n');
+const { isPreOperations } = require('./lib/launchNotice');
 
 const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/client');
@@ -302,6 +303,7 @@ app.use(async (req, res, next) => {
   res.locals.adminUrl = appMode.adminUrl;
   res.locals.appModeStatus = appMode.getPublicStatus();
   res.locals.requestTimeouts = getRequestTimeouts();
+  res.locals.launchNoticeActive = isPreOperations();
 
   try {
     const pathName = req.path || '';

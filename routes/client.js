@@ -381,10 +381,12 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
   const urgencyTiers = store.getUrgencyTiersForClient();
   const activities = store.getActivitiesForService(serviceRaw.id);
   const serviceFromPrice = store.getServiceFromPrice(serviceRaw.id);
+  const serviceSummary = store.getServicePriceSummary(serviceRaw.id);
   const service = localizeServices([{
     ...serviceRaw,
     fromPrice: serviceFromPrice,
-    averagePrice: serviceFromPrice
+    averagePrice: serviceFromPrice,
+    pricingUnit: serviceSummary.pricingUnit || 'job'
   }], req.t)[0];
   const profile = store.getUserById(req.session.user.id);
   const catalogServices = localizeServices(store.getActiveServices(), req.t);
@@ -417,7 +419,8 @@ router.get('/precio-preview', requireRole('client'), (req, res) => {
   const valorBase = Number.isFinite(base) && base > 0 ? base : undefined;
   const preview = store.previewVisitPrice(req.query.tier || 'scheduled', valorBase, {
     localTime: req.query.localTime,
-    timeZone: req.query.timeZone
+    timeZone: req.query.timeZone,
+    skipWorkFloor: req.query.skipFloor === '1' || req.query.skipFloor === 'true'
   });
   if (!preview) return res.status(400).json({ error: 'Opción de llegada no válida' });
   res.json({
@@ -451,7 +454,12 @@ router.get('/subservicios/:serviceId', requireRole('client'), (req, res) => {
       name: a.name,
       kind: a.kind,
       basePrice: a.basePrice,
-      basePriceLabel: store.formatCLP(a.basePrice)
+      pricingUnit: a.pricingUnit || 'job',
+      pricePerM2: a.pricePerM2 || null,
+      minM2: a.minM2 || null,
+      basePriceLabel: a.pricingUnit === 'm2'
+        ? `${store.formatCLP(a.pricePerM2 || a.basePrice)} / m²`
+        : store.formatCLP(a.basePrice)
     }))
   });
 });
@@ -459,7 +467,8 @@ router.get('/subservicios/:serviceId', requireRole('client'), (req, res) => {
 router.post('/solicitar', requireRole('client'), requireModule('client_solicitar'), async (req, res) => {
   const {
     serviceId, address, notes, lat, lng, gift, clientPhoto, clientBrandPhoto,
-    brandNotVisible, urgencyTier, activityId, customName, localTime, timeZone
+    brandNotVisible, urgencyTier, activityId, customName, localTime, timeZone,
+    squareMeters
   } = req.body;
   const service = store.getServiceById(serviceId);
   if (!service || !service.enabled) {
@@ -468,8 +477,11 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   if (gift?.name && !store.isModuleEnabled('client_regalo')) {
     return res.status(403).json({ error: 'El módulo de regalos no está habilitado' });
   }
+  if (service.id === 'jardineria' && !clientPhoto) {
+    return res.status(400).json({ error: 'Sube al menos una foto del jardín o del área a trabajar.' });
+  }
   if (!clientPhoto) {
-    // Foto recomendada; no bloquea la solicitud
+    // Foto recomendada; no bloquea la solicitud (salvo jardinería)
   }
   const skipBrand = brandNotVisible === true || brandNotVisible === 'true' || brandNotVisible === 1 || !clientBrandPhoto;
   if (!skipBrand && !clientBrandPhoto) {
@@ -506,7 +518,8 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
       activityId,
       customName,
       localTime,
-      timeZone
+      timeZone,
+      squareMeters
     });
 
     if (clientPhotoUrl) {
@@ -523,7 +536,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   } catch (err) {
     console.error('Error creando solicitud:', err.message);
     const isCoverage = /operamos|comuna|trabajando/i.test(err.message || '');
-    const isUserError = /Describe|foto|marca|subservicio|urgencia|dirección|cobertura|Opción|Selecciona|mínimo/i.test(err.message || '');
+    const isUserError = /Describe|foto|marca|subservicio|urgencia|dirección|cobertura|Opción|Selecciona|mínimo|metros|jardín/i.test(err.message || '');
     res.status(isCoverage || isUserError ? 400 : 500).json({
       error: (isCoverage || isUserError)
         ? (err.message || 'No se pudo crear la solicitud')

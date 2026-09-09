@@ -1,9 +1,12 @@
 (function () {
-  function fileToDataUrl(input) {
+  async function fileToDataUrl(input) {
+    const file = input?.files?.[0];
+    if (!file) throw new Error('Adjunta la factura o boleta');
+    if (window.FandezUpload?.prepareUploadFile) {
+      return window.FandezUpload.prepareUploadFile(file);
+    }
+    if (file.size > 5 * 1024 * 1024) throw new Error('El archivo supera 5 MB');
     return new Promise((resolve, reject) => {
-      const file = input?.files?.[0];
-      if (!file) return reject(new Error('Adjunta la factura o boleta'));
-      if (file.size > 6 * 1024 * 1024) return reject(new Error('El archivo supera 6 MB'));
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
       reader.onerror = () => reject(new Error('No se pudo leer el archivo'));

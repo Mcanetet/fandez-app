@@ -119,7 +119,7 @@
   "admin.documentos.empty": "No tax documents issued yet.",
 
   "admin.contratos.title": "Contracts & legal compliance",
-  "admin.contratos.subtitle": "Partner files with service agreement, legal representative ID and corporate records. Only approved partners operate in production.",
+  "admin.contratos.subtitle": "AI pre-checks each document (authentic or likely fake). The team approves or rejects file by file, with notes, before activating the partner.",
   "admin.contratos.pending_review": "Under review",
   "admin.contratos.needs_info": "Pending docs",
   "admin.contratos.approved": "Approved",

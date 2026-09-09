@@ -98,6 +98,14 @@
   }
   function selectedActivityBase() {
     const opt = activitySelect?.selectedOptions?.[0];
+    const perM2 = page?.dataset?.pricingUnit === 'm2' || opt?.dataset?.unit === 'm2';
+    if (perM2) {
+      const rate = parseInt(opt?.dataset?.perM2 || opt?.dataset?.base || page?.dataset?.fromPrice, 10);
+      const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
+      const m2 = Number.isFinite(typed) && typed >= 10 ? typed : 10;
+      const n = (Number.isFinite(rate) && rate > 0 ? rate : 5500) * m2;
+      return Math.max(40000, Math.round(n));
+    }
     const base = opt?.dataset?.base;
     const n = base ? parseInt(base, 10) : NaN;
     if (Number.isFinite(n) && n > 0) return n;
@@ -109,6 +117,7 @@
     toggleClientOtherFields();
     updatePricePreview();
   });
+  document.getElementById('squareMeters')?.addEventListener('input', () => updatePricePreview());
   toggleClientOtherFields();
 
   function deviceLocalClock() {
@@ -133,12 +142,22 @@
         timeZone: clock.timeZone
       });
       if (base) params.set('base', String(base));
+      if (page?.dataset?.pricingUnit === 'm2') params.set('skipFloor', '1');
       const res = await fetch(`/cliente/precio-preview?${params.toString()}`);
       const data = await res.json();
       if (!data.success) return;
       const p = data.preview;
       const f = data.preview.formatted;
-      visitEl.textContent = f.baseVisit;
+      if (page?.dataset?.pricingUnit === 'm2') {
+        const opt = activitySelect?.selectedOptions?.[0];
+        const rate = parseInt(opt?.dataset?.perM2 || page.dataset.fromPrice, 10);
+        if (Number.isFinite(rate) && rate > 0) {
+          const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
+          visitEl.textContent = `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(rate)} / m²`;
+        }
+      } else {
+        visitEl.textContent = f.baseVisit;
+      }
       document.getElementById('displayServicePrice').textContent = f.servicePrice;
       document.getElementById('displayTotalPrice').textContent = f.estimatedTotal;
 
@@ -193,10 +212,15 @@
   let submitInFlight = false;
 
   function compressImageFile(file, { maxSide = 1600, quality = 0.82 } = {}) {
+    if (window.FandezUpload?.prepareUploadFile) {
+      return window.FandezUpload.prepareUploadFile(file, { maxSide, quality }).catch((err) => {
+        FandezNotify.show(err.message || t('client.js.need_photo'), 'warning');
+        return null;
+      });
+    }
     return new Promise((resolve) => {
       if (!file) return resolve(null);
       const type = String(file.type || '');
-      // Algunos móviles no informan MIME; igual intentamos leer.
       if (type && !type.startsWith('image/')) return resolve(null);
       const reader = new FileReader();
       reader.onerror = () => resolve(null);
@@ -1962,6 +1986,9 @@
     const activityId = document.getElementById('activityId')?.value || '';
     const customName = document.getElementById('customActivityName')?.value.trim() || '';
     const notes = document.getElementById('notes')?.value.trim() || '';
+    const gardenJob = page?.dataset?.pricingUnit === 'm2';
+    const squareMetersRaw = document.getElementById('squareMeters')?.value;
+    const squareMeters = gardenJob ? parseFloat(squareMetersRaw) : undefined;
     if (document.getElementById('activityId') && !activityId) {
       FandezNotify.show(t('client.js.need_subservice'), 'warning');
       document.getElementById('activityId')?.focus();
@@ -1972,8 +1999,13 @@
       document.getElementById('customActivityName')?.focus();
       return;
     }
-    if (!notes) {
-      FandezNotify.show(t('client.js.need_notes'), 'warning');
+    if (gardenJob && (!Number.isFinite(squareMeters) || squareMeters < 10)) {
+      FandezNotify.show(t('client.js.need_m2'), 'warning');
+      document.getElementById('squareMeters')?.focus();
+      return;
+    }
+    if (!notes || (gardenJob && notes.length < 12)) {
+      FandezNotify.show(gardenJob ? t('client.js.need_garden_notes') : t('client.js.need_notes'), 'warning');
       document.getElementById('notes')?.focus();
       return;
     }
@@ -1981,6 +2013,11 @@
     const brandOptional = page?.dataset.brandOptional === '1';
     let brandNotVisible = Boolean(brandNotVisibleCheck?.checked) || brandOptional;
     const hasProblemPhoto = Boolean(cachedProblemPhoto || clientPhotoInput?.files?.length);
+    if (gardenJob && !hasProblemPhoto) {
+      FandezNotify.show(t('client.js.need_garden_photo'), 'warning');
+      clientPhotoInput?.focus();
+      return;
+    }
     const hasBrandPhoto = Boolean(cachedBrandPhoto || clientBrandPhotoInput?.files?.length);
     if (!brandNotVisible && !hasBrandPhoto) {
       // Foto de marca recomendada, no bloqueante: si no hay, tratamos como sin marca
@@ -2048,6 +2085,7 @@
           urgencyTier: selectedUrgencyTier,
           activityId,
           customName: activityId === 'otro' ? customName : undefined,
+          squareMeters: gardenJob ? squareMeters : undefined,
           localTime: clock.localTime,
           timeZone: clock.timeZone
         })

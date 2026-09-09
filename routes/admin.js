@@ -435,6 +435,7 @@ router.get('/', requireRole('admin'), async (req, res) => {
     providerContracts: store.getAllProviderContracts(),
     contractStats: store.getContractStats(),
     documentCatalog: require('../lib/contracts').DOCUMENT_CATALOG,
+    listProviderReviewDocuments: store.listProviderReviewDocuments,
     adminNav: getNavForLocale(access, req.t),
     adminStrings: getAdminStrings(req.t),
     adminAccess: access,
@@ -898,6 +899,78 @@ router.post('/contratos/:providerId/review', requireRole('admin'), requireAdminP
   if (result.error) return res.status(400).json({ error: result.error });
   store.logSecurityEvent(`contrato_${action}`, req.params.providerId, req);
   res.json({ success: true, provider: result.provider });
+});
+
+router.post('/contratos/:providerId/documentos/review', requireRole('admin'), requireAdminPermission('contratos.review'), (req, res) => {
+  const { docKey, status, notes } = req.body || {};
+  if (!['approved', 'rejected', 'needs_info'].includes(status)) {
+    return res.status(400).json({ error: 'Estado de documento inválido.' });
+  }
+  const key = String(docKey || '');
+  if (key.startsWith('kyc:')) {
+    const type = key.slice(4);
+    const result = store.setVerificationDocReview(
+      req.params.providerId,
+      type,
+      { human: { status, notes: notes || '' } },
+      req.session.user.email
+    );
+    if (result.error) return res.status(400).json({ error: result.error });
+    store.logSecurityEvent(`kyc_doc_${status}`, `${req.params.providerId}:${type}`, req);
+    return res.json({
+      success: true,
+      documents: store.listProviderReviewDocuments(req.params.providerId)
+    });
+  }
+  const result = store.reviewContractDocument(
+    req.params.providerId,
+    key,
+    { status, notes },
+    req.session.user.email
+  );
+  if (result.error) return res.status(400).json({ error: result.error });
+  store.logSecurityEvent(`contrato_doc_${status}`, `${req.params.providerId}:${key}`, req);
+  res.json({
+    success: true,
+    documents: store.listProviderReviewDocuments(req.params.providerId)
+  });
+});
+
+router.post('/contratos/:providerId/ai-review', requireRole('admin'), requireAdminPermission('contratos.review'), async (req, res) => {
+  const { reviewIdentityDocument } = require('../lib/documentReview');
+  const provider = store.getUserById(req.params.providerId);
+  if (!provider) return res.status(404).json({ error: 'Socio no encontrado' });
+  const v = provider.verification || {};
+  const tasks = [];
+  const pushKyc = (type, url) => {
+    if (!url || url === 'demo') return;
+    tasks.push(reviewIdentityDocument({ url, docKey: type }).then((ai) => {
+      store.setVerificationDocReview(req.params.providerId, type, { ai });
+    }));
+  };
+  pushKyc('idFront', v.idCardFront);
+  pushKyc('idBack', v.idCardBack);
+  pushKyc('selfie', v.selfie);
+  Object.entries(provider.providerContract?.documents || {}).forEach(([key, doc]) => {
+    if (doc?.url) {
+      tasks.push(reviewIdentityDocument({ url: doc.url, docKey: key }).then((ai) => {
+        store.setContractDocumentAiReview(req.params.providerId, key, ai);
+      }));
+    }
+  });
+  (provider.providerContract?.technicalCerts || []).forEach((cert, idx) => {
+    if (cert?.url) {
+      tasks.push(reviewIdentityDocument({ url: cert.url, docKey: `technical_certs:${idx}` }).then((ai) => {
+        store.setContractDocumentAiReview(req.params.providerId, `technical_certs:${idx}`, ai);
+      }));
+    }
+  });
+  await Promise.all(tasks);
+  store.logSecurityEvent('contrato_ai_review', req.params.providerId, req);
+  res.json({
+    success: true,
+    documents: store.listProviderReviewDocuments(req.params.providerId)
+  });
 });
 
 router.get('/contratos/:providerId', requireRole('admin'), requireAdminPermission('contratos.view'), (req, res) => {
@@ -1450,9 +1523,17 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
     },
     laborCommissionRate: parseFloat(body.laborCommissionPercent) / 100,
     materialsCommissionRate: parseFloat(body.materialsCommissionPercent) / 100,
-    merchantCardFeePercent: parseInt(body.merchantCardFeePercent, 10),
+    mpOnlineRatePercent: parseFloat(body.mpOnlineRatePercent),
+    mpPresentValueExtra: {
+      1: parseFloat(body.mpPvExtra1),
+      3: parseFloat(body.mpPvExtra3),
+      6: parseFloat(body.mpPvExtra6),
+      9: parseFloat(body.mpPvExtra9),
+      12: parseFloat(body.mpPvExtra12)
+    },
     ivaRate: parseFloat(body.ivaPercent) / 100,
-    cardSurchargePercent: parseInt(body.cardSurchargePercent, 10),
+    maxCardInstallments: parseInt(body.maxCardInstallments, 10),
+    cardSurchargePercent: 0,
     cardEnabled: body.cardEnabled === 'on',
     transferEnabled: body.transferEnabled === 'on',
     bankTransfer: {

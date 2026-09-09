@@ -9,7 +9,7 @@
   <main class="flex-1 px-5 py-5 space-y-5">
     <div class="p-4 rounded-2xl border <%= summary.canOperate ? 'border-emerald-500/30 bg-emerald-500/10' : summary.status === 'pending_review' ? 'border-amber-500/30 bg-amber-500/10' : 'border-blue-500/30 bg-blue-500/10' %>">
       <p class="text-sm font-semibold mb-1"><%= summary.label %></p>
-      <p class="text-xs text-zilo-muted mt-1">Aquí subes los antecedentes legales y firmas el contrato para activar tu cuenta. La verificación de identidad (carnet y facial) se completa en Perfil.</p>
+      <p class="text-xs text-zilo-muted mt-1">Sube los papeles esenciales y firma. El carnet también va en Perfil.</p>
       <p class="text-xs text-zilo-muted mt-2">Versión contrato v<%= templateVersion %> · <%= company.name %></p>
       <% if (contract.review?.rejectionReason) { %>
         <p class="text-xs text-red-600 mt-2"><strong>Observación:</strong> <%= contract.review.rejectionReason %></p>
@@ -25,9 +25,10 @@
         <p class="text-xs text-zilo-muted">Vigente hasta <%= contract.expiresAt ? new Date(contract.expiresAt).toLocaleDateString('es-CL') : '—' %></p>
       </div>
     <% } else if (summary.status === 'pending_review') { %>
-      <div class="p-5 rounded-2xl zilo-card-premium text-center">
-        <p class="text-sm font-semibold text-amber-600">Tu expediente está en revisión legal</p>
-        <p class="text-xs text-zilo-muted mt-2">Te notificaremos por correo cuando sea aprobado para operar en producción.</p>
+      <div class="p-5 rounded-2xl zilo-card-premium">
+        <p class="text-sm font-semibold text-amber-600 text-center">Tu expediente está en revisión legal</p>
+        <p class="text-xs text-zilo-muted mt-2 text-center">La IA ya prechequeó cada antecedente. El equipo Fandez confirma o pide correcciones por documento.</p>
+        <div id="documentsList" class="space-y-3 mt-4"></div>
       </div>
     <% } else { %>
 
@@ -75,7 +76,7 @@
       <!-- Documentos -->
       <section class="p-5 rounded-2xl zilo-card-premium space-y-3" id="documentsSection">
         <p class="zilo-label">4. Antecedentes documentales</p>
-        <p class="text-xs text-zilo-muted">Selecciona primero el tipo de prestador. Sube fotos o PDF legibles (máx. 6 MB).</p>
+        <p class="text-xs text-zilo-muted">Solo pedimos lo esencial. Toma la foto con el celular o elige un archivo; se comprime sola (JPEG/PNG/PDF, máx. 5 MB). El resto es opcional.</p>
         <div id="documentsList" class="space-y-3"></div>
       </section>
 
@@ -94,7 +95,8 @@
 
       <!-- Declaraciones -->
       <section class="p-5 rounded-2xl zilo-card-premium space-y-2">
-        <p class="zilo-label">6. Declaraciones juradas</p>
+        <p class="zilo-label">6. Declaraciones</p>
+        <p class="text-[11px] text-zilo-muted mb-2">Tres puntos. El detalle está en el contrato de arriba.</p>
         <% legalDeclarations.forEach(function(decl) { %>
           <label class="flex items-start gap-2 text-xs cursor-pointer">
             <input type="checkbox" name="declarations" value="<%= decl.id %>" <%= contract.declarations[decl.id] ? 'checked' : '' %> class="mt-0.5">
@@ -112,7 +114,7 @@
         </div>
         <label class="flex items-start gap-2 text-xs cursor-pointer">
           <input type="checkbox" id="acceptContract" <%= contract.signature?.accepted ? 'checked' : '' %>>
-          <span>Acepto el contrato de prestación de servicios v<%= templateVersion %> y autorizo el tratamiento de mis antecedentes para fines de cumplimiento legal y operación de la plataforma Fandez.</span>
+          <span>Acepto el contrato v<%= templateVersion %> y envío mi expediente a revisión.</span>
         </label>
       </section>
 
@@ -126,4 +128,4 @@
 <script type="application/json" id="contractUploaded"><%- JSON.stringify({ documents: contract.documents, technicalCerts: contract.technicalCerts }) %></script>
 
 <%- include('../partials/nav-provider', { navActive: 'perfil' }) %>
-<%- include('../partials/footer', { pageScript: '/js/provider-contract.js' }) %>
+<%- include('../partials/footer', { pageScript: '/js/provider-contract.js', extraScripts: ['/js/image-upload.js'] }) %>

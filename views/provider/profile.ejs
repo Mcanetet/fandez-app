@@ -75,7 +75,7 @@
     <section id="verificacion" class="p-5 rounded-2xl zilo-card-premium space-y-4">
       <div>
         <p class="zilo-label mb-1">Activar cuenta</p>
-        <p class="text-xs text-zilo-muted">Sube aquí tu documentación de identidad y verificación. El contrato y antecedentes legales se completan en Contrato. Ambos son obligatorios para recibir solicitudes.</p>
+        <p class="text-xs text-zilo-muted">Sube aquí tu carnet y la verificación facial. Puedes tomar la foto con el celular: se convierte sola a JPEG. El contrato y los antecedentes legales se completan en Contrato.</p>
       </div>
 
       <ul class="text-xs space-y-1.5 text-zilo-muted">
@@ -89,7 +89,7 @@
 
       <label class="flex items-start gap-2 text-xs text-zilo-muted cursor-pointer p-3 rounded-xl border border-zilo-border bg-zilo-bg/30">
         <input type="checkbox" id="consentKyc" class="mt-0.5 rounded accent-zilo-accent shrink-0" <%= typeof hasKycConsent !== 'undefined' && hasKycConsent ? 'checked disabled' : '' %>>
-        <span><%- typeof t === 'function' ? t('consent.kyc') : 'Autorizo el tratamiento de datos sensibles para verificación de identidad (Ley 21.719)' %></span>
+        <span><%- typeof t === 'function' ? t('consent.kyc') : 'Autorizo usar mi carnet y foto de rostro solo para verificar que soy yo (Ley 21.719).' %></span>
       </label>
 
       <div class="zilo-divider"></div>
@@ -99,15 +99,23 @@
         <div class="grid grid-cols-2 gap-2">
           <label class="zilo-btn-ghost !text-xs !py-3 cursor-pointer text-center">
             Frente
-            <input type="file" id="input-idFront" accept="image/*,.pdf" class="hidden">
+            <input type="file" id="input-idFront" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" class="hidden">
           </label>
           <label class="zilo-btn-ghost !text-xs !py-3 cursor-pointer text-center">
             Reverso
-            <input type="file" id="input-idBack" accept="image/*,.pdf" class="hidden">
+            <input type="file" id="input-idBack" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" class="hidden">
           </label>
         </div>
         <div id="preview-idFront" class="mt-1"></div>
         <div id="preview-idBack" class="mt-1"></div>
+        <% const kycReviews = provider.verification?.reviews || {}; %>
+        <% if (kycReviews.idFront?.ai?.reason || kycReviews.idBack?.ai?.reason) { %>
+          <div class="mt-2 text-[11px] space-y-1 text-zilo-muted">
+            <% if (kycReviews.idFront?.ai?.reason) { %><p>Frente — <%= kycReviews.idFront.ai.status === 'verified' ? 'IA: verificado' : kycReviews.idFront.ai.status === 'fake' ? 'IA: posible falso' : 'IA: revisión' %>. <%= kycReviews.idFront.ai.reason %></p><% } %>
+            <% if (kycReviews.idBack?.ai?.reason) { %><p>Reverso — <%= kycReviews.idBack.ai.status === 'verified' ? 'IA: verificado' : kycReviews.idBack.ai.status === 'fake' ? 'IA: posible falso' : 'IA: revisión' %>. <%= kycReviews.idBack.ai.reason %></p><% } %>
+          </div>
+        <% } %>
+        <p id="kycReviewHint" class="text-[11px] text-zilo-muted mt-2">Tras subir, la IA indica si el carnet parece real. El equipo Fandez confirma después.</p>
       </div>
 
       <div>
@@ -115,7 +123,7 @@
         <input type="text" id="certLabel" placeholder="Ej: SEC, técnico profesional..." class="zilo-input mb-2 text-sm">
         <label class="zilo-btn-ghost !text-xs !py-3 cursor-pointer block text-center">
           Subir certificado
-          <input type="file" id="input-certificate" accept="image/*,.pdf" class="hidden">
+          <input type="file" id="input-certificate" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" class="hidden">
         </label>
         <% if (provider.verification?.certificates?.length) { %>
           <ul class="mt-2 text-xs text-zilo-muted space-y-1">
@@ -134,7 +142,7 @@
         </button>
         <label class="zilo-btn-ghost !text-xs !py-3 cursor-pointer block text-center mt-2">
           O subir foto de rostro
-          <input type="file" id="input-selfieFile" accept="image/*" capture="user" class="hidden">
+          <input type="file" id="input-selfieFile" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" class="hidden">
         </label>
         <div id="preview-selfie" class="mt-2">
           <% if (provider.verification?.selfie && provider.verification.selfie !== 'demo') { %>
@@ -250,4 +258,4 @@
 </script>
 
 <%- include('../partials/nav-provider', { navActive: 'perfil' }) %>
-<%- include('../partials/footer', { pageScript: '/js/provider-verify.js' }) %>
+<%- include('../partials/footer', { pageScript: '/js/provider-verify.js', extraScripts: ['/js/image-upload.js'] }) %>

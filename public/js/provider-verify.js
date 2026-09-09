@@ -21,30 +21,47 @@
     return false;
   }
 
+  async function prepareFile(file) {
+    if (window.FandezUpload?.prepareUploadFile) {
+      return window.FandezUpload.prepareUploadFile(file);
+    }
+    return fileToBase64(file);
+  }
+
   async function uploadDocument(type, file, label) {
     if (!file) return;
     if (['idFront', 'idBack'].includes(type) && !kycConsentOk()) return;
-    if (file.size > 6 * 1024 * 1024) {
-      FandezNotify.show('El archivo no puede superar 6 MB', 'warning');
-      return;
+    try {
+      const data = await prepareFile(file);
+      const res = await fetch('/proveedor/verificacion/documento', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          data,
+          label,
+          consent_kyc: document.getElementById('consentKyc')?.checked || false
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        const aiStatus = json.ai?.status;
+        FandezNotify.show(
+          aiStatus === 'fake' ? 'Guardado, pero la IA marcó el documento como posible falso' :
+          aiStatus === 'verified' ? 'Documento guardado y verificado por IA' :
+          'Documento guardado',
+          aiStatus === 'fake' ? 'warning' : 'success'
+        );
+        updateVerificationUI(json.verification);
+        if (json.url && json.url !== 'demo') previewDoc(type, json.url);
+        if (json.ai?.reason) {
+          const hint = document.getElementById('kycReviewHint');
+          if (hint) hint.textContent = json.ai.reason;
+        }
+      } else FandezNotify.show(json.error || 'Error al subir', 'error');
+    } catch (err) {
+      FandezNotify.show(err.message || 'Error al subir', 'error');
     }
-    const data = await fileToBase64(file);
-    const res = await fetch('/proveedor/verificacion/documento', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type,
-        data,
-        label,
-        consent_kyc: document.getElementById('consentKyc')?.checked || false
-      })
-    });
-    const json = await res.json();
-    if (json.success) {
-      FandezNotify.show('Documento guardado', 'success');
-      updateVerificationUI(json.verification);
-      if (json.url && json.url !== 'demo') previewDoc(type, json.url);
-    } else FandezNotify.show(json.error || 'Error al subir', 'error');
   }
 
   function previewDoc(type, url) {
@@ -139,6 +156,9 @@
       if (faceVideo) {
         faceVideo.srcObject = faceStream;
         await faceVideo.play();
+        if (window.FandezUpload?.waitForVideoFrame) {
+          await window.FandezUpload.waitForVideoFrame(faceVideo);
+        }
         if (statusEl) statusEl.textContent = '';
       }
     } catch (err) {
@@ -163,15 +183,24 @@
 
   document.getElementById('btnCaptureFace')?.addEventListener('click', async () => {
     if (!faceVideo || !faceCanvas) return;
-    if (!faceVideo.videoWidth) {
-      FandezNotify.show('Espera a que la cámara cargue o sube una foto', 'warning');
-      return;
+    try {
+      if (window.FandezUpload?.waitForVideoFrame) {
+        await window.FandezUpload.waitForVideoFrame(faceVideo);
+      }
+      const data = window.FandezUpload?.captureVideoFrame
+        ? window.FandezUpload.captureVideoFrame(faceVideo)
+        : (() => {
+          if (!faceVideo.videoWidth) throw new Error('Espera a que la cámara cargue o sube una foto');
+          const ctx = faceCanvas.getContext('2d');
+          faceCanvas.width = faceVideo.videoWidth;
+          faceCanvas.height = faceVideo.videoHeight;
+          ctx.drawImage(faceVideo, 0, 0);
+          return faceCanvas.toDataURL('image/jpeg', 0.82);
+        })();
+      await submitSelfie(data);
+    } catch (err) {
+      FandezNotify.show(err.message || 'No se pudo capturar la foto', 'warning');
     }
-    const ctx = faceCanvas.getContext('2d');
-    faceCanvas.width = faceVideo.videoWidth;
-    faceCanvas.height = faceVideo.videoHeight;
-    ctx.drawImage(faceVideo, 0, 0);
-    await submitSelfie(faceCanvas.toDataURL('image/jpeg', 0.85));
   });
 
   async function submitSelfie(data) {
@@ -205,12 +234,14 @@
   document.getElementById('input-selfieFile')?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 6 * 1024 * 1024) {
-      FandezNotify.show('La foto no puede superar 6 MB', 'warning');
-      return;
+    try {
+      const data = window.FandezUpload?.prepareUploadFile
+        ? await window.FandezUpload.prepareUploadFile(file, { maxSide: 960 })
+        : await fileToBase64(file);
+      await submitSelfie(data);
+    } catch (err) {
+      FandezNotify.show(err.message || 'No se pudo leer la foto', 'error');
     }
-    const data = await fileToBase64(file);
-    await submitSelfie(data);
     e.target.value = '';
   });
 

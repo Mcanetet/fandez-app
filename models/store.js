@@ -47,7 +47,11 @@ const {
   getCancellationFeeClp,
   getCancellationReasonLabel,
   getEnabledMaterialsCatalog,
-  findMaterialInCatalog
+  findMaterialInCatalog,
+  isPerM2Service,
+  isPerM2Activity,
+  resolveM2QuoteBase,
+  GARDEN_OTHER_RATE_M2
 } = require('../lib/pricing');
 const {
   defaultProviderContract,
@@ -62,7 +66,11 @@ const {
   LEGAL_DECLARATIONS,
   CONTRACT_CLAUSES,
   ENTITY_TYPES,
-  TEMPLATE_VERSION
+  TEMPLATE_VERSION,
+  normalizeDocumentRecord,
+  defaultDocumentMeta,
+  getContractDocumentEntries,
+  requiredDocumentsHumanApproved
 } = require('../lib/contracts');
 const { saveProviderFile } = require('../lib/uploads');
 const {
@@ -227,15 +235,10 @@ async function init() {
   SERVICES = data.services;
   MODULES = data.modules;
   await ensureMissingModules();
-  const rawMerchantFee = parseInt(data.pricing?.merchantCardFeePercent, 10);
-  const rawCardSurcharge = parseInt(data.pricing?.cardSurchargePercent, 10);
   PRICING_CONFIG = normalizePricing(data.pricing || DEFAULT_PRICING);
-  if (rawMerchantFee === 4 || !Number.isFinite(rawMerchantFee) || rawCardSurcharge > 0) {
-    PRICING_CONFIG = {
-      ...PRICING_CONFIG,
-      merchantCardFeePercent: 5,
-      cardSurchargePercent: 0
-    };
+  const rawLabor = Number(data.pricing?.laborCommissionRate);
+  const rawMerchantFee = parseFloat(data.pricing?.merchantCardFeePercent);
+  if (Math.abs(rawLabor - 0.2) < 0.0001 || rawMerchantFee === 4 || rawMerchantFee === 5) {
     repository.persist(() => repository.savePricingConfig(PRICING_CONFIG), 'pricing');
   }
   USERS = data.users;
@@ -287,7 +290,8 @@ async function createRequest({
   activityId,
   customName,
   localTime,
-  timeZone
+  timeZone,
+  squareMeters
 }) {
   const service = getServiceById(serviceId);
   const client = getUserById(clientId);
@@ -296,6 +300,17 @@ async function createRequest({
 
   notes = (notes || '').trim();
   if (!notes) return Promise.reject(new Error('Describe el problema para que el técnico sepa qué esperar.'));
+  const gardenJob = isPerM2Service(serviceId);
+  if (gardenJob && notes.length < 12) {
+    return Promise.reject(new Error('Describe el jardín o el trabajo (césped, poda, maleza, riego, etc.).'));
+  }
+  if (gardenJob && !clientPhotoUrl) {
+    return Promise.reject(new Error('Sube al menos una foto del área a trabajar.'));
+  }
+  const parsedM2 = Number(squareMeters);
+  if (gardenJob && (!Number.isFinite(parsedM2) || parsedM2 < 10)) {
+    return Promise.reject(new Error('Indica los metros cuadrados del área (mínimo 10 m²).'));
+  }
   const noBrand = Boolean(brandNotVisible) || !clientBrandPhotoUrl;
   if (!noBrand && !clientBrandPhotoUrl) {
     return Promise.reject(new Error('Sube una foto de la marca o marca «Sin marca a la vista».'));
@@ -321,7 +336,10 @@ async function createRequest({
       id: `otro-${Date.now()}`,
       name: `Otro: ${name}`,
       kind: 'correctiva',
-      basePrice: MIN_WORK_BASE_CLP,
+      basePrice: gardenJob ? GARDEN_OTHER_RATE_M2 : MIN_WORK_BASE_CLP,
+      pricePerM2: gardenJob ? GARDEN_OTHER_RATE_M2 : null,
+      pricingUnit: gardenJob ? 'm2' : 'job',
+      minM2: gardenJob ? 15 : null,
       manual: true
     };
   } else {
@@ -334,20 +352,27 @@ async function createRequest({
   const resolvedLocalTime = /^\d{1,2}:\d{2}$/.test(String(localTime || '').trim())
     ? String(localTime).trim()
     : new Date();
+  const perM2 = gardenJob || isPerM2Activity(activityMatch);
+  const quoteBase = perM2
+    ? resolveM2QuoteBase(activityMatch, parsedM2)
+    : activityMatch.basePrice;
   const visitCalc = isManualOther
     ? calculateVisitPricing(pricing, urgencyTier, {
       horaSolicitud: resolvedLocalTime,
-      valorBase: activityMatch.basePrice,
-      timeZone
+      valorBase: quoteBase,
+      timeZone,
+      skipWorkFloor: perM2
     })
     : (quoteActivityForRequest(pricing, activityId, {
       horaSolicitud: resolvedLocalTime,
       tierId: urgencyTier,
-      timeZone
+      timeZone,
+      squareMeters: parsedM2
     }) || calculateVisitPricing(pricing, urgencyTier, {
       horaSolicitud: resolvedLocalTime,
-      valorBase: activityMatch.basePrice,
-      timeZone
+      valorBase: quoteBase,
+      timeZone,
+      skipWorkFloor: perM2
     }));
   if (!visitCalc) return Promise.reject(new Error('Opción de urgencia no válida'));
 
@@ -391,6 +416,9 @@ async function createRequest({
     activityKind: activityMatch.kind,
     activityBasePrice: activityMatch.basePrice,
     activityManual: Boolean(activityMatch.manual),
+    pricingUnit: perM2 ? 'm2' : 'job',
+    pricePerM2: perM2 ? Number(activityMatch.pricePerM2 || activityMatch.basePrice) || null : null,
+    squareMeters: perM2 ? Math.max(10, parsedM2) : null,
     address: fullAddress,
     notes,
     status: 'pending_payment',
@@ -763,10 +791,11 @@ function getCheckoutSummary(userId, requestId) {
     urgencyAdjustmentAmount: request.urgencyAdjustmentAmount || 0,
     urgencyTierLabel: request.urgencyTierLabel || null,
     paymentMethod: request.paymentMethod || 'card',
-    // El cliente nunca ve ni paga recargo de tarjeta; el 5% se descuenta al socio.
+    // El cliente nunca ve ni paga recargo de tarjeta; el costo MP se descuenta al socio.
     paymentSurchargePercent: 0,
     paymentSurchargeAmount: 0,
     cardSurchargePercent: 0,
+    maxCardInstallments: pricing.maxCardInstallments || 3,
     cardEnabled: pricing.cardEnabled,
     transferEnabled: pricing.transferEnabled,
     bankTransfer: pricing.bankTransfer,
@@ -1007,7 +1036,7 @@ function setCardPaymentSession(requestId, { gateway, token, paymentUrl, preferen
   return request;
 }
 
-function markPaymentApproved(requestId, paymentId) {
+function markPaymentApproved(requestId, paymentId, extras = {}) {
   const request = requests.find(r => r.id === requestId);
   if (!request) return null;
   if (request.paymentStatus === 'approved') return request;
@@ -1015,6 +1044,10 @@ function markPaymentApproved(requestId, paymentId) {
   request.paymentId = paymentId;
   request.paidAt = new Date().toISOString();
   request.visitPricePaid = request.amountDue ?? request.visitTotal ?? request.basePrice;
+  const installments = parseInt(extras.cardInstallments, 10);
+  if (Number.isFinite(installments) && installments > 0) {
+    request.cardInstallments = installments;
+  }
   commitCheckoutDiscounts(request.clientId, requestId);
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   afterEvent((ev) => ev.onPaymentApproved(request));
@@ -1081,7 +1114,7 @@ function applyApprovedActivityChange(request, change) {
   }
 }
 
-function markAdditionalPaymentApproved(requestId, paymentId) {
+function markAdditionalPaymentApproved(requestId, paymentId, extras = {}) {
   const request = requests.find((r) => r.id === requestId);
   const charge = request?.additionalCharge;
   if (!charge || charge.status === 'approved') return request || null;
@@ -1090,6 +1123,11 @@ function markAdditionalPaymentApproved(requestId, paymentId) {
   charge.status = 'approved';
   charge.paymentId = paymentId;
   charge.paidAt = new Date().toISOString();
+  const installments = parseInt(extras.cardInstallments, 10);
+  if (Number.isFinite(installments) && installments > 0) {
+    charge.cardInstallments = installments;
+    request.cardInstallments = Math.max(request.cardInstallments || 1, installments);
+  }
 
   if (charge.reason === 'materials') {
     // Materiales: passthrough al socio; no inflar serviceAmount / mano de obra.
@@ -1558,7 +1596,8 @@ function decorateServiceForClient(service) {
     fromPrice: summary.fromPrice,
     averagePrice: summary.fromPrice,
     averagePriceExact: summary.averagePrice,
-    maxPrice: summary.maxPrice
+    maxPrice: summary.maxPrice,
+    pricingUnit: summary.pricingUnit || 'job'
   };
 }
 
@@ -1747,7 +1786,7 @@ function getUrgencyTiersForClient() {
   return getActiveUrgencyTiers(getPricingConfig());
 }
 
-function previewVisitPrice(tierId, valorBase, { localTime, timeZone } = {}) {
+function previewVisitPrice(tierId, valorBase, { localTime, timeZone, skipWorkFloor } = {}) {
   const opts = {};
   if (valorBase != null && Number.isFinite(valorBase) && valorBase > 0) {
     opts.valorBase = valorBase;
@@ -1756,6 +1795,7 @@ function previewVisitPrice(tierId, valorBase, { localTime, timeZone } = {}) {
     opts.horaSolicitud = String(localTime).trim();
   }
   if (timeZone) opts.timeZone = String(timeZone);
+  if (skipWorkFloor) opts.skipWorkFloor = true;
   return calculateVisitPricing(getPricingConfig(), tierId, opts);
 }
 
@@ -1770,6 +1810,14 @@ const defaultLocationShare = repository.defaultLocationShare;
 
 function ensureProviderFields(provider) {
   if (!provider.verification) provider.verification = defaultProviderVerification();
+  if (!provider.verification.reviews) {
+    provider.verification.reviews = defaultProviderVerification().reviews;
+  }
+  ['idFront', 'idBack', 'selfie'].forEach((key) => {
+    if (!provider.verification.reviews[key]) {
+      provider.verification.reviews[key] = defaultProviderVerification().reviews[key];
+    }
+  });
   if (!provider.locationShare) provider.locationShare = defaultLocationShare();
   if (!provider.providerContract) provider.providerContract = defaultProviderContract();
   if (!provider.wallDismissed || typeof provider.wallDismissed !== 'object') provider.wallDismissed = {};
@@ -1920,10 +1968,40 @@ function saveProviderDocument(providerId, type, url, label) {
   else if (type === 'certificate') {
     provider.verification.certificates.push({ url, label: label || 'Certificado', uploadedAt: new Date().toISOString() });
   }
+  const reviewKey = type === 'idFront' ? 'idFront' : type === 'idBack' ? 'idBack' : null;
+  if (reviewKey) {
+    provider.verification.reviews[reviewKey] = {
+      ai: { status: 'pending', authentic: null, confidence: null, reason: '', reviewedAt: null },
+      human: { status: 'pending', notes: '', reviewedBy: null, reviewedAt: null }
+    };
+  }
   provider.verification.submittedAt = new Date().toISOString();
   provider.verification.status = computeVerificationStatus(provider);
   repository.persist(() => repository.saveUser(provider), `proveedor ${providerId}`);
   return provider.verification;
+}
+
+function setVerificationDocReview(providerId, type, { ai, human }, adminEmail) {
+  const provider = getUserById(providerId);
+  if (!provider) return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+  const key = type === 'idFront' || type === 'idCardFront' ? 'idFront'
+    : type === 'idBack' || type === 'idCardBack' ? 'idBack'
+      : type === 'selfie' ? 'selfie' : null;
+  if (!key) return { error: 'Documento KYC inválido.' };
+  const current = provider.verification.reviews[key] || defaultProviderVerification().reviews[key];
+  if (ai) current.ai = { ...current.ai, ...ai };
+  if (human) {
+    current.human = {
+      ...current.human,
+      ...human,
+      reviewedBy: adminEmail || human.reviewedBy || null,
+      reviewedAt: new Date().toISOString()
+    };
+  }
+  provider.verification.reviews[key] = current;
+  repository.persist(() => repository.saveUser(provider), `kyc review ${providerId}`);
+  return { success: true, verification: provider.verification };
 }
 
 function saveProviderSelfie(providerId, url, faceResult) {
@@ -1934,6 +2012,10 @@ function saveProviderSelfie(providerId, url, faceResult) {
   provider.verification.faceVerified = faceResult.success;
   provider.verification.faceScore = faceResult.score || null;
   provider.verification.faceVerifiedAt = faceResult.success ? new Date().toISOString() : null;
+  provider.verification.reviews.selfie = {
+    ai: { status: 'pending', authentic: null, confidence: null, reason: '', reviewedAt: null },
+    human: { status: 'pending', notes: '', reviewedBy: null, reviewedAt: null }
+  };
   provider.verification.status = computeVerificationStatus(provider);
   repository.persist(() => repository.saveUser(provider), `proveedor ${providerId}`);
   return provider.verification;
@@ -2004,15 +2086,117 @@ function saveContractDocument(providerId, docKey, url, label) {
   if (!provider) return null;
   ensureProviderFields(provider);
   const c = provider.providerContract;
+  const rec = {
+    ...defaultDocumentMeta(),
+    url,
+    uploadedAt: new Date().toISOString(),
+    fileName: label || '',
+    label: label || ''
+  };
   if (docKey === 'technical_certs') {
-    c.technicalCerts.push({ url, label: label || 'Certificación', uploadedAt: new Date().toISOString() });
+    c.technicalCerts.push(rec);
   } else {
-    c.documents[docKey] = { url, uploadedAt: new Date().toISOString() };
+    c.documents[docKey] = rec;
   }
   c.status = 'incomplete';
   provider.providerContract = normalizeProviderContract(c);
   repository.persist(() => repository.saveUser(provider), `contrato doc ${providerId}`);
   return provider.providerContract;
+}
+
+function getContractDocSlot(contract, docKey) {
+  const key = String(docKey || '');
+  if (key.startsWith('technical_certs:')) {
+    const idx = Number(key.split(':')[1]);
+    if (!Number.isInteger(idx) || !contract.technicalCerts[idx]) return null;
+    return { kind: 'cert', idx, rec: contract.technicalCerts[idx] };
+  }
+  if (!contract.documents[key]) return null;
+  return { kind: 'single', rec: contract.documents[key] };
+}
+
+function setContractDocumentAiReview(providerId, docKey, ai) {
+  const provider = getUserById(providerId);
+  if (!provider) return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+  const slot = getContractDocSlot(provider.providerContract, docKey);
+  if (!slot) return { error: 'Documento no encontrado.' };
+  slot.rec.ai = { ...slot.rec.ai, ...ai };
+  provider.providerContract = normalizeProviderContract(provider.providerContract);
+  repository.persist(() => repository.saveUser(provider), `contrato ai ${providerId}`);
+  return { success: true, contract: provider.providerContract };
+}
+
+function reviewContractDocument(providerId, docKey, { status, notes }, adminEmail) {
+  const allowed = ['approved', 'rejected', 'needs_info'];
+  if (!allowed.includes(status)) return { error: 'Estado de documento inválido.' };
+  const provider = getUserById(providerId);
+  if (!provider) return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+  const slot = getContractDocSlot(provider.providerContract, docKey);
+  if (!slot) return { error: 'Documento no encontrado.' };
+  slot.rec.human = {
+    status,
+    notes: String(notes || '').slice(0, 800),
+    reviewedBy: adminEmail || null,
+    reviewedAt: new Date().toISOString()
+  };
+  provider.providerContract.history.push({
+    at: slot.rec.human.reviewedAt,
+    action: `doc_${status}`,
+    by: adminEmail,
+    notes: `${docKey}: ${notes || ''}`.trim()
+  });
+  if (status === 'rejected' || status === 'needs_info') {
+    const c = provider.providerContract;
+    if (['pending_review', 'needs_info', 'incomplete'].includes(c.status) || c.review?.status === 'pending') {
+      c.status = 'needs_info';
+      c.review = {
+        ...c.review,
+        status: 'needs_info',
+        reviewedBy: adminEmail,
+        reviewedAt: slot.rec.human.reviewedAt,
+        reviewNotes: notes || c.review.reviewNotes || '',
+        requestedDocs: Array.from(new Set([...(c.review.requestedDocs || []), docKey]))
+      };
+    }
+  }
+  provider.providerContract = normalizeProviderContract(provider.providerContract);
+  repository.persist(() => repository.saveUser(provider), `contrato doc review ${providerId}`);
+  return {
+    success: true,
+    contract: provider.providerContract,
+    documents: getContractDocumentEntries(provider.providerContract)
+  };
+}
+
+function listProviderReviewDocuments(providerId) {
+  const provider = getUserById(providerId);
+  if (!provider) return [];
+  ensureProviderFields(provider);
+  const items = getContractDocumentEntries(provider.providerContract).map((doc) => ({
+    ...doc,
+    source: 'contract'
+  }));
+  const v = provider.verification || {};
+  const kyc = [
+    { key: 'kyc:idFront', type: 'idFront', label: 'Carnet (frente)', url: v.idCardFront, review: v.reviews?.idFront },
+    { key: 'kyc:idBack', type: 'idBack', label: 'Carnet (reverso)', url: v.idCardBack, review: v.reviews?.idBack },
+    { key: 'kyc:selfie', type: 'selfie', label: 'Selfie de identidad', url: v.selfie, review: v.reviews?.selfie }
+  ];
+  kyc.forEach((item) => {
+    if (!item.url || item.url === 'demo') return;
+    items.push({
+      key: item.key,
+      kind: 'kyc',
+      source: 'kyc',
+      def: { label: item.label },
+      url: item.url,
+      ai: item.review?.ai || defaultDocumentMeta().ai,
+      human: item.review?.human || defaultDocumentMeta().human
+    });
+  });
+  return items;
 }
 
 function submitProviderContract(providerId, { signature, ip, userAgent }) {
@@ -2089,6 +2273,12 @@ function reviewProviderContract(providerId, { action, notes, rejectionReason, re
   const now = new Date().toISOString();
 
   if (action === 'approve') {
+    const docsOk = requiredDocumentsHumanApproved(c);
+    if (!docsOk.ok) {
+      return {
+        error: `Aprueba cada documento esencial antes de activar al socio. Falta: ${docsOk.missing.join(', ')}.`
+      };
+    }
     provider.providerContract = buildApprovedContract(provider, adminEmail);
     provider.active = true;
   } else if (action === 'reject') {
@@ -2356,6 +2546,9 @@ async function registerUser({
   if (!name || !email || !password) return { errorKey: 'register.error_incomplete' };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { errorKey: 'register.error_invalid_email' };
   if (password.length < 10) return { errorKey: 'register.error_password_short' };
+  if (role === 'provider' && !(phone || '').trim()) {
+    return { errorKey: 'register.error_phone_required' };
+  }
   if (getUserByEmail(email)) {
     return { errorKey: 'register.error_email_exists', code: 'email_exists' };
   }
@@ -2431,7 +2624,9 @@ async function registerUser({
         : 'register.error_address_required'
     };
   }
-  if (unit.length < 2) return { errorKey: 'register.error_address_unit_required' };
+  if (role !== 'provider' && unit.length < 2) {
+    return { errorKey: 'register.error_address_unit_required' };
+  }
 
   const regionCode = String(addressRegion || '').trim() || 'region-metropolitana';
   const communeMeta = addressCommune ? getCommune(regionCode, addressCommune) : null;
@@ -2496,7 +2691,9 @@ async function registerUser({
     };
   }
 
-  resolvedAddress = `${geo.label || fullAddr}, ${unit}`;
+  resolvedAddress = unit.length >= 2
+    ? `${geo.label || fullAddr}, ${unit}`
+    : (geo.label || fullAddr);
   resolvedCoords = { lat, lng };
   resolvedPlaceId = (addressPlaceId || geo.placeId || '').trim() || null;
 
@@ -5867,15 +6064,10 @@ async function reloadFromDatabase() {
   SERVICES = data.services;
   MODULES = data.modules;
   await ensureMissingModules();
-  const rawMerchantFee = parseInt(data.pricing?.merchantCardFeePercent, 10);
-  const rawCardSurcharge = parseInt(data.pricing?.cardSurchargePercent, 10);
   PRICING_CONFIG = normalizePricing(data.pricing || DEFAULT_PRICING);
-  if (rawMerchantFee === 4 || !Number.isFinite(rawMerchantFee) || rawCardSurcharge > 0) {
-    PRICING_CONFIG = {
-      ...PRICING_CONFIG,
-      merchantCardFeePercent: 5,
-      cardSurchargePercent: 0
-    };
+  const rawLabor = Number(data.pricing?.laborCommissionRate);
+  const rawMerchantFee = parseFloat(data.pricing?.merchantCardFeePercent);
+  if (Math.abs(rawLabor - 0.2) < 0.0001 || rawMerchantFee === 4 || rawMerchantFee === 5) {
     repository.persist(() => repository.savePricingConfig(PRICING_CONFIG), 'pricing');
   }
   USERS = data.users;
@@ -6128,6 +6320,9 @@ module.exports = {
   getProviderContract,
   updateProviderContractDraft,
   saveContractDocument,
+  setContractDocumentAiReview,
+  reviewContractDocument,
+  listProviderReviewDocuments,
   submitProviderContract,
   getAllProviderContracts,
   reviewProviderContract,
@@ -6135,6 +6330,7 @@ module.exports = {
   getPublicProviderProfile,
   getClientServiceCallContact,
   saveProviderDocument,
+  setVerificationDocReview,
   saveProviderSelfie,
   setLocationConsent,
   updateProviderLocation,
