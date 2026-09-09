@@ -403,7 +403,8 @@ router.get('/registro', (req, res) => {
     if (user && !store.isEmailVerified(user)) return res.redirect('/verificar-email');
     return res.redirect(getDashboardPath(req.session.user.role));
   }
-  const defaultRole = req.query.role === 'provider' || req.query.socio ? 'provider' : 'client';
+  const defaultRole =
+    req.query.role === 'client' || req.query.emergency ? 'client' : 'provider';
   res.render('registro', registerRenderOptions(req, {
     title: 'Crear cuenta',
     error: null,

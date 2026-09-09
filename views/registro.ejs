@@ -39,17 +39,17 @@
         <span class="zilo-label block mb-1.5"><%= t('register.role_label') %></span>
         <div class="zilo-choice-grid" id="roleSelector">
           <label>
-            <input type="radio" name="role" value="client" class="peer sr-only" <%= form.role !== 'provider' ? 'checked' : '' %>>
-            <div class="zilo-choice-card transition peer-checked:border-zilo-accent peer-checked:bg-zilo-accent-soft peer-checked:text-zilo-accent-strong">
-              <span class="zilo-choice-title"><%= t('register.role_client') %></span>
-              <span class="zilo-choice-desc"><%= t('register.role_client_desc') %></span>
-            </div>
-          </label>
-          <label>
-            <input type="radio" name="role" value="provider" class="peer sr-only" <%= form.role === 'provider' ? 'checked' : '' %>>
+            <input type="radio" name="role" value="provider" class="peer sr-only" <%= form.role !== 'client' ? 'checked' : '' %>>
             <div class="zilo-choice-card transition peer-checked:border-zilo-accent peer-checked:bg-zilo-accent-soft peer-checked:text-zilo-accent-strong">
               <span class="zilo-choice-title"><%= t('register.role_provider') %></span>
               <span class="zilo-choice-desc"><%= t('register.role_provider_desc') %></span>
+            </div>
+          </label>
+          <label>
+            <input type="radio" name="role" value="client" class="peer sr-only" <%= form.role === 'client' ? 'checked' : '' %>>
+            <div class="zilo-choice-card transition peer-checked:border-zilo-accent peer-checked:bg-zilo-accent-soft peer-checked:text-zilo-accent-strong">
+              <span class="zilo-choice-title"><%= t('register.role_client') %></span>
+              <span class="zilo-choice-desc"><%= t('register.role_client_desc') %></span>
             </div>
           </label>
         </div>

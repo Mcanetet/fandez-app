@@ -36,7 +36,7 @@
 
   function currentRole() {
     const role = document.querySelector('input[name="role"]:checked');
-    return role ? role.value : 'client';
+    return role ? role.value : 'provider';
   }
 
   function isProviderRole() {
