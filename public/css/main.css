@@ -30,6 +30,8 @@
 html {
   color-scheme: only light;
   background-color: var(--zilo-bg);
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 /* Aland — asistente (teal, no violeta “IA”) */
@@ -55,6 +57,10 @@ html {
   background-color: var(--zilo-bg);
   background-image: none;
   color: var(--zilo-text);
+  overflow-x: clip;
+  max-width: 100%;
+  width: 100%;
+  position: relative;
 }
 
 .fandez-wordmark {
@@ -1150,6 +1156,9 @@ body.session-role--tecnico::before {
 
 .zilo-badge {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: min(11rem, 46vw);
   padding: 0.2rem 0.55rem;
   border-radius: 9999px;
   font-size: 0.625rem;
@@ -1159,6 +1168,11 @@ body.session-role--tecnico::before {
   background: var(--zilo-accent-soft);
   color: var(--zilo-accent-strong);
   border: 1px solid rgba(196, 92, 20,0.2);
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 .zilo-badge-success { background: #E7F6EF; color: var(--zilo-success); border-color: rgba(5,150,105,0.25); }
 .zilo-badge-muted { background: #F2F4F7; color: var(--zilo-muted); border-color: var(--zilo-border); }
@@ -2659,7 +2673,10 @@ body.session-role--tecnico::before {
   right: 0;
   bottom: 0;
   z-index: 100;
-  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--zilo-border);
@@ -2668,6 +2685,7 @@ body.session-role--tecnico::before {
   opacity: 0;
   transition: transform 0.3s cubic-bezier(0.22,1,0.36,1), opacity 0.25s ease;
   pointer-events: none;
+  overflow: hidden;
 }
 .sticky-order-bar.is-visible {
   transform: translateY(0);
@@ -2678,19 +2696,36 @@ body.session-role--tecnico::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 32rem;
+  margin: 0 auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.sticky-order-inner > .min-w-0,
+.sticky-order-inner > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 .sticky-order-btn {
-  flex-shrink: 0;
-  padding: 0.75rem 1.25rem;
+  flex: 0 1 auto;
+  max-width: 42%;
+  min-width: 0;
+  padding: 0.7rem 0.85rem;
   border-radius: var(--zilo-radius-btn);
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  line-height: 1.2;
   color: #fff;
   background: var(--zilo-accent);
   border: 1px solid var(--zilo-accent-strong);
   box-shadow: none;
   transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .sticky-order-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .sticky-order-btn:active:not(:disabled) { background: var(--zilo-accent-strong); }
@@ -3207,6 +3242,37 @@ body.fandez-install-visible {
   backdrop-filter: blur(16px);
   border-top: 2px solid rgba(47, 107, 79, 0.38);
   box-shadow: 0 -6px 24px rgba(47, 107, 79, 0.08);
+}
+/* Nav inferior: sin translateX (evita scroll horizontal en móvil) */
+.nav-provider-bar,
+.nav-client-bar {
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: 32rem !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  transform: none !important;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Contenedores de app: no empujar el viewport */
+.max-w-lg.mx-auto.min-h-screen,
+#providerDashboard,
+#clientDashboard {
+  max-width: min(32rem, 100%);
+  width: 100%;
+  overflow-x: clip;
+  box-sizing: border-box;
+}
+
+.legal-footer {
+  max-width: 100%;
+  overflow-x: clip;
+}
+.legal-footer .flex {
+  max-width: 100%;
 }
 .nav-provider-active { color: #2F6B4F !important; }
 

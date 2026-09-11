@@ -206,14 +206,14 @@
         <div class="space-y-2">
           <% myRequests.forEach(req => { %>
             <div class="p-4 rounded-xl zilo-card-premium">
-              <div class="flex justify-between items-start gap-3">
-                <div class="min-w-0 flex-1">
-                  <strong class="text-sm block"><%= req.serviceName %></strong>
+              <div class="flex justify-between items-start gap-3 min-w-0">
+                <div class="min-w-0 flex-1 overflow-hidden">
+                  <strong class="text-sm block truncate"><%= req.serviceName %></strong>
                   <span class="text-xs text-zilo-muted block truncate"><%= req.clientName %></span>
                   <span class="text-[10px] text-zilo-muted"><%= formatDate(req.createdAt, { day: 'numeric', month: 'short' }) %></span>
                 </div>
-                <div class="text-right shrink-0">
-                  <span class="zilo-badge zilo-badge-muted block mb-1"><%= req.statusLabel || req.status %></span>
+                <div class="text-right shrink-0 max-w-[48%]">
+                  <span class="zilo-badge zilo-badge-muted mb-1"><%= req.statusLabel || req.status %></span>
                   <% if (req.providerPayout != null) { %>
                     <span class="text-xs text-zilo-success font-medium block"><%= formatCLP(req.providerPayout) %></span>
                   <% } %>
@@ -248,15 +248,18 @@
 
   <% if (mod('provider_online')) { %>
   <div id="providerStickyBar" class="sticky-order-bar <%= provider.online ? 'is-visible' : '' %>" aria-hidden="<%= provider.online ? 'false' : 'true' %>">
-    <div class="sticky-order-inner max-w-lg mx-auto">
+    <div class="sticky-order-inner">
       <div class="min-w-0 flex items-center gap-2">
         <span id="stickyOnlineDot" class="w-2.5 h-2.5 rounded-full shrink-0 <%= provider.online ? 'bg-zilo-success animate-pulse' : 'bg-zilo-muted/40' %>"></span>
-        <div>
-          <p class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= t('provider.sticky.wall_label') %></p>
-          <strong class="text-zilo-accent text-sm" id="stickyPendingCount"><%= t('provider.js.available_count', { count: pendingCount }) %></strong>
+        <div class="min-w-0">
+          <p class="text-[10px] text-zilo-muted uppercase tracking-wide truncate"><%= t('provider.sticky.wall_label') %></p>
+          <strong class="text-zilo-accent text-sm block truncate" id="stickyPendingCount"><%= t('provider.js.available_count', { count: pendingCount }) %></strong>
         </div>
       </div>
-      <button type="button" id="btnRefreshWall" class="sticky-order-btn"><%= t('provider.js.refresh_wall') %></button>
+      <button type="button" id="btnRefreshWall" class="sticky-order-btn" title="<%= t('provider.js.refresh_wall') %>">
+        <span class="sm:hidden">Actualizar</span>
+        <span class="hidden sm:inline"><%= t('provider.js.refresh_wall') %></span>
+      </button>
     </div>
   </div>
   <% } %>
