@@ -1,5 +1,5 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v34';
+const SW_VERSION = 'fandez-sw-v35';
 
 /** Ámbar + 2 semicírculos (v11). Path nuevo = rompe caché Saturno Chrome. */
 const DEFAULT_ICON = '/icons/fandez-v11-notify.png';

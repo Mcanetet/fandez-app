@@ -186,7 +186,9 @@
       const notesHtml = notesPreview
         ? `<p class="text-[11px] text-zilo-muted italic mb-2 line-clamp-2">${escapeHtml(notesPreview)}</p>`
         : '';
-      const thumbUrl = req.clientPhotoUrl || req.clientBrandPhotoUrl || '';
+      const thumbUrl = req.id && (req.clientPhotoUrl || req.clientBrandPhotoUrl)
+        ? `/media/request/${encodeURIComponent(req.id)}/kind/${req.clientPhotoUrl ? 'problem' : 'brand'}`
+        : (req.clientPhotoUrl || req.clientBrandPhotoUrl || '');
       const thumbHtml = thumbUrl
         ? `<img src="${escapeHtml(thumbUrl)}" alt="" class="w-14 h-14 rounded-xl object-cover border border-zilo-border shrink-0" loading="lazy" onerror="this.remove()">`
         : '';
@@ -353,74 +355,105 @@
       priceEl.insertAdjacentElement('afterend', payoutHint);
     }
     payoutHint.textContent = t('provider.js.payout_until_complete');
-    document.getElementById('modalNotes').textContent = data.request.notes || t('provider.js.no_details');
+
+    const notesEl = document.getElementById('modalNotes');
+    const activityLabel = String(data.request.activityName || data.request.customName || '').trim();
+    const notesText = String(data.request.notes || '').trim();
+    let description = '';
+    if (activityLabel && notesText && activityLabel.toLowerCase() !== notesText.toLowerCase()) {
+      description = `${activityLabel}\n${notesText}`;
+    } else {
+      description = notesText || activityLabel || t('provider.js.no_details');
+    }
+    if (notesEl) notesEl.textContent = description;
 
     const photosEl = document.getElementById('modalClientPhotos');
     if (photosEl) {
-      const parts = [];
-      const renderPhoto = (rawUrl, label) => {
-        if (!rawUrl) return;
-        const url = escapeHtml(rawUrl);
-        parts.push(`
-          <div class="provider-detail-photo">
-            <p class="zilo-label mb-1.5">${escapeHtml(label)}</p>
-            <a href="${url}" target="_blank" rel="noopener" class="block rounded-xl overflow-hidden border border-zilo-border bg-zilo-bg">
-              <img
-                src="${url}"
-                alt="${escapeHtml(label)}"
-                class="w-full max-h-56 object-cover"
-                loading="eager"
-                decoding="async"
-                onerror="this.onerror=null;this.classList.add('hidden');var f=this.nextElementSibling;if(f)f.classList.remove('hidden');"
-              >
-              <p class="hidden text-xs text-zilo-muted p-3">No se pudo cargar la foto. Ábrela en una pestaña o pide al cliente que la reenvíe por el chat.</p>
-            </a>
-          </div>`);
-      };
-      renderPhoto(data.request.clientPhotoUrl, 'Foto del problema');
+      // Revocar blobs anteriores
+      photosEl.querySelectorAll('img[data-blob-url]').forEach((img) => {
+        try { URL.revokeObjectURL(img.dataset.blobUrl); } catch (_) { /* ignore */ }
+      });
+      photosEl.innerHTML = '';
+
+      const requestId = data.request.id;
+      const slots = [];
+      if (data.request.clientPhotoUrl) {
+        slots.push({
+          label: 'Foto del problema',
+          urls: [
+            requestId ? `/media/request/${encodeURIComponent(requestId)}/kind/problem` : null,
+            data.request.clientPhotoUrl
+          ].filter(Boolean)
+        });
+      }
       if (data.request.clientBrandPhotoUrl) {
-        renderPhoto(data.request.clientBrandPhotoUrl, 'Foto de la marca');
+        slots.push({
+          label: 'Foto de la marca',
+          urls: [
+            requestId ? `/media/request/${encodeURIComponent(requestId)}/kind/brand` : null,
+            data.request.clientBrandPhotoUrl
+          ].filter(Boolean)
+        });
       } else if (data.request.brandNotVisible) {
-        parts.push('<p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Sin marca a la vista</p>');
+        const brandNote = document.createElement('p');
+        brandNote.className = 'text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2';
+        brandNote.textContent = 'Sin marca a la vista';
+        photosEl.appendChild(brandNote);
       }
-      if (parts.length) {
-        photosEl.innerHTML = parts.join('');
-        photosEl.classList.remove('hidden');
-      } else {
-        photosEl.innerHTML = '';
-        photosEl.classList.add('hidden');
-      }
+
+      slots.forEach((slot) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'provider-detail-photo';
+        wrap.innerHTML = `<p class="zilo-label mb-1.5">${escapeHtml(slot.label)}</p>
+          <div class="rounded-xl overflow-hidden border border-zilo-border bg-zilo-bg min-h-[8rem] flex items-center justify-center">
+            <p class="text-xs text-zilo-muted p-3" data-role="photo-loading">Cargando foto…</p>
+            <img alt="${escapeHtml(slot.label)}" class="w-full max-h-64 object-cover hidden" data-role="photo-img">
+            <p class="hidden text-xs text-zilo-muted p-3" data-role="photo-error">No se pudo cargar la foto. Pide al cliente que la reenvíe por el chat.</p>
+          </div>`;
+        photosEl.appendChild(wrap);
+        loadProviderPhoto(wrap, slot.urls);
+      });
+
+      photosEl.classList.toggle('hidden', !photosEl.childElementCount);
     }
 
+    const afterNotesAnchor = document.getElementById('modalDescriptionBlock') || notesEl;
     let whenEl = document.getElementById('modalRequestedAt');
-    if (!whenEl) {
-      const notesEl = document.getElementById('modalNotes');
+    if (!whenEl && afterNotesAnchor?.parentNode) {
       whenEl = document.createElement('p');
       whenEl.id = 'modalRequestedAt';
       whenEl.className = 'text-[11px] text-zilo-muted mb-2 hidden';
-      notesEl.parentNode.insertBefore(whenEl, notesEl);
+      afterNotesAnchor.parentNode.insertBefore(whenEl, afterNotesAnchor.nextSibling);
     }
     const when = formatRequestWhen(data.request.searchingAt || data.request.createdAt || data.request.paidAt);
-    if (when) {
-      whenEl.textContent = `${t('provider.js.requested_at')}: ${when}`;
-      whenEl.classList.remove('hidden');
-    } else {
-      whenEl.classList.add('hidden');
+    if (whenEl) {
+      if (when) {
+        whenEl.textContent = `${t('provider.js.requested_at')}: ${when}`;
+        whenEl.classList.remove('hidden');
+      } else {
+        whenEl.classList.add('hidden');
+      }
     }
 
     let urgencyEl = document.getElementById('modalUrgency');
-    if (!urgencyEl) {
-      const notesEl = document.getElementById('modalNotes');
+    if (!urgencyEl && whenEl?.parentNode) {
       urgencyEl = document.createElement('p');
       urgencyEl.id = 'modalUrgency';
       urgencyEl.className = 'text-[11px] text-orange-600 mb-2 hidden';
-      notesEl.parentNode.insertBefore(urgencyEl, notesEl);
+      whenEl.parentNode.insertBefore(urgencyEl, whenEl.nextSibling);
+    } else if (!urgencyEl && afterNotesAnchor?.parentNode) {
+      urgencyEl = document.createElement('p');
+      urgencyEl.id = 'modalUrgency';
+      urgencyEl.className = 'text-[11px] text-orange-600 mb-2 hidden';
+      afterNotesAnchor.parentNode.insertBefore(urgencyEl, afterNotesAnchor.nextSibling);
     }
-    if (data.request.urgencyTierLabel) {
-      urgencyEl.textContent = `${t('provider.js.urgency')}: ${data.request.urgencyTierLabel}`;
-      urgencyEl.classList.remove('hidden');
-    } else {
-      urgencyEl.classList.add('hidden');
+    if (urgencyEl) {
+      if (data.request.urgencyTierLabel) {
+        urgencyEl.textContent = `${t('provider.js.urgency')}: ${data.request.urgencyTierLabel}`;
+        urgencyEl.classList.remove('hidden');
+      } else {
+        urgencyEl.classList.add('hidden');
+      }
     }
 
     const giftBadge = document.getElementById('modalGiftBadge');
@@ -434,6 +467,39 @@
       giftBadge.classList.add('hidden');
       document.getElementById('modalClient').textContent = data.client.name;
     }
+  }
+
+  async function loadProviderPhoto(wrap, urls) {
+    const img = wrap.querySelector('[data-role="photo-img"]');
+    const loading = wrap.querySelector('[data-role="photo-loading"]');
+    const errEl = wrap.querySelector('[data-role="photo-error"]');
+    const candidates = [...new Set((urls || []).filter(Boolean))];
+    for (const url of candidates) {
+      try {
+        if (String(url).startsWith('data:')) {
+          img.src = url;
+          img.classList.remove('hidden');
+          if (loading) loading.classList.add('hidden');
+          if (errEl) errEl.classList.add('hidden');
+          return;
+        }
+        const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        if (!blob || !blob.size || !(blob.type || '').startsWith('image/')) continue;
+        const objectUrl = URL.createObjectURL(blob);
+        img.src = objectUrl;
+        img.dataset.blobUrl = objectUrl;
+        img.onclick = () => window.open(objectUrl, '_blank', 'noopener');
+        img.classList.remove('hidden');
+        if (loading) loading.classList.add('hidden');
+        if (errEl) errEl.classList.add('hidden');
+        return;
+      } catch (_) { /* try next */ }
+    }
+    if (loading) loading.classList.add('hidden');
+    if (img) img.classList.add('hidden');
+    if (errEl) errEl.classList.remove('hidden');
   }
 
   function showRequestModal(data) {

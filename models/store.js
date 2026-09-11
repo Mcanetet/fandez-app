@@ -11,7 +11,7 @@ const {
 } = require('../lib/rutAccountPolicy');
 const db = require('../lib/db');
 const repository = require('./repository');
-const { toServingUrl } = require('../lib/uploads');
+const { toServingUrl, stableRequestPhotoUrl } = require('../lib/uploads');
 const { getAppVersionInfo } = require('../lib/version');
 const { t: translate } = require('../lib/i18n');
 const { getRequestTimeouts } = require('../lib/requestTimeouts');
@@ -5392,8 +5392,12 @@ function enrichRequestForProvider(request, locale = 'es') {
   const safe = sanitizeRequestForWorker(request, pricing);
   return {
     ...safe,
-    clientPhotoUrl: toServingUrl(safe.clientPhotoUrl) || null,
-    clientBrandPhotoUrl: toServingUrl(safe.clientBrandPhotoUrl) || null,
+    clientPhotoUrl: request.clientPhotoUrl
+      ? (stableRequestPhotoUrl(request.id, 'problem') || toServingUrl(safe.clientPhotoUrl) || null)
+      : null,
+    clientBrandPhotoUrl: request.clientBrandPhotoUrl
+      ? (stableRequestPhotoUrl(request.id, 'brand') || toServingUrl(safe.clientBrandPhotoUrl) || null)
+      : null,
     statusLabel: getRequestStatusLabel(request, locale),
     techStatusLabel: request.awaitingProviderReassign && !request.technicianId
       ? translate(locale, 'provider.request.reassigning')

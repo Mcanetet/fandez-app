@@ -289,8 +289,12 @@
         <span id="modalServiceName" class="zilo-display text-2xl">—</span>
       </div>
 
-      <!-- Fotos primero: lo que el socio debe revisar antes de tomar -->
-      <div id="modalClientPhotos" class="hidden space-y-3 mb-4"></div>
+      <!-- Foto + descripción del cliente (lo primero a revisar) -->
+      <div id="modalClientPhotos" class="hidden space-y-3 mb-3"></div>
+      <div id="modalDescriptionBlock" class="mb-4">
+        <p class="zilo-label mb-1.5">Descripción del cliente</p>
+        <p id="modalNotes" class="text-sm text-zilo-text p-3 rounded-xl bg-zilo-bg/80 border border-zilo-border whitespace-pre-wrap break-words"></p>
+      </div>
 
       <div id="modalMap" class="relative h-36 sm:h-40 rounded-2xl overflow-hidden border border-zilo-border mb-3 bg-zilo-bg"></div>
       <div class="flex items-center gap-2 mb-4 px-1">
@@ -320,8 +324,6 @@
           <span id="modalPrice" class="font-semibold text-zilo-accent">—</span>
         </div>
       </div>
-      <p id="modalNotes" class="text-xs text-zilo-muted italic p-3 rounded-xl bg-zilo-bg/80 border border-zilo-border mb-3"></p>
-
       <div class="flex gap-3 sticky bottom-0 pt-2 bg-gradient-to-t from-white via-white to-transparent">
         <button type="button" id="btnDecline" class="zilo-modal-decline"><%= t('provider.dashboard.view_wall') %></button>
         <button type="button" id="btnAccept" class="zilo-modal-accept"><%= t('provider.dashboard.take_now') %></button>
