@@ -71,14 +71,14 @@
             <% } %>
             <% const requestedAt = r.searchingAt || r.createdAt || r.paidAt; %>
             <% if (requestedAt) { %>
-              <p class="text-[10px] text-zilo-muted mb-2"><%= t('provider.js.requested_at') %>: <%= new Date(requestedAt).toLocaleString(req.locale === 'en' ? 'en-US' : 'es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) %></p>
+              <p class="text-[10px] text-zilo-muted mb-2"><%= t('provider.js.requested_at') %>: <%= new Date(requestedAt).toLocaleString((typeof locale !== 'undefined' && locale === 'en') ? 'en-US' : 'es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) %></p>
             <% } %>
             <% if (r.notes) { %>
               <p class="text-[11px] text-zilo-muted italic mb-3 p-2 rounded-lg bg-zilo-bg/80 border border-zilo-border line-clamp-2"><%= r.notes %></p>
             <% } %>
             <% if (r.clientPhotoUrl) { %>
-              <a href="<%= r.clientPhotoUrl %>" target="_blank" rel="noopener" class="block mb-3">
-                <img src="<%= r.clientPhotoUrl %>" alt="<%= t('provider.dashboard.client_photo') %>" class="w-full max-h-32 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+              <a href="<%= r.clientPhotoUrl.startsWith('/media/') ? r.clientPhotoUrl : ('/media/request/' + r.id + '/kind/problem') %>" target="_blank" rel="noopener" class="block mb-3">
+                <img src="<%= r.clientPhotoUrl.startsWith('/media/') ? r.clientPhotoUrl : ('/media/request/' + r.id + '/kind/problem') %>" alt="<%= t('provider.dashboard.client_photo') %>" class="w-full max-h-32 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
                 <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg"><%= t('provider.mando_page.photo_error') %></p>
               </a>
             <% } %>

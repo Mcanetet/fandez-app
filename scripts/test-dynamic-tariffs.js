@@ -212,7 +212,7 @@ function run() {
   });
   assertEqual(gardenFloor.valorBaseAplicado, 40000, 'Jardinería no pisa el mínimo de $55.000');
 
-  console.log('\n— Liquidación 12% IVA incl. + Mercado Pago —');
+  console.log('\n— Liquidación 15% IVA incl. + Mercado Pago —');
   const { computeRequestFinancials, calculatePaymentSurcharge } = require('../lib/pricing');
 
   const finCash = computeRequestFinancials({
@@ -221,10 +221,10 @@ function run() {
     paymentMethod: 'mercadopago',
     cardInstallments: 1
   }, {});
-  assertEqual(finCash.laborCommission, 12000, 'Comisión 12% IVA incluido');
+  assertEqual(finCash.laborCommission, 15000, 'Comisión 15% IVA incluido');
   assertEqual(finCash.cardFee, 3796, 'MP 3,19% + IVA 19% (1 cuota)');
-  assertEqual(finCash.appTotal, 15796, 'App + MP sin apilar IVA otra vez');
-  assertEqual(finCash.providerTotal, 84204, 'Neto socio 1 cuota');
+  assertEqual(finCash.appTotal, 18796, 'App + MP sin apilar IVA otra vez');
+  assertEqual(finCash.providerTotal, 81204, 'Neto socio 1 cuota');
   assertEqual(finCash.ivaOnFeesIncluded, true, 'IVA ya viene incluido');
 
   const fin12 = computeRequestFinancials({
@@ -234,7 +234,7 @@ function run() {
     cardInstallments: 12
   }, {});
   assertEqual(fin12.cardFee, 21408, 'MP valor presente 12 cuotas');
-  assertEqual(fin12.providerTotal, 66592, 'Neto socio 12 cuotas (el cliente sigue pagando $100.000)');
+  assertEqual(fin12.providerTotal, 63592, 'Neto socio 12 cuotas (el cliente sigue pagando $100.000)');
 
   const clientCard = calculatePaymentSurcharge({}, 100000, 'card');
   assertEqual(clientCard.amount, 0, 'Cliente: $0 recargo tarjeta');

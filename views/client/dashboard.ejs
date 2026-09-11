@@ -360,7 +360,7 @@
     button.addEventListener('click', async () => {
       const choice = button.dataset.noProviderChoice;
       const requestId = button.dataset.requestId;
-      const confirmRefund = typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_refund_confirm') : 'Request a refund for the next business day?';
+      const confirmRefund = typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_refund_confirm') : '¿Solicitar la devolución? La iniciamos el siguiente día hábil al mismo medio.';
       if (choice === 'refund' && !confirm(confirmRefund)) return;
       const buttons = button.closest('[data-no-provider-card]')?.querySelectorAll('button') || [];
       buttons.forEach((item) => { item.disabled = true; });
@@ -384,7 +384,7 @@
           data.already && data.message
             ? data.message
             : (refundDone
-              ? (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.refund_requested_body') : 'Refund scheduled for the next business day.')
+              ? (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.refund_requested_body') : 'La iniciamos el siguiente día hábil. En tarjeta, el banco define cuándo lo ves.')
               : (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.keep_searching_body') : "We'll keep searching.")),
           'success'
         );

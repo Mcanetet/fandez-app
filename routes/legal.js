@@ -60,7 +60,7 @@ router.get('/terminos', (req, res) => {
     title: 'Términos y Condiciones — Fandez',
     seo: buildPageMeta('terms', req),
     company,
-    lastUpdated: '11 de julio de 2026'
+    lastUpdated: '11 de septiembre de 2026'
   });
 });
 

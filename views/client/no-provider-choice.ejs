@@ -13,8 +13,9 @@
       <h1 class="text-xl font-semibold mb-3">Recibimos tu elección</h1>
       <% if (selectedChoice === 'refund') { %>
         <p class="text-sm text-zilo-muted leading-relaxed">
-          La devolución de <strong><%= request.serviceName %></strong> quedó solicitada para el siguiente día hábil
-          (<strong><%= request.refundScheduledDate %></strong>). Administración procesará el abono al mismo medio de pago.
+          La devolución de <strong><%= request.serviceName %></strong> se inicia el siguiente día hábil
+          (<strong><%= request.refundScheduledDate %></strong>) al mismo medio de pago.
+          En <strong>crédito</strong> suele verse en el estado de cuenta o próximo ciclo; en <strong>débito</strong>, en tu cuenta bancaria. Los plazos los define tu banco, no Fandez.
         </p>
       <% } else { %>
         <p class="text-sm text-zilo-muted leading-relaxed">
@@ -40,7 +41,7 @@
         <button type="submit" name="choice" value="refund"
           class="w-full text-left p-4 rounded-2xl border <%= selectedChoice === 'refund' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white' %> hover:border-red-300 transition">
           <strong class="text-sm block text-red-700">Solicitar devolución</strong>
-          <span class="text-xs text-zilo-muted">Programamos el abono para el siguiente día hábil.</span>
+          <span class="text-xs text-zilo-muted">La iniciamos el siguiente día hábil. Crédito → estado de cuenta; débito → cuenta bancaria (plazos del banco).</span>
         </button>
       </form>
     <% } %>

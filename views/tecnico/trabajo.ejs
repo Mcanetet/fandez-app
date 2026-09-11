@@ -1,6 +1,14 @@
-<%- include('../partials/head') %>
+<%- include('../partials/head', { useMap: true }) %>
 <% const isObserver = typeof observerMode !== 'undefined' && observerMode; %>
 <% const chatBase = typeof chatApiBase !== 'undefined' ? chatApiBase : '/tecnico'; %>
+<%
+  const problemPhotoSrc = request.id
+    ? ('/media/request/' + request.id + '/kind/problem')
+    : (request.clientPhotoUrl || '');
+  const brandPhotoSrc = request.id
+    ? ('/media/request/' + request.id + '/kind/brand')
+    : (request.clientBrandPhotoUrl || '');
+%>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="trabajoPage"
   data-request-id="<%= request.id %>"
@@ -89,7 +97,47 @@
       </ol>
     </nav>
 
-    <details class="zilo-card-premium rounded-2xl overflow-hidden" id="fieldContext"<%= ['aceptado','en_camino'].includes(request.techStatus) || wizardStep === 'confirmar' ? ' open' : '' %>>
+    <% if (isObserver && ['aceptado','asignado','en_camino'].includes(request.techStatus)) { %>
+      <section class="rounded-2xl border border-zilo-accent/25 bg-gradient-to-br from-amber-50/80 to-white p-4 space-y-2">
+        <p class="zilo-label !text-[9px] text-zilo-accent">Coordinación · socio</p>
+        <h2 class="text-sm font-semibold text-zilo-text">Cómo acompañar sin generar presión</h2>
+        <ul class="text-xs text-zilo-muted space-y-1.5 leading-relaxed">
+          <li>· Si delegaste: un aviso breve al técnico (“pedido listo, cliente espera”) basta; evita microgestionar.</li>
+          <li>· Usa el chat para coordinar, no para interrogar al cliente.</li>
+          <li>· Si vas tú a terreno: saluda, presenta Fandez y pide permiso — genera seguridad.</li>
+          <li>· Cualquier sobrecosto: aprobación explícita antes de ejecutar.</li>
+        </ul>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <% if (request.coords && request.coords.lat != null) { %>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=<%= request.coords.lat %>,<%= request.coords.lng %>"
+              target="_blank" rel="noopener"
+              class="inline-flex zilo-btn-ghost !py-2 !px-3 !text-xs">Abrir ruta en Maps</a>
+          <% } %>
+          <button type="button" id="btnOpenFieldChatFromTips" class="inline-flex zilo-btn-primary !py-2 !px-3 !text-xs">Abrir chat</button>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (!isObserver && ['aceptado','asignado','en_camino'].includes(request.techStatus)) { %>
+      <section class="rounded-2xl border border-zilo-accent/25 bg-gradient-to-br from-amber-50/80 to-white p-4 space-y-2" id="fieldCareTips">
+        <p class="zilo-label !text-[9px] text-zilo-accent">Antes de llegar · ritual de confianza</p>
+        <h2 class="text-sm font-semibold text-zilo-text">Pequeñas costumbres que bajan la ansiedad del cliente</h2>
+        <ul class="text-xs text-zilo-muted space-y-1.5 leading-relaxed">
+          <li>· Un mensaje corto al salir: “Voy en camino, llego en X min” — reduce incertidumbre.</li>
+          <li>· En la puerta: nombre + “de Fandez”, sonrisa calmada, sin apuro.</li>
+          <li>· Pide permiso para entrar; explica en una frase qué vas a revisar.</li>
+          <li>· Si hay duda de precio, pregunta antes de actuar — el cliente siente control.</li>
+          <li>· Cierra con “¿Algo más que revise?” y pide la calificación en la app.</li>
+        </ul>
+        <% if (request.coords && request.coords.lat != null && request.techStatus === 'aceptado') { %>
+          <a href="https://www.google.com/maps/dir/?api=1&destination=<%= request.coords.lat %>,<%= request.coords.lng %>"
+            target="_blank" rel="noopener"
+            class="inline-flex mt-1 zilo-btn-ghost !py-2 !px-3 !text-xs">Abrir ruta en Google Maps</a>
+        <% } %>
+      </section>
+    <% } %>
+
+    <details class="zilo-card-premium rounded-2xl overflow-hidden" id="fieldContext"<%= ['aceptado','en_camino','asignado'].includes(request.techStatus) || wizardStep === 'confirmar' ? ' open' : '' %>>
       <summary class="px-4 py-3 cursor-pointer list-none flex items-center justify-between gap-3">
         <div class="min-w-0">
           <p class="zilo-label !text-[9px]">Cliente y mapa</p>
@@ -114,8 +162,8 @@
             <% if (request.clientPhotoUrl) { %>
               <div>
                 <p class="zilo-label mb-1.5">Foto del problema</p>
-                <a href="<%= request.clientPhotoUrl %>" target="_blank" rel="noopener">
-                  <img src="<%= request.clientPhotoUrl %>" alt="Foto del problema" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                <a href="<%= problemPhotoSrc %>" target="_blank" rel="noopener">
+                  <img src="<%= problemPhotoSrc %>" alt="Foto del problema" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
                   <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg">No se pudo cargar la foto del problema.</p>
                 </a>
               </div>
@@ -123,8 +171,8 @@
             <% if (request.clientBrandPhotoUrl) { %>
               <div>
                 <p class="zilo-label mb-1.5">Foto de la marca</p>
-                <a href="<%= request.clientBrandPhotoUrl %>" target="_blank" rel="noopener">
-                  <img src="<%= request.clientBrandPhotoUrl %>" alt="Foto de la marca" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                <a href="<%= brandPhotoSrc %>" target="_blank" rel="noopener">
+                  <img src="<%= brandPhotoSrc %>" alt="Foto de la marca" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
                   <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg">No se pudo cargar la foto de la marca.</p>
                 </a>
               </div>
@@ -406,7 +454,7 @@
             <span id="setCard">—</span>
           </div>
           <div class="flex justify-between text-zilo-muted">
-            <span id="setAppLabel">Comisión Fandez 12% IVA incl.</span>
+            <span id="setAppLabel">Comisión Fandez 15% IVA incl.</span>
             <span id="setApp">—</span>
           </div>
           <div class="flex justify-between text-zilo-success" id="setMaterialsKeepRow">
@@ -427,7 +475,7 @@
           </div>
         </div>
       </details>
-      <p class="text-[11px] text-zilo-muted/80">De la mano de obra: 12% Fandez (IVA incluido) y el costo Mercado Pago a valor presente. Los materiales son 100% tuyos. El cliente no paga recargo de tarjeta.</p>
+      <p class="text-[11px] text-zilo-muted/80">De la mano de obra: 15% Fandez (IVA incluido) y el costo Mercado Pago a valor presente. Los materiales son 100% tuyos. El cliente no paga recargo de tarjeta.</p>
       <a href="<%= typeof returnUrl !== 'undefined' ? returnUrl : '/tecnico' %>" class="mt-4 block w-full text-center py-3 rounded-xl zilo-btn-primary">Volver al panel</a>
     </section>
   </main>

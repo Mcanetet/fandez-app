@@ -1768,7 +1768,17 @@ body.session-role--tecnico::before {
 }
 .request-modal-footer {
   flex: 0 0 auto;
-  z-index: 2;
+  z-index: 5;
+  position: relative;
+  pointer-events: auto;
+}
+.zilo-modal-decline,
+.zilo-modal-accept {
+  position: relative;
+  z-index: 6;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .provider-detail-photo {
   display: block;

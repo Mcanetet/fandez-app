@@ -533,18 +533,17 @@
     pushBrowserNotification(t('provider.js.new_request_title'), `${data.service.name} · ${data.request.address}`);
   }
 
-  function closeModal() {
-    stopRepeatingAlert();
-    requestModal.classList.add('hidden');
-    currentRequest = null;
-    document.body.classList.remove('overflow-hidden');
-  }
-
   function openRequestModalShell() {
     if (!requestModal) return;
     // Asegurar fixed respecto al viewport (no a un ancestro con transform)
     if (requestModal.parentElement !== document.body) {
       document.body.appendChild(requestModal);
+    }
+    // La barra sticky del muro tapa el footer del modal en móvil
+    if (stickyBar) {
+      stickyBar.classList.remove('is-visible');
+      stickyBar.setAttribute('aria-hidden', 'true');
+      stickyBar.style.pointerEvents = 'none';
     }
     requestModal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
@@ -553,6 +552,15 @@
     requestAnimationFrame(() => resetRequestModalScroll());
     setTimeout(resetRequestModalScroll, 120);
     setTimeout(resetRequestModalScroll, 400);
+  }
+
+  function closeModal() {
+    stopRepeatingAlert();
+    requestModal.classList.add('hidden');
+    currentRequest = null;
+    document.body.classList.remove('overflow-hidden');
+    if (stickyBar) stickyBar.style.pointerEvents = '';
+    syncStickyBar();
   }
 
   function resetRequestModalScroll() {
@@ -654,7 +662,7 @@
 
     if (data.selfOperator) {
       const etaNote = data.request?.etaLabel ? ` ETA ${data.request.etaLabel}.` : '';
-      FandezNotify.show(`Pedido tomado.${etaNote} Entrando a la visita…`, 'success');
+      FandezNotify.show(`Pedido tomado.${etaNote} Abriendo mapa y visita…`, 'success');
       try {
         const enter = await fetch('/proveedor/entrar-terreno', {
           method: 'POST',
@@ -666,14 +674,17 @@
           return;
         }
       } catch (_) { /* fall through */ }
+      // Si no pudo entrar como técnico, abre la vista de terreno del socio
+      window.location.href = `/proveedor/trabajo/${encodeURIComponent(requestId)}`;
+      return;
     }
 
     activeRequestId = requestId;
     startLocationWatch();
-    FandezNotify.show(t('provider.js.job_taken_chat'), 'success');
+    FandezNotify.show('Pedido tomado. Avisamos al técnico. Abriendo detalle…', 'success');
     setTimeout(() => {
-      window.location.href = `/proveedor/mando?chat=${encodeURIComponent(requestId)}`;
-    }, 700);
+      window.location.href = `/proveedor/trabajo/${encodeURIComponent(requestId)}`;
+    }, 500);
   }
 
   socket.on('connect', () => {

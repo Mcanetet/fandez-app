@@ -16,22 +16,36 @@
     </section>
     <section>
       <h2 class="text-lg font-semibold text-zilo-text mb-2">3. Pagos</h2>
-      <p>La visita se paga anticipadamente (tarjeta o transferencia). El precio en pantalla es el total del cliente, IVA incluido, sin recargo por pagar con tarjeta. Fandez retiene 12% IVA incluido de la mano de obra más el costo de Mercado Pago a valor presente; eso se descuenta al socio, no se suma al cliente. Los materiales se cobran a costo.</p>
+      <p>La visita se paga anticipadamente (tarjeta o transferencia). El precio en pantalla es el total del cliente, IVA incluido, sin recargo por pagar con tarjeta. Fandez retiene 15% IVA incluido de la mano de obra más el costo de Mercado Pago a valor presente; eso se descuenta al socio, no se suma al cliente. Los materiales se cobran a costo. Los valores vigentes al momento de cada operación son los publicados en la app y/o el panel del socio.</p>
     </section>
     <section>
-      <h2 class="text-lg font-semibold text-zilo-text mb-2">4. Cancelaciones</h2>
-      <p>El cliente puede cancelar en cualquier momento antes de completar el servicio. Si aún no hay técnico que haya aceptado, la devolución es completa. Si el técnico ya aceptó, aplica un cargo de cancelación configurable (por defecto $15.000). Si el técnico ya va en camino o está en el domicilio, el cargo es mayor (por defecto $30.000). Siempre se solicita el motivo de la cancelación.</p>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">4. Modificación de precios y condiciones económicas</h2>
+      <p>Fandez puede modificar en cualquier momento, a su sola discreción, los precios de catálogo, tarifas de visita o diagnóstico, recargos por urgencia u horario, comisiones de la plataforma, costos de medios de pago traspasados al socio, cargos de cancelación y demás condiciones económicas asociadas al uso del servicio.</p>
+      <p class="mt-3">Toda modificación se notificará al correo electrónico registrado en la cuenta del usuario (cliente o socio). El aviso indicará la fecha de entrada en vigencia. Salvo que la ley exija un plazo distinto, los cambios rigen desde esa fecha o, si no se indica, desde el envío del correo. El uso continuado de la plataforma después de la notificación implica aceptación de las nuevas condiciones. Si no estás de acuerdo, debes dejar de usar Fandez y, si eres socio, solicitar la baja conforme al contrato.</p>
+      <p class="mt-3">Los pedidos ya pagados o aceptados antes de la vigencia del cambio se liquidan con las condiciones aplicables al momento de esa operación, salvo aviso expreso en contrario o exigencia legal.</p>
     </section>
     <section>
-      <h2 class="text-lg font-semibold text-zilo-text mb-2">5. Responsabilidad</h2>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">5. Cancelaciones</h2>
+      <p>El cliente puede cancelar en cualquier momento antes de completar el servicio. Si aún no hay técnico que haya aceptado, la devolución es completa. Si el técnico ya aceptó, aplica un cargo de cancelación configurable (por defecto $15.000). Si el técnico ya va en camino o está en el domicilio, el cargo es mayor (por defecto $30.000). Siempre se solicita el motivo de la cancelación. El monto a devolver (si corresponde) se gestiona según la sección 6.</p>
+    </section>
+    <section>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">6. Devoluciones y reembolsos (tarjetas y otros medios)</h2>
+      <p>Cuando corresponda devolución total o parcial, Fandez inicia el reembolso al mismo medio de pago usado en la compra, en el siguiente día hábil contado desde la solicitud o cancelación elegible. Esa fecha es el compromiso de <strong>inicio del proceso</strong> por Fandez ante la pasarela (p. ej. Mercado Pago), no necesariamente el día en que el dinero aparece en tu cartola o estado de cuenta.</p>
+      <p class="mt-3"><strong>Tarjeta de crédito.</strong> El reembolso se gestiona como anulación o crédito ante el emisor. Suele reflejarse en el estado de cuenta o en el próximo ciclo de facturación. El plazo exacto lo define tu banco (en la práctica de mercado en Chile suele tomar varios días hábiles y, según el emisor, puede extenderse hasta el cierre del ciclo o más). Si pagaste en cuotas: las cuotas no cobradas suelen anularse; lo ya pagado se acredita según las reglas del banco y de la pasarela.</p>
+      <p class="mt-3"><strong>Tarjeta de débito.</strong> El monto se acredita en la cuenta bancaria asociada a la tarjeta. Los plazos típicos de mercado van desde unas 48 horas hasta alrededor de 10 días hábiles, según el banco. En algunos flujos el abono puede pasar primero por un saldo de la pasarela de pagos y luego retirarse a tu cuenta.</p>
+      <p class="mt-3"><strong>Transferencia u otros medios.</strong> Se reembolsa a la misma cuenta o canal de origen, en los plazos operativos de ese medio y de la pasarela.</p>
+      <p class="mt-3">Una vez que Fandez y la pasarela confirman el reembolso, los tiempos de visualización dependen del banco emisor o de la institución financiera. Fandez no controla ni garantiza esos plazos bancarios. Te avisaremos por correo cuando el reembolso quede liquidado en nuestro lado. Si no lo ves tras un plazo razonable, escribe a <a href="mailto:<%= company.supportEmail %>" class="text-blue-600"><%= company.supportEmail %></a> con el número de solicitud y, si hace falta, contacta también a tu banco con el comprobante.</p>
+    </section>
+    <section>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">7. Responsabilidad</h2>
       <p>Los proveedores son responsables de la calidad del trabajo. Fandez verifica antecedentes básicos pero no garantiza resultados específicos del servicio técnico.</p>
     </section>
     <section>
-      <h2 class="text-lg font-semibold text-zilo-text mb-2">6. Reclamos</h2>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">8. Reclamos</h2>
       <p>Los reclamos se gestionan por correo a <a href="mailto:<%= company.supportEmail %>" class="text-blue-600"><%= company.supportEmail %></a>, vía la plataforma o WhatsApp oficial: <%= company.whatsappDisplay %>. Plazo de respuesta: 48 horas hábiles.</p>
     </section>
     <section>
-      <h2 class="text-lg font-semibold text-zilo-text mb-2">7. Ley aplicable</h2>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">9. Ley aplicable</h2>
       <p>Estos términos se rigen por las leyes de la República de Chile. Tribunales de Santiago.</p>
     </section>
   </div>

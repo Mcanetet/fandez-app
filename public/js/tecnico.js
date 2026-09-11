@@ -479,13 +479,19 @@
       removeWallItem(requestId);
     });
 
-    socket.on(`tecnico_assignment_${tecnicoId}`, () => {
+    socket.on(`tecnico_assignment_${tecnicoId}`, (payload) => {
+      const mins = window.FANDEZ_TIMEOUTS?.techAcceptMinutes || 10;
       if (window.FandezAlerts) FandezAlerts.notify({
         type: 'order',
-        title: t('tecnico.js.push_title'),
-        body: t('tecnico.js.assignment_body'),
-        tag: 'fandez-tec-assignment'
+        title: 'Te asignaron un pedido',
+        body: payload?.request?.serviceName
+          ? `${payload.request.serviceName} · Tienes ${mins} min para aceptar`
+          : t('tecnico.js.assignment_body'),
+        tag: 'fandez-tec-assignment',
+        url: '/tecnico'
       });
+      playAlertSound();
+      startRepeatingAlert();
       setTimeout(() => location.reload(), 900);
     });
   }

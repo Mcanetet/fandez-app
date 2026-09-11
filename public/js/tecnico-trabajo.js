@@ -556,6 +556,7 @@
 
   document.getElementById('btnOpenFieldChat')?.addEventListener('click', openChat);
   document.getElementById('btnOpenFieldChatFab')?.addEventListener('click', openChat);
+  document.getElementById('btnOpenFieldChatFromTips')?.addEventListener('click', openChat);
   chatModal?.querySelector('[data-role="chat-close"]')?.addEventListener('click', closeChat);
   chatModal?.querySelector('[data-role="chat-backdrop"]')?.addEventListener('click', closeChat);
   socket.on(`request_chat_${requestId}`, (payload) => {

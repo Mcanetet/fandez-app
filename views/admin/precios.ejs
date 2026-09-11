@@ -67,14 +67,14 @@
         <h2 class="text-sm font-semibold mb-4">Comisiones y liquidación al socio</h2>
         <p class="text-xs text-gray-500 mb-4">
           El cliente paga <strong>un solo precio</strong> (IVA incluido). No le sumamos recargo de tarjeta.
-          Fandez recauda el 100% y al socio se descuenta: <strong>12% de la app (IVA incluido)</strong>
+          Fandez recauda el 100% y al socio se descuenta: <strong>15% de la app (IVA incluido)</strong>
           + <strong>costo Mercado Pago a valor presente</strong>. Materiales al socio al 100%.
         </p>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-xs text-gray-500">Comisión app — mano de obra (%)</label>
             <input type="number" name="laborCommissionPercent" value="<%= Math.round(pricing.laborCommissionRate * 1000) / 10 %>" min="0" max="100" step="0.1" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Default 12%. IVA incluido: no se le suma 19% encima.</p>
+            <p class="text-[10px] text-gray-400 mt-1">Default 15%. IVA incluido: no se le suma 19% encima.</p>
           </div>
           <div>
             <label class="text-xs text-gray-500">Comisión app — materiales</label>
@@ -90,7 +90,7 @@
           <div>
             <label class="text-xs text-gray-500">IVA para desglose y fee MP (%)</label>
             <input type="number" name="ivaPercent" value="<%= Math.round((pricing.ivaRate != null ? pricing.ivaRate : 0.19) * 100) %>" min="0" max="100" step="1" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Solo desglose contable + para calcular el costo MP. No se cobra extra al cliente ni se apila sobre el 12%.</p>
+            <p class="text-[10px] text-gray-400 mt-1">Solo desglose contable + para calcular el costo MP. No se cobra extra al cliente ni se apila sobre el 15%.</p>
           </div>
         </div>
         <p class="text-[11px] text-gray-500 mt-3">

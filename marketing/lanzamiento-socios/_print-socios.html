@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cómo funciona Fandez — Para socios</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Unbounded';
+      src: url('file:///Users/miguelangel/Downloads/fandez%20app/public/fonts/unbounded-700.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+    }
+    :root {
+      --bg: #F7F3EE;
+      --bg-deep: #EFE8DF;
+      --ink: #1A1814;
+      --muted: #6B635A;
+      --line: #E0D7CC;
+      --accent: #C45C14;
+      --accent-strong: #A84E10;
+      --success: #2F6B4F;
+      --white: #FFFFFF;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #fff;
+      color: var(--ink);
+      font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      width: 297mm;
+      min-height: 210mm;
+      height: 210mm;
+      max-height: 210mm;
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      padding: 14mm 18mm;
+      position: relative;
+      overflow: hidden;
+      box-sizing: border-box;
+      background:
+        radial-gradient(900px 420px at 8% -8%, rgba(196,92,20,0.12), transparent 55%),
+        radial-gradient(700px 380px at 100% 0%, rgba(47,107,79,0.08), transparent 50%),
+        linear-gradient(180deg, #FBF8F4 0%, var(--bg) 45%, var(--bg-deep) 100%);
+      display: flex;
+      flex-direction: column;
+    }
+    .page:last-child { page-break-after: auto; }
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14mm;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand img { width: 36px; height: 36px; border-radius: 9px; }
+    .brand strong {
+      font-family: Unbounded, system-ui, sans-serif;
+      font-size: 15px;
+      letter-spacing: -0.03em;
+    }
+    .page-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+      margin-bottom: 10px;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 18px; height: 2px;
+      background: var(--accent);
+    }
+    h1, h2 {
+      font-family: Unbounded, system-ui, sans-serif;
+      letter-spacing: -0.035em;
+      line-height: 1.08;
+      font-weight: 700;
+    }
+    h1 { font-size: 42px; max-width: 14ch; }
+    h2 { font-size: 30px; max-width: 22ch; margin-bottom: 12px; }
+    .lead {
+      font-size: 18px;
+      line-height: 1.45;
+      color: var(--muted);
+      max-width: 42ch;
+      margin-top: 12px;
+    }
+    .hero-mark {
+      width: 88px; height: 88px;
+      border-radius: 22px;
+      margin-bottom: 18px;
+      box-shadow: 0 12px 32px rgba(26,24,20,0.1);
+    }
+    .content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .pain-grid { display: grid; gap: 10px; margin-top: 18px; max-width: 520px; }
+    .pain-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+    .pain-item b { display: block; font-size: 14px; margin-bottom: 2px; }
+    .pain-item span { font-size: 13px; color: var(--muted); line-height: 1.35; }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); margin-top: 6px; flex-shrink: 0;
+    }
+    .quote {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-left: 3px solid var(--accent);
+      background: rgba(255,255,255,0.65);
+      border-radius: 0 14px 14px 0;
+      max-width: 48ch;
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .flow-step {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 12px;
+      min-height: 120px;
+    }
+    .flow-num {
+      font-family: Unbounded, system-ui, sans-serif;
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 8px;
+      letter-spacing: 0.08em;
+    }
+    .flow-step strong { display: block; font-size: 14px; margin-bottom: 6px; }
+    .flow-step p { font-size: 12px; color: var(--muted); line-height: 1.35; }
+    .mock {
+      margin-top: 16px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      max-width: 360px;
+      box-shadow: 0 12px 32px rgba(26,24,20,0.08);
+    }
+    .mock-top {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px; border-bottom: 1px solid var(--line);
+    }
+    .mock-top small {
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); font-weight: 700;
+    }
+    .pill {
+      font-size: 10px; font-weight: 700; padding: 4px 8px;
+      border-radius: 999px; background: #E7F6EF; color: var(--success);
+    }
+    .mock-body { padding: 14px; }
+    .job {
+      border: 1px solid var(--line); border-radius: 14px;
+      padding: 12px; background: #FBF8F4;
+    }
+    .job h3 { font-size: 16px; margin-bottom: 2px; }
+    .job .meta { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .job .pay {
+      font-family: Unbounded, system-ui, sans-serif;
+      color: var(--success); font-size: 15px; margin-bottom: 10px;
+    }
+    .job-actions { display: flex; gap: 6px; }
+    .job-actions span {
+      flex: 1; text-align: center; font-size: 10px; font-weight: 700;
+      padding: 8px 4px; border-radius: 10px; border: 1px solid var(--line); background: #fff;
+    }
+    .job-actions .take {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: #fff; border-color: transparent;
+    }
+    .money { display: grid; gap: 10px; margin-top: 16px; max-width: 560px; }
+    .money-card {
+      background: var(--white); border: 1px solid var(--line);
+      border-radius: 14px; padding: 12px 14px;
+    }
+    .money-card.accent {
+      background: linear-gradient(145deg, #FFF7F0, #FFE8D4);
+      border-color: rgba(196,92,20,0.28);
+    }
+    .money-card strong { display: block; font-size: 15px; margin-bottom: 4px; }
+    .money-card p { font-size: 13px; color: var(--muted); line-height: 1.4; }
+    .money-card .big {
+      font-family: Unbounded, system-ui, sans-serif;
+      font-size: 28px; color: var(--accent-strong); margin: 4px 0 2px;
+    }
+    .checklist {
+      list-style: none; margin-top: 14px; display: grid; gap: 8px; max-width: 520px;
+    }
+    .checklist li {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 10px 12px; background: rgba(255,255,255,0.85);
+      border: 1px solid var(--line); border-radius: 12px; font-size: 14px;
+    }
+    .check {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--success); color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+    }
+    .note { margin-top: 12px; font-size: 12px; color: var(--muted); max-width: 48ch; line-height: 1.4; }
+    .cta-box { margin-top: 18px; display: flex; gap: 10px; align-items: center; }
+    .btn-primary {
+      display: inline-flex; padding: 12px 18px; border-radius: 12px;
+      background: var(--accent); color: #fff; font-weight: 700; font-size: 14px;
+      text-decoration: none;
+    }
+    .btn-ghost {
+      display: inline-flex; padding: 11px 14px; border-radius: 12px;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.8);
+      font-weight: 600; font-size: 13px; text-decoration: none; color: var(--ink);
+    }
+    .footer {
+      margin-top: auto;
+      padding-top: 10mm;
+      font-size: 10px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+    }
+    @page { size: A4 landscape; margin: 0; }
+  </style>
+</head>
+<body>
+  <!-- 1 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">01 / 10</span>
+    </div>
+    <div class="content">
+      <img class="hero-mark" src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="">
+      <p class="eyebrow">Para nuevos socios</p>
+      <h1>Pedidos listos.<br>Tú eliges.</h1>
+      <p class="lead">Cómo funciona Fandez en 8 minutos — sin humo, con el oficio al centro.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">02 / 10</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">La herida</p>
+      <h2>WhatsApp no es un canal de trabajo. Es un embudo de tiempo perdido.</h2>
+      <div class="pain-grid">
+        <div class="pain-item">
+          <span class="dot"></span>
+          <div>
+            <b>Cotizas gratis… y te fantasmaean</b>
+            <span>Horas en mensajes, fotos y “después te confirmo”.</span>
+          </div>
+        </div>
+        <div class="pain-item">
+          <span class="dot"></span>
+          <div>
+            <b>No sabes si el cliente va en serio</b>
+            <span>Sin compromiso claro, tu agenda se llena de humo.</span>
+          </div>
+        </div>
+        <div class="pain-item">
+          <span class="dot"></span>
+          <div>
+            <b>Cobras después de pelear</b>
+            <span>Transferencias, “me olvidé”, y cero seguimiento.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">03 / 10</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">El cambio</p>
+      <h2>En Fandez el cliente ya pidió el servicio.</h2>
+      <p class="lead">Tú ves el pedido, la zona y lo que te pagan. Si te sirve, lo tomas. Si no, pasas.</p>
+      <p class="quote">No vendemos “más mensajes”. Vendemos demanda calificada y control para tu equipo.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 4 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">04 / 10</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Cómo funciona</p>
+      <h2>Cuatro momentos. Cero misterio.</h2>
+      <div class="flow">
+        <article class="flow-step">
+          <div class="flow-num">01</div>
+          <strong>Cliente pide</strong>
+          <p>Elige servicio, sube foto, paga la visita en la app.</p>
+        </article>
+        <article class="flow-step">
+          <div class="flow-num">02</div>
+          <strong>Sale al muro</strong>
+          <p>Socios en línea de esa especialidad ven el pedido.</p>
+        </article>
+        <article class="flow-step">
+          <div class="flow-num">03</div>
+          <strong>Tú decides</strong>
+          <p>Revisas detalle, fotos y dirección. Tomas o descartas.</p>
+        </article>
+        <article class="flow-step">
+          <div class="flow-num">04</div>
+          <strong>Ejecutas</strong>
+          <p>Asignas técnico, actualizas estados, cobras con liquidación clara.</p>
+        </article>
+      </div>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 5 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">05 / 10</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Tu panel</p>
+      <h2>El muro: el corazón operativo.</h2>
+      <p class="lead">En línea → llegan pedidos. Fuera de línea → silencio. Tú mandas el ritmo.</p>
+      <div class="mock">
+        <div class="mock-top">
+          <small>Muro de trabajos</small>
+          <span class="pill">Disponible</span>
+        </div>
+        <div class="mock-body">
+          <div class="job">
+            <h3>Jardinería</h3>
+            <p class="meta">Ñuñoa · Hoy (4–8 h) · con foto</p>
+            <p class="pay">Te pagamos: $61.600</p>
+            <div class="job-actions">
+              <span>No me interesa</span>
+              <span>Ver detalle</span>
+              <span class="take">Tomar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 6 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">06 / 10</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Plata clara</p>
+      <h2>Sabes qué ganas antes de aceptar.</h2>
+      <div class="money">
+        <div class="money-card accent">
+          <strong>Comisión Fandez</strong>
+          <div class="big">15%</div>
+          <p>IVA incluido sobre la mano de obra. Más el costo de Mercado Pago a valor presente. Los materiales van íntegros al socio.</p>
+        </div>
+        <div class="money-card">
+          <strong>El cliente no ve “sorpresas”</strong>
+          <p>El precio del catálogo es el total. Tú ves tu liquidación en la app al completar.</p>
+        </div>
+        <div class="money-card">
+          <strong>Si no te sirve, no lo tomas</strong>
+          <p>“No me interesa” lo saca de tu muro para siempre. Otros socios pueden tomarlo.</p>
+        </div>
+      </div>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 7 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">07 / 10</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Activación</p>
+      <h2>Cuenta en minutos. Activación seria en 24–72 h.</h2>
+      <ul class="checklist">
+        <li><span class="check">1</span><span>Crear cuenta de socio en fandez.cl</span></li>
+        <li><span class="check">2</span><span>Verificar identidad (carnet + rostro) y ubicación</span></li>
+        <li><span class="check">3</span><span>Firmar contrato de socio</span></li>
+        <li><span class="check">4</span><span>Definir especialidades y equipo (o “yo hago el servicio”)</span></li>
+        <li><span class="check">5</span><span>Ponerse en línea y tomar el primer pedido</span></li>
+      </ul>
+      <p class="note">No prometemos “cobras en un minuto”. Prometemos un canal con reglas claras.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 8 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">08 / 10</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">En domicilio</p>
+      <h2>El estándar que hace que el cliente vuelva — y te recomiende.</h2>
+      <ul class="checklist">
+        <li><span class="check">✓</span><span>Puntualidad o aviso de demora</span></li>
+        <li><span class="check">✓</span><span>Preséntate: nombre + Fandez</span></li>
+        <li><span class="check">✓</span><span>Permiso de ingreso y explicación del diagnóstico</span></li>
+        <li><span class="check">✓</span><span>Aprobación antes de cualquier sobrecosto</span></li>
+        <li><span class="check">✓</span><span>Foto de inicio y cierre · deja limpio · pide calificación</span></li>
+      </ul>
+      <p class="quote">La app no reemplaza el oficio. Lo hace visible y cobrable.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 9 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">09 / 10</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Ventana</p>
+      <h2>Soft launch · Santiago Oriente</h2>
+      <p class="lead">Estamos registrando socios ahora. Lanzamiento octubre 2026. Cupos curados: preferimos calidad operativa a volumen vacío.</p>
+      <div class="pain-grid" style="margin-top:16px">
+        <div class="pain-item">
+          <span class="dot"></span>
+          <div>
+            <b>Zona foco</b>
+            <span>Providencia · Las Condes · Ñuñoa · La Reina · Vitacura</span>
+          </div>
+        </div>
+        <div class="pain-item">
+          <span class="dot"></span>
+          <div>
+            <b>Oficios</b>
+            <span>Gásfiter, Eléctrico, Cerrajería, Termos, Jardinería, Pintura y más</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 10 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">10 / 10</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Siguiente paso</p>
+      <h2>Regístrate. Actívate. Elige tu primer pedido.</h2>
+      <p class="lead">Si tu empresa aún vive en WhatsApp, este es el momento de cambiar el canal — no el oficio.</p>
+      <div class="cta-box">
+        <a class="btn-primary" href="https://www.fandez.cl/registro?role=provider">Quiero ser socio → fandez.cl/registro</a>
+        <a class="btn-ghost" href="https://www.fandez.cl">fandez.cl</a>
+      </div>
+      <p class="note">Presentación socios · Soft launch · Actualizable.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+</body>
+</html>

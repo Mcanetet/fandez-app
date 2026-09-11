@@ -181,7 +181,7 @@ router.post('/solicitud/:id/sin-socio', async (req, res) => {
   let message = null;
   if (updated.alandConversationId) {
     const body = result.choice === 'refund'
-      ? `Recibí tu elección. La devolución de tu servicio ${updated.serviceName} quedó solicitada para el siguiente día hábil (${updated.refundScheduledDate}). Administración procesará el abono al mismo medio de pago.`
+      ? `Recibí tu elección. La devolución de tu servicio ${updated.serviceName} se inicia el siguiente día hábil (${updated.refundScheduledDate}) al mismo medio. En crédito suele verse en el estado de cuenta; en débito, en tu cuenta bancaria (plazos del banco).`
       : `Recibí tu elección. Seguiremos intentando encontrar un socio para tu servicio ${updated.serviceName} y te avisaremos apenas alguien lo tome.`;
     try {
       message = await aland.addMessage({
