@@ -1698,22 +1698,77 @@ body.session-role--tecnico::before {
   background: var(--zilo-accent);
 }
 
-/* Modal proveedor — z-index por encima de nav (z-50) y banners (~550) */
+/* Modal proveedor — sheet inferior con cabecera fija (móvil no pierde el título) */
 .zilo-modal-sheet {
   background: #FFFFFF;
   border: 1px solid var(--zilo-border);
   border-bottom: none;
   box-shadow: 0 -24px 80px rgba(16,24,40,0.18);
-  -webkit-overflow-scrolling: touch;
 }
 #requestModal {
   z-index: 700;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0;
+}
+#requestModal.hidden {
+  display: none;
 }
 #requestModal:not(.hidden) {
   overscroll-behavior: contain;
 }
+.request-modal-panel {
+  width: 100%;
+  max-height: min(92dvh, 92vh);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.request-modal-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: min(92dvh, 92vh);
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.request-modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #FFFFFF;
+  border-bottom: 1px solid rgba(16, 24, 40, 0.06);
+}
+.request-modal-body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.request-modal-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
 .provider-detail-photo img {
   background: #F3F1ED;
+  max-height: min(42vh, 16rem);
+  width: 100%;
+  object-fit: cover;
+}
+@media (min-width: 640px) {
+  #requestModal {
+    justify-content: center;
+    padding: 1rem;
+  }
+  .request-modal-panel,
+  .request-modal-sheet {
+    max-height: min(88dvh, 88vh);
+  }
+  .provider-detail-photo img {
+    max-height: 16rem;
+  }
 }
 .zilo-modal-accent-bar {
   height: 2px;

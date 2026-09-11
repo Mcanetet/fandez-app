@@ -407,7 +407,7 @@
         wrap.innerHTML = `<p class="zilo-label mb-1.5">${escapeHtml(slot.label)}</p>
           <div class="rounded-xl overflow-hidden border border-zilo-border bg-zilo-bg min-h-[8rem] flex items-center justify-center">
             <p class="text-xs text-zilo-muted p-3" data-role="photo-loading">Cargando foto…</p>
-            <img alt="${escapeHtml(slot.label)}" class="w-full max-h-64 object-cover hidden" data-role="photo-img">
+            <img alt="${escapeHtml(slot.label)}" class="w-full object-cover hidden" data-role="photo-img">
             <p class="hidden text-xs text-zilo-muted p-3" data-role="photo-error">No se pudo cargar la foto. Pide al cliente que la reenvíe por el chat.</p>
           </div>`;
         photosEl.appendChild(wrap);
@@ -494,6 +494,7 @@
         img.classList.remove('hidden');
         if (loading) loading.classList.add('hidden');
         if (errEl) errEl.classList.add('hidden');
+        resetRequestModalScroll();
         return;
       } catch (_) { /* try next */ }
     }
@@ -534,9 +535,20 @@
     }
     requestModal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
+    resetRequestModalScroll();
+    // Tras pintar foto/mapa en móvil, volver al inicio del sheet
+    requestAnimationFrame(() => resetRequestModalScroll());
+    setTimeout(resetRequestModalScroll, 120);
+    setTimeout(resetRequestModalScroll, 400);
+  }
+
+  function resetRequestModalScroll() {
     try {
-      const sheet = requestModal.querySelector('.zilo-modal-sheet');
+      const body = requestModal?.querySelector('.request-modal-body');
+      if (body) body.scrollTop = 0;
+      const sheet = requestModal?.querySelector('.zilo-modal-sheet');
       if (sheet) sheet.scrollTop = 0;
+      if (requestModal) requestModal.scrollTop = 0;
     } catch (_) { /* ignore */ }
   }
 
