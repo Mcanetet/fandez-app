@@ -764,6 +764,15 @@ async function start() {
     console.log('DB_USER:', process.env.DB_USER || '(no definido)');
     if (store.isReady()) {
       console.log('✓ Store listo — clientes y socios pueden usar la app');
+      try {
+        const { applySeedRequestPhotos } = require('./lib/seedRequestPhotos');
+        const seed = applySeedRequestPhotos(store);
+        if (seed.patched) {
+          console.log(`✓ Fotos semilla aplicadas a ${seed.patched} pedido(s):`, seed.details.join(', '));
+        }
+      } catch (err) {
+        console.warn('Seed fotos pedidos:', err.message);
+      }
     }
   });
   return { app, server, io };
