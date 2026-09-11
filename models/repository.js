@@ -380,6 +380,7 @@ function rowToUser(row) {
     user.locationShare = parseJson(row.location_share, defaultLocationShare());
     if (row.role === 'provider') {
       user.providerContract = normalizeProviderContract(parseJson(row.provider_contract, null));
+      user.wallDismissed = parseJson(row.wall_dismissed, {}) || {};
     }
     if (row.role === 'tecnico') {
       user.isSelfOperator = Boolean(user.verification?.isSelfOperator)
@@ -429,6 +430,9 @@ function userToRow(user) {
     mfa: user.mfa ? JSON.stringify(user.mfa) : null,
     admin_access: user.adminAccess ? JSON.stringify(user.adminAccess) : null,
     provider_contract: user.providerContract ? JSON.stringify(user.providerContract) : null,
+    wall_dismissed: user.role === 'provider'
+      ? JSON.stringify(user.wallDismissed && typeof user.wallDismissed === 'object' ? user.wallDismissed : {})
+      : null,
     active: user.active === false ? 0 : 1,
     email_verified_at: user.emailVerifiedAt || null,
     email_verification_code_hash: user.emailVerificationCodeHash || null,
@@ -610,6 +614,15 @@ async function migrate() {
   await ensureUserParentIdsColumn();
   await ensureAlandMonitorColumns();
   await ensurePasswordResetColumns();
+  await ensureWallDismissedColumn();
+}
+
+async function ensureWallDismissedColumn() {
+  try {
+    await db.raw('ALTER TABLE users ADD COLUMN wall_dismissed JSON DEFAULT NULL');
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+  }
 }
 
 async function ensurePasswordResetColumns() {
@@ -1165,10 +1178,10 @@ async function saveUser(user) {
       zilo_points, credits_clp, referrals_count, services_count,
       used_welcome_promo, used_referral, member_since,
       onboarding_completed, onboarding_completed_at,
-      specialties, rating, reviews_count, online, avatar, bio, reviews, verification, location_share, billing, mfa, admin_access, provider_contract, active,
+      specialties, rating, reviews_count, online, avatar, bio, reviews, verification, location_share, billing, mfa, admin_access, provider_contract, wall_dismissed, active,
       email_verified_at, email_verification_code_hash, email_verification_expires_at, email_verification_sent_at,
       password_reset_token_hash, password_reset_expires_at, password_reset_sent_at, client_enabled
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       email = VALUES(email),
       password = VALUES(password),
@@ -1204,6 +1217,7 @@ async function saveUser(user) {
       mfa = VALUES(mfa),
       admin_access = VALUES(admin_access),
       provider_contract = VALUES(provider_contract),
+      wall_dismissed = VALUES(wall_dismissed),
       active = VALUES(active),
       email_verified_at = VALUES(email_verified_at),
       email_verification_code_hash = VALUES(email_verification_code_hash),
@@ -1218,7 +1232,7 @@ async function saveUser(user) {
       row.zilo_points, row.credits_clp, row.referrals_count, row.services_count,
       row.used_welcome_promo ? 1 : 0, row.used_referral ? 1 : 0, row.member_since,
       row.onboarding_completed ? 1 : 0, row.onboarding_completed_at,
-      row.specialties, row.rating, row.reviews_count, row.online ? 1 : 0, row.avatar, row.bio, row.reviews, row.verification, row.location_share, row.billing, row.mfa, row.admin_access, row.provider_contract, row.active,
+      row.specialties, row.rating, row.reviews_count, row.online ? 1 : 0, row.avatar, row.bio, row.reviews, row.verification, row.location_share, row.billing, row.mfa, row.admin_access, row.provider_contract, row.wall_dismissed, row.active,
       row.email_verified_at, row.email_verification_code_hash, row.email_verification_expires_at, row.email_verification_sent_at,
       row.password_reset_token_hash, row.password_reset_expires_at, row.password_reset_sent_at, row.client_enabled ? 1 : 0
     ]

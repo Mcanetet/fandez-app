@@ -245,7 +245,7 @@
       if (existing) existing.remove();
       const modal = document.createElement('div');
       modal.id = 'providerDismissModal';
-      modal.className = 'fixed inset-0 z-[95] flex items-end sm:items-center justify-center p-4 bg-black/50';
+      modal.className = 'fixed inset-0 z-[800] flex items-end sm:items-center justify-center p-4 bg-black/50';
       modal.innerHTML = `
         <div class="w-full max-w-md rounded-2xl bg-zilo-surface border border-zilo-border p-5 shadow-xl">
           <h3 class="text-base font-semibold mb-1">${t('provider.js.dismiss_title')}</h3>
@@ -276,6 +276,7 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.error || t('provider.js.dismiss_error'));
       removeWallItem(requestId);
+      closeModal();
       FandezNotify.show(t('provider.js.dismiss_ok'), 'info');
     } catch (err) {
       if (btn) btn.disabled = false;
@@ -703,6 +704,37 @@
     removeWallItem(requestId);
   });
 
+  // Si otro socio toma el pedido (o este se cae del muro), refrescar aunque no llegue el socket
+  let wallPollTimer = null;
+  function startWallPolling() {
+    stopWallPolling();
+    if (!onlineToggle?.checked) return;
+    wallPollTimer = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      if (!onlineToggle?.checked) return;
+      loadWorkWall();
+    }, 12000);
+  }
+  function stopWallPolling() {
+    if (wallPollTimer) {
+      clearInterval(wallPollTimer);
+      wallPollTimer = null;
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && onlineToggle?.checked) {
+      loadWorkWall();
+    }
+  });
+  window.addEventListener('focus', () => {
+    if (onlineToggle?.checked) loadWorkWall();
+  });
+  if (onlineToggle?.checked) startWallPolling();
+  onlineToggle?.addEventListener('change', () => {
+    if (onlineToggle.checked) startWallPolling();
+    else stopWallPolling();
+  });
+
   socket.on('provider_reassign_required', (payload) => {
     if (window.FandezAlerts) {
       FandezAlerts.notify({
@@ -819,9 +851,12 @@
   });
 
   document.getElementById('btnDecline')?.addEventListener('click', () => {
+    const id = currentRequest?.id;
+    if (id) {
+      dismissWallItem(id);
+      return;
+    }
     closeModal();
-    workWall?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    FandezNotify.show(FandezI18n.t('js.still_on_wall'), 'info');
   });
 
   document.getElementById('btnCloseRequestModal')?.addEventListener('click', () => closeModal());
