@@ -1075,69 +1075,6 @@ body.session-role--tecnico::before {
   background: linear-gradient(90deg, transparent 4%, #3d5a80 35%, #293241 65%, transparent 96%);
 }
 
-.session-role-mark {
-  position: fixed;
-  top: auto;
-  bottom: calc(4.35rem + env(safe-area-inset-bottom, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 45;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.28rem 0.75rem;
-  border-radius: 999px;
-  font-family: 'Bricolage Grotesque', 'Source Sans 3', sans-serif;
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  line-height: 1;
-  pointer-events: none;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 1px 2px rgba(26, 24, 20, 0.04), 0 6px 16px rgba(26, 24, 20, 0.06);
-  animation: sessionRoleIn 0.45s ease both;
-}
-
-/* Páginas sin barra inferior: subir un poco la pastilla */
-body:not(:has(.nav-client-bar)):not(:has(.nav-provider-bar)) .session-role-mark {
-  bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
-}
-.session-role-mark__dot {
-  width: 0.4rem;
-  height: 0.4rem;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.session-role-mark--client {
-  color: var(--zilo-accent-strong);
-  background: rgba(246, 230, 212, 0.94);
-  border: 1px solid rgba(196, 92, 20, 0.32);
-}
-.session-role-mark--client .session-role-mark__dot {
-  background: var(--zilo-accent);
-  box-shadow: 0 0 0 3px rgba(196, 92, 20, 0.18);
-}
-.session-role-mark--provider {
-  color: #1e4a36;
-  background: rgba(232, 242, 236, 0.96);
-  border: 1px solid rgba(47, 107, 79, 0.34);
-}
-.session-role-mark--provider .session-role-mark__dot {
-  background: #2F6B4F;
-  box-shadow: 0 0 0 3px rgba(47, 107, 79, 0.18);
-}
-.session-role-mark--tecnico {
-  color: #293241;
-  background: rgba(232, 238, 245, 0.96);
-  border: 1px solid rgba(61, 90, 128, 0.32);
-}
-.session-role-mark--tecnico .session-role-mark__dot {
-  background: #3d5a80;
-  box-shadow: 0 0 0 3px rgba(61, 90, 128, 0.18);
-}
-
 .session-role-pill {
   display: inline-flex;
   align-items: center;
@@ -1165,14 +1102,6 @@ body:not(:has(.nav-client-bar)):not(:has(.nav-provider-bar)) .session-role-mark 
   color: #293241;
   background: rgba(61, 90, 128, 0.12);
   border: 1px solid rgba(61, 90, 128, 0.28);
-}
-
-@keyframes sessionRoleIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .session-role-mark { animation: none; }
 }
 
 .nav-client-active { color: var(--zilo-accent) !important; }
