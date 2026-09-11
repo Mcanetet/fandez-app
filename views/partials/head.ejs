@@ -118,7 +118,7 @@
           || sessionStorage.getItem('fandez_pwa_boot')==='1';
         sessionStorage.removeItem('fandez_pwa_boot');
       }catch(e){}
-      var minMs=warm?180:520;
+      var minMs=warm?80:280;
       var t0=Date.now();
       var done=false;
       function hide(){
@@ -141,9 +141,13 @@
       else document.addEventListener('DOMContentLoaded',hideSoon,{once:true});
       window.addEventListener('load',hide,{once:true});
       // Failsafe duro: nunca dejar la app bloqueada tras el primer toque
-      setTimeout(hide,2200);
+      setTimeout(hide, 900);
       document.addEventListener('visibilitychange',function(){
         if(document.visibilityState==='visible')hideSoon();
       },{once:true});
+      // Toque / scroll: si el splash quedó pegado, salir al instante
+      ['pointerdown','touchstart','keydown'].forEach(function(ev){
+        document.addEventListener(ev, hide, {once:true, passive:true});
+      });
     })();
   </script>

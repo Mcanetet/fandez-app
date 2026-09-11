@@ -1,5 +1,5 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v35';
+const SW_VERSION = 'fandez-sw-v36';
 
 /** Ámbar + 2 semicírculos (v11). Path nuevo = rompe caché Saturno Chrome. */
 const DEFAULT_ICON = '/icons/fandez-v11-notify.png';
@@ -16,6 +16,12 @@ const PRECACHE = [
   '/favicon.ico'
 ];
 
+const APP_PATHS = ['/app', '/cliente', '/proveedor', '/tecnico', '/login', '/registro'];
+
+function isAppNavigation(pathname) {
+  return APP_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -31,7 +37,18 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-function networkFirst(req, { timeoutMs = 8000 } = {}) {
+/** Navegación de la app: solo red, sin abortar (el abort de 5s provocaba “primer toque en blanco”). */
+function networkOnlyNavigate(req) {
+  return fetch(req, { cache: 'no-store' }).catch(async () => {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    const offline = await caches.match('/offline.html');
+    if (offline) return offline;
+    throw new Error('offline');
+  });
+}
+
+function networkFirst(req, { timeoutMs = 12000 } = {}) {
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timer = ctrl ? setTimeout(() => {
     try { ctrl.abort(); } catch (_) { /* ignore */ }
@@ -56,9 +73,13 @@ self.addEventListener('fetch', (event) => {
   try { pathname = new URL(req.url).pathname; } catch (_) { return; }
   if (pathname.startsWith('/uploads/') || pathname.startsWith('/media/') || pathname.startsWith('/socket.io')) return;
 
-  // Arranque PWA: siempre red fresca (sesión / rol), sin quedarse colgado.
-  if (pathname === '/app' || req.mode === 'navigate') {
-    event.respondWith(networkFirst(req, { timeoutMs: pathname === '/app' ? 5000 : 9000 }));
+  // Arranque / paneles: red fresca sin timeout agresivo (evita 2 toques para entrar)
+  if (req.mode === 'navigate' || pathname === '/app') {
+    if (isAppNavigation(pathname) || pathname === '/app') {
+      event.respondWith(networkOnlyNavigate(req));
+      return;
+    }
+    event.respondWith(networkFirst(req, { timeoutMs: 12000 }));
     return;
   }
 
@@ -145,7 +166,6 @@ self.addEventListener('notificationclick', (event) => {
   const rawTarget = (event.notification.data && event.notification.data.url) || '/app?source=pwa';
   let target = '/app?source=pwa';
   try {
-    // Solo rutas same-origin relativas (evita abrir otro host sin cookie de sesión)
     if (typeof rawTarget === 'string' && rawTarget.startsWith('/') && !rawTarget.startsWith('//')) {
       target = rawTarget;
     }
@@ -157,7 +177,6 @@ self.addEventListener('notificationclick', (event) => {
       try {
         const url = new URL(client.url);
         if (url.origin !== self.location.origin) continue;
-        // Si la app ya está abierta, solo enfocarla (no forzar navegación → no pierdes el pedido).
         await client.focus();
         const path = url.pathname || '';
         const onApp = path.startsWith('/cliente')
@@ -165,12 +184,11 @@ self.addEventListener('notificationclick', (event) => {
           || path.startsWith('/tecnico')
           || path.startsWith('/app');
         if (!onApp && 'navigate' in client) {
-          await client.navigate(target);
+          await client.navigate(target.startsWith('/app') ? target : '/app?source=pwa');
         }
         return;
       } catch (_) { /* ignore */ }
     }
-    // Frío: abrir /app para restaurar sesión → panel del rol
-    await clients.openWindow(target.startsWith('/app') ? target : '/app?source=pwa');
+    await clients.openWindow('/app?source=pwa');
   })());
 });

@@ -386,23 +386,49 @@ app.get('/', (req, res) => {
  * Más fiable en Android que un 302 encadenado en frío (primer toque “no abre”).
  */
 app.get('/app', (req, res) => {
+  const role = req.session.user?.role;
   let target = '/';
   if (req.session.user?.role === 'admin' || req.session.isAdminSession) {
     target = ADMIN_BASE;
-  } else if (req.session.user && store.isReady()) {
-    const dashboards = {
-      client: '/cliente',
-      provider: '/proveedor',
-      tecnico: '/tecnico'
-    };
-    target = dashboards[req.session.user.role] || '/login';
-  } else if (req.session.user && !store.isReady()) {
+  } else if (role === 'client') {
+    target = '/cliente';
+  } else if (role === 'provider') {
+    target = '/proveedor';
+  } else if (role === 'tecnico') {
+    target = '/tecnico';
+  } else if (req.session.user) {
     target = '/login';
   }
 
+  // Sesión OK pero store aún levantando: no mandar a login (parece “no abrió”)
+  const waitingStore = Boolean(req.session.user) && !store.isReady()
+    && ['client', 'provider', 'tecnico'].includes(role);
+
   const safeTarget = String(target).replace(/[^a-zA-Z0-9/?#=&_\-./]/g, '') || '/';
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
+
+  if (waitingStore) {
+    res.setHeader('Retry-After', '1');
+    return res.status(503).send(`<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="refresh" content="1;url=/app?source=pwa">
+<title>Fandez</title>
+<style>html,body{margin:0;height:100%;background:#fff;display:flex;align-items:center;justify-content:center}
+img{width:96px;height:96px;border-radius:22px}</style>
+<script>setTimeout(function(){location.replace('/app?source=pwa');},800);</script>
+</head><body>
+<img src="/icons/fandez-v11-192.png?v=11" width="192" height="192" alt="Fandez">
+</body></html>`);
+  }
+
+  // Con sesión: 302 directo (más rápido al primer toque). Sin sesión: HTML a landing.
+  if (req.session.user && safeTarget !== '/') {
+    return res.redirect(302, safeTarget);
+  }
+
   res.send(`<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -422,7 +448,7 @@ app.get('/app', (req, res) => {
       window.location.replace(target);
       setTimeout(function () {
         if (location.pathname === '/app') window.location.href = target;
-      }, 1200);
+      }, 600);
     })();
   </script>
 </head>
