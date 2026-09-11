@@ -60,13 +60,14 @@
 
     <%- include('../partials/password-form') %>
 
-    <section class="p-5 rounded-2xl zilo-card-premium space-y-3">
-      <p class="zilo-label mb-1">También soy cliente</p>
-      <p class="text-xs text-zilo-muted">Puedes pedir servicios Fandez con la misma cuenta, además de ofrecerlos como socio.</p>
+    <section class="p-5 rounded-2xl border border-zilo-accent/25 bg-zilo-accent-soft/35 space-y-3">
+      <p class="session-role-pill session-role-pill--client mb-1"><%= t('session.role.client') %></p>
+      <p class="text-sm font-semibold"><%= t('session.switch.to_client_title') %></p>
+      <p class="text-xs text-zilo-muted"><%= t('session.switch.to_client_body') %></p>
       <% if (provider.clientEnabled) { %>
-        <button type="button" id="btnSwitchClient" class="zilo-btn-primary !py-3">Ir al portal cliente</button>
+        <button type="button" id="btnSwitchClient" class="zilo-btn-primary !py-3"><%= t('session.switch.to_client_cta') %></button>
       <% } else { %>
-        <button type="button" id="btnEnableClient" class="zilo-btn-primary !py-3">Activar modo cliente</button>
+        <button type="button" id="btnEnableClient" class="zilo-btn-primary !py-3"><%= t('session.switch.enable_client_cta') %></button>
         <p class="text-[10px] text-zilo-muted">Al activarlo podrás solicitar servicios. La documentación de socio se sigue gestionando aquí.</p>
       <% } %>
     </section>

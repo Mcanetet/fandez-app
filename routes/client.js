@@ -430,6 +430,8 @@ router.get('/precio-preview', requireRole('client'), (req, res) => {
       formatted: {
         baseVisit: store.formatCLP(preview.baseVisit),
         adjustment: store.formatCLP(preview.adjustmentAmount),
+        scheduleAdjustment: store.formatCLP(preview.scheduleAdjustmentAmount || 0),
+        urgencyOnlyAdjustment: store.formatCLP(preview.urgencyOnlyAdjustmentAmount || 0),
         visitTotal: store.formatCLP(preview.visitTotal),
         servicePrice: store.formatCLP(preview.servicePrice),
         estimatedTotal: store.formatCLP(preview.estimatedTotal),

@@ -57,7 +57,16 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <% } %>
 </head>
-<body class="bg-zilo-bg text-zilo-text font-sans min-h-full antialiased zilo-body <%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
+<%
+  var _sessionRoleClass = '';
+  if (typeof user !== 'undefined' && user && user.role) {
+    if (user.role === 'client') _sessionRoleClass = 'session-role--client';
+    else if (user.role === 'provider') _sessionRoleClass = 'session-role--provider';
+    else if (user.role === 'tecnico') _sessionRoleClass = 'session-role--tecnico';
+  }
+%>
+<body class="bg-zilo-bg text-zilo-text font-sans min-h-full antialiased zilo-body <%= _sessionRoleClass %> <%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
+  <%- include('session-role') %>
   <!-- Splash propio (el del SO no anima): logo ámbar palpita como Tinder al abrir la app -->
   <style>
     #fandezSplash{
@@ -102,17 +111,40 @@
       var desktop=false;
       try{desktop=window.matchMedia('(min-width:901px)').matches&&!document.documentElement.classList.contains('fandez-standalone');}catch(e){}
       if(desktop){el.remove();return;}
-      var minMs=1100;
+
+      // Reapertura en caliente: splash corto. Evita “toqué y no abrió” por esperar window.load.
+      var warm=false;
+      try{
+        warm=sessionStorage.getItem('fandez_splash_seen')==='1'
+          || sessionStorage.getItem('fandez_pwa_boot')==='1';
+        sessionStorage.removeItem('fandez_pwa_boot');
+      }catch(e){}
+      var minMs=warm?180:520;
       var t0=Date.now();
+      var done=false;
       function hide(){
+        if(done||!el)return;
+        done=true;
         var wait=Math.max(0,minMs-(Date.now()-t0));
         setTimeout(function(){
+          if(!el)return;
           el.classList.add('fandez-splash--out');
-          setTimeout(function(){el.remove();},420);
+          try{sessionStorage.setItem('fandez_splash_seen','1');}catch(e){}
+          setTimeout(function(){try{el.remove();}catch(e){}},280);
         },wait);
       }
-      if(document.readyState==='complete')hide();
-      else window.addEventListener('load',hide);
-      setTimeout(hide,4000);
+      function hideSoon(){
+        try{
+          requestAnimationFrame(function(){requestAnimationFrame(hide);});
+        }catch(e){hide();}
+      }
+      if(document.readyState==='interactive'||document.readyState==='complete')hideSoon();
+      else document.addEventListener('DOMContentLoaded',hideSoon,{once:true});
+      window.addEventListener('load',hide,{once:true});
+      // Failsafe duro: nunca dejar la app bloqueada tras el primer toque
+      setTimeout(hide,2200);
+      document.addEventListener('visibilitychange',function(){
+        if(document.visibilityState==='visible')hideSoon();
+      },{once:true});
     })();
   </script>

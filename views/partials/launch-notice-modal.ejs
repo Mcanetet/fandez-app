@@ -5,7 +5,8 @@
 %>
 <div
   id="launchNoticeModal"
-  class="launch-notice hidden"
+  class="launch-notice launch-notice--<%= launchMode %> hidden"
+  hidden
   data-launch-notice
   data-mode="<%= launchMode %>"
   data-storage-key="<%= isClientLaunch ? 'fandez_launch_client_v1' : 'fandez_launch_home_v1' %>"
@@ -16,15 +17,27 @@
 >
   <div class="launch-notice__backdrop"></div>
   <div class="launch-notice__card" role="document">
-    <p class="launch-notice__kicker"><%= isClientLaunch ? t('launch.client.kicker') : t('launch.home.kicker') %></p>
-    <h2 id="launchNoticeTitle" class="launch-notice__title"><%= isClientLaunch ? t('launch.client.title') : t('launch.home.title') %></h2>
+    <button type="button" class="launch-notice__close" data-launch-dismiss aria-label="<%= t('launch.home.dismiss') %>">×</button>
     <% if (isClientLaunch) { %>
-      <p class="launch-notice__lead"><%= t('launch.client.body') %></p>
+      <p class="launch-notice__kicker"><%= t('launch.client.kicker') %></p>
+      <h2 id="launchNoticeTitle" class="launch-notice__title"><%= t('launch.client.title') %></h2>
+      <div class="launch-notice__steps">
+        <div class="launch-notice__step">
+          <p class="launch-notice__step-label"><%= t('launch.client.sept_label') %></p>
+          <p class="launch-notice__step-text"><%= t('launch.client.sept_text') %></p>
+        </div>
+        <div class="launch-notice__step launch-notice__step--next">
+          <p class="launch-notice__step-label"><%= t('launch.client.oct_label') %></p>
+          <p class="launch-notice__step-text"><%= t('launch.client.oct_text') %></p>
+        </div>
+      </div>
       <p class="launch-notice__note"><%= t('launch.client.note') %></p>
       <button type="button" class="zilo-btn-primary launch-notice__btn" data-launch-dismiss>
         <%= t('launch.client.cta') %>
       </button>
     <% } else { %>
+      <p class="launch-notice__kicker"><%= t('launch.home.kicker') %></p>
+      <h2 id="launchNoticeTitle" class="launch-notice__title"><%= t('launch.home.title') %></h2>
       <p class="launch-notice__lead"><%= t('launch.home.body') %></p>
       <ul class="launch-notice__list">
         <li><%= t('launch.home.point_partners') %></li>
@@ -49,14 +62,16 @@
   } catch (e) {}
 
   function open() {
+    root.hidden = false;
     root.classList.remove('hidden');
     root.setAttribute('aria-hidden', 'false');
     document.body.classList.add('launch-notice-open');
-    var focusEl = root.querySelector('[data-launch-dismiss], .launch-notice__btn');
+    var focusEl = root.querySelector('.launch-notice__btn[data-launch-dismiss], [data-launch-dismiss]');
     if (focusEl && focusEl.focus) focusEl.focus();
   }
 
   function close() {
+    root.hidden = true;
     root.classList.add('hidden');
     root.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('launch-notice-open');
@@ -67,7 +82,7 @@
     el.addEventListener('click', close);
   });
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && !root.classList.contains('hidden')) close();
+    if (ev.key === 'Escape' && !root.hidden) close();
   });
 
   if (mode === 'client') {

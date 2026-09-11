@@ -170,26 +170,52 @@
         else svcRow.classList.add('hidden');
       }
 
+      const scheduleRow = document.getElementById('scheduleAdjustmentRow');
       const adjRow = document.getElementById('urgencyAdjustmentRow');
+      const scheduleLabels = {
+        normal: '',
+        tarde: t('client.js.schedule_evening'),
+        nocturno: t('client.js.schedule_night')
+      };
+
+      const scheduleAmt = Number(p.scheduleAdjustmentAmount) || 0;
+      const urgencyAmt = p.urgencyOnlyAdjustmentAmount != null
+        ? Number(p.urgencyOnlyAdjustmentAmount) || 0
+        : (Number(p.adjustmentAmount) || 0) - scheduleAmt;
+      const schedulePct = Number(p.schedulePercent != null ? p.schedulePercent : p.tariff?.horarioPercent) || 0;
+      const urgencyPct = Number(p.urgencyOnlyPercent != null ? p.urgencyOnlyPercent : p.tier?.surchargePercent) || 0;
+      const bandKey = p.scheduleBand || p.tariff?.horarioBand || '';
+      const scheduleBand = scheduleLabels[bandKey] || '';
+      const tierLabel = p.tier?.label || '';
+
+      if (scheduleRow) {
+        if (scheduleAmt !== 0 && scheduleBand) {
+          scheduleRow.classList.remove('hidden');
+          scheduleRow.classList.add('flex');
+          document.getElementById('scheduleAdjustmentLabel').textContent =
+            scheduleAmt > 0
+              ? t('client.js.schedule_surcharge', { band: scheduleBand, percent: Math.abs(schedulePct) })
+              : t('client.js.schedule_discount', { band: scheduleBand, percent: Math.abs(schedulePct) });
+          const schEl = document.getElementById('displayScheduleAdj');
+          schEl.textContent = (scheduleAmt > 0 ? '+' : '') + (f.scheduleAdjustment || f.adjustment);
+          schEl.className = scheduleAmt > 0 ? 'text-orange-600' : 'text-emerald-600';
+        } else {
+          scheduleRow.classList.add('hidden');
+          scheduleRow.classList.remove('flex');
+        }
+      }
+
       if (adjRow) {
-        if (p.adjustmentAmount !== 0) {
+        if (urgencyAmt !== 0) {
           adjRow.classList.remove('hidden');
           adjRow.classList.add('flex');
-          const scheduleLabels = {
-            normal: '',
-            tarde: t('client.js.schedule_evening'),
-            nocturno: t('client.js.schedule_night')
-          };
-          const schedulePart = scheduleLabels[p.tariff?.horarioBand] || '';
-          const tierLabel = p.tier?.label || '';
-          const band = [schedulePart, tierLabel].filter(Boolean).join(' · ') || tierLabel;
           document.getElementById('urgencyAdjustmentLabel').textContent =
-            p.adjustmentAmount > 0
-              ? t('client.js.surcharge_label', { label: band })
-              : t('client.js.discount_label', { label: band });
+            urgencyAmt > 0
+              ? t('client.js.urgency_surcharge_pct', { label: tierLabel, percent: Math.abs(urgencyPct) })
+              : t('client.js.urgency_discount_pct', { label: tierLabel, percent: Math.abs(urgencyPct) });
           const adjEl = document.getElementById('displayUrgencyAdj');
-          adjEl.textContent = (p.adjustmentAmount > 0 ? '+' : '') + f.adjustment;
-          adjEl.className = p.adjustmentAmount > 0 ? 'text-orange-600' : 'text-emerald-600';
+          adjEl.textContent = (urgencyAmt > 0 ? '+' : '') + (f.urgencyOnlyAdjustment || f.adjustment);
+          adjEl.className = urgencyAmt > 0 ? 'text-orange-600' : 'text-emerald-600';
         } else {
           adjRow.classList.add('hidden');
           adjRow.classList.remove('flex');

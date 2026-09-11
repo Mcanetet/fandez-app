@@ -431,8 +431,13 @@ async function createRequest({
     urgencyTierLabel: visitCalc.tier.label,
     urgencyAdjustmentPercent: visitCalc.adjustmentPercent,
     urgencyAdjustmentAmount: visitCalc.adjustmentAmount,
+    scheduleAdjustmentAmount: visitCalc.scheduleAdjustmentAmount || 0,
+    scheduleAdjustmentPercent: visitCalc.schedulePercent || 0,
+    urgencyOnlyAdjustmentAmount: visitCalc.urgencyOnlyAdjustmentAmount || 0,
+    urgencyOnlyPercent: visitCalc.urgencyOnlyPercent || 0,
     urgencyResponseMinutes: visitCalc.tier.responseMinutes,
     tariffHorarioBand: visitCalc.tariff?.horarioBand || null,
+    tariffHorarioPercent: visitCalc.schedulePercent || visitCalc.tariff?.horarioPercent || 0,
     tariffLocalTime: visitCalc.tariff?.minutesOfDay || null,
     tariffTimeZone: visitCalc.tariff?.timeZone || timeZone || null,
     tariffUrgenciaBand: visitCalc.tariff?.urgenciaBand || null,
@@ -790,6 +795,15 @@ function getCheckoutSummary(userId, requestId) {
     visitBasePrice: request.visitBasePrice ?? visitSubtotal,
     urgencyAdjustmentAmount: request.urgencyAdjustmentAmount || 0,
     urgencyTierLabel: request.urgencyTierLabel || null,
+    scheduleAdjustmentAmount: request.scheduleAdjustmentAmount || 0,
+    scheduleAdjustmentPercent: request.scheduleAdjustmentPercent || request.tariffHorarioPercent || 0,
+    scheduleBand: request.tariffHorarioBand || null,
+    urgencyOnlyAdjustmentAmount: request.urgencyOnlyAdjustmentAmount != null
+      ? request.urgencyOnlyAdjustmentAmount
+      : ((request.urgencyAdjustmentAmount || 0) - (request.scheduleAdjustmentAmount || 0)),
+    urgencyOnlyPercent: request.urgencyOnlyPercent != null
+      ? request.urgencyOnlyPercent
+      : null,
     paymentMethod: request.paymentMethod || 'card',
     // El cliente nunca ve ni paga recargo de tarjeta; el costo MP se descuenta al socio.
     paymentSurchargePercent: 0,

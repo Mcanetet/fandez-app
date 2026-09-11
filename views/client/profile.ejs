@@ -5,10 +5,11 @@
 
   <main class="flex-1 px-5 py-5 space-y-5">
     <% if (typeof canSwitchToProvider !== 'undefined' && canSwitchToProvider) { %>
-    <section class="p-4 rounded-2xl border border-zilo-accent/25 bg-zilo-accent/5">
-      <p class="text-sm font-semibold mb-1">Cuenta de socio</p>
-      <p class="text-xs text-zilo-muted mb-3">Estás en modo cliente. Puedes volver a tu panel de socio cuando quieras.</p>
-      <button type="button" id="btnSwitchProvider" class="zilo-btn-primary !py-2.5">Volver al panel socio</button>
+    <section class="p-4 rounded-2xl border border-[rgba(47,107,79,0.28)] bg-[rgba(47,107,79,0.08)]">
+      <p class="session-role-pill session-role-pill--provider mb-2"><%= t('session.role.provider') %></p>
+      <p class="text-sm font-semibold mb-1"><%= t('session.switch.to_provider_title') %></p>
+      <p class="text-xs text-zilo-muted mb-3"><%= t('session.switch.to_provider_body') %></p>
+      <button type="button" id="btnSwitchProvider" class="zilo-btn-primary !py-2.5 !bg-[#2F6B4F] !border-[#2F6B4F]"><%= t('session.switch.to_provider_cta') %></button>
     </section>
     <% } %>
 

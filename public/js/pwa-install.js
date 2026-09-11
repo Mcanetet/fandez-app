@@ -273,7 +273,7 @@
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     const register = () => {
-      navigator.serviceWorker.register('/sw.js?v=32', { scope: '/' })
+      navigator.serviceWorker.register('/sw.js?v=33', { scope: '/' })
         .then((reg) => {
           try { reg.update(); } catch (_) { /* ignore */ }
         })

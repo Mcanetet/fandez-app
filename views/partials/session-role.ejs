@@ -1,0 +1,22 @@
+<%
+  const sessionUser = typeof user !== 'undefined' ? user : null;
+  const sessionRole = sessionUser && sessionUser.role ? String(sessionUser.role) : '';
+  const isClient = sessionRole === 'client';
+  const isProvider = sessionRole === 'provider';
+  const isTecnico = sessionRole === 'tecnico';
+  if (isClient || isProvider || isTecnico) {
+    const roleKey = isClient ? 'client' : (isProvider ? 'provider' : 'tecnico');
+    const roleClass = isClient ? 'client' : (isProvider ? 'provider' : 'tecnico');
+    const roleLabel = typeof t === 'function' ? t('session.role.' + roleKey) : roleKey;
+    const roleHint = typeof t === 'function' ? t('session.role.' + roleKey + '_hint') : '';
+%>
+<div
+  class="session-role-mark session-role-mark--<%= roleClass %>"
+  role="status"
+  aria-label="<%= roleHint || roleLabel %>"
+  title="<%= roleHint || roleLabel %>"
+>
+  <span class="session-role-mark__dot" aria-hidden="true"></span>
+  <span class="session-role-mark__label"><%= roleLabel %></span>
+</div>
+<% } %>

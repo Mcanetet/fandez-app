@@ -1,5 +1,5 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v32';
+const SW_VERSION = 'fandez-sw-v33';
 
 /** Ámbar + 2 semicírculos (v11). Path nuevo = rompe caché Saturno Chrome. */
 const DEFAULT_ICON = '/icons/fandez-v11-notify.png';
@@ -31,12 +31,36 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+function networkFirst(req, { timeoutMs = 8000 } = {}) {
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => {
+    try { ctrl.abort(); } catch (_) { /* ignore */ }
+  }, timeoutMs) : null;
+  return fetch(req, ctrl ? { signal: ctrl.signal } : undefined)
+    .finally(() => { if (timer) clearTimeout(timer); })
+    .catch(async () => {
+      const cached = await caches.match(req);
+      if (cached) return cached;
+      if (req.mode === 'navigate') {
+        const offline = await caches.match('/offline.html');
+        if (offline) return offline;
+      }
+      throw new Error('offline');
+    });
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
   let pathname = '';
   try { pathname = new URL(req.url).pathname; } catch (_) { return; }
   if (pathname.startsWith('/uploads/') || pathname.startsWith('/media/') || pathname.startsWith('/socket.io')) return;
+
+  // Arranque PWA: siempre red fresca (sesión / rol), sin quedarse colgado.
+  if (pathname === '/app' || req.mode === 'navigate') {
+    event.respondWith(networkFirst(req, { timeoutMs: pathname === '/app' ? 5000 : 9000 }));
+    return;
+  }
 
   if (
     pathname.startsWith('/icons/fandez-v11')
@@ -58,7 +82,6 @@ self.addEventListener('fetch', (event) => {
         .catch(async () => {
           const cached = await caches.match(req) || await caches.match(pathname);
           if (cached) return cached;
-          // Fallback duro: icono raíz (mismo dibujo)
           const fallback = await caches.match('/icon-192.png') || await caches.match('/icons/fandez-v11-notify.png');
           if (fallback) return fallback;
           throw new Error('icon-offline');
@@ -68,17 +91,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (req.destination === 'image') return;
-  event.respondWith(
-    fetch(req).catch(async () => {
-      const cached = await caches.match(req);
-      if (cached) return cached;
-      if (req.mode === 'navigate') {
-        const offline = await caches.match('/offline.html');
-        if (offline) return offline;
-      }
-      throw new Error('offline');
-    })
-  );
+  event.respondWith(networkFirst(req));
 });
 
 function absUrl(path) {
@@ -91,7 +104,6 @@ function absUrl(path) {
 
 async function showFandezNotification(data = {}) {
   const title = data.title || 'Fandez';
-  // SIEMPRE same-origin — evita Saturno de Chrome por APP_URL www/sin-www
   const icon = absUrl(DEFAULT_ICON);
   const badge = absUrl(DEFAULT_BADGE);
   const options = {
@@ -104,7 +116,7 @@ async function showFandezNotification(data = {}) {
     requireInteraction: !!data.requireInteraction,
     vibrate: data.vibrate || [90, 60, 90, 60, 140],
     data: {
-      url: data.url || '/',
+      url: data.url || '/app?source=pwa',
       tag: data.tag || 'fandez'
     },
     actions: data.actions || [
@@ -130,7 +142,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || '/';
+  const target = (event.notification.data && event.notification.data.url) || '/app?source=pwa';
   event.waitUntil((async () => {
     const all = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of all) {
@@ -138,8 +150,10 @@ self.addEventListener('notificationclick', (event) => {
         const url = new URL(client.url);
         if (url.origin === self.location.origin) {
           await client.focus();
-          if ('navigate' in client) await client.navigate(target);
-          return;
+          if ('navigate' in client) {
+            await client.navigate(target);
+            return;
+          }
         }
       } catch (_) { /* ignore */ }
     }

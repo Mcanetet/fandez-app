@@ -570,6 +570,22 @@ router.post('/registro', async (req, res) => {
   }
 });
 
+function verifyEmailPageLocals(req, user, extra = {}) {
+  return {
+    title: extra.title || 'Verificar correo — Fandez',
+    email: user.email,
+    userName: user.name || '',
+    welcome: extra.welcome !== false,
+    pendingLogin: Boolean(extra.pendingLogin),
+    company,
+    error: extra.error || null,
+    success: extra.success || null,
+    cooldown: extra.cooldown != null ? extra.cooldown : emailVerification.resendCooldownSeconds(user),
+    codeExpiresAt: user.emailVerificationExpiresAt || null,
+    demoHint: !mailer.isConfigured()
+  };
+}
+
 router.get('/verificar-email', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   const user = store.getUserById(req.session.user.id);
@@ -605,19 +621,14 @@ router.get('/verificar-email', (req, res) => {
       : req.t('verify.mail_pending');
   }
 
-  res.render('verificar-email', {
+  res.render('verificar-email', verifyEmailPageLocals(req, user, {
     title: req.query.pending === '1' ? 'Verificación pendiente — Fandez' : (req.query.welcome === '1' ? 'Bienvenido — Fandez' : 'Verificar correo — Fandez'),
-    email: user.email,
-    userName: user.name || '',
     welcome: req.query.welcome === '1' || req.query.pending === '1' || !req.query.exists,
     pendingLogin: req.query.pending === '1',
-    company,
     error,
     success,
-    cooldown,
-    codeExpiresAt: user.emailVerificationExpiresAt || null,
-    demoHint: !require('../lib/mailer').isConfigured()
-  });
+    cooldown
+  }));
 });
 
 router.post('/verificar-email', async (req, res) => {
@@ -632,20 +643,12 @@ router.post('/verificar-email', async (req, res) => {
   const result = await store.verifyEmailCode(user.id, code);
   if (result.error) {
     const fresh = store.getUserById(user.id) || user;
-    // Si el código ya no sirve, dejar reenviar de inmediato
     const cooldown = emailVerification.resendCooldownSeconds(fresh);
-    return res.render('verificar-email', {
-      title: 'Verificar correo — Fandez',
-      email: user.email,
-      userName: user.name || '',
+    return res.render('verificar-email', verifyEmailPageLocals(req, fresh, {
       welcome: true,
-      company,
       error: result.error,
-      success: null,
-      cooldown,
-      codeExpiresAt: fresh.emailVerificationExpiresAt || null,
-      demoHint: !require('../lib/mailer').isConfigured()
-    });
+      cooldown
+    }));
   }
 
   store.logSecurityEvent('email_verificado', user.email, req);

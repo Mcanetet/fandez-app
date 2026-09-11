@@ -167,6 +167,19 @@ function run() {
   assertEqual(twoDaysPreview.visitTotal, 90000, 'calculateVisitPricing 2 días con −10%');
   assertEqual(twoDaysPreview.adjustmentAmount, -10000, 'calculateVisitPricing 2 días descuento');
 
+  const nightImmediate = calculateVisitPricing({}, 'immediate', {
+    horaSolicitud: '02:00',
+    valorBase: 70000,
+    timeZone: 'America/Santiago'
+  });
+  assertEqual(nightImmediate.scheduleBand, 'nocturno', 'Inmediato en madrugada marca banda nocturno');
+  assertEqual(nightImmediate.schedulePercent, 50, 'Madrugada +50%');
+  assertEqual(nightImmediate.scheduleAdjustmentAmount, 35000, 'Recargo madrugada separado $35.000');
+  assertEqual(nightImmediate.urgencyOnlyPercent, 25, 'Urgencia inmediato +25%');
+  assertEqual(nightImmediate.urgencyOnlyAdjustmentAmount, 26250, 'Recargo inmediato separado $26.250');
+  assertEqual(nightImmediate.adjustmentAmount, 61250, 'Ajuste total = madrugada + inmediato');
+  assertEqual(nightImmediate.visitTotal, 131250, 'Total $131.250 = base + desglose');
+
   const catalogCount = SERVICE_CATALOG.reduce((n, s) => n + s.activities.length, 0);
   if (SERVICE_CATALOG.length < 5) throw new Error('Catálogo debe tener al menos 5 especialidades');
   if (catalogCount < 20) throw new Error(`Catálogo demasiado corto: ${catalogCount}`);

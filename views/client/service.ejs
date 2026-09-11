@@ -38,8 +38,12 @@
         <span class="text-zilo-muted text-sm"><%= perM2 ? t('client.service.work_base_m2') : t('client.service.work_base') %></span>
         <strong class="text-zilo-accent font-semibold" id="displayVisitPrice"><%= formatCLP(displayFrom) %><% if (perM2) { %> / m²<% } %></strong>
       </div>
+      <div id="scheduleAdjustmentRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
+        <span class="text-zilo-muted" id="scheduleAdjustmentLabel"><%= t('client.service.schedule_surcharge') %></span>
+        <strong id="displayScheduleAdj" class="text-orange-600">—</strong>
+      </div>
       <div id="urgencyAdjustmentRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
-        <span class="text-zilo-muted" id="urgencyAdjustmentLabel"><%= t('client.service.dynamic_surcharge') %></span>
+        <span class="text-zilo-muted" id="urgencyAdjustmentLabel"><%= t('client.service.urgency_surcharge') %></span>
         <strong id="displayUrgencyAdj" class="text-orange-600">—</strong>
       </div>
       <div class="flex justify-between py-3 border-b border-zilo-border hidden" id="servicePriceRow">

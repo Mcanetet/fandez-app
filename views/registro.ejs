@@ -17,12 +17,6 @@
       data-client="<%= t('register.subtitle_full') %>"
       data-provider="<%= t('register.subtitle_provider') %>"><%= form.role === 'client' ? t('register.subtitle_full') : t('register.subtitle_provider') %></p>
 
-    <% if (typeof launchNoticeActive !== 'undefined' && launchNoticeActive) { %>
-    <div id="clientLaunchBanner" class="mb-5 p-3.5 rounded-xl border border-zilo-accent/25 bg-zilo-accent-soft/50 <%= form.role === 'client' ? '' : 'hidden' %>">
-      <p class="text-sm text-zilo-text leading-relaxed"><%= t('launch.banner.client_form') %></p>
-    </div>
-    <% } %>
-
     <%- include('partials/site-alert', { alertCompact: true }) %>
 
     <% if (typeof referralCode !== 'undefined' && referralCode) { %>
@@ -63,6 +57,21 @@
             </div>
           </label>
         </div>
+        <% if (typeof launchNoticeActive !== 'undefined' && launchNoticeActive) { %>
+        <div id="clientLaunchBanner" class="launch-inline <%= form.role === 'client' ? '' : 'hidden' %>">
+          <div class="launch-notice__steps launch-notice__steps--inline">
+            <div class="launch-notice__step">
+              <p class="launch-notice__step-label"><%= t('launch.client.sept_label') %></p>
+              <p class="launch-notice__step-text"><%= t('launch.client.sept_text') %></p>
+            </div>
+            <div class="launch-notice__step launch-notice__step--next">
+              <p class="launch-notice__step-label"><%= t('launch.client.oct_label') %></p>
+              <p class="launch-notice__step-text"><%= t('launch.client.oct_text') %></p>
+            </div>
+          </div>
+          <p class="launch-inline__note"><%= t('launch.client.note') %></p>
+        </div>
+        <% } %>
       </div>
 
       <div>

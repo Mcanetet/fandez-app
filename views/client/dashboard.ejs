@@ -8,8 +8,8 @@
           <%= typeof profile !== 'undefined' ? profile.name.split(' ').map(n=>n[0]).join('').slice(0,2) : '?' %>
         </div>
         <div>
-          <span class="zilo-label !text-[9px]"><%= t('client.welcome_label') %></span>
-          <h1 class="text-base font-semibold leading-tight"><%= user.name.split(' ')[0] %></h1>
+          <span class="session-role-pill session-role-pill--client"><%= t('session.role.client') %></span>
+          <h1 class="text-base font-semibold leading-tight mt-0.5"><%= user.name.split(' ')[0] %></h1>
         </div>
       </a>
       <div class="flex items-center gap-2">

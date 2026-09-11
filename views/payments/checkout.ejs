@@ -160,9 +160,30 @@
           <span class="text-zilo-muted">Visita técnica (base)</span>
           <span id="lineVisitBase"><%= formatCLP(summary.visitBasePrice || summary.visitSubtotal) %></span>
         </div>
-        <div class="flex justify-between checkout-line pb-2 <%= summary.urgencyAdjustmentAmount ? '' : 'hidden' %>" id="lineUrgencyRow">
-          <span class="text-zilo-muted" id="lineUrgencyLabel"><%= summary.urgencyTierLabel || 'Ajuste urgencia' %></span>
-          <span id="lineUrgency"><%= summary.urgencyAdjustmentAmount ? ((summary.urgencyAdjustmentAmount > 0 ? '+' : '') + formatCLP(summary.urgencyAdjustmentAmount)) : '—' %></span>
+        <div class="flex justify-between checkout-line pb-2 <%= summary.scheduleAdjustmentAmount ? '' : 'hidden' %>" id="lineScheduleRow">
+          <span class="text-zilo-muted" id="lineScheduleLabel">
+            <% if (summary.scheduleAdjustmentAmount) {
+              const band = summary.scheduleBand === 'tarde' ? 'tarde' : (summary.scheduleBand === 'nocturno' ? 'madrugada' : 'horario');
+              const pct = Math.abs(summary.scheduleAdjustmentPercent || 0);
+            %>
+              Recargo <%= band %><% if (pct) { %> (+<%= pct %>%)<% } %>
+            <% } else { %>
+              Recargo horario
+            <% } %>
+          </span>
+          <span id="lineSchedule"><%= summary.scheduleAdjustmentAmount ? ((summary.scheduleAdjustmentAmount > 0 ? '+' : '') + formatCLP(summary.scheduleAdjustmentAmount)) : '—' %></span>
+        </div>
+        <div class="flex justify-between checkout-line pb-2 <%= summary.urgencyOnlyAdjustmentAmount ? '' : 'hidden' %>" id="lineUrgencyRow">
+          <span class="text-zilo-muted" id="lineUrgencyLabel">
+            <% if (summary.urgencyOnlyAdjustmentAmount) {
+              const upct = summary.urgencyOnlyPercent != null ? Math.abs(summary.urgencyOnlyPercent) : null;
+            %>
+              <%= summary.urgencyTierLabel || 'Ajuste urgencia' %><% if (upct) { %> (<%= summary.urgencyOnlyAdjustmentAmount > 0 ? '+' : '' %><%= upct %>%)<% } %>
+            <% } else { %>
+              <%= summary.urgencyTierLabel || 'Ajuste urgencia' %>
+            <% } %>
+          </span>
+          <span id="lineUrgency"><%= summary.urgencyOnlyAdjustmentAmount ? ((summary.urgencyOnlyAdjustmentAmount > 0 ? '+' : '') + formatCLP(summary.urgencyOnlyAdjustmentAmount)) : '—' %></span>
         </div>
         <div class="flex justify-between checkout-line pb-2 border-b border-zilo-border">
           <span class="text-zilo-muted font-medium">Subtotal visita</span>
@@ -345,11 +366,35 @@
     document.getElementById('lineBase').textContent = fmt(s.basePrice);
 
     if (s.servicePriceBase) document.getElementById('lineService').textContent = fmt(s.servicePriceBase);
+    const schRow = document.getElementById('lineScheduleRow');
+    const scheduleAmt = Number(s.scheduleAdjustmentAmount) || 0;
+    if (schRow) {
+      if (scheduleAmt) {
+        schRow.classList.remove('hidden');
+        const band = s.scheduleBand === 'tarde' ? 'tarde' : (s.scheduleBand === 'nocturno' ? 'madrugada' : 'horario');
+        const pct = Math.abs(Number(s.scheduleAdjustmentPercent) || 0);
+        document.getElementById('lineScheduleLabel').textContent =
+          (scheduleAmt > 0 ? 'Recargo ' : 'Ajuste ') + band + (pct ? ` (${scheduleAmt > 0 ? '+' : ''}${pct}%)` : '');
+        document.getElementById('lineSchedule').textContent = (scheduleAmt > 0 ? '+' : '') + fmt(scheduleAmt);
+      } else {
+        schRow.classList.add('hidden');
+      }
+    }
     const urgRow = document.getElementById('lineUrgencyRow');
-    if (urgRow && s.urgencyAdjustmentAmount) {
-      urgRow.classList.remove('hidden');
-      document.getElementById('lineUrgency').textContent = (s.urgencyAdjustmentAmount > 0 ? '+' : '') + fmt(s.urgencyAdjustmentAmount);
-      if (s.urgencyTierLabel) document.getElementById('lineUrgencyLabel').textContent = s.urgencyTierLabel;
+    const urgencyAmt = s.urgencyOnlyAdjustmentAmount != null
+      ? Number(s.urgencyOnlyAdjustmentAmount) || 0
+      : (Number(s.urgencyAdjustmentAmount) || 0) - scheduleAmt;
+    if (urgRow) {
+      if (urgencyAmt) {
+        urgRow.classList.remove('hidden');
+        const upct = s.urgencyOnlyPercent != null ? Math.abs(Number(s.urgencyOnlyPercent) || 0) : null;
+        const baseLabel = s.urgencyTierLabel || 'Ajuste urgencia';
+        document.getElementById('lineUrgencyLabel').textContent =
+          baseLabel + (upct ? ` (${urgencyAmt > 0 ? '+' : ''}${upct}%)` : '');
+        document.getElementById('lineUrgency').textContent = (urgencyAmt > 0 ? '+' : '') + fmt(urgencyAmt);
+      } else {
+        urgRow.classList.add('hidden');
+      }
     }
     document.getElementById('lineTotal').textContent = fmt(s.amountDue);
     const stickyTotal = document.getElementById('stickyCheckoutTotal');
