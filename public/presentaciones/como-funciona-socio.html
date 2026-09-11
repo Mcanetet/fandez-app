@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#C45C14">
+  <title>Cómo funciona Fandez — Para socios</title>
+  <link rel="icon" href="/icons/fandez-v11-192.png" type="image/png">
+  <style>
+    @font-face {
+      font-family: 'Unbounded';
+      src: url('/fonts/unbounded-700.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    :root {
+      --bg: #F7F3EE;
+      --bg-deep: #EFE8DF;
+      --ink: #1A1814;
+      --muted: #6B635A;
+      --line: #E0D7CC;
+      --accent: #C45C14;
+      --accent-strong: #A84E10;
+      --success: #2F6B4F;
+      --white: #FFFFFF;
+      --shadow: 0 18px 50px rgba(26, 24, 20, 0.08);
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; border: 0; background: none; cursor: pointer; color: inherit; }
+    a { color: inherit; }
+
+    .deck {
+      position: relative;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(196,92,20,0.12), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(47,107,79,0.08), transparent 50%),
+        linear-gradient(180deg, #FBF8F4 0%, var(--bg) 40%, var(--bg-deep) 100%);
+    }
+
+    .topbar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: max(0.85rem, env(safe-area-inset-top)) 1.25rem 0.75rem;
+      pointer-events: none;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      pointer-events: auto;
+    }
+    .brand img {
+      width: 36px; height: 36px; border-radius: 9px;
+      box-shadow: 0 6px 16px rgba(196,92,20,0.22);
+    }
+    .brand strong {
+      font-family: Unbounded, system-ui, sans-serif;
+      font-size: 1rem;
+      letter-spacing: -0.03em;
+    }
+    .progress {
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 3px;
+      background: rgba(26,24,20,0.06);
+      z-index: 40;
+    }
+    .progress > i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+      transition: width 0.45s var(--ease);
+    }
+
+    .slides {
+      height: 100%;
+      width: 100%;
+      position: relative;
+    }
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      align-content: center;
+      padding: 5.5rem 1.5rem 6.5rem;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(28px) scale(0.985);
+      transition: opacity 0.45s var(--ease), transform 0.55s var(--ease), visibility 0.45s;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .slide.is-active {
+      opacity: 1;
+      visibility: visible;
+      transform: none;
+      z-index: 2;
+    }
+    .slide.is-exit {
+      opacity: 0;
+      transform: translateY(-18px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+      margin-bottom: 1rem;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 1.25rem; height: 2px;
+      background: var(--accent);
+    }
+    h1, h2 {
+      font-family: Unbounded, 'Bricolage Grotesque', system-ui, sans-serif;
+      letter-spacing: -0.035em;
+      line-height: 1.08;
+      font-weight: 700;
+    }
+    h1 { font-size: clamp(2.1rem, 7vw, 3.6rem); max-width: 14ch; }
+    h2 { font-size: clamp(1.55rem, 5.2vw, 2.6rem); max-width: 18ch; margin-bottom: 0.85rem; }
+    .lead {
+      font-size: clamp(1.05rem, 2.8vw, 1.25rem);
+      line-height: 1.45;
+      color: var(--muted);
+      max-width: 34ch;
+      margin-top: 0.85rem;
+    }
+    .shell {
+      width: min(920px, 100%);
+      margin: 0 auto;
+    }
+
+    .hero-mark {
+      width: min(120px, 28vw);
+      height: auto;
+      border-radius: 28px;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+      animation: pulseMark 2.4s ease-in-out infinite;
+    }
+    @keyframes pulseMark {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+
+    .pain-grid {
+      display: grid;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      max-width: 420px;
+    }
+    .pain-item {
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+      padding: 0.95rem 1rem;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      transform: translateY(12px);
+      opacity: 0;
+    }
+    .slide.is-active .pain-item {
+      animation: riseIn 0.55s var(--ease) forwards;
+    }
+    .slide.is-active .pain-item:nth-child(1) { animation-delay: 0.08s; }
+    .slide.is-active .pain-item:nth-child(2) { animation-delay: 0.18s; }
+    .slide.is-active .pain-item:nth-child(3) { animation-delay: 0.28s; }
+    @keyframes riseIn {
+      to { opacity: 1; transform: none; }
+    }
+    .pain-item b {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 0.15rem;
+    }
+    .pain-item span { font-size: 0.85rem; color: var(--muted); line-height: 1.35; }
+    .dot {
+      width: 0.55rem; height: 0.55rem; border-radius: 50%;
+      background: var(--accent); margin-top: 0.4rem; flex-shrink: 0;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.65rem;
+      margin-top: 1.6rem;
+    }
+    @media (max-width: 720px) {
+      .flow { grid-template-columns: 1fr 1fr; }
+    }
+    .flow-step {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 1.15rem;
+      padding: 1rem 0.9rem;
+      min-height: 8.5rem;
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    .slide.is-active .flow-step {
+      animation: riseIn 0.55s var(--ease) forwards;
+    }
+    .slide.is-active .flow-step:nth-child(1) { animation-delay: 0.05s; }
+    .slide.is-active .flow-step:nth-child(2) { animation-delay: 0.15s; }
+    .slide.is-active .flow-step:nth-child(3) { animation-delay: 0.25s; }
+    .slide.is-active .flow-step:nth-child(4) { animation-delay: 0.35s; }
+    .flow-step::after {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .flow-step.is-live::after { opacity: 1; }
+    .flow-num {
+      font-family: Unbounded, system-ui, sans-serif;
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-bottom: 0.55rem;
+      letter-spacing: 0.08em;
+    }
+    .flow-step strong { display: block; font-size: 0.98rem; margin-bottom: 0.35rem; }
+    .flow-step p { font-size: 0.82rem; color: var(--muted); line-height: 1.35; }
+
+    .mock {
+      margin-top: 1.4rem;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 1.35rem;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      max-width: 380px;
+    }
+    .mock-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .mock-top small {
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .pill {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.28rem 0.55rem;
+      border-radius: 999px;
+      background: #E7F6EF;
+      color: var(--success);
+    }
+    .mock-body { padding: 1rem; }
+    .job {
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      padding: 0.9rem;
+      background: #FBF8F4;
+    }
+    .job h3 { font-size: 1.05rem; margin-bottom: 0.2rem; }
+    .job .meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.65rem; }
+    .job .pay {
+      font-family: Unbounded, system-ui, sans-serif;
+      color: var(--success);
+      font-size: 1.05rem;
+      margin-bottom: 0.75rem;
+    }
+    .job-actions { display: flex; gap: 0.45rem; }
+    .job-actions span {
+      flex: 1;
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.55rem 0.35rem;
+      border-radius: 0.7rem;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .job-actions .take {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .money {
+      display: grid;
+      gap: 0.75rem;
+      margin-top: 1.35rem;
+      max-width: 460px;
+    }
+    .money-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 1.1rem;
+      padding: 1rem 1.1rem;
+    }
+    .money-card.accent {
+      background: linear-gradient(145deg, #FFF7F0, #FFE8D4);
+      border-color: rgba(196,92,20,0.28);
+    }
+    .money-card strong { display: block; font-size: 1.05rem; margin-bottom: 0.25rem; }
+    .money-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.4; }
+    .money-card .big {
+      font-family: Unbounded, system-ui, sans-serif;
+      font-size: 1.55rem;
+      color: var(--accent-strong);
+      margin: 0.35rem 0 0.15rem;
+    }
+
+    .checklist {
+      list-style: none;
+      margin-top: 1.25rem;
+      display: grid;
+      gap: 0.55rem;
+      max-width: 420px;
+    }
+    .checklist li {
+      display: flex;
+      gap: 0.7rem;
+      align-items: flex-start;
+      padding: 0.7rem 0.85rem;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid var(--line);
+      border-radius: 0.9rem;
+      font-size: 0.92rem;
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    .slide.is-active .checklist li {
+      animation: riseIn 0.5s var(--ease) forwards;
+    }
+    .slide.is-active .checklist li:nth-child(1) { animation-delay: 0.05s; }
+    .slide.is-active .checklist li:nth-child(2) { animation-delay: 0.12s; }
+    .slide.is-active .checklist li:nth-child(3) { animation-delay: 0.19s; }
+    .slide.is-active .checklist li:nth-child(4) { animation-delay: 0.26s; }
+    .slide.is-active .checklist li:nth-child(5) { animation-delay: 0.33s; }
+    .check {
+      width: 1.15rem; height: 1.15rem; border-radius: 50%;
+      background: var(--success); color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700; flex-shrink: 0; margin-top: 0.1rem;
+    }
+
+    .cta-box {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.95rem 1.35rem;
+      border-radius: 0.95rem;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      box-shadow: 0 10px 28px rgba(196,92,20,0.28);
+      transition: transform 0.2s var(--ease), background 0.2s;
+    }
+    .btn-primary:hover { background: var(--accent-strong); transform: translateY(-1px); }
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.9rem 1.1rem;
+      border-radius: 0.95rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.7);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .note {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      max-width: 36ch;
+      line-height: 1.4;
+    }
+
+    .quote {
+      margin-top: 1.4rem;
+      padding: 1.1rem 1.2rem;
+      border-left: 3px solid var(--accent);
+      background: rgba(255,255,255,0.55);
+      border-radius: 0 1rem 1rem 0;
+      max-width: 34ch;
+      font-size: 1.05rem;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+
+    .controls {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 1.1rem max(0.95rem, env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, transparent, rgba(247,243,238,0.92) 35%, var(--bg));
+    }
+    .nav-btn {
+      width: 3rem; height: 3rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--white);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 14px rgba(26,24,20,0.06);
+    }
+    .nav-btn:disabled { opacity: 0.35; cursor: default; }
+    .nav-btn.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent-strong);
+      width: auto;
+      padding: 0 1.2rem;
+      font-weight: 700;
+      font-size: 0.92rem;
+      gap: 0.35rem;
+    }
+    .dots {
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+    }
+    .dots button {
+      width: 0.45rem; height: 0.45rem;
+      border-radius: 999px;
+      background: rgba(26,24,20,0.18);
+      transition: width 0.25s, background 0.25s;
+    }
+    .dots button.is-on {
+      width: 1.15rem;
+      background: var(--accent);
+    }
+    .hint {
+      position: absolute;
+      right: 1.1rem;
+      bottom: calc(4.6rem + env(safe-area-inset-bottom));
+      font-size: 0.72rem;
+      color: var(--muted);
+      opacity: 0.85;
+      z-index: 25;
+      pointer-events: none;
+    }
+    @media (max-width: 640px) {
+      .hint { display: none; }
+      .slide { padding: 4.8rem 1.15rem 6.2rem; }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="deck" id="deck">
+    <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+
+    <div class="topbar">
+      <a class="brand" href="https://www.fandez.cl" target="_blank" rel="noopener">
+        <img src="/icons/fandez-v11-192.png" alt="Fandez" width="36" height="36">
+        <strong>Fandez</strong>
+      </a>
+    </div>
+
+    <div class="slides" id="slides">
+      <!-- 1 -->
+      <section class="slide is-active" data-title="Inicio">
+        <div class="shell">
+          <img class="hero-mark" src="/icons/fandez-v11-192.png" alt="" width="120" height="120">
+          <p class="eyebrow">Para nuevos socios</p>
+          <h1>Pedidos listos.<br>Tú eliges.</h1>
+          <p class="lead">Cómo funciona Fandez en 8 minutos — sin humo, con el oficio al centro.</p>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section class="slide" data-title="Problema">
+        <div class="shell">
+          <p class="eyebrow">La herida</p>
+          <h2>WhatsApp no es un canal de trabajo. Es un embudo de tiempo perdido.</h2>
+          <div class="pain-grid">
+            <div class="pain-item">
+              <span class="dot"></span>
+              <div>
+                <b>Cotizas gratis… y te fantasmaean</b>
+                <span>Horas en mensajes, fotos y “después te confirmo”.</span>
+              </div>
+            </div>
+            <div class="pain-item">
+              <span class="dot"></span>
+              <div>
+                <b>No sabes si el cliente va en serio</b>
+                <span>Sin compromiso claro, tu agenda se llena de humo.</span>
+              </div>
+            </div>
+            <div class="pain-item">
+              <span class="dot"></span>
+              <div>
+                <b>Cobras después de pelear</b>
+                <span>Transferencias, “me olvidé”, y cero seguimiento.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section class="slide" data-title="Promesa">
+        <div class="shell">
+          <p class="eyebrow">El cambio</p>
+          <h2>En Fandez el cliente ya pidió el servicio.</h2>
+          <p class="lead">Tú ves el pedido, la zona y lo que te pagan. Si te sirve, lo tomas. Si no, pasas.</p>
+          <p class="quote">No vendemos “más mensajes”. Vendemos demanda calificada y control para tu equipo.</p>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section class="slide" data-title="Flujo">
+        <div class="shell">
+          <p class="eyebrow">Cómo funciona</p>
+          <h2>Cuatro momentos. Cero misterio.</h2>
+          <div class="flow" id="flowSteps">
+            <article class="flow-step is-live">
+              <div class="flow-num">01</div>
+              <strong>Cliente pide</strong>
+              <p>Elige servicio, sube foto, paga la visita en la app.</p>
+            </article>
+            <article class="flow-step">
+              <div class="flow-num">02</div>
+              <strong>Sale al muro</strong>
+              <p>Socios en línea de esa especialidad ven el pedido.</p>
+            </article>
+            <article class="flow-step">
+              <div class="flow-num">03</div>
+              <strong>Tú decides</strong>
+              <p>Revisas detalle, fotos y dirección. Tomas o descartas.</p>
+            </article>
+            <article class="flow-step">
+              <div class="flow-num">04</div>
+              <strong>Ejecutas</strong>
+              <p>Asignas técnico, actualizas estados, cobras con liquidación clara.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 -->
+      <section class="slide" data-title="Muro">
+        <div class="shell">
+          <p class="eyebrow">Tu panel</p>
+          <h2>El muro: el corazón operativo.</h2>
+          <p class="lead">En línea → llegan pedidos. Fuera de línea → silencio. Tú mandas el ritmo.</p>
+          <div class="mock" aria-hidden="true">
+            <div class="mock-top">
+              <small>Muro de trabajos</small>
+              <span class="pill">Disponible</span>
+            </div>
+            <div class="mock-body">
+              <div class="job">
+                <h3>Jardinería</h3>
+                <p class="meta">Ñuñoa · Hoy (4–8 h) · con foto</p>
+                <p class="pay">Te pagamos: $61.600</p>
+                <div class="job-actions">
+                  <span>No me interesa</span>
+                  <span>Ver detalle</span>
+                  <span class="take">Tomar</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 -->
+      <section class="slide" data-title="Plata">
+        <div class="shell">
+          <p class="eyebrow">Plata clara</p>
+          <h2>Sabes qué ganas antes de aceptar.</h2>
+          <div class="money">
+            <div class="money-card accent">
+              <strong>Comisión Fandez</strong>
+              <div class="big">12%</div>
+              <p>IVA incluido sobre la mano de obra. Más el costo de Mercado Pago a valor presente. Los materiales van íntegros al socio.</p>
+            </div>
+            <div class="money-card">
+              <strong>El cliente no ve “sorpresas”</strong>
+              <p>El precio del catálogo es el total. Tú ves tu liquidación en la app al completar.</p>
+            </div>
+            <div class="money-card">
+              <strong>Si no te sirve, no lo tomas</strong>
+              <p>“No me interesa” lo saca de tu muro para siempre. Otros socios pueden tomarlo.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 -->
+      <section class="slide" data-title="Activación">
+        <div class="shell">
+          <p class="eyebrow">Activación</p>
+          <h2>Cuenta en minutos. Activación seria en 24–72 h.</h2>
+          <ul class="checklist">
+            <li><span class="check">1</span><span>Crear cuenta de socio en fandez.cl</span></li>
+            <li><span class="check">2</span><span>Verificar identidad (carnet + rostro) y ubicación</span></li>
+            <li><span class="check">3</span><span>Firmar contrato de socio</span></li>
+            <li><span class="check">4</span><span>Definir especialidades y equipo (o “yo hago el servicio”)</span></li>
+            <li><span class="check">5</span><span>Ponerse en línea y tomar el primer pedido</span></li>
+          </ul>
+          <p class="note">No prometemos “cobras en un minuto”. Prometemos un canal con reglas claras.</p>
+        </div>
+      </section>
+
+      <!-- 8 -->
+      <section class="slide" data-title="Terreno">
+        <div class="shell">
+          <p class="eyebrow">En domicilio</p>
+          <h2>El estándar que hace que el cliente vuelva — y te recomiende.</h2>
+          <ul class="checklist">
+            <li><span class="check">✓</span><span>Puntualidad o aviso de demora</span></li>
+            <li><span class="check">✓</span><span>Preséntate: nombre + Fandez</span></li>
+            <li><span class="check">✓</span><span>Permiso de ingreso y explicación del diagnóstico</span></li>
+            <li><span class="check">✓</span><span>Aprobación antes de cualquier sobrecosto</span></li>
+            <li><span class="check">✓</span><span>Foto de inicio y cierre · deja limpio · pide calificación</span></li>
+          </ul>
+          <p class="quote">La app no reemplaza el oficio. Lo hace visible y cobrable.</p>
+        </div>
+      </section>
+
+      <!-- 9 -->
+      <section class="slide" data-title="Momento">
+        <div class="shell">
+          <p class="eyebrow">Ventana</p>
+          <h2>Soft launch · Santiago Oriente</h2>
+          <p class="lead">Estamos registrando socios ahora. Lanzamiento octubre 2026. Cupos curados: preferimos calidad operativa a volumen vacío.</p>
+          <div class="pain-grid" style="margin-top:1.25rem">
+            <div class="pain-item">
+              <span class="dot"></span>
+              <div>
+                <b>Zona foco</b>
+                <span>Providencia · Las Condes · Ñuñoa · La Reina · Vitacura</span>
+              </div>
+            </div>
+            <div class="pain-item">
+              <span class="dot"></span>
+              <div>
+                <b>Oficios</b>
+                <span>Gásfiter, Eléctrico, Cerrajería, Termos, Jardinería, Pintura y más</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 -->
+      <section class="slide" data-title="CTA">
+        <div class="shell">
+          <p class="eyebrow">Siguiente paso</p>
+          <h2>Regístrate. Actívate. Elige tu primer pedido.</h2>
+          <p class="lead">Si tu empresa aún vive en WhatsApp, este es el momento de cambiar el canal — no el oficio.</p>
+          <div class="cta-box">
+            <a class="btn-primary" href="https://www.fandez.cl/registro?role=provider" target="_blank" rel="noopener">
+              Quiero ser socio
+            </a>
+            <a class="btn-ghost" href="https://www.fandez.cl" target="_blank" rel="noopener">Ver fandez.cl</a>
+          </div>
+          <p class="note">Presentación interna · Fandez · Soft launch socios · Actualizable sin PowerPoint.</p>
+        </div>
+      </section>
+    </div>
+
+    <p class="hint">← → o desliza · Espacio / Enter avanza</p>
+
+    <div class="controls">
+      <button type="button" class="nav-btn" id="btnPrev" aria-label="Anterior">←</button>
+      <div class="dots" id="dots" role="tablist" aria-label="Diapositivas"></div>
+      <button type="button" class="nav-btn primary" id="btnNext" aria-label="Siguiente">Siguiente →</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const dots = document.getElementById('dots');
+      const progressBar = document.getElementById('progressBar');
+      const btnPrev = document.getElementById('btnPrev');
+      const btnNext = document.getElementById('btnNext');
+      const flowSteps = Array.from(document.querySelectorAll('#flowSteps .flow-step'));
+      let index = 0;
+      let flowTimer = null;
+      let touchX = null;
+
+      slides.forEach((_, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('aria-label', 'Ir a diapositiva ' + (i + 1));
+        b.addEventListener('click', () => go(i));
+        dots.appendChild(b);
+      });
+
+      function go(next) {
+        if (next < 0 || next >= slides.length || next === index) {
+          render();
+          return;
+        }
+        const prev = slides[index];
+        prev.classList.add('is-exit');
+        prev.classList.remove('is-active');
+        setTimeout(() => prev.classList.remove('is-exit'), 420);
+        index = next;
+        slides[index].classList.add('is-active');
+        render();
+        pulseFlow();
+      }
+
+      function render() {
+        dots.querySelectorAll('button').forEach((d, i) => {
+          d.classList.toggle('is-on', i === index);
+        });
+        progressBar.style.width = ((index + 1) / slides.length * 100) + '%';
+        btnPrev.disabled = index === 0;
+        const last = index === slides.length - 1;
+        btnNext.textContent = last ? 'Abrir registro →' : 'Siguiente →';
+        btnNext.onclick = last
+          ? () => { window.open('https://www.fandez.cl/registro?role=provider', '_blank', 'noopener'); }
+          : () => go(index + 1);
+      }
+
+      function pulseFlow() {
+        clearInterval(flowTimer);
+        if (!slides[index].querySelector('#flowSteps')) return;
+        let i = 0;
+        flowSteps.forEach((el) => el.classList.remove('is-live'));
+        flowSteps[0].classList.add('is-live');
+        flowTimer = setInterval(() => {
+          flowSteps.forEach((el) => el.classList.remove('is-live'));
+          i = (i + 1) % flowSteps.length;
+          flowSteps[i].classList.add('is-live');
+        }, 1600);
+      }
+
+      btnPrev.addEventListener('click', () => go(index - 1));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter' || e.key === 'PageDown') {
+          e.preventDefault();
+          if (index === slides.length - 1) return;
+          go(index + 1);
+        }
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+          e.preventDefault();
+          go(index - 1);
+        }
+        if (e.key === 'Home') go(0);
+        if (e.key === 'End') go(slides.length - 1);
+      });
+
+      const deck = document.getElementById('deck');
+      deck.addEventListener('touchstart', (e) => {
+        touchX = e.changedTouches[0].clientX;
+      }, { passive: true });
+      deck.addEventListener('touchend', (e) => {
+        if (touchX == null) return;
+        const dx = e.changedTouches[0].clientX - touchX;
+        touchX = null;
+        if (Math.abs(dx) < 48) return;
+        if (dx < 0) go(index + 1);
+        else go(index - 1);
+      }, { passive: true });
+
+      render();
+      pulseFlow();
+    })();
+  </script>
+</body>
+</html>
