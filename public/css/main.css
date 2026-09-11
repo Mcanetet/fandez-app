@@ -1698,13 +1698,16 @@ body.session-role--tecnico::before {
   background: var(--zilo-accent);
 }
 
-/* Modal proveedor */
+/* Modal proveedor — z-index por encima de nav (z-50) y banners (~550) */
 .zilo-modal-sheet {
   background: #FFFFFF;
   border: 1px solid var(--zilo-border);
   border-bottom: none;
   box-shadow: 0 -24px 80px rgba(16,24,40,0.18);
   -webkit-overflow-scrolling: touch;
+}
+#requestModal {
+  z-index: 700;
 }
 #requestModal:not(.hidden) {
   overscroll-behavior: contain;
@@ -2029,9 +2032,10 @@ body.session-role--tecnico::before {
 }
 
 /* Page enter */
+/* Solo opacity: un transform en el contenedor convierte fixed en absolute y el modal del muro “desaparece” al scrollear */
 @keyframes pageIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .zilo-page-enter { animation: pageIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .zilo-page-enter-delay-1 { animation-delay: 0.06s; }

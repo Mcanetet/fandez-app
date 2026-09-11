@@ -283,12 +283,16 @@
 
   function openWallDetails(requestId) {
     const data = wallItems.get(requestId);
-    if (!data) return;
-    fillModal(data);
-    const title = requestModal.querySelector('.zilo-display.text-xl');
-    if (title) title.textContent = t('provider.js.job_details_title');
-    const subtitle = title?.parentElement?.querySelector('.text-xs.text-zilo-muted');
-    if (subtitle) subtitle.textContent = t('provider.js.job_details_sub');
+    if (!data || !requestModal) return;
+    try {
+      fillModal(data);
+      const title = requestModal.querySelector('#requestModalTitle') || requestModal.querySelector('.zilo-display.text-xl');
+      if (title) title.textContent = t('provider.js.job_details_title');
+      const subtitle = title?.parentElement?.querySelector('.text-xs.text-zilo-muted');
+      if (subtitle) subtitle.textContent = t('provider.js.job_details_sub');
+    } catch (err) {
+      console.warn('[provider] openWallDetails fill failed', err);
+    }
     stopRepeatingAlert();
     openRequestModalShell();
   }
@@ -317,10 +321,13 @@
 
   function fillModal(data) {
     currentRequest = data.request;
-    document.getElementById('modalServiceIcon').innerHTML = FandezIcons.wrap(data.service.icon, data.service.color, 'w-12 h-12', 28);
-    document.getElementById('modalServiceName').textContent = data.service.name;
-    document.getElementById('modalClient').textContent = data.client.name;
-    document.getElementById('modalAddress').textContent = data.request.address;
+    document.getElementById('modalServiceIcon').innerHTML =
+      (typeof FandezIcons !== 'undefined' && data.service?.icon)
+        ? FandezIcons.wrap(data.service.icon, data.service.color, 'w-12 h-12', 28)
+        : '';
+    document.getElementById('modalServiceName').textContent = data.service?.name || '—';
+    document.getElementById('modalClient').textContent = data.client?.name || '—';
+    document.getElementById('modalAddress').textContent = data.request.address || '—';
     document.getElementById('modalCoords').textContent =
       data.request.coords ? `${data.request.coords.lat}, ${data.request.coords.lng}` : '-33.4489, -70.6693';
 
@@ -431,8 +438,12 @@
 
   function showRequestModal(data) {
     upsertWallItem(data);
-    fillModal(data);
-    const title = requestModal.querySelector('.zilo-display.text-xl');
+    try {
+      fillModal(data);
+    } catch (err) {
+      console.warn('[provider] showRequestModal fill failed', err);
+    }
+    const title = requestModal.querySelector('#requestModalTitle') || requestModal.querySelector('.zilo-display.text-xl');
     if (title) title.textContent = t('provider.dashboard.new_request') || 'Nueva solicitud';
     const subtitle = title?.parentElement?.querySelector('.text-xs.text-zilo-muted');
     if (subtitle) subtitle.textContent = t('provider.js.new_request_sub');
@@ -450,6 +461,11 @@
   }
 
   function openRequestModalShell() {
+    if (!requestModal) return;
+    // Asegurar fixed respecto al viewport (no a un ancestro con transform)
+    if (requestModal.parentElement !== document.body) {
+      document.body.appendChild(requestModal);
+    }
     requestModal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
     try {
