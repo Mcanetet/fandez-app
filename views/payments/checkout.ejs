@@ -31,6 +31,20 @@
       <% if (request.squareMeters) { %>
         <p class="text-xs text-zilo-muted mt-1"><%= request.squareMeters %> m² · <%= request.activityName || service.name %></p>
       <% } %>
+      <% if (request.landscapeProject && request.landscapeProject.standardLabel) { %>
+        <p class="text-xs text-zilo-muted mt-1 leading-relaxed">
+          <%= request.landscapeProject.standardLabel %>
+          · <%= request.landscapeProject.terrainLabel %>
+          · <%= request.landscapeProject.speciesLabel %>
+          <% const inc = request.landscapeProject.includes || {}; %>
+          <% const incList = []; %>
+          <% if (inc.design) incList.push('diseño'); %>
+          <% if (inc.irrigation) incList.push('riego'); %>
+          <% if (inc.earthwork) incList.push('mov. tierra'); %>
+          <% if (inc.lighting) incList.push('iluminación'); %>
+          <% if (incList.length) { %> · Incluye: <%= incList.join(', ') %><% } %>
+        </p>
+      <% } %>
       <% if (request.urgencyTierLabel) { %>
         <p class="text-xs text-zilo-accent mt-2">Urgencia: <strong><%= request.urgencyTierLabel %></strong></p>
       <% } %>

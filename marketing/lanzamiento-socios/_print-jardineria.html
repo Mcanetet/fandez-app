@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Fandez · Jardinería para socios</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Unbounded';
+      src: url('file:///Users/miguelangel/Downloads/fandez%20app/public/fonts/unbounded-700.woff2') format('woff2');
+      font-weight: 700;
+    }
+    :root {
+      --bg: #F7F3EE; --bg-deep: #EFE8DF; --ink: #1A1814; --muted: #6B635A;
+      --line: #E0D7CC; --accent: #C45C14; --accent-strong: #A84E10; --success: #2F6B4F; --white: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      color: var(--ink);
+      font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      width: 297mm; height: 210mm; max-height: 210mm;
+      page-break-after: always; break-after: page; page-break-inside: avoid;
+      padding: 12mm 16mm; overflow: hidden;
+      background:
+        radial-gradient(900px 420px at 8% -8%, rgba(22,163,74,0.12), transparent 55%),
+        radial-gradient(700px 380px at 100% 0%, rgba(196,92,20,0.08), transparent 50%),
+        linear-gradient(180deg, #FBF8F4 0%, var(--bg) 45%, var(--bg-deep) 100%);
+      display: flex; flex-direction: column;
+    }
+    .page:last-child { page-break-after: auto; }
+    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8mm; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand img { width: 34px; height: 34px; border-radius: 9px; }
+    .brand strong { font-family: Unbounded, system-ui, sans-serif; font-size: 14px; letter-spacing: -0.03em; }
+    .page-num { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent-strong); margin-bottom: 8px;
+    }
+    .eyebrow::before { content: ''; width: 16px; height: 2px; background: var(--accent); }
+    h1, h2 { font-family: Unbounded, system-ui, sans-serif; letter-spacing: -0.035em; line-height: 1.08; font-weight: 700; }
+    h1 { font-size: 36px; max-width: 16ch; }
+    h2 { font-size: 26px; max-width: 24ch; margin-bottom: 10px; }
+    .lead { font-size: 16px; line-height: 1.4; color: var(--muted); max-width: 48ch; margin-top: 8px; }
+    .content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .footer { margin-top: auto; padding-top: 6mm; font-size: 10px; color: var(--muted); border-top: 1px solid var(--line); }
+    .hero-mark { width: 72px; height: 72px; border-radius: 18px; margin-bottom: 14px; box-shadow: 0 10px 28px rgba(26,24,20,0.1); }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+    .flow-step { background: var(--white); border: 1px solid var(--line); border-radius: 14px; padding: 12px 10px; min-height: 108px; }
+    .flow-num { font-family: Unbounded, system-ui, sans-serif; font-size: 10px; color: var(--accent); margin-bottom: 6px; letter-spacing: 0.08em; }
+    .flow-step strong { display: block; font-size: 13px; margin-bottom: 4px; }
+    .flow-step p { font-size: 11px; color: var(--muted); line-height: 1.35; }
+    .money { display: grid; gap: 8px; margin-top: 12px; max-width: 640px; }
+    .money-card { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+    .money-card.accent { background: linear-gradient(145deg, #FFF7F0, #FFE8D4); border-color: rgba(196,92,20,0.28); }
+    .money-card strong { display: block; font-size: 14px; margin-bottom: 2px; }
+    .money-card p { font-size: 12px; color: var(--muted); line-height: 1.35; }
+    .money-card .big { font-family: Unbounded, system-ui, sans-serif; font-size: 26px; color: var(--accent-strong); margin: 2px 0; }
+    .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; max-width: 720px; }
+    .sim-card { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+    .sim-card h3 { font-size: 13px; margin-bottom: 6px; }
+    .sim-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); padding: 2px 0; border-bottom: 1px solid rgba(224,215,204,0.6); }
+    .sim-row strong { color: var(--ink); }
+    .sim-card .net { font-family: Unbounded, system-ui, sans-serif; font-size: 18px; color: var(--success); margin-top: 6px; }
+    .sim-hero { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: linear-gradient(145deg, #FFF7F0, #FFE8D4); border: 1px solid rgba(196,92,20,0.28); font-size: 12px; max-width: 720px; }
+    .sim-hero b { color: var(--accent-strong); }
+    table.prices { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    table.prices th, table.prices td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    table.prices th { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    table.prices td strong { font-size: 13px; color: var(--accent-strong); }
+    table.prices tr:last-child td { border-bottom: 0; }
+    .pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #E7F6EF; color: var(--success); }
+    .note { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.4; max-width: 62ch; }
+    .ex-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .ex-card { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+    .ex-card b { display: block; font-size: 12px; margin-bottom: 4px; }
+    .ex-card span { display: block; font-size: 11px; color: var(--muted); line-height: 1.35; }
+    .ex-card .amt { font-family: Unbounded, system-ui, sans-serif; font-size: 15px; color: var(--success); margin-top: 6px; }
+    .checklist { list-style: none; margin-top: 10px; display: grid; gap: 6px; max-width: 560px; }
+    .checklist li { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; background: rgba(255,255,255,0.85); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+    .check { width: 16px; height: 16px; border-radius: 50%; background: var(--success); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .cta { display: inline-flex; margin-top: 14px; padding: 11px 16px; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; text-decoration: none; }
+    @page { size: A4 landscape; margin: 0; }
+  </style>
+</head>
+<body>
+  <!-- 1 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">01 / 11</span>
+    </div>
+    <div class="content">
+      <img class="hero-mark" src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="">
+      <p class="eyebrow">Reunión socios · Jardinería + paisajismo</p>
+      <h1>Pedidos listos.<br>Tú eliges.</h1>
+      <p class="lead">Cómo funciona Fandez para empresas de jardinería en Santiago Oriente — catálogo, liquidación, activación y referencia de mercado para proyectos de paisajismo.</p>
+    </div>
+    <p class="footer">Soft launch · Providencia · Las Condes · Ñuñoa · La Reina · Vitacura · fandez.cl</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">02 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Cómo funciona</p>
+      <h2>Cuatro momentos. Cero misterio.</h2>
+      <div class="flow">
+        <article class="flow-step">
+          <div class="flow-num">01</div>
+          <strong>Cliente pide</strong>
+          <p>Elige jardinería, m², sube foto del área y paga en la app.</p>
+        </article>
+        <article class="flow-step">
+          <div class="flow-num">02</div>
+          <strong>Sale al muro</strong>
+          <p>Socios en línea de jardinería ven el pedido con zona y neto estimado.</p>
+        </article>
+        <article class="flow-step">
+          <div class="flow-num">03</div>
+          <strong>Tú decides</strong>
+          <p>Revisas fotos y detalle. Tomas o “No me interesa”.</p>
+        </article>
+        <article class="flow-step">
+          <div class="flow-num">04</div>
+          <strong>Ejecutas</strong>
+          <p>Vas tú o delegas a un técnico. Actualizas estados y cobras con liquidación clara.</p>
+        </article>
+      </div>
+      <p class="note">En línea → llegan pedidos. Fuera de línea → silencio. El primero que toma se queda con el trabajo.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">03 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Plata clara</p>
+      <h2>15% app + costo de tarjeta. Materiales 100% tuyos.</h2>
+      <div class="money">
+        <div class="money-card accent">
+          <strong>Comisión Fandez</strong>
+          <div class="big">15%</div>
+          <p>IVA incluido sobre la mano de obra. No se suma al cliente.</p>
+        </div>
+        <div class="money-card">
+          <strong>Costo tarjeta (Mercado Pago)</strong>
+          <p><b>Débito:</b> 2,19% + IVA. &nbsp; <b>Crédito:</b> 2,69% + IVA.<br>Se descuenta al socio. El precio del catálogo es el total del cliente.</p>
+        </div>
+      </div>
+      <div class="sim-hero" style="margin-top:12px">
+        Ejemplo venta <b>$100.000</b> (mano de obra): app −$15.000.
+        Débito −$2.606 → te quedan <b>$82.394</b>.
+        Crédito −$3.201 → te quedan <b>$81.799</b>.
+      </div>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 4 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">04 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Catálogo · Jardinería</p>
+      <h2>Precios publicados en la app (IVA incluido)</h2>
+      <p class="note" style="margin-top:0">Cobro por <b>m²</b>. Mínimo de trabajo: <b>$40.000</b>. Desde: <b>$3.500 / m²</b>. Soft launch Oriente.</p>
+      <table class="prices">
+        <thead>
+          <tr>
+            <th>Servicio</th>
+            <th>Tipo</th>
+            <th>Precio</th>
+            <th>Mín. m²</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Corte de césped / pasto</td>
+            <td><span class="pill">Preventiva</span></td>
+            <td><strong>$3.500 / m²</strong></td>
+            <td>15 m²</td>
+          </tr>
+          <tr>
+            <td>Desmalezado y limpieza de jardín</td>
+            <td><span class="pill">Correctiva</span></td>
+            <td><strong>$4.500 / m²</strong></td>
+            <td>15 m²</td>
+          </tr>
+          <tr>
+            <td>Mantención integral (corte, maleza y bordes)</td>
+            <td><span class="pill">Preventiva</span></td>
+            <td><strong>$6.000 / m²</strong></td>
+            <td>15 m²</td>
+          </tr>
+          <tr>
+            <td>Poda de arbustos y setos</td>
+            <td><span class="pill">Correctiva</span></td>
+            <td><strong>$7.000 / m²</strong></td>
+            <td>15 m²</td>
+          </tr>
+          <tr>
+            <td>Jardineras, maceteros y canteros</td>
+            <td><span class="pill">Correctiva</span></td>
+            <td><strong>$5.500 / m²</strong></td>
+            <td>10 m²</td>
+          </tr>
+          <tr>
+            <td>Plantación o césped en rollo (mano de obra)</td>
+            <td><span class="pill">Correctiva</span></td>
+            <td><strong>$9.000 / m²</strong></td>
+            <td>15 m²</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note">Precios = total cliente. Materiales (tierra, mulch, pasto en rollo, fertilizante) se cotizan aparte y van íntegros al socio.</p>
+    </div>
+    <p class="footer">Catálogo vigente en fandez.cl · Soft launch socios</p>
+  </section>
+
+  <!-- 5 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">05 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Ejemplos de cotización</p>
+      <h2>Corte de césped · $3.500 / m²</h2>
+      <div class="ex-grid">
+        <div class="ex-card">
+          <b>15 m² (mínimo catálogo)</b>
+          <span>15 × $3.500 = $52.500<br>(piso de trabajo $40.000)</span>
+          <div class="amt">Cliente: $52.500</div>
+          <span style="margin-top:4px">App 15%: −$7.875<br>Débito ~2,61%: −$1.368<br><b style="color:#2F6B4F">Socio ≈ $43.257</b></span>
+        </div>
+        <div class="ex-card">
+          <b>40 m² (patio típico)</b>
+          <span>40 × $3.500 = $140.000</span>
+          <div class="amt">Cliente: $140.000</div>
+          <span style="margin-top:4px">App 15%: −$21.000<br>Débito ~2,61%: −$3.649<br><b style="color:#2F6B4F">Socio ≈ $115.351</b></span>
+        </div>
+        <div class="ex-card">
+          <b>100 m²</b>
+          <span>100 × $3.500 = $350.000</span>
+          <div class="amt">Cliente: $350.000</div>
+          <span style="margin-top:4px">App 15%: −$52.500<br>Débito ~2,61%: −$9.121<br><b style="color:#2F6B4F">Socio ≈ $288.379</b></span>
+        </div>
+      </div>
+      <p class="note">Cifras de liquidación con <b>débito</b> (2,19% + IVA). Con crédito (2,69% + IVA) el neto baja ~$600–$2.000 según el monto. Urgencia/horario pueden ajustar el total del cliente.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 6 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">06 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Más ejemplos · total cliente</p>
+      <h2>Otras labores a 40 m²</h2>
+      <table class="prices">
+        <thead>
+          <tr><th>Servicio</th><th>$ / m²</th><th>Total 40 m²</th><th>Neto socio (débito est.)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Desmalezado y limpieza</td>
+            <td>$4.500</td>
+            <td><strong>$180.000</strong></td>
+            <td>≈ $148.309</td>
+          </tr>
+          <tr>
+            <td>Mantención integral</td>
+            <td>$6.000</td>
+            <td><strong>$240.000</strong></td>
+            <td>≈ $197.745</td>
+          </tr>
+          <tr>
+            <td>Poda arbustos y setos</td>
+            <td>$7.000</td>
+            <td><strong>$280.000</strong></td>
+            <td>≈ $230.703</td>
+          </tr>
+          <tr>
+            <td>Jardineras / maceteros (mín. 10 m²)</td>
+            <td>$5.500</td>
+            <td><strong>$220.000</strong></td>
+            <td>≈ $181.267</td>
+          </tr>
+          <tr>
+            <td>Plantación / césped rollo (M.O.)</td>
+            <td>$9.000</td>
+            <td><strong>$360.000</strong></td>
+            <td>≈ $296.618</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note">Fórmula: neto ≈ venta − 15% − (tasa tarjeta × 1,19). Materiales aparte, 100% al socio.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 7 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">07 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Materiales (referencia mercado)</p>
+      <h2>Se cotizan aparte · 0% comisión Fandez</h2>
+      <table class="prices">
+        <thead>
+          <tr><th>Material</th><th>Unidad</th><th>Precio ref. catálogo</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Tierra de hojas</td><td>saco</td><td><strong>$6.500</strong></td></tr>
+          <tr><td>Corteza / mulch</td><td>saco</td><td><strong>$8.900</strong></td></tr>
+          <tr><td>Pasto en rollo</td><td>m²</td><td><strong>$12.000</strong></td></tr>
+          <tr><td>Fertilizante césped</td><td>kg</td><td><strong>$7.500</strong></td></tr>
+        </tbody>
+      </table>
+      <p class="note">Valores de referencia en la app. El socio puede ajustar según boleta real; Fandez no cobra comisión sobre materiales.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 8 · Paisajismo mercado -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">08 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Proyectos de paisajismo · mercado Chile</p>
+      <h2>Tres formas de cobro que usa el mercado</h2>
+      <p class="note" style="margin-top:0">Referencia de industria (no es el catálogo fijo de mantención Fandez). Sirve para cotizar diseño + obra nueva.</p>
+      <table class="prices">
+        <thead>
+          <tr>
+            <th>Forma de cobro</th>
+            <th>Cómo se arma</th>
+            <th>Rango referencial</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Por m² de proyecto</strong></td>
+            <td>Paquete diseño + ejecución (tierra, riego, plantación, acabados) según estándar.</td>
+            <td>
+              Básico <strong>$15–30 mil / m²</strong><br>
+              Intermedio <strong>$30–60 mil / m²</strong><br>
+              Alto estándar <strong>$60 mil+ / m²</strong>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>2. Honorario de diseño</strong></td>
+            <td>Plano / anteproyecto aparte de la obra. Fijo por tamaño o % sobre valor de obra.</td>
+            <td>
+              Jardín chico <strong>$150–350 mil</strong><br>
+              Grande <strong>$500–750 mil</strong> (hasta ~$1,8 M)<br>
+              o <strong>3–8%</strong> del valor de obra
+            </td>
+          </tr>
+          <tr>
+            <td><strong>3. Por partidas</strong></td>
+            <td>Ítems sueltos: movimiento de tierra, riego, césped, especies, obra menor, iluminación.</td>
+            <td>
+              Obra jardín <strong>$30–200 mil / m²</strong><br>
+              Riego ref. <strong>$2–20 mil / m²</strong><br>
+              Césped M.O. <strong>$3–10 mil / m²</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="note">Fuentes de mercado CL 2025–2026 (rangos públicos de paisajistas / plataformas de cotización). Cada terreno cambia el número: pendiente, acceso, riego y especies.</p>
+    </div>
+    <p class="footer">Referencia de mercado · Soft launch socios · fandez.cl</p>
+  </section>
+
+  <!-- 9 · Ejemplos paisajismo -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">09 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Paisajismo · ejemplos para revisar juntos</p>
+      <h2>Proyecto de 40 m² · tres estándares</h2>
+      <div class="ex-grid">
+        <div class="ex-card">
+          <b>Básico · $25.000 / m²</b>
+          <span>Preparación simple, especies económicas, riego básico.</span>
+          <div class="amt">Cliente ≈ $1.000.000</div>
+          <span style="margin-top:4px">App 15%: −$150.000<br>Débito ~2,61%: −$26.061<br><b style="color:#2F6B4F">Socio ≈ $823.939</b><br>(si materiales van aparte, 100% tuyos)</span>
+        </div>
+        <div class="ex-card">
+          <b>Intermedio · $45.000 / m²</b>
+          <span>Diseño + riego + mezcla de especies + acabados.</span>
+          <div class="amt">Cliente ≈ $1.800.000</div>
+          <span style="margin-top:4px">App 15%: −$270.000<br>Débito ~2,61%: −$46.910<br><b style="color:#2F6B4F">Socio ≈ $1.483.090</b></span>
+        </div>
+        <div class="ex-card">
+          <b>Alto · $70.000 / m²</b>
+          <span>Especies premium, obra menor, iluminación / detalle.</span>
+          <div class="amt">Cliente ≈ $2.800.000</div>
+          <span style="margin-top:4px">App 15%: −$420.000<br>Débito ~2,61%: −$72.971<br><b style="color:#2F6B4F">Socio ≈ $2.307.029</b></span>
+        </div>
+      </div>
+      <div class="sim-hero" style="margin-top:10px;max-width:100%">
+        <b>Cómo lo trabajamos en la reunión:</b> mantención = catálogo fijo por m² (páginas 04–06).
+        Paisajismo = <b>cotización a medida</b> (visita + m² × estándar, o diseño fijo + obra por partidas).
+        Materiales y plantas: preferible ítem aparte, 0% comisión Fandez.
+      </div>
+      <p class="note">Diseño solo (sin obra): mercado típico $150–750 mil. Si cobras diseño como % de obra, 3–8% es lo habitual en Chile.</p>
+    </div>
+    <p class="footer">Referencia de mercado + liquidación Fandez · Soft launch socios</p>
+  </section>
+
+  <!-- 10 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">10 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Activación</p>
+      <h2>Listos para tomar el primer jardín.</h2>
+      <ul class="checklist">
+        <li><span class="check">1</span><span>Crear cuenta de socio en fandez.cl</span></li>
+        <li><span class="check">2</span><span>Verificar identidad + firmar contrato</span></li>
+        <li><span class="check">3</span><span>Activar especialidad Jardinería (tú o tu equipo)</span></li>
+        <li><span class="check">4</span><span>Ponerse en línea · revisar muro · tomar pedido</span></li>
+      </ul>
+      <p class="note">Zona foco: Providencia · Las Condes · Ñuñoa · La Reina · Vitacura. Cupos curados: preferimos calidad operativa.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 11 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">11 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Siguiente paso</p>
+      <h2>Regístrate. Actívate. Elige tu primer pedido de jardinería.</h2>
+      <p class="lead">Mantención por catálogo hoy. Paisajismo: cotiza con rangos de mercado y deja materiales aparte. Demanda pagada, foto del área y neto visible antes de aceptar.</p>
+      <a class="cta" href="https://www.fandez.cl/registro?role=provider">Quiero ser socio → fandez.cl/registro</a>
+      <p class="note">Documento de reunión · Catálogo plataforma + referencia paisajismo mercado · Actualizable.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+</body>
+</html>

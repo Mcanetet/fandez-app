@@ -1,25 +1,23 @@
 <%- include('../partials/head') %>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="clientDashboard">
-  <header class="sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border px-5 py-4" data-tour="welcome">
-    <div class="flex items-center justify-between">
-      <a href="/cliente/perfil" class="flex items-center gap-3 group">
-        <div class="w-10 h-10 rounded-xl zilo-card-premium flex items-center justify-center text-sm font-semibold text-zilo-accent border border-zilo-accent/20 group-hover:border-zilo-accent/40 transition">
+  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border" data-tour="welcome">
+    <div class="app-session-header__row">
+      <a href="/cliente/perfil" class="app-session-header__identity group">
+        <div class="app-session-header__avatar group-hover:border-zilo-accent/40 transition">
           <%= typeof profile !== 'undefined' ? profile.name.split(' ').map(n=>n[0]).join('').slice(0,2) : '?' %>
         </div>
-        <div>
+        <div class="app-session-header__meta">
           <span class="session-role-pill session-role-pill--client"><%= t('session.role.client') %></span>
-          <h1 class="text-base font-semibold leading-tight mt-0.5"><%= user.name.split(' ')[0] %></h1>
+          <h1><%= user.name.split(' ')[0] %></h1>
         </div>
       </a>
-      <div class="flex items-center gap-2">
+      <div class="app-session-header__end">
         <%- include('../partials/lang-switcher') %>
         <% if (typeof referral !== 'undefined' && referral.creditsCLP > 0) { %>
-          <span class="px-2.5 py-1 rounded-lg bg-zilo-success/15 text-zilo-success text-[10px] font-semibold"><%= formatCLP(referral.creditsCLP) %></span>
+          <span class="px-2 py-1 rounded-lg bg-zilo-success/15 text-zilo-success text-[10px] font-semibold whitespace-nowrap"><%= formatCLP(referral.creditsCLP) %></span>
         <% } %>
-        <a href="/logout" class="w-10 h-10 rounded-xl zilo-card-premium flex items-center justify-center text-zilo-muted hover:text-zilo-accent transition" title="<%= t('common.logout') %>">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-        </a>
+        <%- include('../partials/logout-btn', { withLabel: true }) %>
       </div>
     </div>
   </header>

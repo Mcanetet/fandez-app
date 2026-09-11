@@ -1,20 +1,23 @@
-<header class="sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border px-5 py-4">
-  <div class="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-2">
+<header class="sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border px-3 py-3 sm:px-5 sm:py-4 back-header-compact">
+  <div class="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2">
     <% if (typeof backUrl !== 'undefined' && backUrl) { %>
     <a href="<%= backUrl %>" class="zilo-icon-btn relative z-20 shrink-0" aria-label="<%= t('nav.back') %>" data-back-link="1">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
     </a>
     <% } else { %>
-    <span class="w-10" aria-hidden="true"></span>
+    <span class="w-9" aria-hidden="true"></span>
     <% } %>
     <div class="min-w-0 <%= typeof centerTitle !== 'undefined' && centerTitle ? 'text-center' : '' %>">
       <% if (typeof label !== 'undefined') { %><p class="zilo-label !text-[9px]"><%= label %></p><% } %>
-      <h1 class="<%= typeof titleClass !== 'undefined' ? titleClass : 'text-base font-semibold' %> truncate"><%= title %></h1>
+      <h1 class="<%= typeof titleClass !== 'undefined' ? titleClass : 'text-sm sm:text-base font-semibold' %> truncate"><%= title %></h1>
       <% if (typeof subtitle !== 'undefined') { %><p class="text-xs text-zilo-muted truncate"><%= subtitle %></p><% } %>
     </div>
-    <div class="flex items-center gap-2 shrink-0 relative z-20 justify-end">
+    <div class="flex items-center gap-1.5 shrink-0 relative z-20 justify-end">
       <% if (typeof showLangSwitcher === 'undefined' || showLangSwitcher) { %>
         <%- include('lang-switcher') %>
+      <% } %>
+      <% if (typeof showLogout !== 'undefined' && showLogout) { %>
+        <%- include('logout-btn', { withLabel: true }) %>
       <% } %>
       <% if (typeof headerRight !== 'undefined') { %><%= headerRight %><% } %>
     </div>

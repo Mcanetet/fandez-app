@@ -50,8 +50,13 @@ const {
   findMaterialInCatalog,
   isPerM2Service,
   isPerM2Activity,
+  isLandscapeActivity,
   resolveM2QuoteBase,
-  GARDEN_OTHER_RATE_M2
+  normalizeLandscapeFactors,
+  resolveLandscapeQuoteBase,
+  formatLandscapeSummary,
+  GARDEN_OTHER_RATE_M2,
+  LANDSCAPE_MIN_M2
 } = require('../lib/pricing');
 const {
   defaultProviderContract,
@@ -291,7 +296,8 @@ async function createRequest({
   customName,
   localTime,
   timeZone,
-  squareMeters
+  squareMeters,
+  landscapeProject
 }) {
   const service = getServiceById(serviceId);
   const client = getUserById(clientId);
@@ -302,7 +308,7 @@ async function createRequest({
   if (!notes) return Promise.reject(new Error('Describe el problema para que el técnico sepa qué esperar.'));
   const gardenJob = isPerM2Service(serviceId);
   if (gardenJob && notes.length < 12) {
-    return Promise.reject(new Error('Describe el jardín o el trabajo (césped, poda, maleza, riego, etc.).'));
+    return Promise.reject(new Error('Describe el jardín o el trabajo (césped, poda, maleza, riego, paisajismo, etc.).'));
   }
   if (gardenJob && !clientPhotoUrl) {
     return Promise.reject(new Error('Sube al menos una foto del área a trabajar.'));
@@ -353,15 +359,29 @@ async function createRequest({
     ? String(localTime).trim()
     : new Date();
   const perM2 = gardenJob || isPerM2Activity(activityMatch);
-  const quoteBase = perM2
-    ? resolveM2QuoteBase(activityMatch, parsedM2)
-    : activityMatch.basePrice;
-  const visitCalc = isManualOther
+  const landscape = !isManualOther && isLandscapeActivity(activityMatch);
+  let landscapeFactors = null;
+  if (landscape) {
+    if (!Number.isFinite(parsedM2) || parsedM2 < LANDSCAPE_MIN_M2) {
+      return Promise.reject(new Error(`Indica los m² del proyecto de paisajismo (mínimo ${LANDSCAPE_MIN_M2} m²).`));
+    }
+    landscapeFactors = normalizeLandscapeFactors(landscapeProject, parsedM2, activityMatch);
+    if (!landscapeFactors.ok) {
+      return Promise.reject(new Error(landscapeFactors.error));
+    }
+  }
+
+  const quoteBase = landscape
+    ? resolveLandscapeQuoteBase(landscapeFactors)
+    : (perM2
+      ? resolveM2QuoteBase(activityMatch, parsedM2)
+      : activityMatch.basePrice);
+  const visitCalc = landscape || isManualOther
     ? calculateVisitPricing(pricing, urgencyTier, {
       horaSolicitud: resolvedLocalTime,
       valorBase: quoteBase,
       timeZone,
-      skipWorkFloor: perM2
+      skipWorkFloor: perM2 || landscape
     })
     : (quoteActivityForRequest(pricing, activityId, {
       horaSolicitud: resolvedLocalTime,
@@ -399,6 +419,11 @@ async function createRequest({
   const beneficiaryName = isGift ? gift.name : client.name;
   const beneficiaryPhone = isGift ? (gift.phone || client.phone) : client.phone;
 
+  const landscapeSummary = landscape ? formatLandscapeSummary(landscapeFactors) : '';
+  const notesWithLandscape = landscapeSummary && !notes.includes('Proyecto paisajismo:')
+    ? `${notes}\n\n${landscapeSummary}`.trim()
+    : notes;
+
   const request = {
     id: uuidv4(),
     clientId,
@@ -416,11 +441,17 @@ async function createRequest({
     activityKind: activityMatch.kind,
     activityBasePrice: activityMatch.basePrice,
     activityManual: Boolean(activityMatch.manual),
-    pricingUnit: perM2 ? 'm2' : 'job',
-    pricePerM2: perM2 ? Number(activityMatch.pricePerM2 || activityMatch.basePrice) || null : null,
-    squareMeters: perM2 ? Math.max(10, parsedM2) : null,
+    pricingUnit: (perM2 || landscape) ? 'm2' : 'job',
+    pricePerM2: landscape
+      ? Number(landscapeFactors.ratePerM2) || null
+      : (perM2 ? Number(activityMatch.pricePerM2 || activityMatch.basePrice) || null : null),
+    squareMeters: (perM2 || landscape) ? Math.max(10, parsedM2) : null,
+    landscapeProject: landscape ? {
+      ...landscapeFactors,
+      quoteTotal: quoteBase
+    } : null,
     address: fullAddress,
-    notes,
+    notes: notesWithLandscape,
     status: 'pending_payment',
     paymentStatus: 'pending',
     paymentId: null,

@@ -197,8 +197,10 @@
         <select id="activityId" name="activityId" required class="zilo-input">
           <option value=""><%= t('client.service.subservice_ph') %></option>
           <% activities.forEach(function(act) { %>
-            <option value="<%= act.id %>" data-base="<%= act.basePrice %>" data-unit="<%= act.pricingUnit || 'job' %>" data-per-m2="<%= act.pricePerM2 || act.basePrice %>" data-min-m2="<%= act.minM2 || 15 %>">
-              <%= act.name %> — <%= act.pricingUnit === 'm2' ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m²') : formatCLP(act.basePrice) %>
+            <option value="<%= act.id %>" data-base="<%= act.basePrice %>" data-unit="<%= act.pricingUnit || 'job' %>" data-per-m2="<%= act.pricePerM2 || act.basePrice %>" data-min-m2="<%= act.minM2 || 15 %>" data-quote-mode="<%= act.quoteMode || '' %>">
+              <%= act.name %> — <%= act.quoteMode === 'landscape'
+                ? ('desde ' + formatCLP(act.pricePerM2 || act.basePrice) + ' / m²')
+                : (act.pricingUnit === 'm2' ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m²') : formatCLP(act.basePrice)) %>
             </option>
           <% }); %>
           <option value="otro" data-base="<%= perM2 ? 5500 : 100000 %>" data-unit="<%= perM2 ? 'm2' : 'job' %>" data-per-m2="<%= perM2 ? 5500 : '' %>" data-min-m2="15">
@@ -215,10 +217,54 @@
       <% } %>
 
       <% if (perM2) { %>
-      <div>
+      <div id="gardenAreaBlock">
         <label for="squareMeters" class="zilo-label block mb-1.5"><%= t('client.service.area_m2') %> *</label>
         <input type="number" id="squareMeters" name="squareMeters" min="10" step="1" inputmode="numeric" required class="zilo-input" placeholder="<%= t('client.service.area_m2_ph') %>">
-        <p class="text-[11px] text-zilo-muted mt-1"><%= t('client.service.area_m2_hint') %></p>
+        <p class="text-[11px] text-zilo-muted mt-1" id="gardenAreaHint"><%= t('client.service.area_m2_hint') %></p>
+      </div>
+
+      <div id="landscapeFactors" class="hidden space-y-3 p-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/40">
+        <div>
+          <p class="zilo-label mb-1"><%= t('client.service.landscape_title') %></p>
+          <p class="text-[11px] text-zilo-muted"><%= t('client.service.landscape_hint') %></p>
+        </div>
+        <div>
+          <label for="landscapeStandard" class="zilo-label block mb-1.5"><%= t('client.service.landscape_standard') %> *</label>
+          <select id="landscapeStandard" class="zilo-input">
+            <option value=""><%= t('client.service.landscape_standard_ph') %></option>
+            <option value="basico" data-rate="25000"><%= t('client.service.landscape_std_basic') %></option>
+            <option value="intermedio" data-rate="45000"><%= t('client.service.landscape_std_mid') %></option>
+            <option value="alto" data-rate="70000"><%= t('client.service.landscape_std_high') %></option>
+          </select>
+        </div>
+        <div>
+          <label for="landscapeTerrain" class="zilo-label block mb-1.5"><%= t('client.service.landscape_terrain') %> *</label>
+          <select id="landscapeTerrain" class="zilo-input">
+            <option value=""><%= t('client.service.landscape_terrain_ph') %></option>
+            <option value="plano" data-mult="1"><%= t('client.service.landscape_terrain_flat') %></option>
+            <option value="pendiente" data-mult="1.15"><%= t('client.service.landscape_terrain_slope') %></option>
+            <option value="acceso_dificil" data-mult="1.25"><%= t('client.service.landscape_terrain_hard') %></option>
+          </select>
+        </div>
+        <div>
+          <label for="landscapeSpecies" class="zilo-label block mb-1.5"><%= t('client.service.landscape_species') %> *</label>
+          <select id="landscapeSpecies" class="zilo-input">
+            <option value=""><%= t('client.service.landscape_species_ph') %></option>
+            <option value="economicas" data-mult="1"><%= t('client.service.landscape_species_eco') %></option>
+            <option value="mixtas" data-mult="1.1"><%= t('client.service.landscape_species_mix') %></option>
+            <option value="premium" data-mult="1.2"><%= t('client.service.landscape_species_premium') %></option>
+          </select>
+        </div>
+        <div>
+          <p class="zilo-label mb-2"><%= t('client.service.landscape_includes') %></p>
+          <div class="space-y-2 text-sm">
+            <label class="flex items-center gap-2"><input type="checkbox" id="landscapeDesign" class="accent-zilo-accent"> <%= t('client.service.landscape_inc_design') %></label>
+            <label class="flex items-center gap-2"><input type="checkbox" id="landscapeIrrigation" class="accent-zilo-accent"> <%= t('client.service.landscape_inc_irrigation') %></label>
+            <label class="flex items-center gap-2"><input type="checkbox" id="landscapeEarthwork" class="accent-zilo-accent"> <%= t('client.service.landscape_inc_earthwork') %></label>
+            <label class="flex items-center gap-2"><input type="checkbox" id="landscapeLighting" class="accent-zilo-accent"> <%= t('client.service.landscape_inc_lighting') %></label>
+          </div>
+          <p class="text-[11px] text-zilo-muted mt-2"><%= t('client.service.landscape_materials_note') %></p>
+        </div>
       </div>
       <% } %>
 

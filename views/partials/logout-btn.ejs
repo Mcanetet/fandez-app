@@ -1,0 +1,41 @@
+<%#
+  Botón cerrar sesión.
+  Locals: className, title, withLabel (bool) — en móvil socio usa withLabel para que no se corte.
+%>
+<%
+  const logoutTitle = typeof title !== 'undefined'
+    ? title
+    : (typeof t !== 'undefined' ? t('common.logout') : 'Cerrar sesión');
+  const showLabel = typeof withLabel !== 'undefined' && withLabel;
+  const shortLabel = typeof t !== 'undefined' ? (t('common.logout_short') !== 'common.logout_short' ? t('common.logout_short') : 'Salir') : 'Salir';
+%>
+<a href="/logout"
+  class="zilo-icon-btn app-session-logout <%= showLabel ? 'app-session-logout--label' : '' %> <%= typeof className !== 'undefined' ? className : '' %>"
+  data-logout="1"
+  title="<%= logoutTitle %>"
+  aria-label="<%= logoutTitle %>">
+  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+  </svg>
+  <% if (showLabel) { %><span class="app-session-logout__text"><%= shortLabel %></span><% } %>
+</a>
+<script>
+(function () {
+  if (window.__fandezLogoutBound) return;
+  window.__fandezLogoutBound = true;
+  document.addEventListener('click', function (ev) {
+    var link = ev.target && ev.target.closest ? ev.target.closest('a[data-logout="1"]') : null;
+    if (!link) return;
+    if (link.getAttribute('data-logging-out') === '1') {
+      ev.preventDefault();
+      return;
+    }
+    link.setAttribute('data-logging-out', '1');
+    link.style.opacity = '0.45';
+    link.style.pointerEvents = 'none';
+    link.setAttribute('aria-busy', 'true');
+    ev.preventDefault();
+    window.location.replace('/logout?t=' + Date.now());
+  }, true);
+})();
+</script>

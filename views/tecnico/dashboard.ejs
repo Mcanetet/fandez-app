@@ -1,25 +1,21 @@
 <%- include('../partials/head', { useMap: true }) %>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="tecnicoPage" data-tecnico-id="<%= tecnico.id %>">
-  <header class="sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border px-5 py-4">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-xl zilo-card-premium flex items-center justify-center text-sm font-semibold text-zilo-accent border border-zilo-accent/25">
-          <%= tecnico.avatar %>
-        </div>
-        <div>
+  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
+    <div class="app-session-header__row">
+      <div class="app-session-header__identity">
+        <div class="app-session-header__avatar"><%= tecnico.avatar %></div>
+        <div class="app-session-header__meta">
           <p class="session-role-pill session-role-pill--tecnico"><%= t('session.role.tecnico') %><%= socio ? ' · ' + socio.name : '' %></p>
-          <h1 class="text-base font-semibold mt-0.5"><%= tecnico.name %></h1>
+          <h1><%= tecnico.name %></h1>
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="app-session-header__end">
         <% if (typeof linkedProvider !== 'undefined' && linkedProvider) { %>
-        <button type="button" id="btnBackToProvider" class="zilo-btn-ghost !py-2 !px-3 !text-xs">Volver a socio</button>
+        <button type="button" id="btnBackToProvider" class="zilo-btn-ghost !py-1.5 !px-2.5 !text-[11px] whitespace-nowrap">Socio</button>
         <% } %>
         <%- include('../partials/lang-switcher') %>
-        <a href="/logout" class="zilo-icon-btn" title="<%= t('common.logout') %>">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-        </a>
+        <%- include('../partials/logout-btn', { withLabel: true }) %>
       </div>
     </div>
   </header>

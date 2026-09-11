@@ -20,7 +20,7 @@ const SEED_SERVICES = [
   { id: 'calderas', name: 'Calderas', icon: 'calderas', color: '#F97316', visitPrice: 180000, basicMin: 180000, basicMax: 310000, description: 'Mantención, calibración, bombas, quemadores y seguridad de calderas centrales.', enabled: true },
   { id: 'generadores', name: 'Generadores', icon: 'generadores', color: '#6366F1', visitPrice: 140000, basicMin: 140000, basicMax: 250000, description: 'Mantención preventiva, pruebas de carga, transferencia y reparación de grupos electrógenos.', enabled: true },
   { id: 'pintura', name: 'Pintura', icon: 'pintura', color: '#C45C14', visitPrice: 100000, basicMin: 100000, basicMax: 220000, description: 'Pintura de interiores, muros, techos, retoques y preparación de superficies.', enabled: true },
-  { id: 'jardineria', name: 'Jardinería', icon: 'jardineria', color: '#16A34A', visitPrice: 40000, basicMin: 40000, basicMax: 180000, description: 'Corte de césped, poda, desmalezado y mantención de jardín. Se cobra por m².', enabled: true }
+  { id: 'jardineria', name: 'Jardinería y paisajismo', icon: 'jardineria', color: '#16A34A', visitPrice: 40000, basicMin: 40000, basicMax: 180000, description: 'Mantención por m² y proyectos de paisajismo cuantificados por factores (estándar, terreno, especies).', enabled: true }
 ];
 
 const SEED_MODULES = [

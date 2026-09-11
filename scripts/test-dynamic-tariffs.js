@@ -197,6 +197,32 @@ function run() {
   assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 40), 140000, '40 m² corte césped');
   assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 10), GARDEN_MIN_JOB_CLP, '10 m² aplica mínimo de salida $40.000');
 
+  const {
+    isLandscapeActivity,
+    normalizeLandscapeFactors,
+    resolveLandscapeQuoteBase,
+    LANDSCAPE_MIN_JOB_CLP
+  } = require('../lib/serviceCatalogData');
+  const landscapeAct = { id: 'jard-paisajismo', quoteMode: 'landscape', pricePerM2: 25000 };
+  if (!isLandscapeActivity(landscapeAct)) throw new Error('jard-paisajismo debe ser landscape');
+  const factors = normalizeLandscapeFactors({
+    standard: 'intermedio',
+    terrain: 'plano',
+    species: 'mixtas',
+    includesIrrigation: true
+  }, 40, landscapeAct);
+  if (!factors.ok) throw new Error(factors.error);
+  const landscapeTotal = resolveLandscapeQuoteBase(factors);
+  // 45.000 × 40 × 1.1 × 1.15 = 2.277.000
+  assertEqual(landscapeTotal, 2277000, 'Paisajismo 40 m² intermedio + mixtas + riego');
+  assertEqual(resolveLandscapeQuoteBase({
+    ratePerM2: 10000,
+    squareMeters: 20,
+    terrainMultiplier: 1,
+    speciesMultiplier: 1,
+    includes: {}
+  }), LANDSCAPE_MIN_JOB_CLP, 'Paisajismo aplica mínimo de proyecto');
+
   const gardenQuote = quoteActivityForRequest({}, 'jard-cesped', {
     horaSolicitud: '14:00',
     tierId: 'today',

@@ -1,7 +1,7 @@
 <%- include('../partials/head') %>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col pb-24 zilo-page-enter">
-  <%- include('../partials/back-header', { backUrl: '/cliente', label: t('client.profile.account'), title: t('client.profile.title') }) %>
+  <%- include('../partials/back-header', { backUrl: '/cliente', label: t('client.profile.account'), title: t('client.profile.title'), showLogout: true }) %>
 
   <main class="flex-1 px-5 py-5 space-y-5">
     <% if (typeof canSwitchToProvider !== 'undefined' && canSwitchToProvider) { %>

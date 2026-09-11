@@ -459,9 +459,12 @@ router.get('/subservicios/:serviceId', requireRole('client'), (req, res) => {
       pricingUnit: a.pricingUnit || 'job',
       pricePerM2: a.pricePerM2 || null,
       minM2: a.minM2 || null,
-      basePriceLabel: a.pricingUnit === 'm2'
-        ? `${store.formatCLP(a.pricePerM2 || a.basePrice)} / m²`
-        : store.formatCLP(a.basePrice)
+      quoteMode: a.quoteMode || null,
+      basePriceLabel: a.quoteMode === 'landscape'
+        ? `desde ${store.formatCLP(a.pricePerM2 || a.basePrice)} / m²`
+        : (a.pricingUnit === 'm2'
+          ? `${store.formatCLP(a.pricePerM2 || a.basePrice)} / m²`
+          : store.formatCLP(a.basePrice))
     }))
   });
 });
@@ -470,7 +473,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   const {
     serviceId, address, notes, lat, lng, gift, clientPhoto, clientBrandPhoto,
     brandNotVisible, urgencyTier, activityId, customName, localTime, timeZone,
-    squareMeters
+    squareMeters, landscapeProject
   } = req.body;
   const service = store.getServiceById(serviceId);
   if (!service || !service.enabled) {
@@ -521,7 +524,8 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
       customName,
       localTime,
       timeZone,
-      squareMeters
+      squareMeters,
+      landscapeProject: landscapeProject && typeof landscapeProject === 'object' ? landscapeProject : null
     });
 
     if (clientPhotoUrl) {

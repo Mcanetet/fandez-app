@@ -1,5 +1,5 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v36';
+const SW_VERSION = 'fandez-sw-v37';
 
 /** Ámbar + 2 semicírculos (v11). Path nuevo = rompe caché Saturno Chrome. */
 const DEFAULT_ICON = '/icons/fandez-v11-notify.png';
@@ -17,9 +17,14 @@ const PRECACHE = [
 ];
 
 const APP_PATHS = ['/app', '/cliente', '/proveedor', '/tecnico', '/login', '/registro'];
+const AUTH_NAV_PATHS = ['/logout', '/login', '/registro', '/recuperar'];
 
 function isAppNavigation(pathname) {
   return APP_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+function isAuthNavigation(pathname) {
+  return AUTH_NAV_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 self.addEventListener('install', (event) => {
@@ -73,9 +78,9 @@ self.addEventListener('fetch', (event) => {
   try { pathname = new URL(req.url).pathname; } catch (_) { return; }
   if (pathname.startsWith('/uploads/') || pathname.startsWith('/media/') || pathname.startsWith('/socket.io')) return;
 
-  // Arranque / paneles: red fresca sin timeout agresivo (evita 2 toques para entrar)
+  // Arranque / paneles / auth: red fresca sin timeout agresivo
   if (req.mode === 'navigate' || pathname === '/app') {
-    if (isAppNavigation(pathname) || pathname === '/app') {
+    if (isAuthNavigation(pathname) || isAppNavigation(pathname) || pathname === '/app') {
       event.respondWith(networkOnlyNavigate(req));
       return;
     }

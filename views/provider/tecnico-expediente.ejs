@@ -1,9 +1,19 @@
 <%- include('../partials/head') %>
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="dossierPage" data-tech-id="<%= tecnico.id %>">
-  <header class="sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border px-5 py-4">
-    <div class="flex items-center gap-3">
-      <a href="/proveedor/equipo" class="zilo-icon-btn"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></a>
-      <div><p class="zilo-label">Expediente técnico</p><h1 class="font-semibold"><%= tecnico.name %></h1></div>
+  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
+    <div class="app-session-header__row">
+      <div class="app-session-header__identity">
+        <a href="/proveedor/equipo" class="zilo-icon-btn" aria-label="Volver">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </a>
+        <div class="app-session-header__meta">
+          <p class="zilo-label mb-0">Expediente técnico</p>
+          <h1><%= tecnico.name %></h1>
+        </div>
+      </div>
+      <div class="app-session-header__end">
+        <%- include('../partials/logout-btn', { withLabel: true }) %>
+      </div>
     </div>
   </header>
   <main class="flex-1 px-5 py-5 pb-16 space-y-4">

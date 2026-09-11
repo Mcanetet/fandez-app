@@ -92,13 +92,87 @@
 
   const activitySelect = document.getElementById('activityId');
   const customActivityFields = document.getElementById('customActivityFields');
+  const landscapeFactorsEl = document.getElementById('landscapeFactors');
+  const gardenAreaHint = document.getElementById('gardenAreaHint');
+  const notesInput = document.getElementById('notes');
+  const LANDSCAPE_MIN_M2 = 20;
+  const LANDSCAPE_MIN_JOB = 400000;
+
+  function isLandscapeSelected() {
+    const opt = activitySelect?.selectedOptions?.[0];
+    return opt?.dataset?.quoteMode === 'landscape' || opt?.value === 'jard-paisajismo';
+  }
+
+  function readLandscapeProject() {
+    return {
+      standard: document.getElementById('landscapeStandard')?.value || '',
+      terrain: document.getElementById('landscapeTerrain')?.value || '',
+      species: document.getElementById('landscapeSpecies')?.value || '',
+      includesDesign: Boolean(document.getElementById('landscapeDesign')?.checked),
+      includesIrrigation: Boolean(document.getElementById('landscapeIrrigation')?.checked),
+      includesEarthwork: Boolean(document.getElementById('landscapeEarthwork')?.checked),
+      includesLighting: Boolean(document.getElementById('landscapeLighting')?.checked)
+    };
+  }
+
+  function computeLandscapeQuote(m2) {
+    const standardEl = document.getElementById('landscapeStandard');
+    const terrainEl = document.getElementById('landscapeTerrain');
+    const speciesEl = document.getElementById('landscapeSpecies');
+    const stdOpt = standardEl?.selectedOptions?.[0];
+    const terrainOpt = terrainEl?.selectedOptions?.[0];
+    const speciesOpt = speciesEl?.selectedOptions?.[0];
+    const rate = parseInt(stdOpt?.dataset?.rate || '0', 10);
+    if (!rate || !Number.isFinite(m2) || m2 < LANDSCAPE_MIN_M2) return null;
+    const terrainMult = parseFloat(terrainOpt?.dataset?.mult || '1') || 1;
+    const speciesMult = parseFloat(speciesOpt?.dataset?.mult || '1') || 1;
+    let total = rate * m2 * terrainMult * speciesMult;
+    if (document.getElementById('landscapeIrrigation')?.checked) total *= 1.15;
+    if (document.getElementById('landscapeEarthwork')?.checked) total *= 1.12;
+    if (document.getElementById('landscapeLighting')?.checked) total *= 1.08;
+    if (document.getElementById('landscapeDesign')?.checked) {
+      total += Math.max(150000, Math.round(total * 0.05));
+    }
+    return Math.max(LANDSCAPE_MIN_JOB, Math.round(total));
+  }
+
   function toggleClientOtherFields() {
     if (!activitySelect || !customActivityFields) return;
     customActivityFields.classList.toggle('hidden', activitySelect.value !== 'otro');
   }
+
+  function toggleLandscapeFields() {
+    const landscape = isLandscapeSelected();
+    landscapeFactorsEl?.classList.toggle('hidden', !landscape);
+    const m2Input = document.getElementById('squareMeters');
+    if (m2Input) {
+      m2Input.min = landscape ? String(LANDSCAPE_MIN_M2) : '10';
+    }
+    if (gardenAreaHint) {
+      gardenAreaHint.textContent = landscape
+        ? t('client.service.area_m2_hint_landscape')
+        : t('client.service.area_m2_hint');
+    }
+    if (notesInput && notesInput.dataset.landscapePhReady !== '1') {
+      notesInput.dataset.defaultPh = notesInput.getAttribute('placeholder') || '';
+      notesInput.dataset.landscapePhReady = '1';
+    }
+    if (notesInput) {
+      notesInput.placeholder = landscape
+        ? t('client.service.detail_landscape_ph')
+        : (notesInput.dataset.defaultPh || t('client.service.detail_garden_ph'));
+    }
+  }
+
   function selectedActivityBase() {
     const opt = activitySelect?.selectedOptions?.[0];
     const perM2 = page?.dataset?.pricingUnit === 'm2' || opt?.dataset?.unit === 'm2';
+    if (isLandscapeSelected()) {
+      const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
+      const m2 = Number.isFinite(typed) && typed >= LANDSCAPE_MIN_M2 ? typed : LANDSCAPE_MIN_M2;
+      const quote = computeLandscapeQuote(m2);
+      return quote != null ? quote : LANDSCAPE_MIN_JOB;
+    }
     if (perM2) {
       const rate = parseInt(opt?.dataset?.perM2 || opt?.dataset?.base || page?.dataset?.fromPrice, 10);
       const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
@@ -115,10 +189,16 @@
   }
   activitySelect?.addEventListener('change', () => {
     toggleClientOtherFields();
+    toggleLandscapeFields();
     updatePricePreview();
   });
   document.getElementById('squareMeters')?.addEventListener('input', () => updatePricePreview());
+  ['landscapeStandard', 'landscapeTerrain', 'landscapeSpecies', 'landscapeDesign', 'landscapeIrrigation', 'landscapeEarthwork', 'landscapeLighting']
+    .forEach((id) => {
+      document.getElementById(id)?.addEventListener('change', () => updatePricePreview());
+    });
   toggleClientOtherFields();
+  toggleLandscapeFields();
 
   function deviceLocalClock() {
     const now = new Date();
@@ -150,10 +230,19 @@
       const f = data.preview.formatted;
       if (page?.dataset?.pricingUnit === 'm2') {
         const opt = activitySelect?.selectedOptions?.[0];
-        const rate = parseInt(opt?.dataset?.perM2 || page.dataset.fromPrice, 10);
-        if (Number.isFinite(rate) && rate > 0) {
-          const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
-          visitEl.textContent = `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(rate)} / m²`;
+        if (isLandscapeSelected()) {
+          const stdOpt = document.getElementById('landscapeStandard')?.selectedOptions?.[0];
+          const rate = parseInt(stdOpt?.dataset?.rate || opt?.dataset?.perM2 || page.dataset.fromPrice, 10);
+          if (Number.isFinite(rate) && rate > 0) {
+            const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
+            visitEl.textContent = `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(rate)} / m²`;
+          }
+        } else {
+          const rate = parseInt(opt?.dataset?.perM2 || page.dataset.fromPrice, 10);
+          if (Number.isFinite(rate) && rate > 0) {
+            const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
+            visitEl.textContent = `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(rate)} / m²`;
+          }
         }
       } else {
         visitEl.textContent = f.baseVisit;
@@ -2013,6 +2102,8 @@
     const customName = document.getElementById('customActivityName')?.value.trim() || '';
     const notes = document.getElementById('notes')?.value.trim() || '';
     const gardenJob = page?.dataset?.pricingUnit === 'm2';
+    const landscapeJob = gardenJob && isLandscapeSelected();
+    const landscapeProject = landscapeJob ? readLandscapeProject() : null;
     const squareMetersRaw = document.getElementById('squareMeters')?.value;
     const squareMeters = gardenJob ? parseFloat(squareMetersRaw) : undefined;
     if (document.getElementById('activityId') && !activityId) {
@@ -2025,13 +2116,27 @@
       document.getElementById('customActivityName')?.focus();
       return;
     }
-    if (gardenJob && (!Number.isFinite(squareMeters) || squareMeters < 10)) {
+    if (landscapeJob) {
+      if (!Number.isFinite(squareMeters) || squareMeters < LANDSCAPE_MIN_M2) {
+        FandezNotify.show(t('client.js.need_m2_landscape'), 'warning');
+        document.getElementById('squareMeters')?.focus();
+        return;
+      }
+      if (!landscapeProject.standard || !landscapeProject.terrain || !landscapeProject.species) {
+        FandezNotify.show(t('client.js.need_landscape_factors'), 'warning');
+        document.getElementById('landscapeStandard')?.focus();
+        return;
+      }
+    } else if (gardenJob && (!Number.isFinite(squareMeters) || squareMeters < 10)) {
       FandezNotify.show(t('client.js.need_m2'), 'warning');
       document.getElementById('squareMeters')?.focus();
       return;
     }
     if (!notes || (gardenJob && notes.length < 12)) {
-      FandezNotify.show(gardenJob ? t('client.js.need_garden_notes') : t('client.js.need_notes'), 'warning');
+      FandezNotify.show(
+        landscapeJob ? t('client.js.need_landscape_notes') : (gardenJob ? t('client.js.need_garden_notes') : t('client.js.need_notes')),
+        'warning'
+      );
       document.getElementById('notes')?.focus();
       return;
     }
@@ -2112,6 +2217,7 @@
           activityId,
           customName: activityId === 'otro' ? customName : undefined,
           squareMeters: gardenJob ? squareMeters : undefined,
+          landscapeProject: landscapeJob ? landscapeProject : undefined,
           localTime: clock.localTime,
           timeZone: clock.timeZone
         })

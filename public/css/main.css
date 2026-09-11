@@ -1144,6 +1144,159 @@ body.session-role--tecnico::before {
 }
 .zilo-icon-btn:hover { color: var(--zilo-accent); border-color: rgba(196, 92, 20,0.35); box-shadow: 0 2px 8px rgba(16,24,40,0.06); }
 
+/* Header de sesión compacto: identidad + logout siempre visibles en móvil */
+.app-session-header {
+  padding: 0.625rem 0.875rem !important;
+}
+.app-session-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.app-session-header__identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.app-session-header__avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--zilo-accent);
+  background: #fff;
+  border: 1px solid rgba(196, 92, 20, 0.25);
+}
+.app-session-header__meta {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.app-session-header__meta h1 {
+  margin: 0.1rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 42vw;
+}
+.app-session-header__end {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.app-session-header__end--logout {
+  margin-left: 0.25rem;
+}
+.app-session-header__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(224, 215, 204, 0.7);
+  min-width: 0;
+}
+.app-session-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.app-session-header__nav::-webkit-scrollbar { display: none; }
+.app-session-header .zilo-icon-btn,
+.app-session-header .app-session-logout {
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+}
+.app-session-header .zilo-icon-btn svg,
+.app-session-header .app-session-logout svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.app-session-header .lang-switcher {
+  flex-shrink: 0;
+}
+.app-session-header .lang-switch-link {
+  padding: 0.3rem 0.45rem !important;
+  font-size: 0.5625rem !important;
+}
+.app-session-logout {
+  color: #a84e10 !important;
+  border-color: rgba(196, 92, 20, 0.35) !important;
+  background: rgba(196, 92, 20, 0.08) !important;
+}
+.app-session-logout--label {
+  width: auto !important;
+  min-width: 0 !important;
+  height: 2.25rem !important;
+  min-height: 2.25rem !important;
+  padding: 0 0.7rem !important;
+  border-radius: 999px !important;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  flex-shrink: 0 !important;
+  box-shadow: 0 1px 2px rgba(168, 78, 16, 0.12);
+}
+.app-session-logout__text {
+  line-height: 1;
+}
+.app-session-logout:hover {
+  color: #fff !important;
+  background: var(--zilo-accent) !important;
+  border-color: var(--zilo-accent) !important;
+}
+
+.back-header-compact .lang-switch-link {
+  padding: 0.3rem 0.45rem !important;
+  font-size: 0.5625rem !important;
+}
+.back-header-compact .app-session-logout {
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  color: #a84e10 !important;
+  border-color: rgba(196, 92, 20, 0.35) !important;
+  background: rgba(196, 92, 20, 0.08) !important;
+}
+
+@media (max-width: 380px) {
+  .app-session-header__meta h1 { max-width: 34vw; }
+  .app-session-header {
+    padding-left: 0.65rem !important;
+    padding-right: 0.65rem !important;
+  }
+}
+
+@media (min-width: 480px) {
+  .app-session-header__meta h1 { max-width: 14rem; font-size: 1rem; }
+  .app-session-header__avatar { width: 2.75rem; height: 2.75rem; font-size: 0.875rem; }
+}
+
 .zilo-stat {
   padding: 0.875rem;
   border-radius: 1rem;
@@ -3372,10 +3525,16 @@ body.fandez-install-visible {
   }
 }
 
-/* Touch targets — a11y */
+/* Touch targets — a11y (headers de sesión usan tamaño compacto propio) */
 .zilo-icon-btn {
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+}
+.app-session-header .zilo-icon-btn,
+.app-session-header .app-session-logout,
+.back-header-compact .zilo-icon-btn {
+  min-width: 2.25rem;
+  min-height: 2.25rem;
 }
 
 /* Superficies — siempre tema claro (sin auto-dark del SO) */

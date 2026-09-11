@@ -20,18 +20,22 @@
   data-dest-lat="<%= request.coords && request.coords.lat != null ? request.coords.lat : '' %>"
   data-dest-lng="<%= request.coords && request.coords.lng != null ? request.coords.lng : '' %>">
 
-  <header class="sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border px-5 py-4">
-    <div class="flex items-center gap-3">
-      <a href="<%= typeof returnUrl !== 'undefined' ? returnUrl : '/tecnico' %>" class="zilo-icon-btn" title="Volver">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      </a>
-      <div class="min-w-0 flex-1">
-        <p class="zilo-label !text-[9px]"><%= isObserver ? 'Vista del socio' : 'Visita en terreno' %></p>
-        <h1 class="text-base font-semibold truncate"><%= request.serviceName %></h1>
+  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
+    <div class="app-session-header__row">
+      <div class="app-session-header__identity">
+        <a href="<%= typeof returnUrl !== 'undefined' ? returnUrl : '/tecnico' %>" class="zilo-icon-btn" title="Volver" aria-label="Volver">
+          <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </a>
+        <div class="app-session-header__meta">
+          <p class="zilo-label !text-[9px] mb-0"><%= isObserver ? 'Vista del socio' : 'Visita en terreno' %></p>
+          <h1><%= request.serviceName %></h1>
+        </div>
       </div>
-      <button type="button" id="btnOpenFieldChat" class="zilo-icon-btn !text-zilo-accent" title="Chat con el cliente" aria-label="Chat">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-      </button>
+      <div class="app-session-header__end">
+        <button type="button" id="btnOpenFieldChat" class="zilo-icon-btn !text-zilo-accent" title="Chat con el cliente" aria-label="Chat">
+          <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -154,6 +158,19 @@
           </div>
           <div id="fieldMap" class="w-full h-40 rounded-xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
         </div>
+        <% if (request.landscapeProject && request.landscapeProject.standardLabel) { %>
+          <div class="text-xs p-2.5 rounded-lg bg-emerald-50 border border-emerald-200/80 space-y-1">
+            <p class="font-semibold text-emerald-900">Proyecto de paisajismo</p>
+            <p class="text-zilo-muted"><%= request.squareMeters %> m² · <%= request.landscapeProject.standardLabel %> · <%= request.landscapeProject.terrainLabel %> · <%= request.landscapeProject.speciesLabel %></p>
+            <% const lpInc = request.landscapeProject.includes || {}; %>
+            <% const lpList = []; %>
+            <% if (lpInc.design) lpList.push('diseño'); %>
+            <% if (lpInc.irrigation) lpList.push('riego'); %>
+            <% if (lpInc.earthwork) lpList.push('mov. tierra'); %>
+            <% if (lpInc.lighting) lpList.push('iluminación'); %>
+            <% if (lpList.length) { %><p class="text-zilo-muted">Incluye: <%= lpList.join(', ') %></p><% } %>
+          </div>
+        <% } %>
         <% if (request.notes) { %>
           <p class="text-xs text-zilo-muted italic p-2.5 rounded-lg bg-zilo-bg/80 border border-zilo-border"><%= request.notes %></p>
         <% } %>

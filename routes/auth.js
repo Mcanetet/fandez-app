@@ -42,7 +42,8 @@ function isAdminSessionUser(req) {
 function logoutAndRedirect(req, res, redirectTo = '/') {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Clear-Site-Data', '"cookies", "storage"');
+  // No usar Clear-Site-Data: en Chrome/Android/PWA congela la navegación
+  // (borra storage + caches del SW) y el usuario siente que “no sale”.
 
   if (req.session) {
     req.session.user = null;
@@ -52,16 +53,33 @@ function logoutAndRedirect(req, res, redirectTo = '/') {
     delete req.session.adminAccess;
   }
 
+  let finished = false;
   const finish = () => {
+    if (finished || res.headersSent) return;
+    finished = true;
     clearSessionCookie(res);
-    res.redirect(redirectTo);
+    res.redirect(303, redirectTo);
   };
 
   if (!req.session) return finish();
-  req.session.destroy((err) => {
-    if (err) console.error('[logout]', err.message);
+
+  // Si MySQL tarda, igual sacamos al usuario (cookie ya se limpia).
+  const watchdog = setTimeout(() => {
+    console.warn('[logout] session.destroy timeout — redirigiendo igual');
     finish();
-  });
+  }, 2000);
+
+  try {
+    req.session.destroy((err) => {
+      clearTimeout(watchdog);
+      if (err) console.error('[logout]', err.message);
+      finish();
+    });
+  } catch (err) {
+    clearTimeout(watchdog);
+    console.error('[logout]', err.message);
+    finish();
+  }
 }
 
 function setSessionUser(req, user, { admin = false, remember = true, activeRole = null } = {}) {

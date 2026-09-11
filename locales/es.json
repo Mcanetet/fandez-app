@@ -386,6 +386,7 @@
   "auth.login_link": "Ingresar",
 
   "common.logout": "Cerrar sesión",
+  "common.logout_short": "Salir",
 
   "client.welcome_label": "Bienvenida",
   "client.services": "Servicios",
@@ -641,8 +642,8 @@
   "services.generadores.desc": "Mantención preventiva, pruebas de carga, transferencia y reparación de grupos electrógenos.",
   "services.pintura.name": "Pintura",
   "services.pintura.desc": "Pintura de interiores, muros, techos, retoques y preparación de superficies.",
-  "services.jardineria.name": "Jardinería",
-  "services.jardineria.desc": "Corte de césped, poda, desmalezado y mantención. Se cobra por m².",
+  "services.jardineria.name": "Jardinería y paisajismo",
+  "services.jardineria.desc": "Mantención por m² y proyectos de paisajismo. El cliente cuantifica el proyecto con factores de mercado.",
 
   "js.verification_missing": "Completa tu verificación: {{items}}",
   "js.cannot_go_online": "No se pudo activar el modo en línea",
