@@ -1,5 +1,5 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v33';
+const SW_VERSION = 'fandez-sw-v34';
 
 /** Ámbar + 2 semicírculos (v11). Path nuevo = rompe caché Saturno Chrome. */
 const DEFAULT_ICON = '/icons/fandez-v11-notify.png';
@@ -142,21 +142,35 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || '/app?source=pwa';
+  const rawTarget = (event.notification.data && event.notification.data.url) || '/app?source=pwa';
+  let target = '/app?source=pwa';
+  try {
+    // Solo rutas same-origin relativas (evita abrir otro host sin cookie de sesión)
+    if (typeof rawTarget === 'string' && rawTarget.startsWith('/') && !rawTarget.startsWith('//')) {
+      target = rawTarget;
+    }
+  } catch (_) { /* ignore */ }
+
   event.waitUntil((async () => {
     const all = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of all) {
       try {
         const url = new URL(client.url);
-        if (url.origin === self.location.origin) {
-          await client.focus();
-          if ('navigate' in client) {
-            await client.navigate(target);
-            return;
-          }
+        if (url.origin !== self.location.origin) continue;
+        // Si la app ya está abierta, solo enfocarla (no forzar navegación → no pierdes el pedido).
+        await client.focus();
+        const path = url.pathname || '';
+        const onApp = path.startsWith('/cliente')
+          || path.startsWith('/proveedor')
+          || path.startsWith('/tecnico')
+          || path.startsWith('/app');
+        if (!onApp && 'navigate' in client) {
+          await client.navigate(target);
         }
+        return;
       } catch (_) { /* ignore */ }
     }
-    await clients.openWindow(target);
+    // Frío: abrir /app para restaurar sesión → panel del rol
+    await clients.openWindow(target.startsWith('/app') ? target : '/app?source=pwa');
   })());
 });

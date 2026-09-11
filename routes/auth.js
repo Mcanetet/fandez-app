@@ -12,7 +12,8 @@ const { localizeServices } = require('../lib/i18n-admin');
 
 const PUBLIC_ROLES = ['client', 'provider', 'tecnico'];
 const ADMIN_SESSION_MS = 4 * 60 * 60 * 1000;
-const DEFAULT_SESSION_MS = 24 * 60 * 60 * 1000;
+/** Clientes/socios: sesión larga (solo se cierra con “Cerrar sesión”). */
+const DEFAULT_SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 const REMEMBER_SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 const SESSION_COOKIE_NAME = 'fandez.sid';
 
@@ -63,7 +64,7 @@ function logoutAndRedirect(req, res, redirectTo = '/') {
   });
 }
 
-function setSessionUser(req, user, { admin = false, remember = false, activeRole = null } = {}) {
+function setSessionUser(req, user, { admin = false, remember = true, activeRole = null } = {}) {
   const primaryRole = user.role;
   let role = activeRole || user.role;
   if (role === 'client' && primaryRole === 'provider' && !user.clientEnabled) {
@@ -83,8 +84,7 @@ function setSessionUser(req, user, { admin = false, remember = false, activeRole
   req.session.isAdminSession = admin;
   if (req.session.cookie) {
     if (admin) req.session.cookie.maxAge = ADMIN_SESSION_MS;
-    else if (remember) req.session.cookie.maxAge = REMEMBER_SESSION_MS;
-    else req.session.cookie.maxAge = DEFAULT_SESSION_MS;
+    else req.session.cookie.maxAge = remember ? REMEMBER_SESSION_MS : DEFAULT_SESSION_MS;
   }
 }
 
@@ -184,7 +184,8 @@ router.post('/login', rateLimitLogin(12), async (req, res) => {
   }
 
   const user = result.user;
-  const remember = req.body.remember === '1' || req.body.remember === 'on' || req.body.remember === true;
+  // En móvil/PWA la sesión debe permanecer hasta “Cerrar sesión”.
+  const remember = true;
   setSessionUser(req, user, { remember });
   store.logSecurityEvent('login_ok', email, req);
 

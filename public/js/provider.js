@@ -289,8 +289,8 @@
     if (title) title.textContent = t('provider.js.job_details_title');
     const subtitle = title?.parentElement?.querySelector('.text-xs.text-zilo-muted');
     if (subtitle) subtitle.textContent = t('provider.js.job_details_sub');
-    requestModal.classList.remove('hidden');
     stopRepeatingAlert();
+    openRequestModalShell();
   }
 
   function upsertWallItem(data) {
@@ -351,27 +351,28 @@
     const photosEl = document.getElementById('modalClientPhotos');
     if (photosEl) {
       const parts = [];
-      if (data.request.clientPhotoUrl) {
-        const url = escapeHtml(data.request.clientPhotoUrl);
+      const renderPhoto = (rawUrl, label) => {
+        if (!rawUrl) return;
+        const url = escapeHtml(rawUrl);
         parts.push(`
-          <div>
-            <p class="zilo-label mb-1">Foto del problema</p>
-            <a href="${url}" target="_blank" rel="noopener">
-              <img src="${url}" alt="Problema" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
-              <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg">No se pudo cargar la foto. Pide al cliente que la reenvíe por el chat.</p>
+          <div class="provider-detail-photo">
+            <p class="zilo-label mb-1.5">${escapeHtml(label)}</p>
+            <a href="${url}" target="_blank" rel="noopener" class="block rounded-xl overflow-hidden border border-zilo-border bg-zilo-bg">
+              <img
+                src="${url}"
+                alt="${escapeHtml(label)}"
+                class="w-full max-h-56 object-cover"
+                loading="eager"
+                decoding="async"
+                onerror="this.onerror=null;this.classList.add('hidden');var f=this.nextElementSibling;if(f)f.classList.remove('hidden');"
+              >
+              <p class="hidden text-xs text-zilo-muted p-3">No se pudo cargar la foto. Ábrela en una pestaña o pide al cliente que la reenvíe por el chat.</p>
             </a>
           </div>`);
-      }
+      };
+      renderPhoto(data.request.clientPhotoUrl, 'Foto del problema');
       if (data.request.clientBrandPhotoUrl) {
-        const url = escapeHtml(data.request.clientBrandPhotoUrl);
-        parts.push(`
-          <div>
-            <p class="zilo-label mb-1">Foto de la marca</p>
-            <a href="${url}" target="_blank" rel="noopener">
-              <img src="${url}" alt="Marca" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
-              <p class="hidden text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg">No se pudo cargar la foto de la marca.</p>
-            </a>
-          </div>`);
+        renderPhoto(data.request.clientBrandPhotoUrl, 'Foto de la marca');
       } else if (data.request.brandNotVisible) {
         parts.push('<p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Sin marca a la vista</p>');
       }
@@ -435,7 +436,7 @@
     if (title) title.textContent = t('provider.dashboard.new_request') || 'Nueva solicitud';
     const subtitle = title?.parentElement?.querySelector('.text-xs.text-zilo-muted');
     if (subtitle) subtitle.textContent = t('provider.js.new_request_sub');
-    requestModal.classList.remove('hidden');
+    openRequestModalShell();
     playAlertSound();
     startRepeatingAlert();
     pushBrowserNotification(t('provider.js.new_request_title'), `${data.service.name} · ${data.request.address}`);
@@ -445,6 +446,16 @@
     stopRepeatingAlert();
     requestModal.classList.add('hidden');
     currentRequest = null;
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  function openRequestModalShell() {
+    requestModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    try {
+      const sheet = requestModal.querySelector('.zilo-modal-sheet');
+      if (sheet) sheet.scrollTop = 0;
+    } catch (_) { /* ignore */ }
   }
 
   async function askTechnicianId(serviceId) {
@@ -705,6 +716,12 @@
     closeModal();
     workWall?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     FandezNotify.show(FandezI18n.t('js.still_on_wall'), 'info');
+  });
+
+  document.getElementById('btnCloseRequestModal')?.addEventListener('click', () => closeModal());
+  document.getElementById('requestModalBackdrop')?.addEventListener('click', () => closeModal());
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && requestModal && !requestModal.classList.contains('hidden')) closeModal();
   });
 
   document.querySelectorAll('[data-role="register-invoice"]').forEach((button) => {

@@ -4449,6 +4449,12 @@ function getRequestForTechnician(requestId, technicianId) {
   return requests.find(r => r.id === requestId && r.technicianId === technicianId) || null;
 }
 
+function getRequestById(requestId) {
+  const id = String(requestId || '');
+  if (!id) return null;
+  return requests.find((r) => r && r.id === id) || null;
+}
+
 function getRequestForProvider(requestId, providerId) {
   return requests.find((r) => r.id === requestId && r.providerId === providerId) || null;
 }
@@ -6227,6 +6233,7 @@ module.exports = {
   getProviderAdherenceStats,
   updateTechStatus,
   getRequestForTechnician,
+  getRequestById,
   getRequestForProvider,
   getLiveTrackingLocation,
   recordSiteArrival,

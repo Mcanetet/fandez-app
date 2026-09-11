@@ -234,6 +234,46 @@ app.get('/sw.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'sw.js'));
 });
 
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+app.use(express.json({ limit: appMode.isProductionMode() ? '12mb' : '25mb' }));
+
+const sessionSecret = process.env.SESSION_SECRET || (appMode.isProductionMode() ? null : 'zilo-dev-secret-change-me');
+if (!sessionSecret) {
+  console.error('✗ SESSION_SECRET es obligatorio');
+  process.exit(1);
+}
+
+const { createSessionStore } = require('./lib/sessionStore');
+const sessionStore = createSessionStore();
+
+// Sesión larga para clientes/socios: no se cierra al cambiar de app ni al tocar una notificación.
+const PUBLIC_SESSION_MS = 30 * 24 * 60 * 60 * 1000;
+const sessionMiddleware = session({
+  secret: sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  name: 'fandez.sid',
+  store: sessionStore || undefined,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: PUBLIC_SESSION_MS,
+    path: '/'
+  }
+});
+app.use(sessionMiddleware);
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
+
+app.use(i18nMiddleware);
+
+// Fotos de pedidos: autenticadas (antes del static, para no servir /uploads/requests a ciegas)
+const { router: mediaRouter } = require('./routes/media');
+app.use(mediaRouter);
+
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders(res, filePath) {
     if (/\.(js|css)$/.test(filePath)) {
@@ -256,36 +296,6 @@ app.use('/assets/marketing', express.static(path.join(__dirname, 'marketing'), {
     res.setHeader('Cache-Control', 'public, max-age=604800');
   }
 }));
-app.use(express.urlencoded({ extended: true, limit: '100kb' }));
-app.use(express.json({ limit: appMode.isProductionMode() ? '12mb' : '25mb' }));
-
-const sessionSecret = process.env.SESSION_SECRET || (appMode.isProductionMode() ? null : 'zilo-dev-secret-change-me');
-if (!sessionSecret) {
-  console.error('✗ SESSION_SECRET es obligatorio');
-  process.exit(1);
-}
-
-const sessionMiddleware = session({
-  secret: sessionSecret,
-  resave: false,
-  saveUninitialized: false,
-  name: 'fandez.sid',
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000
-  }
-});
-app.use(sessionMiddleware);
-io.use((socket, next) => {
-  sessionMiddleware(socket.request, {}, next);
-});
-
-app.use(i18nMiddleware);
-
-const { router: mediaRouter } = require('./routes/media');
-app.use(mediaRouter);
 
 app.use(seoRoutes);
 

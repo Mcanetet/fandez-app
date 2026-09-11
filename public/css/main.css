@@ -1704,6 +1704,13 @@ body.session-role--tecnico::before {
   border: 1px solid var(--zilo-border);
   border-bottom: none;
   box-shadow: 0 -24px 80px rgba(16,24,40,0.18);
+  -webkit-overflow-scrolling: touch;
+}
+#requestModal:not(.hidden) {
+  overscroll-behavior: contain;
+}
+.provider-detail-photo img {
+  background: #F3F1ED;
 }
 .zilo-modal-accent-bar {
   height: 2px;
