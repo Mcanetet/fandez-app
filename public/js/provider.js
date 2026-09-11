@@ -405,10 +405,10 @@
         const wrap = document.createElement('div');
         wrap.className = 'provider-detail-photo';
         wrap.innerHTML = `<p class="zilo-label mb-1.5">${escapeHtml(slot.label)}</p>
-          <div class="rounded-xl overflow-hidden border border-zilo-border bg-zilo-bg min-h-[8rem] flex items-center justify-center">
-            <p class="text-xs text-zilo-muted p-3" data-role="photo-loading">Cargando foto…</p>
-            <img alt="${escapeHtml(slot.label)}" class="w-full object-cover hidden" data-role="photo-img">
-            <p class="hidden text-xs text-zilo-muted p-3" data-role="photo-error">No se pudo cargar la foto. Pide al cliente que la reenvíe por el chat.</p>
+          <div class="provider-photo-frame rounded-xl overflow-hidden border border-zilo-border">
+            <p class="text-xs text-zilo-muted p-3 text-center" data-role="photo-loading">Cargando foto…</p>
+            <img alt="${escapeHtml(slot.label)}" class="hidden" data-role="photo-img" decoding="async">
+            <p class="hidden text-xs text-zilo-muted p-3 text-center" data-role="photo-error">No se pudo cargar la foto. Pide al cliente que la reenvíe por el chat.</p>
           </div>`;
         photosEl.appendChild(wrap);
         loadProviderPhoto(wrap, slot.urls);
@@ -469,38 +469,50 @@
     }
   }
 
-  async function loadProviderPhoto(wrap, urls) {
+  function loadProviderPhoto(wrap, urls) {
     const img = wrap.querySelector('[data-role="photo-img"]');
     const loading = wrap.querySelector('[data-role="photo-loading"]');
     const errEl = wrap.querySelector('[data-role="photo-error"]');
+    if (!img) return;
+
     const candidates = [...new Set((urls || []).filter(Boolean))];
-    for (const url of candidates) {
-      try {
-        if (String(url).startsWith('data:')) {
-          img.src = url;
-          img.classList.remove('hidden');
-          if (loading) loading.classList.add('hidden');
-          if (errEl) errEl.classList.add('hidden');
-          return;
-        }
-        const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
-        if (!res.ok) continue;
-        const blob = await res.blob();
-        if (!blob || !blob.size || !(blob.type || '').startsWith('image/')) continue;
-        const objectUrl = URL.createObjectURL(blob);
-        img.src = objectUrl;
-        img.dataset.blobUrl = objectUrl;
-        img.onclick = () => window.open(objectUrl, '_blank', 'noopener');
-        img.classList.remove('hidden');
-        if (loading) loading.classList.add('hidden');
-        if (errEl) errEl.classList.add('hidden');
-        resetRequestModalScroll();
+    let idx = 0;
+
+    const showError = () => {
+      if (loading) loading.classList.add('hidden');
+      img.classList.add('hidden');
+      img.removeAttribute('src');
+      if (errEl) errEl.classList.remove('hidden');
+    };
+
+    const showOk = () => {
+      if (loading) loading.classList.add('hidden');
+      if (errEl) errEl.classList.add('hidden');
+      img.classList.remove('hidden');
+      resetRequestModalScroll();
+    };
+
+    const tryNext = () => {
+      if (idx >= candidates.length) {
+        showError();
         return;
-      } catch (_) { /* try next */ }
-    }
-    if (loading) loading.classList.add('hidden');
-    if (img) img.classList.add('hidden');
-    if (errEl) errEl.classList.remove('hidden');
+      }
+      const url = candidates[idx++];
+      img.onload = () => {
+        img.onload = null;
+        img.onerror = null;
+        showOk();
+      };
+      img.onerror = () => {
+        img.onload = null;
+        img.onerror = null;
+        tryNext();
+      };
+      // Carga directa (misma sesión/cookies): más fiable en Safari/PWA que fetch→blob
+      img.src = url;
+    };
+
+    tryNext();
   }
 
   function showRequestModal(data) {

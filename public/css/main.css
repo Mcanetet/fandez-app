@@ -1729,32 +1729,48 @@ body.session-role--tecnico::before {
   position: relative;
   display: flex;
   flex-direction: column;
+  width: 100%;
   max-height: min(92dvh, 92vh);
   min-height: 0;
   overflow: hidden;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .request-modal-header {
-  position: sticky;
-  top: 0;
+  flex: 0 0 auto;
   z-index: 2;
   background: #FFFFFF;
   border-bottom: 1px solid rgba(16, 24, 40, 0.06);
 }
 .request-modal-body {
+  flex: 1 1 auto;
+  min-height: 12rem;
+  max-height: calc(92vh - 10.5rem);
+  max-height: calc(92dvh - 10.5rem);
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
 }
 .request-modal-footer {
-  position: sticky;
-  bottom: 0;
+  flex: 0 0 auto;
   z-index: 2;
 }
-.provider-detail-photo img {
-  background: #F3F1ED;
-  max-height: min(42vh, 16rem);
+.provider-detail-photo {
+  display: block;
+}
+.provider-detail-photo .provider-photo-frame {
+  display: block;
   width: 100%;
+  min-height: 10rem;
+  background: #F3F1ED;
+}
+.provider-detail-photo img {
+  display: block;
+  background: #F3F1ED;
+  width: 100%;
+  height: auto;
+  max-height: 42vh;
   object-fit: cover;
 }
 @media (min-width: 640px) {
@@ -1765,6 +1781,10 @@ body.session-role--tecnico::before {
   .request-modal-panel,
   .request-modal-sheet {
     max-height: min(88dvh, 88vh);
+  }
+  .request-modal-body {
+    max-height: calc(88vh - 10.5rem);
+    max-height: calc(88dvh - 10.5rem);
   }
   .provider-detail-photo img {
     max-height: 16rem;
