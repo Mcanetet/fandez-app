@@ -165,8 +165,10 @@
             <% if (job.providerPayout != null) { %>
               <p class="text-[11px] text-zilo-success font-medium mt-1"><%= t('provider.js.your_payout') %>: <%= formatCLP(job.providerPayout) %></p>
             <% } %>
-            <% if (job.urgencyTierLabel) { %>
-              <p class="text-[10px] text-orange-600 mt-1">Urgencia: <%= job.urgencyTierLabel %></p>
+            <% if (job.urgencyTierLabel) {
+              const jobUrgent = job.urgencyTier === 'immediate' || job.urgencyTier === 'critical' || job.urgencyTier === 'medium';
+            %>
+              <p class="text-[10px] <%= jobUrgent ? 'text-orange-600' : 'text-zilo-muted' %> mt-1"><%= jobUrgent ? 'Urgencia' : 'Llegada' %>: <%= job.urgencyTierLabel %></p>
             <% } %>
           </a>
         <% }); %>

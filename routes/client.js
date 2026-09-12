@@ -258,7 +258,10 @@ router.get('/', requireRole('client'), (req, res) => {
     lastCompleted: store.getLastCompletedRequest(req.session.user.id, req.locale),
     trustStats: store.getClientTrustStats(),
     showOnboarding: store.needsOnboarding(profile),
-    onboardingSteps: getClientOnboardingSteps(req.t),
+    onboardingSteps: getClientOnboardingSteps(req.t).filter((step) => {
+      if (step.target === '[data-tour="points"]') return store.isModuleEnabled('client_puntos');
+      return true;
+    }),
     onboardingCompleteUrl: '/cliente/onboarding/complete'
   });
 });
@@ -395,6 +398,11 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     service,
     locale: req.locale
   });
+  const checkoutDraft = store.getCheckoutDraftForClient(
+    req.session.user.id,
+    serviceRaw.id,
+    req.query.resume || null
+  );
   res.render('client/service', {
     title: `${service.name} — Fandez`,
     user: req.session.user,
@@ -410,6 +418,7 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     trustStats: store.getClientTrustStats(),
     formatCLP: store.formatCLP,
     tracking: req.query.tracking || null,
+    checkoutDraft,
     cancellationReasons: CANCELLATION_REASONS
   });
 });
@@ -473,7 +482,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   const {
     serviceId, address, notes, lat, lng, gift, clientPhoto, clientBrandPhoto,
     brandNotVisible, urgencyTier, activityId, customName, localTime, timeZone,
-    squareMeters, landscapeProject
+    squareMeters, landscapeProject, resumeRequestId, keepClientPhoto, keepBrandPhoto
   } = req.body;
   const service = store.getServiceById(serviceId);
   if (!service || !service.enabled) {
@@ -482,21 +491,37 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   if (gift?.name && !store.isModuleEnabled('client_regalo')) {
     return res.status(403).json({ error: 'El módulo de regalos no está habilitado' });
   }
-  if (service.id === 'jardineria' && !clientPhoto) {
+
+  const resumeId = typeof resumeRequestId === 'string' && resumeRequestId.trim()
+    ? resumeRequestId.trim()
+    : null;
+  const resumeDraft = resumeId
+    ? store.getCheckoutDraftForClient(req.session.user.id, serviceId, resumeId)
+    : null;
+  if (resumeId && !resumeDraft) {
+    return res.status(400).json({ error: 'No se puede actualizar este pedido. Vuelve a crearlo.' });
+  }
+
+  const keepPhoto = keepClientPhoto === true || keepClientPhoto === 'true' || keepClientPhoto === 1;
+  const keepBrand = keepBrandPhoto === true || keepBrandPhoto === 'true' || keepBrandPhoto === 1;
+  const hasExistingPhoto = Boolean(resumeDraft?.clientPhotoUrl);
+  const hasExistingBrand = Boolean(resumeDraft?.clientBrandPhotoUrl);
+
+  if (service.id === 'jardineria' && !clientPhoto && !(keepPhoto && hasExistingPhoto)) {
     return res.status(400).json({ error: 'Sube al menos una foto del jardín o del área a trabajar.' });
   }
   if (!clientPhoto) {
     // Foto recomendada; no bloquea la solicitud (salvo jardinería)
   }
   const skipBrand = brandNotVisible === true || brandNotVisible === 'true' || brandNotVisible === 1 || !clientBrandPhoto;
-  if (!skipBrand && !clientBrandPhoto) {
+  if (!skipBrand && !clientBrandPhoto && !(keepBrand && hasExistingBrand)) {
     return res.status(400).json({ error: 'Sube la foto de la marca o marca «Sin marca a la vista».' });
   }
 
   let clientPhotoUrl = null;
   let clientBrandPhotoUrl = null;
   try {
-    const tempId = `tmp-${Date.now()}`;
+    const tempId = resumeId || `tmp-${Date.now()}`;
     if (clientPhoto) {
       clientPhotoUrl = saveRequestFile(tempId, 'cliente', clientPhoto);
     }
@@ -525,16 +550,19 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
       localTime,
       timeZone,
       squareMeters,
-      landscapeProject: landscapeProject && typeof landscapeProject === 'object' ? landscapeProject : null
+      landscapeProject: landscapeProject && typeof landscapeProject === 'object' ? landscapeProject : null,
+      resumeRequestId: resumeId,
+      keepClientPhoto: keepPhoto && !clientPhotoUrl,
+      keepBrandPhoto: keepBrand && !clientBrandPhotoUrl
     });
 
-    if (clientPhotoUrl) {
+    if (clientPhotoUrl && !resumeId) {
       request.clientPhotoUrl = moveRequestPhoto(clientPhotoUrl, request.id, 'cliente');
     }
-    if (clientBrandPhotoUrl) {
+    if (clientBrandPhotoUrl && !resumeId) {
       request.clientBrandPhotoUrl = moveRequestPhoto(clientBrandPhotoUrl, request.id, 'marca');
     }
-    if (request.clientPhotoUrl !== clientPhotoUrl || request.clientBrandPhotoUrl !== clientBrandPhotoUrl) {
+    if (!resumeId && (request.clientPhotoUrl !== clientPhotoUrl || request.clientBrandPhotoUrl !== clientBrandPhotoUrl)) {
       await require('../models/repository').saveRequest(request);
     }
 
@@ -542,7 +570,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   } catch (err) {
     console.error('Error creando solicitud:', err.message);
     const isCoverage = /operamos|comuna|trabajando/i.test(err.message || '');
-    const isUserError = /Describe|foto|marca|subservicio|urgencia|dirección|cobertura|Opción|Selecciona|mínimo|metros|jardín/i.test(err.message || '');
+    const isUserError = /Describe|foto|marca|subservicio|urgencia|dirección|cobertura|Opción|Selecciona|mínimo|metros|jardín|pedido|actualizar/i.test(err.message || '');
     res.status(isCoverage || isUserError ? 400 : 500).json({
       error: (isCoverage || isUserError)
         ? (err.message || 'No se pudo crear la solicitud')
@@ -843,7 +871,7 @@ router.post('/resena/:id', requireRole('client'), (req, res) => {
     text: req.body.text
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
-  res.json({ success: true, review: result.review });
+  res.json({ success: true, review: result.review, pointsAwarded: result.pointsAwarded || 0 });
 });
 
 router.get('/chat/:requestId', requireRole('client'), (req, res) => {

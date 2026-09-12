@@ -20,11 +20,13 @@
       <h2 class="zilo-display text-2xl"><%= profile.name %></h2>
       <p class="text-sm text-zilo-muted mt-1"><%= profile.email %></p>
       <div class="flex justify-center gap-6 mt-6">
+        <% if (typeof mod === 'function' && mod('client_puntos')) { %>
         <div class="text-center">
           <strong class="zilo-display text-xl text-zilo-accent block"><%= referral.points %></strong>
           <span class="zilo-label !text-[9px]"><%= t('client.profile.points_label') %></span>
         </div>
         <div class="w-px bg-zilo-border"></div>
+        <% } %>
         <div class="text-center">
           <strong class="zilo-display text-xl text-zilo-success block"><%= formatCLP(referral.creditsCLP) %></strong>
           <span class="zilo-label !text-[9px]"><%= t('client.profile.credit_label') %></span>

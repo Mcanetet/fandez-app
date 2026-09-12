@@ -27,6 +27,9 @@
   const urgencyRadios = document.querySelectorAll('input[name="urgencyTier"]');
 
   let currentRequestId = trackingId || null;
+  let resumeRequestId = page.dataset.resumeId || null;
+  let resumeKeepClientPhoto = false;
+  let resumeKeepBrandPhoto = false;
   let lastProviderAlertId = null;
   let lastCompletionAlertId = null;
   let selectedUrgencyTier = document.querySelector('input[name="urgencyTier"]:checked')?.value || 'today';
@@ -35,6 +38,132 @@
   const socket = io();
 
   const SANTIAGO = { lat: -33.4489, lng: -70.6693 };
+
+  function readCheckoutDraft() {
+    const el = document.getElementById('checkoutDraftJson');
+    if (!el) return null;
+    try {
+      return JSON.parse(el.textContent || '');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function showExistingPhoto(previewEl, url) {
+    if (!previewEl || !url) return;
+    const img = previewEl.querySelector('img');
+    if (img) img.src = url;
+    previewEl.classList.remove('hidden');
+  }
+
+  function applyCheckoutDraft(draft) {
+    if (!draft || trackingId) return;
+    resumeRequestId = draft.id || resumeRequestId;
+    page.dataset.resumeId = resumeRequestId || '';
+
+    if (draft.address && addressInput) {
+      addressInput.value = draft.address;
+    }
+    if (draft.lat != null && latInput) latInput.value = draft.lat;
+    if (draft.lng != null && lngInput) lngInput.value = draft.lng;
+    if (draft.lat != null && draft.lng != null && typeof FandezMap !== 'undefined') {
+      const mapEl = document.getElementById('addressMap');
+      if (mapEl?.id) {
+        FandezMap.update(mapEl.id, Number(draft.lat), Number(draft.lng), draft.address || '', { zoom: 16 });
+      }
+      addressCovered = true;
+      if (coverageAlert) coverageAlert.classList.add('hidden');
+      if (mapStatus) mapStatus.textContent = draft.address || '';
+    }
+
+    if (draft.urgencyTier) {
+      const radio = document.querySelector(`input[name="urgencyTier"][value="${CSS.escape(draft.urgencyTier)}"]`);
+      if (radio) {
+        radio.checked = true;
+        selectedUrgencyTier = draft.urgencyTier;
+        radio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    if (draft.isGift && giftToggle) {
+      giftToggle.checked = true;
+      giftFields?.classList.remove('hidden');
+      if (addressLabel) addressLabel.textContent = t('client.js.gift_address');
+      if (draft.gift) {
+        const n = document.getElementById('giftName');
+        const p = document.getElementById('giftPhone');
+        const m = document.getElementById('giftMessage');
+        if (n) n.value = draft.gift.name || '';
+        if (p) p.value = draft.gift.phone || '';
+        if (m) m.value = draft.gift.message || '';
+      }
+    }
+
+    if (activitySelect && draft.activityId) {
+      activitySelect.value = draft.activityId;
+      if (draft.activityId === 'otro') {
+        const custom = document.getElementById('customActivityName');
+        if (custom) custom.value = draft.customName || '';
+      }
+      toggleClientOtherFields();
+      toggleLandscapeFields();
+    }
+
+    if (draft.squareMeters != null) {
+      const m2 = document.getElementById('squareMeters');
+      if (m2) m2.value = draft.squareMeters;
+    }
+
+    const lp = draft.landscapeProject;
+    if (lp) {
+      const setSel = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val != null && val !== '') el.value = val;
+      };
+      setSel('landscapeStandard', lp.standard);
+      setSel('landscapeTerrain', lp.terrain);
+      setSel('landscapeSpecies', lp.species);
+      const setChk = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = Boolean(val);
+      };
+      setChk('landscapeDesign', lp.includesDesign ?? lp.includes?.design);
+      setChk('landscapeIrrigation', lp.includesIrrigation ?? lp.includes?.irrigation);
+      setChk('landscapeEarthwork', lp.includesEarthwork ?? lp.includes?.earthwork);
+      setChk('landscapeLighting', lp.includesLighting ?? lp.includes?.lighting);
+      toggleLandscapeFields();
+    }
+
+    if (draft.notes) {
+      const notesEl = document.getElementById('notes');
+      if (notesEl) notesEl.value = draft.notes;
+    }
+
+    if (brandNotVisibleCheck) {
+      brandNotVisibleCheck.checked = Boolean(draft.brandNotVisible);
+      syncBrandPhotoRequirement();
+    }
+
+    if (draft.clientPhotoUrl) {
+      showExistingPhoto(clientPhotoPreview, draft.clientPhotoUrl);
+      resumeKeepClientPhoto = true;
+    }
+    if (draft.clientBrandPhotoUrl && !draft.brandNotVisible) {
+      showExistingPhoto(clientBrandPhotoPreview, draft.clientBrandPhotoUrl);
+      resumeKeepBrandPhoto = true;
+    }
+
+    if (resumeRequestId && !new URLSearchParams(window.location.search).get('resume')) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('resume', resumeRequestId);
+      window.history.replaceState({}, '', url.pathname + url.search);
+    }
+
+    updatePricePreview();
+    if (!draft.lat && draft.address) {
+      geocodeAddress();
+    }
+  }
 
   document.addEventListener('DOMContentLoaded', () => {
     if (typeof FandezMap !== 'undefined') {
@@ -54,6 +183,11 @@
     if (trackingId) {
       requestForm.classList.add('hidden');
       startTracking(trackingId);
+    }
+
+    // Rehidrata después de init de mapa / handlers (pedido guardado al volver del pago)
+    if (typeof window.__fandezHydrateResumeDraft === 'function') {
+      window.__fandezHydrateResumeDraft();
     }
   });
 
@@ -391,8 +525,30 @@
       onReady?.(dataUrl);
     });
   }
-  wirePhotoPreview(clientPhotoInput, clientPhotoPreview, (url) => { cachedProblemPhoto = url; });
-  wirePhotoPreview(clientBrandPhotoInput, clientBrandPhotoPreview, (url) => { cachedBrandPhoto = url; });
+  wirePhotoPreview(clientPhotoInput, clientPhotoPreview, (url) => {
+    cachedProblemPhoto = url;
+    if (url) resumeKeepClientPhoto = false;
+  });
+  wirePhotoPreview(clientBrandPhotoInput, clientBrandPhotoPreview, (url) => {
+    cachedBrandPhoto = url;
+    if (url) resumeKeepBrandPhoto = false;
+  });
+
+  function hydrateResumeDraft() {
+    if (hydrateResumeDraft._done) return;
+    hydrateResumeDraft._done = true;
+    const draft = readCheckoutDraft();
+    if (draft) applyCheckoutDraft(draft);
+    document.getElementById('btnEditDraft')?.addEventListener('click', () => {
+      document.getElementById('resumeDraftBanner')?.classList.add('hidden');
+      document.getElementById('requestForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+  window.__fandezHydrateResumeDraft = hydrateResumeDraft;
+  if (document.readyState !== 'loading') {
+    // DOMContentLoaded ya pasó: hidratar ahora (el mapa ya debió inicializarse o no aplica)
+    hydrateResumeDraft();
+  }
 
   function syncBrandPhotoRequirement() {
     const brandOptional = page?.dataset.brandOptional === '1';
@@ -2176,13 +2332,13 @@
 
     const brandOptional = page?.dataset.brandOptional === '1';
     let brandNotVisible = Boolean(brandNotVisibleCheck?.checked) || brandOptional;
-    const hasProblemPhoto = Boolean(cachedProblemPhoto || clientPhotoInput?.files?.length);
+    const hasProblemPhoto = Boolean(cachedProblemPhoto || clientPhotoInput?.files?.length || resumeKeepClientPhoto);
     if (gardenJob && !hasProblemPhoto) {
       FandezNotify.show(t('client.js.need_garden_photo'), 'warning');
       clientPhotoInput?.focus();
       return;
     }
-    const hasBrandPhoto = Boolean(cachedBrandPhoto || clientBrandPhotoInput?.files?.length);
+    const hasBrandPhoto = Boolean(cachedBrandPhoto || clientBrandPhotoInput?.files?.length || resumeKeepBrandPhoto);
     if (!brandNotVisible && !hasBrandPhoto) {
       // Foto de marca recomendada, no bloqueante: si no hay, tratamos como sin marca
       brandNotVisible = true;
@@ -2211,7 +2367,7 @@
       }
 
       let clientPhoto = null;
-      if (hasProblemPhoto) {
+      if (cachedProblemPhoto || clientPhotoInput?.files?.length) {
         clientPhoto = await resolvePhotoDataUrl(clientPhotoInput, cachedProblemPhoto);
         if (!clientPhoto) {
           setBusy(false);
@@ -2219,10 +2375,11 @@
           return;
         }
         cachedProblemPhoto = clientPhoto;
+        resumeKeepClientPhoto = false;
       }
 
       let clientBrandPhoto = null;
-      if (!brandNotVisible && hasBrandPhoto) {
+      if (!brandNotVisible && (cachedBrandPhoto || clientBrandPhotoInput?.files?.length)) {
         clientBrandPhoto = await resolvePhotoDataUrl(clientBrandPhotoInput, cachedBrandPhoto);
         if (!clientBrandPhoto) {
           setBusy(false);
@@ -2230,6 +2387,7 @@
           return;
         }
         cachedBrandPhoto = clientBrandPhoto;
+        resumeKeepBrandPhoto = false;
       }
 
       const clock = deviceLocalClock();
@@ -2252,7 +2410,10 @@
           squareMeters: gardenJob ? squareMeters : undefined,
           landscapeProject: landscapeJob ? landscapeProject : undefined,
           localTime: clock.localTime,
-          timeZone: clock.timeZone
+          timeZone: clock.timeZone,
+          resumeRequestId: resumeRequestId || undefined,
+          keepClientPhoto: Boolean(resumeRequestId && resumeKeepClientPhoto && !clientPhoto),
+          keepBrandPhoto: Boolean(resumeRequestId && resumeKeepBrandPhoto && !clientBrandPhoto && !brandNotVisible)
         })
       });
 

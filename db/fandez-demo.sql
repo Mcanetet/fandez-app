@@ -431,7 +431,7 @@ INSERT INTO modules (id, audience, name, description, sort_order, enabled) VALUE
 ('client_regalo', 'client', 'Regalar servicio', 'Opción de regalar una visita a otra persona', 4, 1),
 ('client_guardian', 'client', 'Modo Guardián', 'Enlace de seguimiento para familiares sin cuenta', 5, 1),
 ('client_foto', 'client', 'Foto del requerimiento', 'Subir foto opcional al solicitar servicio', 6, 1),
-('client_puntos', 'client', 'Puntos y créditos', 'Canjear puntos y créditos en checkout', 7, 1),
+('client_puntos', 'client', 'Puntos Fandez', 'Acumular y canjear puntos Fandez (perfil, checkout y recompensas). Los créditos de referidos no dependen de este módulo.', 7, 0),
 ('client_promos', 'client', 'Promociones', 'Banners de promos en el inicio del cliente', 8, 1),
 ('client_historial', 'client', 'Historial', 'Ver servicios anteriores del cliente', 9, 1),
 ('client_whatsapp', 'client', 'Concierge WhatsApp (legado)', 'Solo si Aland IA está OFF: botón WhatsApp clásico', 10, 0),

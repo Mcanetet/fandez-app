@@ -141,7 +141,12 @@
       FandezNotify.show(data.error || (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.historial.submit_error') : 'Error al enviar'), 'error');
       return;
     }
-    FandezNotify.show(typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.historial.thanks') : '¡Gracias!', 'success');
+    FandezNotify.show(
+      data.pointsAwarded
+        ? (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.historial.thanks') : '¡Gracias! +25 puntos Fandez')
+        : (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.historial.thanks_plain') : '¡Gracias por tu calificación!'),
+      'success'
+    );
     closeReview();
     setTimeout(() => location.reload(), 800);
   });

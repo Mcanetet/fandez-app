@@ -240,6 +240,7 @@ async function init() {
   SERVICES = data.services;
   MODULES = data.modules;
   await ensureMissingModules();
+  await ensureClientPuntosDefaultOffOnce();
   PRICING_CONFIG = normalizePricing(data.pricing || DEFAULT_PRICING);
   const rawLabor = Number(data.pricing?.laborCommissionRate);
   const rawMerchantFee = parseFloat(data.pricing?.merchantCardFeePercent);
@@ -297,12 +298,33 @@ async function createRequest({
   localTime,
   timeZone,
   squareMeters,
-  landscapeProject
+  landscapeProject,
+  resumeRequestId = null,
+  keepClientPhoto = false,
+  keepBrandPhoto = false
 }) {
   const service = getServiceById(serviceId);
   const client = getUserById(clientId);
   const fullAddress = address || client.address;
   const pricing = getPricingConfig();
+
+  let existing = null;
+  if (resumeRequestId) {
+    existing = requests.find((r) => r.id === resumeRequestId && r.clientId === clientId);
+    if (!existing) return Promise.reject(new Error('No encontramos tu pedido guardado.'));
+    if (existing.serviceId !== serviceId) {
+      return Promise.reject(new Error('El pedido guardado no corresponde a este servicio.'));
+    }
+    if (existing.status !== 'pending_payment') {
+      return Promise.reject(new Error('Este pedido ya no se puede editar.'));
+    }
+    const ps = existing.paymentStatus || 'pending';
+    if (!['pending', 'pending_transfer', 'pending_payment'].includes(ps)) {
+      return Promise.reject(new Error('Este pedido ya tiene un pago en curso.'));
+    }
+    if (keepClientPhoto && !clientPhotoUrl) clientPhotoUrl = existing.clientPhotoUrl || null;
+    if (keepBrandPhoto && !clientBrandPhotoUrl) clientBrandPhotoUrl = existing.clientBrandPhotoUrl || null;
+  }
 
   notes = (notes || '').trim();
   if (!notes) return Promise.reject(new Error('Describe el problema para que el técnico sepa qué esperar.'));
@@ -425,7 +447,7 @@ async function createRequest({
     : notes;
 
   const request = {
-    id: uuidv4(),
+    id: existing?.id || uuidv4(),
     clientId,
     clientName: client.name,
     clientEmail: client.email || null,
@@ -457,7 +479,8 @@ async function createRequest({
     paymentId: null,
     preferenceId: null,
     providerId: null,
-    createdAt: new Date().toISOString(),
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     urgencyTier: visitCalc.tier.id,
     urgencyTierLabel: visitCalc.tier.label,
     urgencyAdjustmentPercent: visitCalc.adjustmentPercent,
@@ -484,23 +507,105 @@ async function createRequest({
     discountPromo: 0,
     pointsUsed: 0,
     promoCode: null,
+    discountsCommitted: false,
     clientPhotoUrl: clientPhotoUrl || null,
     clientBrandPhotoUrl: noBrand ? null : (clientBrandPhotoUrl || null),
     brandNotVisible: noBrand,
-    billingSnapshot: createBillingSnapshot(client.billing) || null,
+    billingSnapshot: existing?.billingSnapshot || createBillingSnapshot(client.billing) || null,
     paymentMethod: null,
     paymentSurchargePercent: 0,
     paymentSurchargeAmount: 0,
-    guardianToken: require('crypto').randomBytes(24).toString('hex'),
+    guardianToken: existing?.guardianToken || require('crypto').randomBytes(24).toString('hex'),
     coords,
     regionCode: geoMeta?.regionCode || null,
     regionName: geoMeta?.regionName || null,
     communeCode: geoMeta?.communeCode || null,
     communeName: geoMeta?.communeName || null
   };
-  requests.unshift(request);
-  repository.persist(() => repository.saveRequest(request), `solicitud ${request.id}`);
-  return request;
+  const finalRequest = existing
+    ? {
+        ...existing,
+        ...request,
+        // Al reeditar, reinicia estado de pago/descuento del intento anterior
+        paymentStatus: 'pending',
+        paymentId: null,
+        preferenceId: null,
+        paymentMethod: null,
+        paymentSurchargePercent: 0,
+        paymentSurchargeAmount: 0,
+        discountCredits: 0,
+        discountPoints: 0,
+        discountPromo: 0,
+        pointsUsed: 0,
+        promoCode: null,
+        discountsCommitted: false,
+        amountDue: request.amountDue,
+        basePrice: request.basePrice,
+        estimatedVisit: request.estimatedVisit
+      }
+    : request;
+
+  if (existing) {
+    const idx = requests.findIndex((r) => r.id === existing.id);
+    if (idx >= 0) requests[idx] = finalRequest;
+    else requests.unshift(finalRequest);
+  } else {
+    requests.unshift(finalRequest);
+  }
+  repository.persist(() => repository.saveRequest(finalRequest), `solicitud ${finalRequest.id}`);
+  return finalRequest;
+}
+
+function canResumeCheckoutRequest(request) {
+  if (!request) return false;
+  if (request.status !== 'pending_payment') return false;
+  const ps = request.paymentStatus || 'pending';
+  return ['pending', 'pending_transfer', 'pending_payment'].includes(ps);
+}
+
+/** Pedido a medias (antes de pagar) para rehidratar el formulario al volver atrás. */
+function getCheckoutDraftForClient(clientId, serviceId, resumeId = null) {
+  let request = null;
+  if (resumeId) {
+    request = requests.find((r) => r.id === resumeId && r.clientId === clientId);
+  } else if (serviceId) {
+    request = requests
+      .filter((r) => r.clientId === clientId && r.serviceId === serviceId && canResumeCheckoutRequest(r))
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))[0] || null;
+  }
+  if (!request || !canResumeCheckoutRequest(request)) return null;
+  if (serviceId && request.serviceId !== serviceId) return null;
+
+  const isManual = Boolean(request.activityManual) || String(request.activityId || '').startsWith('otro');
+  let customName = '';
+  if (isManual) {
+    customName = String(request.activityName || '').replace(/^Otro:\s*/i, '').trim();
+  }
+
+  return {
+    id: request.id,
+    serviceId: request.serviceId,
+    address: request.address || '',
+    notes: String(request.notes || '').replace(/\n\nProyecto paisajismo:[\s\S]*$/i, '').trim(),
+    lat: request.coords?.lat ?? null,
+    lng: request.coords?.lng ?? null,
+    urgencyTier: request.urgencyTier || 'today',
+    activityId: isManual ? 'otro' : (request.activityId || ''),
+    customName,
+    squareMeters: request.squareMeters || null,
+    landscapeProject: request.landscapeProject || null,
+    brandNotVisible: Boolean(request.brandNotVisible),
+    clientPhotoUrl: request.clientPhotoUrl || null,
+    clientBrandPhotoUrl: request.clientBrandPhotoUrl || null,
+    isGift: Boolean(request.isGift),
+    gift: request.isGift ? {
+      name: request.beneficiaryName || '',
+      phone: request.beneficiaryPhone || '',
+      message: request.giftMessage || ''
+    } : null,
+    amountDue: request.amountDue ?? request.visitTotal ?? null,
+    createdAt: request.createdAt
+  };
 }
 
 function updateUserProfile(userId, data) {
@@ -587,7 +692,9 @@ function applyReferralCode(userId, code) {
   user.creditsCLP = (user.creditsCLP || 0) + 5000;
   referrer.creditsCLP = (referrer.creditsCLP || 0) + 5000;
   referrer.referralsCount = (referrer.referralsCount || 0) + 1;
-  referrer.ziloPoints = (referrer.ziloPoints || 0) + 200;
+  if (isPointsEnabled()) {
+    referrer.ziloPoints = (referrer.ziloPoints || 0) + 200;
+  }
   repository.persist(() => repository.saveUser(user), `usuario ${user.id}`);
   repository.persist(() => repository.saveUser(referrer), `usuario ${referrer.id}`);
   return { success: true, bonus: 5000 };
@@ -825,7 +932,9 @@ function getCheckoutSummary(userId, requestId) {
     basePrice,
     visitBasePrice: request.visitBasePrice ?? visitSubtotal,
     urgencyAdjustmentAmount: request.urgencyAdjustmentAmount || 0,
+    urgencyTier: request.urgencyTier || null,
     urgencyTierLabel: request.urgencyTierLabel || null,
+    arrivalDisplay: getArrivalDisplay(request),
     scheduleAdjustmentAmount: request.scheduleAdjustmentAmount || 0,
     scheduleAdjustmentPercent: request.scheduleAdjustmentPercent || request.tariffHorarioPercent || 0,
     scheduleBand: request.tariffHorarioBand || null,
@@ -920,7 +1029,7 @@ function applyCheckoutDiscounts(userId, requestId, { useCredits, usePoints, prom
     remaining -= discountCredits;
   }
 
-  if (usePoints && (user.ziloPoints || 0) > 0 && remaining > 0) {
+  if (usePoints && isPointsEnabled() && (user.ziloPoints || 0) > 0 && remaining > 0) {
     const maxFromPoints = Math.min(user.ziloPoints * POINTS_VALUE_CLP, remaining);
     pointsUsed = Math.ceil(maxFromPoints / POINTS_VALUE_CLP);
     discountPoints = pointsUsed * POINTS_VALUE_CLP;
@@ -977,7 +1086,9 @@ function commitCheckoutDiscounts(userId, requestId) {
     markWelcomePromoUsed(user);
   }
   user.servicesCount = (user.servicesCount || 0) + 1;
-  user.ziloPoints = (user.ziloPoints || 0) + 50;
+  if (isPointsEnabled()) {
+    user.ziloPoints = (user.ziloPoints || 0) + 50;
+  }
   repository.persist(() => repository.saveUser(user), `usuario ${user.id}`);
 }
 
@@ -1496,6 +1607,19 @@ function getClientAttentionItems(clientId, now = Date.now()) {
   const items = [];
   for (const request of requests) {
     if (request.clientId !== clientId) continue;
+
+    if (canResumeCheckoutRequest(request)) {
+      items.push({
+        requestId: request.id,
+        type: 'pending_payment',
+        urgency: 'high',
+        title: 'Completa tu pago',
+        body: `Tu pedido de ${request.serviceName} quedó guardado. Puedes editarlo o continuar al pago.`,
+        url: `/cliente/servicio/${request.serviceId}?resume=${request.id}`
+      });
+      continue;
+    }
+
     if (!['scheduled', 'searching', 'assigned', 'in_progress'].includes(request.status)) continue;
 
     if (request.noProviderDecisionStatus === 'pending') {
@@ -1690,6 +1814,62 @@ async function ensureMissingModules() {
     MODULES.sort((a, b) => String(a.audience).localeCompare(String(b.audience)) || (a.sortOrder - b.sortOrder));
     console.log(`✓ Módulos nuevos insertados: ${added}`);
   }
+  // Actualiza nombre/descripcion del catálogo sin tocar enabled
+  for (const seedMod of seed) {
+    const live = MODULES.find((m) => m.id === seedMod.id);
+    if (!live) continue;
+    if (live.name === seedMod.name && live.description === seedMod.description) continue;
+    live.name = seedMod.name;
+    live.description = seedMod.description;
+    try {
+      await repository.saveModule(live);
+    } catch (err) {
+      console.warn('[modules] no se pudo actualizar meta', seedMod.id, err.message);
+    }
+  }
+}
+
+/**
+ * Una sola vez: apaga Puntos Fandez en installs existentes.
+ * Después el admin puede reactivarlo desde Módulos sin que el arranque lo vuelva a apagar.
+ */
+async function ensureClientPuntosDefaultOffOnce() {
+  const KEY = 'product_defaults_client_puntos_off_v1';
+  const db = require('../lib/db');
+  const mod = getModuleById('client_puntos');
+  if (!mod) return;
+
+  if (!db.isConfigured()) {
+    if (!ensureClientPuntosDefaultOffOnce._memoryApplied) {
+      mod.enabled = false;
+      ensureClientPuntosDefaultOffOnce._memoryApplied = true;
+    }
+    return;
+  }
+
+  try {
+    await require('../lib/appModeStore').ensureAppSettingsTable();
+    const res = await db.query(
+      'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+      [KEY]
+    );
+    if (res.rows?.[0]) return;
+
+    mod.enabled = false;
+    await repository.saveModule(mod);
+    await db.query(
+      `INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [KEY, JSON.stringify({ appliedAt: new Date().toISOString(), moduleId: 'client_puntos' })]
+    );
+    console.log('✓ Módulo client_puntos desactivado por defecto (admin puede reactivarlo)');
+  } catch (err) {
+    console.warn('[modules] no se pudo aplicar default puntos off:', err.message);
+  }
+}
+
+function isPointsEnabled() {
+  return isModuleEnabled('client_puntos');
 }
 
 function isModuleEnabled(id) {
@@ -1829,6 +2009,32 @@ function getCatalogPriceRows() {
 
 function getUrgencyTiersForClient() {
   return getActiveUrgencyTiers(getPricingConfig());
+}
+
+/** Solo «inmediato» (y legacy critical/medium) es urgencia real; «Hoy» es llegada normal. */
+function isUrgentArrivalTier(tierId) {
+  const id = String(tierId || '').toLowerCase();
+  return id === 'immediate' || id === 'critical' || id === 'medium';
+}
+
+function getArrivalDisplay(requestOrTier, labelOverride = null, locale = 'es') {
+  const tierId = typeof requestOrTier === 'string'
+    ? requestOrTier
+    : (requestOrTier?.urgencyTier || '');
+  const label = labelOverride
+    || (typeof requestOrTier === 'object' ? (requestOrTier?.urgencyTierLabel || '') : '')
+    || '';
+  if (!label) return null;
+  const urgent = isUrgentArrivalTier(tierId);
+  const en = String(locale || '').toLowerCase().startsWith('en');
+  return {
+    tierId,
+    label,
+    urgent,
+    prefix: urgent
+      ? (en ? 'Urgency' : 'Urgencia')
+      : (en ? 'Arrival' : 'Llegada')
+  };
 }
 
 function previewVisitPrice(tierId, valorBase, { localTime, timeZone, skipWorkFloor } = {}) {
@@ -5303,6 +5509,7 @@ function enrichRequestForClient(request, locale = 'es') {
     ...safeRequest,
     serviceName: localizeServiceName(request.serviceId, request.serviceName, locale),
     statusLabel: getRequestStatusLabel(request, locale),
+    arrivalDisplay: getArrivalDisplay(request, null, locale),
     clientTotals: clientTotals.completed ? clientTotals : null,
     providerInvoicePlan,
     visitRetentionFeeClp: getVisitRetentionFeeClp(request),
@@ -5391,12 +5598,14 @@ function submitClientReview(requestId, clientId, { rating, text }) {
   };
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
 
-  if (client) {
-    client.ziloPoints = (client.ziloPoints || 0) + 25;
+  let pointsAwarded = 0;
+  if (client && isPointsEnabled()) {
+    pointsAwarded = 25;
+    client.ziloPoints = (client.ziloPoints || 0) + pointsAwarded;
     repository.persist(() => repository.saveUser(client), `usuario ${client.id}`);
   }
 
-  return { success: true, review: request.clientReview };
+  return { success: true, review: request.clientReview, pointsAwarded };
 }
 
 function getTechStatusLabel(techStatus, locale = 'es') {
@@ -5430,6 +5639,7 @@ function enrichRequestForProvider(request, locale = 'es') {
       ? (stableRequestPhotoUrl(request.id, 'brand') || toServingUrl(safe.clientBrandPhotoUrl) || null)
       : null,
     statusLabel: getRequestStatusLabel(request, locale),
+    arrivalDisplay: getArrivalDisplay(request, null, locale),
     techStatusLabel: request.awaitingProviderReassign && !request.technicianId
       ? translate(locale, 'provider.request.reassigning')
       : (getTechStatusLabel(request.techStatus, locale) || getRequestStatusLabel(request, locale)),
@@ -6119,6 +6329,7 @@ async function reloadFromDatabase() {
   SERVICES = data.services;
   MODULES = data.modules;
   await ensureMissingModules();
+  await ensureClientPuntosDefaultOffOnce();
   PRICING_CONFIG = normalizePricing(data.pricing || DEFAULT_PRICING);
   const rawLabor = Number(data.pricing?.laborCommissionRate);
   const rawMerchantFee = parseFloat(data.pricing?.merchantCardFeePercent);
@@ -6175,6 +6386,7 @@ module.exports = {
   getModulesByAudience,
   getEnabledModules,
   isModuleEnabled,
+  isPointsEnabled,
   toggleModule,
   getCoverageCommunes,
   getCoverageRegions,
@@ -6194,6 +6406,8 @@ module.exports = {
   proposeActivityChange,
   respondActivityChange,
   getUrgencyTiersForClient,
+  isUrgentArrivalTier,
+  getArrivalDisplay,
   previewVisitPrice,
   getUserByEmail,
   authenticateUser,
@@ -6238,6 +6452,8 @@ module.exports = {
   getUserById,
   getOnlineProviders,
   createRequest,
+  getCheckoutDraftForClient,
+  canResumeCheckoutRequest,
   setPaymentPreference,
   setCardPaymentSession,
   setAdditionalPaymentSession,

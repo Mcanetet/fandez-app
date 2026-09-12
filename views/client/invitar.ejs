@@ -20,9 +20,11 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-2 zilo-page-enter-delay-2">
+    <div class="grid grid-cols-<%= (typeof mod === 'function' && mod('client_puntos')) ? '3' : '2' %> gap-2 zilo-page-enter-delay-2">
       <div class="zilo-stat"><strong><%= referral.referralsCount %></strong><span>Invitados</span></div>
+      <% if (typeof mod === 'function' && mod('client_puntos')) { %>
       <div class="zilo-stat"><strong class="text-zilo-accent"><%= referral.points %></strong><span>Puntos</span></div>
+      <% } %>
       <div class="zilo-stat"><strong class="text-zilo-success"><%= formatCLP(referral.creditsCLP) %></strong><span>Crédito</span></div>
     </div>
 

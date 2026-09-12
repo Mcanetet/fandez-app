@@ -72,8 +72,10 @@
             <% if (r.providerPayout != null) { %>
               <p class="text-[11px] text-zilo-success font-medium mb-2"><%= t('provider.js.your_payout') %>: <%= formatCLP(r.providerPayout) %></p>
             <% } %>
-            <% if (r.urgencyTierLabel) { %>
-              <p class="text-[10px] text-orange-600 mb-2"><%= t('provider.js.urgency') %>: <%= r.urgencyTierLabel %></p>
+            <% if (r.urgencyTierLabel) {
+              const rUrgent = r.urgencyTier === 'immediate' || r.urgencyTier === 'critical' || r.urgencyTier === 'medium';
+            %>
+              <p class="text-[10px] <%= rUrgent ? 'text-orange-600' : 'text-zilo-muted' %> mb-2"><%= rUrgent ? t('provider.js.urgency') : t('provider.js.arrival') %>: <%= r.urgencyTierLabel %></p>
             <% } %>
             <% const requestedAt = r.searchingAt || r.createdAt || r.paidAt; %>
             <% if (requestedAt) { %>

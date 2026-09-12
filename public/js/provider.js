@@ -176,8 +176,16 @@
       const whenHtml = when
         ? `<p class="text-[10px] text-zilo-muted mb-1">${t('provider.js.requested_at')}: ${escapeHtml(when)}</p>`
         : '';
-      const urgency = req.urgencyTierLabel
-        ? `<p class="text-[10px] text-orange-600 mb-1">${t('provider.js.urgency')}: ${escapeHtml(req.urgencyTierLabel)}</p>`
+      const arrival = req.arrivalDisplay
+        || (req.urgencyTierLabel ? {
+          label: req.urgencyTierLabel,
+          urgent: req.urgencyTier === 'immediate' || req.urgencyTier === 'critical' || req.urgencyTier === 'medium',
+          prefix: (req.urgencyTier === 'immediate' || req.urgencyTier === 'critical' || req.urgencyTier === 'medium')
+            ? t('provider.js.urgency')
+            : t('provider.js.arrival')
+        } : null);
+      const urgency = arrival
+        ? `<p class="text-[10px] ${arrival.urgent ? 'text-orange-600' : 'text-zilo-muted'} mb-1">${escapeHtml(arrival.prefix || (arrival.urgent ? t('provider.js.urgency') : t('provider.js.arrival')))}: ${escapeHtml(arrival.label)}</p>`
         : '';
       const gift = req.isGift
         ? `<span class="text-[10px] text-zilo-accent block mb-1">${t('provider.js.gift')} · ${escapeHtml(req.beneficiaryName || t('provider.js.beneficiary_fallback'))}</span>`
@@ -449,8 +457,18 @@
       afterNotesAnchor.parentNode.insertBefore(urgencyEl, afterNotesAnchor.nextSibling);
     }
     if (urgencyEl) {
-      if (data.request.urgencyTierLabel) {
-        urgencyEl.textContent = `${t('provider.js.urgency')}: ${data.request.urgencyTierLabel}`;
+      const arrival = data.request.arrivalDisplay
+        || (data.request.urgencyTierLabel ? {
+          label: data.request.urgencyTierLabel,
+          urgent: data.request.urgencyTier === 'immediate' || data.request.urgencyTier === 'critical',
+          prefix: (data.request.urgencyTier === 'immediate' || data.request.urgencyTier === 'critical')
+            ? t('provider.js.urgency')
+            : t('provider.js.arrival')
+        } : null);
+      if (arrival?.label) {
+        urgencyEl.textContent = `${arrival.prefix || (arrival.urgent ? t('provider.js.urgency') : t('provider.js.arrival'))}: ${arrival.label}`;
+        urgencyEl.classList.toggle('text-orange-600', Boolean(arrival.urgent));
+        urgencyEl.classList.toggle('text-zilo-muted', !arrival.urgent);
         urgencyEl.classList.remove('hidden');
       } else {
         urgencyEl.classList.add('hidden');

@@ -19,12 +19,13 @@
     <p class="text-zilo-accent font-semibold text-lg mb-6"><%= formatCLP(isAdditionalPayment ? additionalPayment.amountDue : (request.amountDue ?? request.estimatedVisit)) %></p>
 
     <% if (!isAdditionalPayment) { %>
-    <% if (request.discountCredits || request.discountPoints || request.discountPromo) { %>
+    <% const showPointsEarn = typeof mod === 'function' && mod('client_puntos'); %>
+    <% if (request.discountCredits || request.discountPoints || request.discountPromo || showPointsEarn) { %>
     <div class="w-full zilo-card-premium rounded-2xl p-4 mb-4 text-left text-xs space-y-1">
       <% if (request.discountPromo) { %><p class="text-zilo-success">Promoción: −<%= formatCLP(request.discountPromo) %></p><% } %>
       <% if (request.discountCredits) { %><p class="text-zilo-success">Crédito aplicado: −<%= formatCLP(request.discountCredits) %></p><% } %>
       <% if (request.discountPoints) { %><p class="text-zilo-success">Puntos canjeados: −<%= formatCLP(request.discountPoints) %></p><% } %>
-      <p class="text-zilo-muted pt-1">+50 Puntos Fandez por este servicio</p>
+      <% if (showPointsEarn) { %><p class="text-zilo-muted pt-1">+50 Puntos Fandez por este servicio</p><% } %>
     </div>
     <% } %>
 

@@ -8,7 +8,7 @@
 
   <header class="sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border px-5 py-4">
     <div class="flex items-center gap-3">
-      <a href="/cliente/servicio/<%= request.serviceId %>" class="w-10 h-10 rounded-full zilo-card-premium flex items-center justify-center">
+      <a href="/cliente/servicio/<%= request.serviceId %>?resume=<%= request.id %>" class="w-10 h-10 rounded-full zilo-card-premium flex items-center justify-center">
         <svg class="w-5 h-5 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       </a>
       <div>
@@ -45,8 +45,11 @@
           <% if (incList.length) { %> · Incluye: <%= incList.join(', ') %><% } %>
         </p>
       <% } %>
-      <% if (request.urgencyTierLabel) { %>
-        <p class="text-xs text-zilo-accent mt-2">Urgencia: <strong><%= request.urgencyTierLabel %></strong></p>
+      <% if (request.urgencyTierLabel) {
+        const arrival = (typeof summary !== 'undefined' && summary.arrivalDisplay)
+          || { urgent: request.urgencyTier === 'immediate' || request.urgencyTier === 'critical', prefix: (request.urgencyTier === 'immediate' || request.urgencyTier === 'critical') ? 'Urgencia' : 'Llegada', label: request.urgencyTierLabel };
+      %>
+        <p class="text-xs <%= arrival.urgent ? 'text-zilo-accent' : 'text-zilo-muted' %> mt-2"><%= arrival.prefix %>: <strong><%= arrival.label || request.urgencyTierLabel %></strong></p>
       <% } %>
       <% if (request.isGift) { %>
         <p class="text-xs text-zilo-accent mt-2">Regalo para <strong><%= request.beneficiaryName %></strong></p>
@@ -135,7 +138,7 @@
     <section class="zilo-card-premium rounded-2xl p-5 space-y-4">
       <h2 class="zilo-label">Beneficios Fandez</h2>
 
-      <% if (mod('client_puntos') && referral.creditsCLP > 0) { %>
+      <% if (referral.creditsCLP > 0) { %>
       <label class="flex items-center justify-between gap-3 cursor-pointer">
         <div>
           <strong class="text-sm block">Usar crédito</strong>
@@ -146,7 +149,7 @@
       <% } %>
 
       <% if (mod('client_puntos') && referral.points > 0) { %>
-      <label class="flex items-center justify-between gap-3 cursor-pointer pt-3 border-t border-gray-200">
+      <label class="flex items-center justify-between gap-3 cursor-pointer <%= referral.creditsCLP > 0 ? 'pt-3 border-t border-gray-200' : '' %>">
         <div>
           <strong class="text-sm block">Canjear Puntos Fandez</strong>
           <span class="text-xs text-zilo-muted"><%= referral.points %> pts = <%= formatCLP(referral.points * pointsValue) %></span>
@@ -155,7 +158,7 @@
       </label>
       <% } %>
 
-      <div class="<%= (mod('client_puntos') && (referral.creditsCLP > 0 || referral.points > 0)) ? 'pt-3 border-t border-gray-200' : '' %>">
+      <div class="<%= (referral.creditsCLP > 0 || (mod('client_puntos') && referral.points > 0)) ? 'pt-3 border-t border-gray-200' : '' %>">
         <label class="zilo-label block mb-2">Código promocional</label>
         <div class="flex gap-2">
           <input type="text" id="promoCode" placeholder="Ingresa tu código" maxlength="24" autocomplete="off"

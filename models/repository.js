@@ -30,7 +30,7 @@ const SEED_MODULES = [
   { id: 'client_regalo', audience: 'client', name: 'Regalar servicio', description: 'Opción de regalar una visita a otra persona', sortOrder: 4, enabled: true },
   { id: 'client_guardian', audience: 'client', name: 'Modo Guardián', description: 'Enlace de seguimiento para familiares sin cuenta', sortOrder: 5, enabled: true },
   { id: 'client_foto', audience: 'client', name: 'Foto del requerimiento', description: 'Subir foto opcional al solicitar servicio', sortOrder: 6, enabled: true },
-  { id: 'client_puntos', audience: 'client', name: 'Puntos y créditos', description: 'Canjear puntos y créditos en checkout', sortOrder: 7, enabled: true },
+  { id: 'client_puntos', audience: 'client', name: 'Puntos Fandez', description: 'Acumular y canjear puntos Fandez (perfil, checkout y recompensas). Los créditos de referidos no dependen de este módulo.', sortOrder: 7, enabled: false },
   { id: 'client_promos', audience: 'client', name: 'Promociones', description: 'Banners de promos en el inicio del cliente', sortOrder: 8, enabled: true },
   { id: 'client_historial', audience: 'client', name: 'Historial', description: 'Ver servicios anteriores del cliente', sortOrder: 9, enabled: true },
   { id: 'client_whatsapp', audience: 'client', name: 'Concierge WhatsApp (legado)', description: 'Solo si Aland IA está OFF: botón WhatsApp clásico', sortOrder: 10, enabled: false },

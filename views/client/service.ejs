@@ -10,6 +10,7 @@
   data-from-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
   data-pricing-unit="<%= perM2 ? 'm2' : 'job' %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
+  data-resume-id="<%= typeof checkoutDraft !== 'undefined' && checkoutDraft ? checkoutDraft.id : '' %>"
   data-whatsapp="<%= company.whatsapp %>"
   data-brand-optional="<%= brandOptional ? '1' : '0' %>"
   data-user-name="<%= user && user.name ? user.name : 'Cliente' %>">
@@ -24,6 +25,18 @@
   <main class="flex-1 px-5 py-5 pb-28">
     <%- include('../partials/checkout-progress', { checkoutStep: typeof tracking !== 'undefined' && tracking ? 3 : 1 }) %>
     <%- include('../partials/trust-strip', { trustStats: typeof trustStats !== 'undefined' ? trustStats : {} }) %>
+
+    <% if (typeof checkoutDraft !== 'undefined' && checkoutDraft && !(typeof tracking !== 'undefined' && tracking)) { %>
+    <div id="resumeDraftBanner" class="mb-4 p-4 rounded-2xl border border-zilo-accent/25 bg-zilo-accent/8">
+      <p class="text-sm font-semibold text-zilo-ink mb-1"><%= t('client.service.resume_title') %></p>
+      <p class="text-xs text-zilo-muted leading-relaxed mb-3"><%= t('client.service.resume_body') %></p>
+      <div class="flex gap-2">
+        <a href="/pagos/checkout?ref=<%= checkoutDraft.id %>" class="zilo-btn-primary !py-2.5 !text-sm flex-1 text-center"><%= t('client.service.resume_pay') %></a>
+        <button type="button" id="btnEditDraft" class="zilo-btn-ghost !py-2.5 !text-sm shrink-0"><%= t('client.service.resume_edit') %></button>
+      </div>
+    </div>
+    <script type="application/json" id="checkoutDraftJson"><%- JSON.stringify(checkoutDraft).replace(/</g, '\\u003c') %></script>
+    <% } %>
 
     <%- include('../partials/service-overview-card', {
       overview: typeof serviceOverview !== 'undefined' ? serviceOverview : null,
