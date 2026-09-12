@@ -45,22 +45,35 @@
 
   const WORK_STATUSES = ['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'];
 
-  /** Preferir dirección escrita del cliente; coords solo como respaldo (pueden estar desfasadas). */
+  /** Preferir dirección escrita del cliente + comuna; coords solo como respaldo (Nominatim suele fallar el número). */
   function mapsDirectionsUrl(card) {
+    if (!card) return null;
     let address = '';
+    let commune = '';
     try {
       address = card.dataset.address ? decodeURIComponent(card.dataset.address) : '';
     } catch (_) {
       address = card.dataset.address || '';
     }
+    try {
+      commune = card.dataset.commune ? decodeURIComponent(card.dataset.commune) : '';
+    } catch (_) {
+      commune = card.dataset.commune || '';
+    }
     address = String(address || '').trim();
+    commune = String(commune || '').trim();
     if (address) {
-      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
+      let dest = address;
+      if (commune && !new RegExp(commune.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(dest)) {
+        dest = `${dest}, ${commune}`;
+      }
+      if (!/\bchile\b/i.test(dest)) dest = `${dest}, Chile`;
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=driving`;
     }
     const lat = card.dataset.lat;
     const lng = card.dataset.lng;
     if (lat && lng) {
-      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}`;
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving`;
     }
     return null;
   }

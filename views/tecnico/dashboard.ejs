@@ -70,6 +70,7 @@
                data-tech-status="<%= j.techStatus %>"
                data-confirm-status="<%= j.serviceConfirmStatus || '' %>"
                data-address="<%= encodeURIComponent(j.address || '') %>"
+               data-commune="<%= encodeURIComponent(j.communeName || '') %>"
                data-assigned-at="<%= j.technicianAssignedAt || '' %>"
                data-accept-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>"
                <% if (j.coords) { %>data-lat="<%= j.coords.lat %>" data-lng="<%= j.coords.lng %>"<% } %>>

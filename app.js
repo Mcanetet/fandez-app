@@ -319,6 +319,10 @@ app.use(async (req, res, next) => {
   res.locals.appModeStatus = appMode.getPublicStatus();
   res.locals.requestTimeouts = getRequestTimeouts();
   res.locals.launchNoticeActive = isPreOperations();
+  res.locals.googleMapsDirectionsUrl = (address, opts) => {
+    const { buildGoogleMapsDirectionsUrl } = require('./lib/geocode');
+    return buildGoogleMapsDirectionsUrl(address, opts);
+  };
 
   try {
     const pathName = req.path || '';

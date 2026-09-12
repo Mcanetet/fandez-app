@@ -112,8 +112,9 @@
           <li>· Cualquier sobrecosto: aprobación explícita antes de ejecutar.</li>
         </ul>
         <div class="flex flex-wrap gap-2 pt-1">
-          <% if (request.coords && request.coords.lat != null) { %>
-            <a href="https://www.google.com/maps/dir/?api=1&destination=<%= request.coords.lat %>,<%= request.coords.lng %>"
+          <% const mapsUrlObserver = googleMapsDirectionsUrl(request.address, { communeName: request.communeName, lat: request.coords && request.coords.lat, lng: request.coords && request.coords.lng }); %>
+          <% if (mapsUrlObserver) { %>
+            <a href="<%= mapsUrlObserver %>"
               target="_blank" rel="noopener"
               class="inline-flex zilo-btn-ghost !py-2 !px-3 !text-xs">Abrir ruta en Maps</a>
           <% } %>
@@ -133,10 +134,13 @@
           <li>· Si hay duda de precio, pregunta antes de actuar — el cliente siente control.</li>
           <li>· Cierra con “¿Algo más que revise?” y pide la calificación en la app.</li>
         </ul>
-        <% if (request.coords && request.coords.lat != null && request.techStatus === 'aceptado') { %>
-          <a href="https://www.google.com/maps/dir/?api=1&destination=<%= request.coords.lat %>,<%= request.coords.lng %>"
-            target="_blank" rel="noopener"
-            class="inline-flex mt-1 zilo-btn-ghost !py-2 !px-3 !text-xs">Abrir ruta en Google Maps</a>
+        <% if (request.techStatus === 'aceptado') { %>
+          <% const mapsUrlTips = googleMapsDirectionsUrl(request.address, { communeName: request.communeName, lat: request.coords && request.coords.lat, lng: request.coords && request.coords.lng }); %>
+          <% if (mapsUrlTips) { %>
+            <a href="<%= mapsUrlTips %>"
+              target="_blank" rel="noopener"
+              class="inline-flex mt-1 zilo-btn-ghost !py-2 !px-3 !text-xs">Abrir ruta en Google Maps</a>
+          <% } %>
         <% } %>
       </section>
     <% } %>
@@ -219,14 +223,13 @@
       <p class="zilo-label mb-1">Trayecto</p>
       <h2 class="text-sm font-semibold mb-2"><%= request.techStatus === 'aceptado' ? '¿Listo para ir?' : '¿Ya estás en la puerta?' %></h2>
       <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'Al marcar “Salí hacia el cliente”, él verá que vas en camino y tu ubicación en vivo.' : 'Confirma solo cuando estés en el domicilio.' %></p>
-      <% if (request.address && request.techStatus === 'aceptado') { %>
-        <a href="https://www.google.com/maps/dir/?api=1&destination=<%= encodeURIComponent(request.address) %>"
-          target="_blank" rel="noopener"
-          class="block w-full mb-2 py-3 rounded-xl zilo-btn-ghost text-center !text-sm">Abrir mapa · <%= request.address %></a>
-      <% } else if (request.coords && request.coords.lat != null && request.techStatus === 'aceptado') { %>
-        <a href="https://www.google.com/maps/dir/?api=1&destination=<%= request.coords.lat %>,<%= request.coords.lng %>"
-          target="_blank" rel="noopener"
-          class="block w-full mb-2 py-3 rounded-xl zilo-btn-ghost text-center !text-sm">Abrir en Google Maps</a>
+      <% if (request.techStatus === 'aceptado') { %>
+        <% const mapsUrlTrayecto = googleMapsDirectionsUrl(request.address, { communeName: request.communeName, lat: request.coords && request.coords.lat, lng: request.coords && request.coords.lng }); %>
+        <% if (mapsUrlTrayecto) { %>
+          <a href="<%= mapsUrlTrayecto %>"
+            target="_blank" rel="noopener"
+            class="block w-full mb-2 py-3 rounded-xl zilo-btn-ghost text-center !text-sm">Abrir mapa · <%= request.address %></a>
+        <% } %>
       <% } %>
       <button type="button" id="btnTrayecto" data-next-status="<%= request.techStatus === 'aceptado' ? 'en_camino' : 'en_sitio' %>"
         class="w-full py-4 rounded-xl zilo-btn-primary text-base"><%= request.techStatus === 'aceptado' ? 'Salí hacia el cliente' : 'Ya estoy en la puerta' %></button>
