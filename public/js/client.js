@@ -548,6 +548,7 @@
     stopSearchExperience();
     hideScheduledPanel();
     hideNoProviderChoice();
+    fillSearchOrderSummary({ id: requestId });
     const title = document.getElementById('loaderText');
     const sub = document.getElementById('loaderSub');
     if (title) title.textContent = t('client.service.payment_confirming_title') || 'Confirmando pago…';
@@ -712,9 +713,41 @@
     if (Number.isFinite(parsed)) searchStartedAt = parsed;
   }
 
+  function fillSearchOrderSummary(request) {
+    const serviceEl = document.getElementById('searchOrderService');
+    const metaEl = document.getElementById('searchOrderMeta');
+    const addressEl = document.getElementById('searchOrderAddress');
+    const serviceName = request?.serviceName
+      || request?.activityName
+      || page?.dataset?.serviceName
+      || '';
+    if (serviceEl && serviceName) serviceEl.textContent = serviceName;
+    if (metaEl) {
+      const amount = Number(request?.amountDue || request?.visitTotal || request?.basePrice || 0);
+      const fmt = (typeof window.formatCLP === 'function')
+        ? window.formatCLP
+        : (n) => new Intl.NumberFormat(document.documentElement.lang === 'en' ? 'en-US' : 'es-CL', {
+          style: 'currency',
+          currency: 'CLP',
+          maximumFractionDigits: 0
+        }).format(n);
+      if (amount > 0) {
+        metaEl.textContent = t('client.service.search_order_paid_amount', { amount: fmt(amount) });
+      } else {
+        metaEl.textContent = t('client.service.search_order_paid');
+      }
+    }
+    if (addressEl) {
+      const address = String(request?.address || document.getElementById('address')?.value || '').trim();
+      addressEl.textContent = address || '';
+      addressEl.classList.toggle('hidden', !address);
+    }
+  }
+
   function startSearchExperience(request) {
     stopSearchExperience();
     searchTimeoutTriggered = false;
+    fillSearchOrderSummary(request);
     syncSearchStartFromRequest(request);
     if (!searchStartedAt) searchStartedAt = Date.now();
     searchTipIndex = 0;

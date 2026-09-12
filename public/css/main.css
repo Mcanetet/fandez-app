@@ -1366,7 +1366,10 @@ body.session-role--tecnico::before {
 
 /* Overlay búsqueda de técnico */
 .search-overlay {
-  background: #FFFFFF;
+  background:
+    radial-gradient(720px 360px at 12% -10%, rgba(196, 92, 20, 0.14), transparent 55%),
+    radial-gradient(640px 320px at 100% 8%, rgba(47, 107, 79, 0.1), transparent 50%),
+    linear-gradient(180deg, #FFFCF8 0%, #F7F3EE 48%, #EFE8DF 100%);
   min-height: 100vh;
   min-height: 100dvh;
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -1374,6 +1377,57 @@ body.session-role--tecnico::before {
 .search-overlay-orb,
 .search-overlay-grid {
   display: none;
+}
+
+.search-order-card {
+  padding: 0.85rem 0.95rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(224, 215, 204, 0.95);
+  box-shadow: 0 8px 24px rgba(26, 24, 20, 0.05);
+}
+.search-order-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.search-order-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1e4a36;
+  background: rgba(47, 107, 79, 0.12);
+  border: 1px solid rgba(47, 107, 79, 0.28);
+}
+.search-trust-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
+  text-align: left;
+}
+.search-trust-item {
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(224, 215, 204, 0.9);
+}
+.search-trust-item strong {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--zilo-text);
+  margin-bottom: 0.15rem;
+}
+.search-trust-item span {
+  display: block;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--zilo-muted);
 }
 
 .search-hero-card {
@@ -1801,7 +1855,7 @@ body.session-role--tecnico::before {
   color: var(--zilo-muted);
 }
 
-/* Radar de búsqueda + desatascador girando */
+/* Radar de búsqueda + isotipo Fandez (marca en movimiento calmo) */
 .zilo-radar-wrap {
   position: relative;
   width: 4.75rem;
@@ -1829,6 +1883,30 @@ body.session-role--tecnico::before {
   justify-content: center;
   z-index: 1;
 }
+/* Recomendado UX: giro lento + respiración (no spin rápido tipo “cargando eterno”) */
+.search-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.95rem;
+  background: #fff;
+  border: 1px solid rgba(196, 92, 20, 0.22);
+  box-shadow: 0 6px 18px rgba(196, 92, 20, 0.14);
+  animation: fandezBrandSearch 10s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+.search-brand-mark .fandez-logo-mark {
+  display: block;
+}
+.search-radar-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  animation: searchPinPulse 2.2s ease-in-out infinite;
+}
+/* Legacy: si queda HTML viejo en caché */
 .zilo-search-plunger {
   display: inline-flex;
   align-items: center;
@@ -1836,8 +1914,8 @@ body.session-role--tecnico::before {
   width: 2.75rem;
   height: 2.75rem;
   filter: drop-shadow(0 3px 6px rgba(23, 26, 31, 0.18));
-  animation: fandezPlungerSpin 1.15s linear infinite;
-  transform-origin: 50% 58%;
+  animation: fandezBrandSearch 10s ease-in-out infinite;
+  transform-origin: 50% 50%;
 }
 .zilo-search-plunger svg {
   display: block;
@@ -1849,12 +1927,19 @@ body.session-role--tecnico::before {
   70% { opacity: 0.22; }
   100% { transform: scale(1.5); opacity: 0; }
 }
+@keyframes fandezBrandSearch {
+  0% { transform: rotate(0deg) scale(1); }
+  40% { transform: rotate(145deg) scale(1.04); }
+  55% { transform: rotate(200deg) scale(1.02); }
+  100% { transform: rotate(360deg) scale(1); }
+}
 @keyframes fandezPlungerSpin {
   0% { transform: rotate(0deg) scale(1); }
-  25% { transform: rotate(90deg) scale(1.08); }
-  50% { transform: rotate(180deg) scale(1); }
-  75% { transform: rotate(270deg) scale(1.08); }
   100% { transform: rotate(360deg) scale(1); }
+}
+@keyframes searchPinPulse {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
 
 /* Compat: por si queda algún punto antiguo */
@@ -3039,8 +3124,13 @@ body.session-role--tecnico::before {
     animation: none !important;
     box-shadow: 0 0 0 6px rgba(196, 92, 20, 0.18);
   }
-  .zilo-search-plunger {
+  .zilo-search-plunger,
+  .search-brand-mark,
+  .search-radar-pin {
     animation: none !important;
+  }
+  .search-brand-mark {
+    box-shadow: 0 4px 12px rgba(196, 92, 20, 0.12);
   }
   .search-services-track {
     animation: none !important;

@@ -332,15 +332,31 @@
       </div>
     </div>
 
-    <div id="loaderOverlay" class="hidden fixed inset-0 z-[200] search-overlay flex items-center justify-center overflow-y-auto py-6">
+    <div id="loaderOverlay" class="hidden fixed inset-0 z-[200] search-overlay flex items-start sm:items-center justify-center overflow-y-auto py-5 sm:py-6">
       <div class="search-overlay-orb search-overlay-orb-a" aria-hidden="true"></div>
       <div class="search-overlay-orb search-overlay-orb-b" aria-hidden="true"></div>
       <div class="search-overlay-grid" aria-hidden="true"></div>
-      <div class="relative text-center px-5 max-w-sm w-full" id="searchExperience" data-timeout-ms="<%= (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) * 60 * 1000 %>">
+      <div class="relative text-center px-4 max-w-sm w-full" id="searchExperience" data-timeout-ms="<%= (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) * 60 * 1000 %>">
         <% const carouselServices = (typeof catalogServices !== 'undefined' && catalogServices.length)
           ? catalogServices
           : [service]; %>
-        <div class="search-services-marquee mb-5" aria-hidden="true">
+
+        <div class="search-order-card text-left mb-4" id="searchOrderCard">
+          <div class="flex items-start gap-3">
+            <div class="search-order-icon shrink-0">
+              <%- include('../partials/service-icon', { icon: service.icon || service.id, size: 'md' }) %>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-zilo-muted mb-0.5"><%= t('client.service.search_order_label') %></p>
+              <strong id="searchOrderService" class="text-sm block text-zilo-text truncate"><%= service.name %></strong>
+              <p id="searchOrderMeta" class="text-[11px] text-zilo-muted mt-0.5 truncate"><%= t('client.service.search_order_paid') %></p>
+              <p id="searchOrderAddress" class="text-[11px] text-zilo-text mt-1.5 leading-snug line-clamp-2"></p>
+            </div>
+            <span class="search-order-badge shrink-0"><%= t('client.service.search_order_badge') %></span>
+          </div>
+        </div>
+
+        <div class="search-services-marquee mb-4" aria-hidden="true">
           <div class="search-services-track">
             <% [0, 1].forEach(function () { %>
               <% carouselServices.forEach(function (s) { %>
@@ -353,23 +369,15 @@
           </div>
         </div>
 
-        <div class="search-hero-card mb-5">
-          <div class="relative w-36 h-36 mx-auto flex items-center justify-center">
+        <div class="search-hero-card mb-4">
+          <div class="relative w-32 h-32 mx-auto flex items-center justify-center">
             <div class="search-hero-core w-full h-full rounded-full flex flex-col items-center justify-center">
               <div class="zilo-radar-wrap" aria-hidden="true">
                 <div class="zilo-radar"></div>
                 <div class="zilo-radar"></div>
                 <div class="zilo-radar-core">
-                  <span class="zilo-search-plunger" title="Buscando técnico">
-                    <svg viewBox="0 0 64 64" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <rect x="28.5" y="4" width="7" height="22" rx="3.5" fill="#8B5A2B"/>
-                      <rect x="29.5" y="5" width="2" height="18" rx="1" fill="#C4A484" opacity="0.55"/>
-                      <path d="M16 30c0-6.5 7.2-10 16-10s16 3.5 16 10v2.5c0 1.2-.8 2.2-1.9 2.5L44 38H20l-2.1-3c-1.1-.3-1.9-1.3-1.9-2.5V30z" fill="#E11D48"/>
-                      <path d="M18 35.5C18 42 24.5 48 32 48s14-6 14-12.5" stroke="#BE123C" stroke-width="5" stroke-linecap="round" fill="none"/>
-                      <ellipse cx="32" cy="48.5" rx="18" ry="7.5" fill="#9F1239"/>
-                      <ellipse cx="32" cy="47" rx="12" ry="3.2" fill="#F43F5E" opacity="0.45"/>
-                      <path d="M22 33c2.5-3 7-4.5 12-4" stroke="#FDA4AF" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
-                    </svg>
+                  <span class="search-brand-mark" title="Fandez">
+                    <%- include('../partials/logo', { className: 'w-9 h-9', logoVariant: 'amber', logoId: 'searchMark' }) %>
                   </span>
                 </div>
               </div>
@@ -379,12 +387,27 @@
           </div>
         </div>
 
-        <p id="searchPhaseLabel" class="search-phase-pill mb-3"><%= t('client.service.search_phase_near') %></p>
-        <h3 id="loaderText" class="zilo-display text-[1.35rem] mb-2 leading-snug tracking-tight"><%= t('client.service.searching') %></h3>
+        <p id="searchPhaseLabel" class="search-phase-pill mb-2.5"><%= t('client.service.search_phase_near') %></p>
+        <h3 id="loaderText" class="zilo-display text-[1.3rem] mb-1.5 leading-snug tracking-tight"><%= t('client.service.searching') %></h3>
         <p id="loaderSub" class="text-sm text-zilo-muted mb-2 leading-relaxed px-1"><%= t('client.service.searching_sub') %></p>
-        <p id="searchViewersHint" class="text-[11px] text-zilo-accent font-medium mb-5"><%= t('client.js.search_viewers', { count: '3' }) %></p>
+        <p id="searchViewersHint" class="text-[11px] text-zilo-accent font-medium mb-4"><%= t('client.js.search_viewers', { count: '3' }) %></p>
 
-        <div class="mb-5 px-1">
+        <div class="search-trust-grid mb-4" aria-label="<%= t('client.service.search_trust_label') %>">
+          <div class="search-trust-item">
+            <strong><%= t('client.service.search_trust_1_title') %></strong>
+            <span><%= t('client.service.search_trust_1_body') %></span>
+          </div>
+          <div class="search-trust-item">
+            <strong><%= t('client.service.search_trust_2_title') %></strong>
+            <span><%= t('client.service.search_trust_2_body') %></span>
+          </div>
+          <div class="search-trust-item">
+            <strong><%= t('client.service.search_trust_3_title') %></strong>
+            <span><%= t('client.service.search_trust_3_body') %></span>
+          </div>
+        </div>
+
+        <div class="mb-4 px-1">
           <div class="flex justify-between text-[10px] text-zilo-muted mb-1.5">
             <span><%= t('client.service.search_progress_start') %></span>
             <span id="searchProgressLabel" class="font-medium text-zilo-accent">0 / 15 min</span>
@@ -394,7 +417,7 @@
           </div>
         </div>
 
-        <div class="search-timeline mb-5 text-left" id="searchSteps">
+        <div class="search-timeline mb-4 text-left" id="searchSteps">
           <div id="step1" class="search-timeline-item is-active">
             <span class="search-timeline-marker" aria-hidden="true"></span>
             <span class="search-timeline-copy"><%= t('client.service.loader_locating') %></span>
@@ -413,13 +436,13 @@
           </div>
         </div>
 
-        <div id="searchTipCard" class="search-tip-card text-left mb-5 min-h-[3.25rem]">
+        <div id="searchTipCard" class="search-tip-card text-left mb-4 min-h-[3.25rem]">
           <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-zilo-muted mb-1"><%= t('client.service.search_tip_label') %></p>
           <p id="searchTipText" class="text-xs text-zilo-text leading-relaxed"><%= t('client.service.search_tip_1') %></p>
         </div>
 
-        <p class="text-[11px] text-zilo-muted mb-4 px-2"><%= t('client.service.searching_hint') %></p>
-        <div class="flex flex-col gap-2.5 pb-2">
+        <p class="text-[11px] text-zilo-muted mb-3 px-2"><%= t('client.service.searching_hint') %></p>
+        <div class="flex flex-col gap-2.5 pb-3">
           <button type="button" id="btnCancelSearch" class="search-cancel-btn">
             <%= t('client.service.cancel_search') %>
           </button>
