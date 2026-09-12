@@ -327,11 +327,7 @@ async function createRequest({
   }
 
   notes = (notes || '').trim();
-  if (!notes) return Promise.reject(new Error('Describe el problema para que el técnico sepa qué esperar.'));
   const gardenJob = isPerM2Service(serviceId);
-  if (gardenJob && notes.length < 12) {
-    return Promise.reject(new Error('Describe el jardín o el trabajo (césped, poda, maleza, riego, paisajismo, etc.).'));
-  }
   if (gardenJob && !clientPhotoUrl) {
     return Promise.reject(new Error('Sube al menos una foto del área a trabajar.'));
   }

@@ -1,7 +1,7 @@
 <% if (typeof onboardingSteps !== 'undefined' && onboardingSteps.length) { %>
 <script id="ziloOnboardingConfig" type="application/json"><%- JSON.stringify({
-  autoStart: typeof showOnboarding !== 'undefined' && showOnboarding,
-  completeUrl: onboardingCompleteUrl,
+  autoStart: typeof showOnboarding !== 'undefined' && Boolean(showOnboarding),
+  completeUrl: typeof onboardingCompleteUrl !== 'undefined' ? onboardingCompleteUrl : null,
   steps: onboardingSteps
 }) %></script>
 <script src="/js/onboarding.js"></script>

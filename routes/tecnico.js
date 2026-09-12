@@ -58,9 +58,12 @@ router.post('/volver-socio', requireRole('tecnico'), (req, res) => {
 
 router.get('/', requireRole('tecnico'), (req, res) => {
   const tecnico = store.getUserById(req.session.user.id);
-  const socio = tecnico?.parentId ? store.getUserById(tecnico.parentId) : null;
+  if (!tecnico || tecnico.role !== 'tecnico') {
+    return res.redirect('/login');
+  }
+  const socio = tecnico.parentId ? store.getUserById(tecnico.parentId) : null;
   const jobs = store.getRequestsByTechnician(tecnico.id)
-    .filter(r => r.techStatus !== 'completado' && r.status !== 'completed')
+    .filter(r => r && r.techStatus !== 'completado' && r.status !== 'completed')
     .map(serializeJob);
 
   res.render('tecnico/dashboard', {
@@ -73,8 +76,16 @@ router.get('/', requireRole('tecnico'), (req, res) => {
     techLabels: getTechLabels(req.t),
     services: store.SERVICES,
     formatCLP: store.formatCLP,
-    onboardingSteps: getTechnicianOnboardingSteps()
+    showOnboarding: store.needsOnboarding(tecnico),
+    onboardingSteps: getTechnicianOnboardingSteps(),
+    onboardingCompleteUrl: '/tecnico/onboarding/complete'
   });
+});
+router.post('/onboarding/complete', requireRole('tecnico'), (req, res) => {
+  const user = store.completeOnboarding(req.session.user.id);
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+  store.logSecurityEvent('onboarding_complete', req.body?.skipped ? 'skipped' : 'finished', req);
+  res.json({ success: true });
 });
 
 router.get('/trabajo/:requestId', requireRole('tecnico'), (req, res) => {
