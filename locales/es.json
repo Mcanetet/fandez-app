@@ -671,7 +671,8 @@
   "error.lost.tip.1": "Electricistas con seguimiento en tiempo real",
   "error.lost.tip.2": "Pasaporte Hogar — historial digital de tu propiedad",
   "error.lost.tip.3": "Modo Guardián — tu familia sigue el servicio sin app",
-  "error.lost.cta_whatsapp": "Hablar con Fandez",
+  "error.lost.cta_whatsapp": "Hablar con Sofía",
+  "error.lost.cta_sofia": "Hablar con Sofía",
   "error.lost.cta_signup": "Crear cuenta gratis",
   "error.lost.whatsapp_msg": "Hola Fandez, me equivoqué en la web y necesito ayuda con un servicio en mi hogar.",
 
@@ -687,9 +688,10 @@
   "error.system.tip.0": "Tu solicitud no se pierde — queda en cola",
   "error.system.tip.1": "Socios verificados · listos cerca de ti",
   "error.system.tip.2": "Seguimiento en vivo cuando el técnico acepta",
-  "error.system.tip.3": "Si demora, escríbenos: respondemos de verdad",
+  "error.system.tip.3": "Si demora, habla con Sofía en el chat de la app",
   "error.system.cta_retry": "Reintentar ahora",
-  "error.system.cta_whatsapp": "Hablar con Fandez",
+  "error.system.cta_whatsapp": "Hablar con Sofía",
+  "error.system.cta_sofia": "Hablar con Sofía",
   "error.system.whatsapp_msg": "Hola Fandez, la app me dio un error y necesito ayuda para continuar con mi servicio.",
   "error.system.autoretry": "Reintentando solos en {seconds}s…",
 

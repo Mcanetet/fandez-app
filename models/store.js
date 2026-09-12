@@ -1632,12 +1632,28 @@ function getClientAttentionItems(clientId, now = Date.now()) {
 
     const change = request.siteReport?.activityChange;
     if (change && change.status === 'pending') {
+      const prev = change.previousTotal || 0;
+      const next = change.proposedTotal || 0;
       items.push({
         requestId: request.id,
         type: 'activity_change',
         urgency: 'high',
-        title: 'Aprueba el cambio de servicio',
-        body: `El técnico propone: ${change.toActivityName}.`,
+        title: 'Cambio de precio — debes aprobar',
+        body: `Nuevo total ${formatCLP(next)}${prev ? ` (antes ${formatCLP(prev)})` : ''}. Entra y pon OK.`,
+        url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
+      });
+      continue;
+    }
+
+    const budgetPending = request.siteReport?.budgetStatus === 'pending'
+      && request.techStatus === 'presupuesto_pendiente';
+    if (budgetPending) {
+      items.push({
+        requestId: request.id,
+        type: 'budget_pending',
+        urgency: 'high',
+        title: 'Cambio de precio — debes aprobar',
+        body: `Presupuesto de ${formatCLP(request.siteReport.budgetAmount || 0)}. Entra y pon OK.`,
         url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
       });
       continue;
@@ -4651,6 +4667,10 @@ function updateTechStatus(requestId, technicianId, techStatus, { lat, lng } = {}
   if (techStatus === 'aceptado' && !(request.etaMinutesMin && request.etaMinutesMax)) {
     return { error: 'Activa el GPS para calcular tu llegada en auto, o declara una ETA antes de aceptar.' };
   }
+  // Código de seguridad: se genera al salir (en camino) para que el cliente lo tenga listo
+  if (techStatus === 'en_camino' || techStatus === 'en_sitio') {
+    ensureArrivalCode(request);
+  }
   request.techStatus = techStatus;
   const map = {
     aceptado: 'assigned',
@@ -4671,6 +4691,14 @@ function updateTechStatus(requestId, technicianId, techStatus, { lat, lng } = {}
       assignPayoutSchedule(request);
       addLogbookEntryFromRequest(request);
     }
+  }
+  if (techStatus === 'en_sitio') {
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `${request.technicianName || 'El técnico'} llegó al domicilio.`
+    });
   }
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   if (techStatus === 'en_camino') afterEvent((ev) => ev.onTechnicianEnRoute(request));
@@ -4740,11 +4768,61 @@ function ensureSiteReport(request) {
   return request.siteReport;
 }
 
-function recordSiteArrival(requestId, technicianId, { diagnosis, photoStart }) {
+/** Código de 6 dígitos que el cliente muestra y el técnico ingresa antes de la revisión. */
+function ensureArrivalCode(request) {
+  if (!request) return null;
+  if (request.arrivalCode) return String(request.arrivalCode);
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  request.arrivalCode = code;
+  request.arrivalCodeCreatedAt = new Date().toISOString();
+  request.arrivalCodeAttempts = 0;
+  request.arrivalCodeVerifiedAt = null;
+  return code;
+}
+
+function verifyArrivalCode(requestId, technicianId, rawCode) {
+  const request = getRequestForTechnician(requestId, technicianId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (!['en_sitio', 'en_camino'].includes(request.techStatus)) {
+    return { error: 'El código se valida cuando estás en el domicilio.' };
+  }
+  if (request.arrivalCodeVerifiedAt) {
+    return { success: true, already: true, request };
+  }
+  ensureArrivalCode(request);
+  const code = String(rawCode || '').replace(/\D/g, '').slice(0, 6);
+  if (code.length !== 6) {
+    return { error: 'Ingresa el código de 6 dígitos que te muestra el cliente.' };
+  }
+  request.arrivalCodeAttempts = (request.arrivalCodeAttempts || 0) + 1;
+  if (request.arrivalCodeAttempts > 8) {
+    repository.persist(() => repository.saveRequest(request), `codigo llegada intentos ${requestId}`);
+    return { error: 'Demasiados intentos fallidos. Contacta a soporte Fandez.' };
+  }
+  if (code !== String(request.arrivalCode)) {
+    repository.persist(() => repository.saveRequest(request), `codigo llegada fail ${requestId}`);
+    return { error: 'Código incorrecto. Pídeselo al cliente en la app.' };
+  }
+  request.arrivalCodeVerifiedAt = new Date().toISOString();
+  appendChatMessage(request, {
+    senderType: 'system',
+    senderId: null,
+    senderName: 'Fandez',
+    body: 'Código de seguridad verificado. El técnico puede iniciar la revisión.'
+  });
+  repository.persist(() => repository.saveRequest(request), `codigo llegada ok ${requestId}`);
+  return { success: true, request };
+}
+
+function recordSiteArrival(requestId, technicianId, { diagnosis, photoStart, arrivalCode }) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (request.techStatus !== 'en_sitio') {
     return { error: 'Primero confirma que llegaste al domicilio.' };
+  }
+  if (!request.arrivalCodeVerifiedAt) {
+    const verified = verifyArrivalCode(requestId, technicianId, arrivalCode);
+    if (verified.error) return verified;
   }
   diagnosis = (diagnosis || '').trim();
   if (!diagnosis) return { error: 'Describe lo que observas en el lugar.' };
@@ -4845,14 +4923,31 @@ function respondSiteBudget(requestId, clientId, approved) {
 
 /**
  * El técnico/socio ve otra cosa en terreno: propone otro subservicio con foto,
- * o "Otro" con nombre y precio manual. El cliente debe aprobar.
+ * o "Otro" con nombre, lista de tareas (m²/unidad) y precio. El cliente debe aprobar.
  */
+function normalizeChangeLineItems(raw) {
+  if (!Array.isArray(raw)) return [];
+  const allowedUnits = new Set(['unidad', 'm2', 'ml', 'glb']);
+  return raw.map((item) => {
+    const description = String(item?.description || '').trim().slice(0, 160);
+    const unit = allowedUnits.has(String(item?.unit || '')) ? String(item.unit) : 'unidad';
+    const qty = Number(item?.qty);
+    const unitPrice = parseInt(item?.unitPrice, 10);
+    if (!description || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+      return null;
+    }
+    const lineTotal = Math.round(qty * unitPrice);
+    return { description, unit, qty, unitPrice, lineTotal };
+  }).filter(Boolean).slice(0, 30);
+}
+
 function proposeActivityChange(requestId, technicianId, {
   activityId,
   photoUrl,
   notes,
   customName,
-  customBasePrice
+  customBasePrice,
+  lineItems: rawLineItems
 }) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
@@ -4865,6 +4960,8 @@ function proposeActivityChange(requestId, technicianId, {
 
   const pricing = getPricingConfig();
   const isManualOther = activityId === 'otro' || activityId === '__other__';
+  const lineItems = normalizeChangeLineItems(rawLineItems);
+  const lineItemsTotal = lineItems.reduce((sum, item) => sum + item.lineTotal, 0);
 
   let toActivityId;
   let toActivityName;
@@ -4877,9 +4974,9 @@ function proposeActivityChange(requestId, technicianId, {
     if (toActivityName.length < 4) {
       return { error: 'En "Otro", escribe el nombre del servicio (mín. 4 caracteres).' };
     }
-    const parsedBase = parseInt(customBasePrice, 10);
+    const parsedBase = lineItemsTotal > 0 ? lineItemsTotal : parseInt(customBasePrice, 10);
     if (!parsedBase || parsedBase < 100000) {
-      return { error: 'En "Otro", indica el precio base del trabajo (mín. $100.000).' };
+      return { error: 'Indica el nuevo precio (mín. $100.000) o agrega tareas con precio.' };
     }
     toActivityId = `otro-${Date.now()}`;
     toActivityKind = 'correctiva';
@@ -4893,7 +4990,9 @@ function proposeActivityChange(requestId, technicianId, {
     const activities = getActivitiesForAppService(pricing, request.serviceId);
     const next = activities.find((a) => a.id === activityId);
     if (!next) return { error: 'Subservicio no válido para esta especialidad.' };
-    if (next.id === request.activityId) return { error: 'Elige un subservicio distinto al actual.' };
+    if (next.id === request.activityId && lineItemsTotal <= 0) {
+      return { error: 'Elige un subservicio distinto o agrega tareas adicionales con precio.' };
+    }
     toActivityId = next.id;
     toActivityName = next.name;
     toActivityKind = next.kind;
@@ -4903,6 +5002,18 @@ function proposeActivityChange(requestId, technicianId, {
       tierId: request.urgencyTier,
       timeZone: request.tariffTimeZone
     });
+    // Ítems adicionales (obra civil / m²) se suman al total propuesto
+    if (quote && lineItemsTotal > 0) {
+      quote = {
+        ...quote,
+        visitTotal: (quote.visitTotal || 0) + lineItemsTotal,
+        valorBase: (quote.valorBase || toBasePrice) + lineItemsTotal
+      };
+      toBasePrice = (toBasePrice || 0) + lineItemsTotal;
+      if (lineItems.length) {
+        toActivityName = `${next.name} + adicionales`;
+      }
+    }
   }
 
   if (!quote) return { error: 'No se pudo recalcular el precio.' };
@@ -4923,6 +5034,7 @@ function proposeActivityChange(requestId, technicianId, {
     toBasePrice,
     proposedTotal: quote.visitTotal,
     previousTotal: request.visitPricePaid || request.visitTotal || request.amountDue || 0,
+    lineItems,
     photoUrl,
     notes,
     createdAt: new Date().toISOString(),
@@ -5144,7 +5256,7 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
 }
 
 function getRequestsByTechnician(technicianId) {
-  return requests.filter(r => r.technicianId === technicianId);
+  return requests.filter(r => r && r.technicianId === technicianId);
 }
 
 function updateTechnicianLocation(technicianId, lat, lng) {
@@ -6484,6 +6596,8 @@ module.exports = {
   getRequestForProvider,
   getLiveTrackingLocation,
   recordSiteArrival,
+  verifyArrivalCode,
+  ensureArrivalCode,
   setSiteAction,
   submitSiteBudget,
   respondSiteBudget,

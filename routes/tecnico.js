@@ -29,6 +29,34 @@ function serializeJob(request) {
   return serializeFieldJob(store, request);
 }
 
+/** Evita filtrar el código de seguridad al técnico por socket. */
+function requestUpdatePayload(request) {
+  if (!request) return { request: null };
+  const { arrivalCode, ...rest } = request;
+  return {
+    request: {
+      ...rest,
+      arrivalCodeRequired: Boolean(arrivalCode && !request.arrivalCodeVerifiedAt),
+      arrivalCodeVerified: Boolean(request.arrivalCodeVerifiedAt)
+    }
+  };
+}
+
+function emitRequestUpdate(io, request, extra = {}) {
+  if (!io || !request) return;
+  const payload = { ...requestUpdatePayload(request), ...extra };
+  io.emit(`request_update_${request.id}`, payload);
+  io.to(`request_${request.id}`).emit(`request_update_${request.id}`, payload);
+  if (request.clientId && request.arrivalCode) {
+    io.to(`aland_client_${request.clientId}`).emit('client_arrival_code', {
+      requestId: request.id,
+      arrivalCode: request.arrivalCode,
+      arrivalCodeVerified: Boolean(request.arrivalCodeVerifiedAt),
+      techStatus: request.techStatus
+    });
+  }
+}
+
 router.post('/volver-socio', requireRole('tecnico'), (req, res) => {
   const linked = req.session.linkedProvider;
   if (!linked?.id) {
@@ -226,7 +254,7 @@ router.post('/status/:requestId', requireRole('tecnico'), (req, res) => {
   if (request.error) return res.status(400).json({ success: false, error: request.error });
 
   const io = req.app.get('io');
-  io.emit(`request_update_${request.id}`, { request });
+  emitRequestUpdate(io, request);
   if (request.liveEtaMinutes != null) {
     const loc = store.resolveActorCoords(req.session.user.id, lat, lng);
     if (loc) {
@@ -250,8 +278,19 @@ router.post('/trabajo/:requestId/confirmar-servicio', requireRole('tecnico'), (r
   res.json({ success: true, request: serializeJob(result.request) });
 });
 
+router.post('/trabajo/:requestId/codigo-llegada', requireRole('tecnico'), (req, res) => {
+  const result = store.verifyArrivalCode(req.params.requestId, req.session.user.id, req.body.code || req.body.arrivalCode);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  emitRequestUpdate(req.app.get('io'), result.request);
+  res.json({
+    success: true,
+    already: Boolean(result.already),
+    request: serializeJob(result.request)
+  });
+});
+
 router.post('/trabajo/:requestId/llegada', requireRole('tecnico'), (req, res) => {
-  const { diagnosis, photoStart } = req.body;
+  const { diagnosis, photoStart, arrivalCode, code } = req.body;
   let photoUrl = null;
   if (photoStart) {
     try {
@@ -260,10 +299,14 @@ router.post('/trabajo/:requestId/llegada', requireRole('tecnico'), (req, res) =>
       return res.status(400).json({ success: false, error: 'No se pudo guardar la foto inicial' });
     }
   }
-  const result = store.recordSiteArrival(req.params.requestId, req.session.user.id, { diagnosis, photoStart: photoUrl });
+  const result = store.recordSiteArrival(req.params.requestId, req.session.user.id, {
+    diagnosis,
+    photoStart: photoUrl,
+    arrivalCode: arrivalCode || code
+  });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
 
-  req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });
+  emitRequestUpdate(req.app.get('io'), result.request);
   res.json({ success: true, request: serializeJob(result.request) });
 });
 
@@ -312,7 +355,8 @@ router.post('/trabajo/:requestId/cambio-servicio', requireRole('tecnico'), (req,
     photoUrl,
     notes: req.body.notes,
     customName: req.body.customName,
-    customBasePrice: req.body.customBasePrice
+    customBasePrice: req.body.customBasePrice,
+    lineItems: req.body.lineItems
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });

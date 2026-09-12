@@ -183,9 +183,9 @@ window.FandezAlerts = {
     if (!this.prefs().system) return null;
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return null;
     const { type = 'default', tag, requireInteraction = false, onClick, url } = opts;
-    // Same-origin siempre (evita Saturno Chrome por APP_URL incorrecta)
-    const icon = '/icons/fandez-v11-notify.png';
-    const badge = '/icons/fandez-v11-badge-96.png';
+    // Same-origin + cache-bust (evita Saturno Chrome por APP_URL/CDN vieja)
+    const icon = '/icons/fandez-v11-notify.png?v=12';
+    const badge = '/icons/fandez-v11-badge-96.png?v=12';
     const payload = {
       title: title || 'Fandez',
       body: body || '',

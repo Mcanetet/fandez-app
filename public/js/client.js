@@ -36,6 +36,40 @@
   let geocodeTimer = null;
   let addressCovered = null;
   const socket = io();
+  const clientId = page.dataset.clientId || '';
+  if (clientId) {
+    const joinClient = () => socket.emit('aland_join', { clientId });
+    joinClient();
+    socket.on('connect', joinClient);
+  }
+
+  // Alerta aunque el cliente esté en otra pantalla del seguimiento
+  socket.on('client_tech_arrived', (payload) => {
+    if (!payload) return;
+    const isArrive = payload.techStatus === 'en_sitio';
+    if (!isArrive && payload.techStatus !== 'en_camino') return;
+    if (window.FandezAlerts) {
+      FandezAlerts.notify({
+        type: 'alert',
+        title: payload.title || (isArrive ? t('client.js.arrived_alert_title') : t('client.js.enroute_alert_title')),
+        body: payload.body || (isArrive ? t('client.js.arrived') : t('client.js.enroute_home')),
+        tag: (isArrive ? 'fandez-arrived-' : 'fandez-enroute-') + (payload.requestId || ''),
+        requireInteraction: true,
+        url: payload.url || `/cliente/servicio/${serviceId}?tracking=${payload.requestId || ''}`,
+        system: true
+      });
+    }
+  });
+
+  socket.on('client_arrival_code', (payload) => {
+    if (!payload || (currentRequestId && payload.requestId && payload.requestId !== currentRequestId)) return;
+    updateArrivalCodeCard({
+      arrivalCode: payload.arrivalCode,
+      arrivalCodeVerified: payload.arrivalCodeVerified,
+      arrivalCodeVerifiedAt: payload.arrivalCodeVerified ? new Date().toISOString() : null,
+      techStatus: payload.techStatus || 'en_camino'
+    });
+  });
 
   const SANTIAGO = { lat: -33.4489, lng: -70.6693 };
 
@@ -1351,6 +1385,35 @@
     if (step === 'done') etaEl.textContent = 'Completado';
   }
 
+  function updateArrivalCodeCard(request) {
+    const card = document.getElementById('arrivalCodeCard');
+    const valueEl = document.getElementById('arrivalCodeValue');
+    const hintEl = document.getElementById('arrivalCodeHint');
+    if (!card || !valueEl) return;
+    const code = request?.arrivalCode ? String(request.arrivalCode) : '';
+    const verified = Boolean(request?.arrivalCodeVerifiedAt || request?.arrivalCodeVerified);
+    const ts = request?.techStatus || '';
+    const show = Boolean(code) && ['en_camino', 'en_sitio', 'aceptado'].includes(ts);
+    if (!show && !verified) {
+      card.classList.add('hidden');
+      return;
+    }
+    if (!code && !verified) {
+      card.classList.add('hidden');
+      return;
+    }
+    card.classList.remove('hidden');
+    if (verified) {
+      valueEl.textContent = t('client.js.security_code_ok');
+      valueEl.classList.remove('tracking-[0.35em]');
+      if (hintEl) hintEl.textContent = t('client.js.security_code_ok_hint');
+    } else {
+      valueEl.textContent = code;
+      valueEl.classList.add('tracking-[0.35em]');
+      if (hintEl) hintEl.textContent = t('client.service.security_code_hint');
+    }
+  }
+
   function updateTripStatusHero(request, step) {
     const title = document.getElementById('tripStatusTitle');
     const sub = document.getElementById('tripStatusSub');
@@ -1375,8 +1438,8 @@
             : 'Te avisamos cuando acepte y salga hacia ti.'),
         reassigning ? 'Reasignando' : (request?.techStatus === 'asignado' ? 'Esperando técnico' : 'Equipo listo')
       ],
-      enroute: [`${tech} va en camino`, request?.etaLabel ? `ETA ${request.etaLabel}` : 'Sigue su ubicación en el mapa.', 'En camino'],
-      arrived: [`${tech} llegó`, 'Puede iniciar el diagnóstico en tu domicilio.', 'En tu domicilio'],
+      enroute: [`${tech} va en camino`, request?.etaLabel ? `ETA ${request.etaLabel}. Muéstrale el código de seguridad al llegar.` : 'Muéstrale el código de seguridad cuando llegue.', 'En camino'],
+      arrived: [`${tech} llegó`, 'Dale el código de seguridad para que inicie la revisión.', 'En tu domicilio'],
       working: ['Trabajo en curso', 'Diagnóstico, presupuesto o reparación según lo acordado.', 'En trabajo'],
       done: ['Servicio completado', 'Revisa el resumen y califica tu experiencia.', 'Completado']
     };
@@ -1411,6 +1474,7 @@
     };
     applyCall(call);
     applyCall(stickyCall);
+    updateArrivalCodeCard(request);
 
     if (sticky) {
       const show = step !== 'done' && !!request?.providerId;
@@ -1579,23 +1643,39 @@
     // Solo alertar en hitos de movimiento (no al asignar, eso ya lo hace showProvider)
     if (step === 'enroute' || step === 'arrived') {
       lastTripStepAlert = step;
+      const name = request.technicianName || document.getElementById('providerName')?.textContent || 'Tu técnico';
+      const trackUrl = `/cliente/servicio/${request.serviceId || page.dataset.serviceId || ''}?tracking=${request.id || currentRequestId || ''}`;
       if (step === 'enroute') {
-        const name = request.technicianName || document.getElementById('providerName')?.textContent || '';
         const body = t('client.js.enroute_alert_body', { name: name || 'Tu técnico' });
         if (window.FandezAlerts) {
           FandezAlerts.notify({
             type: 'alert',
             title: t('client.js.enroute_alert_title'),
             body,
-            tag: 'fandez-enroute-' + (request.id || '')
+            tag: 'fandez-enroute-' + (request.id || ''),
+            requireInteraction: true,
+            url: trackUrl,
+            system: true
           });
         } else {
           FandezNotify.show(body, 'info');
         }
         document.getElementById('liveTrackShell')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
-        if (window.FandezAlerts) FandezAlerts.notify({ type: 'update', title: t('client.js.arrived_alert_title'), body: t('client.js.arrived'), tag: 'fandez-arrived' });
-        else FandezNotify.show(t('client.js.arrived'), 'info');
+        const body = t('client.js.arrived_alert_body', { name });
+        if (window.FandezAlerts) {
+          FandezAlerts.notify({
+            type: 'alert',
+            title: t('client.js.arrived_alert_title'),
+            body,
+            tag: 'fandez-arrived-' + (request.id || ''),
+            requireInteraction: true,
+            url: trackUrl,
+            system: true
+          });
+        } else {
+          FandezNotify.show(body || t('client.js.arrived'), 'info');
+        }
       }
     }
   }
@@ -1704,9 +1784,25 @@
       return;
     }
     const wasHidden = banner.classList.contains('hidden');
-    const label = change.manual ? 'Servicio propuesto por el socio' : 'Cambio de subservicio';
+    const prev = change.previousTotal || 0;
+    const next = change.proposedTotal || 0;
     document.getElementById('activityChangeText').textContent =
-      `${label}: ${change.fromActivityName || '—'} → ${change.toActivityName || '—'} · ${fmtCLP(change.proposedTotal)}\n${change.notes || ''}`;
+      `${change.toActivityName || 'Nuevo alcance'} · ${fmtCLP(next)}${prev ? ` (antes ${fmtCLP(prev)})` : ''}\n${change.notes || ''}`;
+    const linesEl = document.getElementById('activityChangeLines');
+    if (linesEl) {
+      const items = Array.isArray(change.lineItems) ? change.lineItems : [];
+      if (items.length) {
+        const unitLabel = { unidad: 'und', m2: 'm²', ml: 'ml', glb: 'glb' };
+        linesEl.innerHTML = items.map((item) => {
+          const u = unitLabel[item.unit] || item.unit || 'und';
+          return `<li>${item.description} · ${item.qty} ${u} × ${fmtCLP(item.unitPrice)} = ${fmtCLP(item.lineTotal || (item.qty * item.unitPrice))}</li>`;
+        }).join('');
+        linesEl.classList.remove('hidden');
+      } else {
+        linesEl.innerHTML = '';
+        linesEl.classList.add('hidden');
+      }
+    }
     const photo = document.getElementById('activityChangePhoto');
     if (change.photoUrl && photo) {
       photo.src = change.photoUrl;
@@ -1719,9 +1815,13 @@
       FandezAlerts.notify({
         type: 'alert',
         title: t('client.js.activity_change_alert_title'),
-        body: `${label}: ${change.fromActivityName || '—'} → ${change.toActivityName || '—'}`,
+        body: t('client.js.activity_change_alert_body', {
+          amount: fmtCLP(next),
+          name: change.toActivityName || ''
+        }),
         tag: 'fandez-activity-' + (request.id || currentRequestId),
-        requireInteraction: true
+        requireInteraction: true,
+        url: `/cliente/servicio/${request.serviceId || ''}?tracking=${request.id || currentRequestId}`
       });
     }
   }
@@ -2319,14 +2419,6 @@
     } else if (gardenJob && (!Number.isFinite(squareMeters) || squareMeters < 10)) {
       FandezNotify.show(t('client.js.need_m2'), 'warning');
       document.getElementById('squareMeters')?.focus();
-      return;
-    }
-    if (!notes || (gardenJob && notes.length < 12)) {
-      FandezNotify.show(
-        landscapeJob ? t('client.js.need_landscape_notes') : (gardenJob ? t('client.js.need_garden_notes') : t('client.js.need_notes')),
-        'warning'
-      );
-      document.getElementById('notes')?.focus();
       return;
     }
 

@@ -1,9 +1,10 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v37';
+const SW_VERSION = 'fandez-sw-v38';
 
-/** Ámbar + 2 semicírculos (v11). Path nuevo = rompe caché Saturno Chrome. */
-const DEFAULT_ICON = '/icons/fandez-v11-notify.png';
-const DEFAULT_BADGE = '/icons/fandez-v11-badge-96.png';
+/** Ámbar + ventosa Fandez (v11). Query rompe caché Saturno/globo en Chrome/Android. */
+const ICON_VER = '12';
+const DEFAULT_ICON = `/icons/fandez-v11-notify.png?v=${ICON_VER}`;
+const DEFAULT_BADGE = `/icons/fandez-v11-badge-96.png?v=${ICON_VER}`;
 
 const PRECACHE = [
   '/offline.html',
@@ -108,7 +109,8 @@ self.addEventListener('fetch', (event) => {
         .catch(async () => {
           const cached = await caches.match(req) || await caches.match(pathname);
           if (cached) return cached;
-          const fallback = await caches.match('/icon-192.png') || await caches.match('/icons/fandez-v11-notify.png');
+          // Preferir marca Fandez v11; icon-192 histórico a veces quedó como Saturno en CDN
+          const fallback = await caches.match('/icons/fandez-v11-notify.png') || await caches.match('/icon-192.png');
           if (fallback) return fallback;
           throw new Error('icon-offline');
         })
@@ -128,10 +130,30 @@ function absUrl(path) {
   }
 }
 
+function sameOriginIcon(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  try {
+    if (raw.startsWith('/') && !raw.startsWith('//')) {
+      const path = raw.split('?')[0];
+      if (path.startsWith('/icons/fandez-v11') || path === '/icon-192.png') {
+        return absUrl(`${path}?v=${ICON_VER}`);
+      }
+    }
+    const u = new URL(raw, self.registration.scope);
+    if (u.origin === self.location.origin) {
+      const path = u.pathname;
+      if (path.startsWith('/icons/fandez-v11') || path === '/icon-192.png') {
+        return absUrl(`${path}?v=${ICON_VER}`);
+      }
+    }
+  } catch (_) { /* ignore */ }
+  return null;
+}
+
 async function showFandezNotification(data = {}) {
   const title = data.title || 'Fandez';
-  const icon = absUrl(DEFAULT_ICON);
-  const badge = absUrl(DEFAULT_BADGE);
+  const icon = sameOriginIcon(data.icon) || absUrl(DEFAULT_ICON);
+  const badge = sameOriginIcon(data.badge) || absUrl(DEFAULT_BADGE);
   const options = {
     body: data.body || '',
     icon,

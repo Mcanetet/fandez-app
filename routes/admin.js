@@ -454,7 +454,8 @@ router.get('/', requireRole('admin'), async (req, res) => {
     return res.status(500).render('error', {
       title: 'Error en el panel',
       message: 'No se pudo cargar el panel de administración. Si acabas de actualizar, redeploya la app completa en Hostinger.',
-      code: 500
+      code: 500,
+      retryPath: req.originalUrl || '/admin'
     });
   }
 });

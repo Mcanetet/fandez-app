@@ -45,6 +45,26 @@
 
   const WORK_STATUSES = ['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'];
 
+  /** Preferir dirección escrita del cliente; coords solo como respaldo (pueden estar desfasadas). */
+  function mapsDirectionsUrl(card) {
+    let address = '';
+    try {
+      address = card.dataset.address ? decodeURIComponent(card.dataset.address) : '';
+    } catch (_) {
+      address = card.dataset.address || '';
+    }
+    address = String(address || '').trim();
+    if (address) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
+    }
+    const lat = card.dataset.lat;
+    const lng = card.dataset.lng;
+    if (lat && lng) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}`;
+    }
+    return null;
+  }
+
   function getAudioContext() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -103,9 +123,9 @@
     if (typeof Notification === 'undefined') return;
     if (Notification.permission === 'granted') {
       try {
-        new Notification(title, { body, icon: '/icons/fandez-v11-notify.png', badge: '/icons/fandez-v11-badge-96.png', requireInteraction: true, tag: 'fandez-tech-wall' });
+        new Notification(title, { body, icon: '/icons/fandez-v11-notify.png?v=12', badge: '/icons/fandez-v11-badge-96.png?v=12', requireInteraction: true, tag: 'fandez-tech-wall' });
       } catch (_) {
-        new Notification(title, { body, icon: '/icons/fandez-v11-notify.png', badge: '/icons/fandez-v11-badge-96.png' });
+        new Notification(title, { body, icon: '/icons/fandez-v11-notify.png?v=12', badge: '/icons/fandez-v11-badge-96.png?v=12' });
       }
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission();
@@ -208,7 +228,9 @@
     stopRepeatingAlert();
     const etaNote = data.request?.etaLabel ? ` · ETA ${data.request.etaLabel}` : '';
     notify((t('tecnico.js.job_taken_reload') || 'Pedido tomado') + etaNote, 'success');
-    setTimeout(() => location.reload(), 800);
+    setTimeout(() => {
+      window.location.href = `/tecnico/trabajo/${requestId}`;
+    }, 600);
   }
 
   function escapeHtml(value) {
@@ -416,10 +438,17 @@
       try {
         await ensureEtaThenStatus(card.dataset.jobId, next);
         card.dataset.techStatus = next;
+        if (next === 'aceptado') card.dataset.confirmStatus = 'pending';
         if (next === 'aceptado' || next === 'en_camino') startSharing(card);
         if (redirect) {
           notify(successMsg, 'success');
           window.location.href = redirect;
+          return;
+        }
+        // Tras aceptar, llevar al wizard de confirmación/reevaluación
+        if (next === 'aceptado') {
+          notify(successMsg, 'success');
+          window.location.href = `/tecnico/trabajo/${card.dataset.jobId}`;
           return;
         }
         notify(successMsg, 'success');
@@ -433,12 +462,38 @@
     if (status === 'asignado') {
       addBtn(t('tecnico.js.accept_job'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) => transition(b, 'aceptado', t('tecnico.js.job_accepted')));
     } else if (status === 'aceptado') {
+      const confirmStatus = card.dataset.confirmStatus || '';
+      const mapUrl = mapsDirectionsUrl(card);
+      // Debe confirmar/reevaluar el trabajo antes de marcar "en camino"
+      if (confirmStatus === 'pending' || confirmStatus === 'change_pending' || !confirmStatus) {
+        addLink(t('tecnico.js.confirm_or_reevaluate'), `/tecnico/trabajo/${card.dataset.jobId}`);
+        if (mapUrl) {
+          const a = document.createElement('a');
+          a.href = mapUrl;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.className = 'flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm text-center';
+          a.textContent = t('tecnico.js.open_map');
+          actions.appendChild(a);
+        }
+        const hint = document.createElement('p');
+        hint.className = 'w-full text-[11px] text-amber-800 mt-1';
+        hint.textContent = t('tecnico.js.confirm_before_route');
+        actions.appendChild(hint);
+        return;
+      }
       startSharing(card);
-      addBtn(t('tecnico.js.head_out'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) => transition(b, 'en_camino', t('tecnico.js.sharing_location')));
-      const lat = card.dataset.lat;
-      const lng = card.dataset.lng;
-      if (lat && lng) {
-        addLink('Abrir mapa', `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lat + ',' + lng)}`);
+      addBtn(t('tecnico.js.head_out'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) =>
+        transition(b, 'en_camino', t('tecnico.js.sharing_location'))
+      );
+      if (mapUrl) {
+        const a = document.createElement('a');
+        a.href = mapUrl;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.className = 'flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm text-center';
+        a.textContent = t('tecnico.js.open_map');
+        actions.appendChild(a);
       }
     } else if (status === 'en_camino') {
       const info = document.createElement('span');

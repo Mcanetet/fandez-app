@@ -2493,11 +2493,13 @@ body.session-role--tecnico::before {
 .fandez-error-body { overflow-x: hidden; }
 .fandez-error-page {
   position: relative;
+  z-index: 1;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 .fandez-error-bg {
   position: fixed;
@@ -2749,17 +2751,20 @@ body.session-role--tecnico::before {
 }
 
 .fandez-error-actions {
+  position: relative;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
   width: 100%;
   max-width: 18rem;
   margin-bottom: 1.25rem;
+  pointer-events: auto;
 }
-.fandez-error-btn { width: 100%; }
-.fandez-error-btn--wa {
-  border-color: rgba(5, 150, 105, 0.35) !important;
-  color: #059669 !important;
+.fandez-error-btn { width: 100%; pointer-events: auto; cursor: pointer; }
+.fandez-error-btn--sofia {
+  border-color: rgba(42, 106, 91, 0.35) !important;
+  color: var(--aland-strong, #1F5045) !important;
 }
 .fandez-error-link-cta {
   font-size: 0.8125rem;

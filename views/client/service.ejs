@@ -6,6 +6,7 @@
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="servicePage"
   data-service-id="<%= service.id %>"
   data-service-name="<%= service.name %>"
+  data-client-id="<%= user && user.id ? user.id : '' %>"
   data-visit-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
   data-from-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
   data-pricing-unit="<%= perM2 ? 'm2' : 'job' %>"
@@ -282,8 +283,8 @@
       <% } %>
 
       <div>
-        <label for="notes" class="zilo-label block mb-1.5"><%= t('client.service.detail') %> *</label>
-        <textarea id="notes" rows="3" required placeholder="<%= perM2 ? t('client.service.detail_garden_ph') : t('client.service.detail_ph') %>" class="zilo-input resize-none"></textarea>
+        <label for="notes" class="zilo-label block mb-1.5"><%= t('client.service.detail') %> <span class="font-normal text-zilo-muted"><%= t('client.service.detail_opt') %></span></label>
+        <textarea id="notes" rows="3" placeholder="<%= perM2 ? t('client.service.detail_garden_ph') : t('client.service.detail_ph') %>" class="zilo-input resize-none"></textarea>
       </div>
 
       <div class="space-y-4">
@@ -520,13 +521,14 @@
           <button type="button" id="btnRejectBudget" class="flex-1 py-2 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.service.reject') %></button>
         </div>
       </div>
-      <div id="activityChangeBanner" class="hidden p-4 rounded-2xl border border-zilo-accent/30 bg-zilo-accent/5">
-        <p class="text-sm font-semibold text-zilo-accent mb-1"><%= t('client.js.activity_change_title') %></p>
-        <p id="activityChangeText" class="text-xs text-zilo-muted mb-2"></p>
-        <img id="activityChangePhoto" src="" alt="" class="hidden w-full max-h-36 object-cover rounded-xl border border-zilo-border mb-3">
+      <div id="activityChangeBanner" class="hidden p-4 rounded-2xl border border-amber-300 bg-amber-50">
+        <p class="text-sm font-semibold text-amber-900 mb-1"><%= t('client.js.activity_change_title') %></p>
+        <p id="activityChangeText" class="text-xs text-amber-900/80 mb-2"></p>
+        <ul id="activityChangeLines" class="hidden text-xs text-amber-900/80 mb-2 space-y-1 list-disc pl-4"></ul>
+        <img id="activityChangePhoto" src="" alt="" class="hidden w-full max-h-36 object-cover rounded-xl border border-amber-200 mb-3">
         <div class="flex gap-2">
-          <button type="button" id="btnApproveActivityChange" class="flex-1 py-2 rounded-xl zilo-btn-primary !text-sm"><%= t('client.js.activity_change_approve') %></button>
-          <button type="button" id="btnRejectActivityChange" class="flex-1 py-2 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.js.activity_change_reject') %></button>
+          <button type="button" id="btnApproveActivityChange" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm"><%= t('client.js.activity_change_approve') %></button>
+          <button type="button" id="btnRejectActivityChange" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.js.activity_change_reject') %></button>
         </div>
       </div>
       <div id="additionalPaymentBanner" class="hidden p-4 rounded-2xl border border-amber-300 bg-amber-50">
@@ -576,6 +578,11 @@
           <button type="button" id="tripHeroChat" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-xs">Mensajes</button>
           <a id="tripHeroCall" href="#" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-center hidden">Llamar</a>
         </div>
+      </div>
+      <div id="arrivalCodeCard" class="hidden p-4 rounded-2xl border border-zilo-accent/25 bg-zilo-accent/5 mb-4">
+        <p class="zilo-label mb-1 text-zilo-accent"><%= t('client.service.security_code_label') %></p>
+        <p id="arrivalCodeValue" class="text-3xl font-bold tracking-[0.35em] tabular-nums text-zilo-text text-center my-2">————</p>
+        <p id="arrivalCodeHint" class="text-xs text-zilo-muted text-center leading-relaxed"><%= t('client.service.security_code_hint') %></p>
       </div>
       <div class="p-4 rounded-2xl zilo-card-premium">
         <div class="flex justify-between items-center mb-4">

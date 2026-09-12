@@ -1,6 +1,27 @@
 (function () {
   const cfg = window.FandezErrorPage || {};
 
+  function withCacheBust(url) {
+    try {
+      const u = new URL(url, window.location.origin);
+      u.searchParams.set('_retry', String(Date.now()));
+      return u.pathname + u.search + u.hash;
+    } catch (_) {
+      const base = String(url || window.location.pathname || '/');
+      const sep = base.indexOf('?') >= 0 ? '&' : '?';
+      return base + sep + '_retry=' + Date.now();
+    }
+  }
+
+  function hardNavigate(url) {
+    const target = withCacheBust(url);
+    try {
+      window.location.replace(target);
+    } catch (_) {
+      window.location.href = target;
+    }
+  }
+
   function runAutoRetry() {
     if (!cfg.autoReloadMs || cfg.autoReloadMs <= 0) return;
     const label = document.getElementById('errorAutoRetry');
@@ -18,11 +39,19 @@
       label.textContent = template
         .replace(/\{\{s\}\}/g, String(left))
         .replace(/\{seconds\}/g, String(left));
-      if (left <= 0) location.reload();
+      if (left <= 0) hardNavigate(cfg.retryPath || window.location.pathname || '/');
     };
     tick();
     setInterval(tick, 1000);
   }
+
+  document.addEventListener('click', (e) => {
+    const retry = e.target.closest('[data-error-retry], #errorRetryBtn');
+    if (!retry) return;
+    e.preventDefault();
+    const href = retry.getAttribute('href') || cfg.retryPath || window.location.pathname || '/';
+    hardNavigate(href);
+  });
 
   runAutoRetry();
 

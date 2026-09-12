@@ -16,13 +16,18 @@
     : isSystem
       ? [0, 1, 2, 3].map(function(i) { return tt('error.system.tip.' + i); })
       : [];
-  var waMsg = tt(prefix + '.whatsapp_msg');
-  if (waMsg.indexOf(prefix) === 0) waMsg = tt('error.lost.whatsapp_msg');
-  var waUrl = (typeof company !== 'undefined' && company.whatsappLink) ? company.whatsappLink(waMsg) : '#';
   var badge = tt(prefix + '.badge');
   var punchline = tt(prefix + '.punchline');
   var headline = tt(prefix + '.headline');
   var hook = tt(prefix + '.hook');
+  var rawRetry = typeof retryPath !== 'undefined' && retryPath ? String(retryPath) : '';
+  var retryHref = rawRetry && rawRetry.charAt(0) === '/' && rawRetry.indexOf('//') !== 0 ? rawRetry : '/';
+  var homeHref = '/?landing=1';
+  var isClient = typeof user !== 'undefined' && user && user.role === 'client';
+  var hasSofia = isClient && typeof mod === 'function' && mod('client_aland');
+  var sofiaHref = isClient ? '/cliente?aland=1' : '/login';
+  var sofiaLabel = tt(isLost ? 'error.lost.cta_sofia' : 'error.system.cta_sofia');
+  if (sofiaLabel.indexOf('error.') === 0) sofiaLabel = 'Hablar con Sofía';
 %>
 
 <div class="fandez-error-page fandez-error-page--<%= variant %>" data-variant="<%= variant %>" data-code="<%= errCode %>">
@@ -33,7 +38,7 @@
   </div>
 
   <header class="fandez-error-header">
-    <a href="/" class="fandez-error-brand">
+    <a href="<%= homeHref %>" class="fandez-error-brand">
       <%- include('partials/logo', { className: 'w-9 h-9', logoId: 'error' }) %>
       <span class="fandez-wordmark text-lg"><%= tt('app.name') %></span>
     </a>
@@ -74,15 +79,17 @@
 
     <div class="fandez-error-actions">
       <% if (isSystem) { %>
-        <button type="button" class="zilo-btn-primary fandez-error-btn" onclick="location.reload()"><%= tt('error.system.cta_retry') %></button>
-        <a href="/" class="zilo-btn-ghost fandez-error-btn"><%= tt('error.back_home') %></a>
+        <a href="<%= retryHref %>" id="errorRetryBtn" class="zilo-btn-primary fandez-error-btn" data-error-retry><%= tt('error.system.cta_retry') %></a>
+        <a href="<%= homeHref %>" class="zilo-btn-ghost fandez-error-btn"><%= tt('error.back_home') %></a>
       <% } else { %>
-        <a href="/" class="zilo-btn-primary fandez-error-btn"><%= tt('error.back_home') %></a>
+        <a href="<%= homeHref %>" class="zilo-btn-primary fandez-error-btn"><%= tt('error.back_home') %></a>
       <% } %>
       <% if (isLost || isSystem) { %>
-        <a href="<%= waUrl %>" target="_blank" rel="noopener" class="zilo-btn-ghost fandez-error-btn fandez-error-btn--wa">
-          <%= tt(isLost ? 'error.lost.cta_whatsapp' : 'error.system.cta_whatsapp') %>
-        </a>
+        <% if (hasSofia) { %>
+          <button type="button" data-open-aland class="zilo-btn-ghost fandez-error-btn fandez-error-btn--sofia"><%= sofiaLabel %></button>
+        <% } else { %>
+          <a href="<%= sofiaHref %>" class="zilo-btn-ghost fandez-error-btn fandez-error-btn--sofia"><%= sofiaLabel %></a>
+        <% } %>
       <% } %>
       <% if (isLost) { %>
         <a href="/registro" class="fandez-error-link-cta"><%= tt('error.lost.cta_signup') %> →</a>
@@ -104,10 +111,20 @@
   window.FandezErrorPage = {
     slogans: <%- JSON.stringify(slogans) %>,
     interval: <%= isSystem ? 3200 : 2800 %>,
-    autoReloadMs: <%= isConnecting ? 8000 : 0 %>
+    autoReloadMs: <%= isConnecting ? 8000 : 0 %>,
+    retryPath: <%- JSON.stringify(retryHref) %>
   };
 </script>
-<% var pageScript = '/js/error-page.js'; %>
+<% } else { %>
+<script>
+  window.FandezErrorPage = {
+    slogans: [],
+    interval: 0,
+    autoReloadMs: 0,
+    retryPath: <%- JSON.stringify(retryHref) %>
+  };
+</script>
 <% } %>
+<% var pageScript = '/js/error-page.js'; %>
 
 <%- include('partials/footer') %>

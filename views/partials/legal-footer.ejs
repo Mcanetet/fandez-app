@@ -5,12 +5,16 @@
     <a href="/legal/terminos" class="hover:text-zilo-accent transition"><%= t('footer.terms') %></a>
     <a href="/legal/cookies" class="hover:text-zilo-accent transition"><%= t('footer.cookies') %></a>
     <% if (typeof company !== 'undefined') { %>
-      <% if (typeof user !== 'undefined' && user && user.role === 'client' && typeof mod === 'function' && mod('client_aland')) { %>
+      <% var sofiaOpen = typeof user !== 'undefined' && user && user.role === 'client' && typeof mod === 'function' && mod('client_aland'); %>
+      <% if (sofiaOpen) { %>
       <a href="#aland-support" data-open-aland class="hover:text-zilo-accent transition"><%= t('footer.support') %></a>
       <a href="#aland-support" data-open-aland class="hover:text-zilo-accent transition"><%= t('footer.concierge') %></a>
+      <% } else if (typeof user !== 'undefined' && user && user.role === 'client') { %>
+      <a href="/cliente?aland=1" class="hover:text-zilo-accent transition"><%= t('footer.support') %></a>
+      <a href="/cliente?aland=1" class="hover:text-zilo-accent transition"><%= t('footer.concierge') %></a>
       <% } else { %>
       <a href="mailto:<%= company.supportEmail %>" class="hover:text-zilo-accent transition"><%= t('footer.support') %></a>
-      <a href="<%= company.whatsappLink() %>" target="_blank" rel="noopener" class="hover:text-zilo-accent transition"><%= t('footer.concierge') %></a>
+      <a href="/login" class="hover:text-zilo-accent transition"><%= t('footer.concierge') %></a>
       <% } %>
     <% } %>
   </div>

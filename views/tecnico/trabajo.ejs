@@ -203,22 +203,27 @@
 
     <section id="stepConfirmarServicio" data-wizard-panel="confirmar" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'confirmar' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Antes de ir</p>
-      <h2 class="text-sm font-semibold mb-1">¿Es el mismo trabajo?</h2>
+      <h2 class="text-sm font-semibold mb-1">¿El trabajo es el correcto?</h2>
       <p class="text-xs text-zilo-muted mb-3">
-        Pedido: <strong><%= request.activityName || request.serviceName %></strong>.
-        Si coincide, sigue. Solo cambia si viste otra cosa en el lugar.
+        Pedido: <strong><%= request.activityName || request.serviceName %></strong>
+        · <%= request.address || '' %>.
+        Confírmalo o reevalúa con foto, descripción y nuevo precio. El cliente debe aprobar cualquier cambio.
       </p>
       <div class="space-y-2">
-        <button type="button" id="btnConfirmServiceSame" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Sí, es el mismo trabajo</button>
-        <button type="button" id="btnShowServiceChange" class="w-full py-3 rounded-xl zilo-btn-ghost text-sm">No coincide — proponer cambio</button>
+        <button type="button" id="btnConfirmServiceSame" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Sí, es el mismo — continuar</button>
+        <button type="button" id="btnShowServiceChange" class="w-full py-3 rounded-xl zilo-btn-ghost text-sm">Reevaluar — foto, tareas y nuevo precio</button>
       </div>
     </section>
 
     <section id="stepTrayecto" data-wizard-panel="trayecto" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'trayecto' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Trayecto</p>
       <h2 class="text-sm font-semibold mb-2"><%= request.techStatus === 'aceptado' ? '¿Listo para ir?' : '¿Ya estás en la puerta?' %></h2>
-      <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'El cliente verá que vas en camino y tu ubicación.' : 'Confirma solo cuando estés en el domicilio.' %></p>
-      <% if (request.coords && request.coords.lat != null && request.techStatus === 'aceptado') { %>
+      <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'Al marcar “Salí hacia el cliente”, él verá que vas en camino y tu ubicación en vivo.' : 'Confirma solo cuando estés en el domicilio.' %></p>
+      <% if (request.address && request.techStatus === 'aceptado') { %>
+        <a href="https://www.google.com/maps/dir/?api=1&destination=<%= encodeURIComponent(request.address) %>"
+          target="_blank" rel="noopener"
+          class="block w-full mb-2 py-3 rounded-xl zilo-btn-ghost text-center !text-sm">Abrir mapa · <%= request.address %></a>
+      <% } else if (request.coords && request.coords.lat != null && request.techStatus === 'aceptado') { %>
         <a href="https://www.google.com/maps/dir/?api=1&destination=<%= request.coords.lat %>,<%= request.coords.lng %>"
           target="_blank" rel="noopener"
           class="block w-full mb-2 py-3 rounded-xl zilo-btn-ghost text-center !text-sm">Abrir en Google Maps</a>
@@ -227,11 +232,30 @@
         class="w-full py-4 rounded-xl zilo-btn-primary text-base"><%= request.techStatus === 'aceptado' ? 'Salí hacia el cliente' : 'Ya estoy en la puerta' %></button>
     </section>
 
-    <!-- Paso 1: Llegada -->
-    <section id="stepLlegada" data-wizard-panel="llegada" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'llegada' ? '' : 'hidden' %>">
+    <!-- Paso 1: Llegada — primero código de seguridad, luego revisión -->
+    <section id="stepLlegada" data-wizard-panel="llegada" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'llegada' ? '' : 'hidden' %>"
+      data-code-verified="<%= request.arrivalCodeVerified ? '1' : '0' %>">
       <p class="zilo-label mb-1">Ahora · Llegada</p>
-      <h2 class="text-sm font-semibold mb-3">¿Qué ves?</h2>
-      <div class="space-y-3">
+      <h2 class="text-sm font-semibold mb-3">Código de seguridad</h2>
+
+      <div id="arrivalCodeGate" class="space-y-3 <%= request.arrivalCodeVerified ? 'hidden' : '' %>">
+        <p class="text-xs text-zilo-muted">
+          Pídele al cliente el <strong>código de 6 dígitos</strong> que ve en su app. Sin ese código no puedes iniciar la revisión.
+        </p>
+        <div>
+          <label class="text-xs text-zilo-muted">Código del cliente *</label>
+          <input type="text" id="arrivalCodeInput" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code"
+            class="zilo-input w-full mt-1 text-center text-2xl font-bold tracking-[0.35em] tabular-nums" placeholder="••••••">
+        </div>
+        <button type="button" id="btnVerifyArrivalCode" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Validar código</button>
+      </div>
+
+      <div id="arrivalCodeOk" class="<%= request.arrivalCodeVerified ? '' : 'hidden' %> mb-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-sm text-emerald-800">
+        Código verificado. Puedes iniciar la revisión.
+      </div>
+
+      <div id="arrivalReviewForm" class="space-y-3 <%= request.arrivalCodeVerified ? '' : 'hidden' %>">
+        <h2 class="text-sm font-semibold">¿Qué ves?</h2>
         <div>
           <label class="text-xs text-zilo-muted mb-2 block">Elige lo que describe el problema (puedes marcar varios)</label>
           <div class="flex flex-wrap gap-2" id="diagnosisChips">
@@ -248,7 +272,7 @@
             <img src="" alt="Vista previa" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
           </div>
         </div>
-        <button type="button" id="btnLlegada" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Confirmar llegada</button>
+        <button type="button" id="btnLlegada" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Confirmar llegada y revisión</button>
       </div>
     </section>
 
@@ -258,16 +282,16 @@
       </button>
     </div>
 
-    <!-- Cambio de subservicio: secundario, no bloquea el paso activo -->
+    <!-- Reevaluación: foto + descripción + tareas/precio -->
     <section id="stepCambioServicio" data-wizard-panel="cambio" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'cambio' ? '' : 'hidden' %>">
-      <p class="zilo-label mb-1">¿El trabajo es distinto?</p>
-      <h2 class="text-sm font-semibold mb-1">Proponer cambio de subservicio</h2>
+      <p class="zilo-label mb-1">Reevaluación</p>
+      <h2 class="text-sm font-semibold mb-1">Nuevo alcance y precio</h2>
       <p class="text-xs text-zilo-muted mb-3">
         Solicitado: <strong><%= request.activityName || '—' %></strong>.
-        Si es otra cosa, elige el subservicio correcto o <strong>Otro</strong> (nombre y precio manual), sube foto y explica. El cliente debe aprobar.
+        Sube foto, describe, ajusta la lista de tareas (m², unidades u obra adicional) y el nuevo precio. El cliente recibe una alerta y debe poner OK.
       </p>
       <% if (request.siteReport && request.siteReport.activityChange && ['pending','payment_pending'].includes(request.siteReport.activityChange.status)) { %>
-        <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3"><%= request.siteReport.activityChange.status === 'payment_pending' ? 'Cambio aprobado; esperando el pago del cliente' : 'Cambio pendiente de aprobación del cliente' %>: <%= request.siteReport.activityChange.toActivityName %></p>
+        <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3"><%= request.siteReport.activityChange.status === 'payment_pending' ? 'Cambio aprobado; esperando el pago del cliente' : 'Cambio de precio pendiente de OK del cliente' %>: <%= request.siteReport.activityChange.toActivityName %> · <%= formatCLP(request.siteReport.activityChange.proposedTotal) %></p>
       <% } else { %>
         <div class="space-y-3">
           <div>
@@ -277,26 +301,35 @@
             </select>
           </div>
           <div id="changeOtherFields" class="hidden space-y-3 p-3 rounded-xl border border-zilo-border bg-zilo-surface/40">
-            <p class="text-xs text-zilo-muted">Describe el servicio real. El cliente debe validarlo.</p>
+            <p class="text-xs text-zilo-muted">Describe el servicio real. El precio sale de la lista de tareas abajo.</p>
             <div>
               <label class="text-xs text-zilo-muted">Nombre del servicio *</label>
-              <input type="text" id="changeCustomName" class="zilo-input w-full mt-1" maxlength="120" placeholder="Ej: Instalación de flapper + ajuste de estanque">
-            </div>
-            <div>
-              <label class="text-xs text-zilo-muted">Precio base del trabajo (CLP) *</label>
-              <input type="number" id="changeCustomBasePrice" class="zilo-input w-full mt-1" min="100000" step="1000" placeholder="100000">
-              <p class="text-[11px] text-zilo-muted mt-1">Mín. $100.000. Luego se aplican horario y urgencia.</p>
+              <input type="text" id="changeCustomName" class="zilo-input w-full mt-1" maxlength="120" placeholder="Ej: Obra civil — retiro y reposición de piso">
             </div>
           </div>
-          <div>
-            <label class="text-xs text-zilo-muted">Explicación *</label>
-            <textarea id="changeNotes" rows="2" class="zilo-input w-full mt-1 resize-none" placeholder="Ej: Era cambio de sanitario, no solo la llave"></textarea>
+          <div class="p-3 rounded-xl border border-zilo-border bg-zilo-bg/60 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <label class="text-xs font-semibold text-zilo-text">Lista de tareas / ítems</label>
+              <button type="button" id="btnAddChangeLine" class="text-[11px] font-semibold text-zilo-accent">+ Agregar ítem</button>
+            </div>
+            <p class="text-[11px] text-zilo-muted">Usa m², ml o unidad para obra civil u adicionales no considerados en el pedido.</p>
+            <div id="changeLineItems" class="space-y-2"></div>
+            <p class="text-sm font-semibold text-right">Nuevo total: <span id="changeLineTotal" class="text-zilo-accent">$0</span></p>
+          </div>
+          <div id="changeManualPriceWrap" class="hidden">
+            <label class="text-xs text-zilo-muted">Precio total (CLP) si no usas ítems *</label>
+            <input type="number" id="changeCustomBasePrice" class="zilo-input w-full mt-1" min="100000" step="1000" placeholder="100000">
+            <p class="text-[11px] text-zilo-muted mt-1">Mín. $100.000. Preferible desglosar en la lista de tareas.</p>
           </div>
           <div>
-            <label class="text-xs text-zilo-muted">Foto que respalda el cambio *</label>
+            <label class="text-xs text-zilo-muted">Descripción / justificación *</label>
+            <textarea id="changeNotes" rows="2" class="zilo-input w-full mt-1 resize-none" placeholder="Ej: Había que demoler 8 m² de radier no incluidos en el pedido"></textarea>
+          </div>
+          <div>
+            <label class="text-xs text-zilo-muted">Foto que respalda la reevaluación *</label>
             <input type="file" id="changePhoto" accept="image/*" capture="environment" class="block w-full text-xs mt-1">
           </div>
-          <button type="button" id="btnProposeChange" class="w-full py-3 rounded-xl zilo-btn-ghost">Enviar cambio al cliente</button>
+          <button type="button" id="btnProposeChange" class="w-full py-3 rounded-xl zilo-btn-primary">Enviar cambio de precio al cliente</button>
         </div>
       <% } %>
     </section>

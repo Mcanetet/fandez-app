@@ -68,6 +68,8 @@
           <div class="p-4 rounded-2xl zilo-card-premium"
                data-job-id="<%= j.id %>"
                data-tech-status="<%= j.techStatus %>"
+               data-confirm-status="<%= j.serviceConfirmStatus || '' %>"
+               data-address="<%= encodeURIComponent(j.address || '') %>"
                data-assigned-at="<%= j.technicianAssignedAt || '' %>"
                data-accept-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>"
                <% if (j.coords) { %>data-lat="<%= j.coords.lat %>" data-lng="<%= j.coords.lng %>"<% } %>>

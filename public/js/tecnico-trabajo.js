@@ -153,6 +153,36 @@
 
   syncFieldWizard();
 
+  document.getElementById('btnVerifyArrivalCode')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btnVerifyArrivalCode');
+    const code = document.getElementById('arrivalCodeInput')?.value.trim();
+    if (!code || code.replace(/\D/g, '').length !== 6) {
+      return notify('Ingresa el código de 6 dígitos del cliente', 'warning');
+    }
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/tecnico/trabajo/${requestId}/codigo-llegada`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Código inválido');
+      notify('Código verificado', 'success');
+      document.getElementById('arrivalCodeGate')?.classList.add('hidden');
+      document.getElementById('arrivalCodeOk')?.classList.remove('hidden');
+      document.getElementById('arrivalReviewForm')?.classList.remove('hidden');
+      document.getElementById('stepLlegada')?.setAttribute('data-code-verified', '1');
+    } catch (err) {
+      btn.disabled = false;
+      notify(err.message || 'Código incorrecto', 'error');
+    }
+  });
+
+  document.getElementById('arrivalCodeInput')?.addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+  });
+
   document.getElementById('btnLlegada')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnLlegada');
     const chipEls = [...document.querySelectorAll('.diagnosis-chip.is-selected')];
@@ -160,13 +190,18 @@
     const detail = document.getElementById('diagnosis').value.trim();
     const diagnosis = [chipText, detail].filter(Boolean).join('. ');
     if (!diagnosis) return notify('Elige al menos una opción o escribe un detalle', 'warning');
+    const codeVerified = document.getElementById('stepLlegada')?.dataset.codeVerified === '1';
+    const arrivalCode = document.getElementById('arrivalCodeInput')?.value.trim();
+    if (!codeVerified && (!arrivalCode || arrivalCode.replace(/\D/g, '').length !== 6)) {
+      return notify('Primero valida el código de seguridad del cliente', 'warning');
+    }
     btn.disabled = true;
     try {
       const photoData = await fileToBase64(photoStart);
       const res = await fetch(`/tecnico/trabajo/${requestId}/llegada`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ diagnosis, photoStart: photoData })
+        body: JSON.stringify({ diagnosis, photoStart: photoData, arrivalCode })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Error');
@@ -201,8 +236,79 @@
   function toggleOtherFields() {
     const select = document.getElementById('changeActivityId');
     const box = document.getElementById('changeOtherFields');
+    const manual = document.getElementById('changeManualPriceWrap');
     if (!select || !box) return;
-    box.classList.toggle('hidden', select.value !== 'otro');
+    const isOther = select.value === 'otro';
+    box.classList.toggle('hidden', !isOther);
+    if (manual) {
+      const lines = collectChangeLineItems();
+      manual.classList.toggle('hidden', !(isOther && lines.length === 0));
+    }
+  }
+
+  function fmtCLP(n) {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(n) || 0);
+  }
+
+  function collectChangeLineItems() {
+    const rows = [...document.querySelectorAll('#changeLineItems [data-line-row]')];
+    return rows.map((row) => {
+      const description = row.querySelector('[data-line-desc]')?.value.trim() || '';
+      const unit = row.querySelector('[data-line-unit]')?.value || 'unidad';
+      const qty = parseFloat(row.querySelector('[data-line-qty]')?.value);
+      const unitPrice = parseInt(row.querySelector('[data-line-price]')?.value, 10);
+      return { description, unit, qty, unitPrice };
+    }).filter((item) => item.description && Number.isFinite(item.qty) && item.qty > 0 && Number.isFinite(item.unitPrice) && item.unitPrice >= 0);
+  }
+
+  function refreshChangeLineTotal() {
+    const items = collectChangeLineItems();
+    const total = items.reduce((sum, item) => sum + Math.round(item.qty * item.unitPrice), 0);
+    const el = document.getElementById('changeLineTotal');
+    if (el) el.textContent = fmtCLP(total);
+    const custom = document.getElementById('changeCustomBasePrice');
+    if (custom && items.length) custom.value = String(total);
+    toggleOtherFields();
+    return total;
+  }
+
+  function addChangeLineRow(preset = {}) {
+    const wrap = document.getElementById('changeLineItems');
+    if (!wrap) return;
+    const row = document.createElement('div');
+    row.className = 'p-2.5 rounded-lg border border-zilo-border bg-white space-y-2';
+    row.dataset.lineRow = '1';
+    row.innerHTML = `
+      <input type="text" data-line-desc class="zilo-input w-full !py-2 text-sm" maxlength="160" placeholder="Tarea (ej: demolicion radier)" value="${preset.description || ''}">
+      <div class="grid grid-cols-3 gap-2">
+        <select data-line-unit class="zilo-input !py-2 text-xs">
+          <option value="unidad">Unidad</option>
+          <option value="m2">m²</option>
+          <option value="ml">ml</option>
+          <option value="glb">Global</option>
+        </select>
+        <input type="number" data-line-qty class="zilo-input !py-2 text-sm" min="0.1" step="0.1" placeholder="Cant." value="${preset.qty != null ? preset.qty : '1'}">
+        <input type="number" data-line-price class="zilo-input !py-2 text-sm" min="0" step="1000" placeholder="$ / und" value="${preset.unitPrice != null ? preset.unitPrice : ''}">
+      </div>
+      <button type="button" data-line-remove class="text-[11px] text-red-600 font-semibold">Quitar</button>
+    `;
+    const unitSel = row.querySelector('[data-line-unit]');
+    if (preset.unit && unitSel) unitSel.value = preset.unit;
+    row.querySelector('[data-line-remove]')?.addEventListener('click', () => {
+      row.remove();
+      refreshChangeLineTotal();
+    });
+    row.querySelectorAll('input, select').forEach((el) => {
+      el.addEventListener('input', refreshChangeLineTotal);
+      el.addEventListener('change', refreshChangeLineTotal);
+    });
+    wrap.appendChild(row);
+    refreshChangeLineTotal();
+  }
+
+  document.getElementById('btnAddChangeLine')?.addEventListener('click', () => addChangeLineRow());
+  if (document.getElementById('changeLineItems')) {
+    addChangeLineRow({ description: '', unit: 'unidad', qty: 1 });
   }
 
   async function loadChangeActivities() {
@@ -222,7 +328,7 @@
       });
       const other = document.createElement('option');
       other.value = 'otro';
-      other.textContent = 'Otro — describir manualmente';
+      other.textContent = 'Otro / obra adicional — con lista de tareas';
       select.appendChild(other);
       select.addEventListener('change', toggleOtherFields);
       toggleOtherFields();
@@ -237,15 +343,19 @@
     const activityId = document.getElementById('changeActivityId')?.value;
     const notes = document.getElementById('changeNotes')?.value.trim();
     const customName = document.getElementById('changeCustomName')?.value.trim();
-    const customBasePrice = document.getElementById('changeCustomBasePrice')?.value;
+    const lineItems = collectChangeLineItems();
+    const lineTotal = lineItems.reduce((sum, item) => sum + Math.round(item.qty * item.unitPrice), 0);
+    const customBasePrice = lineTotal > 0
+      ? lineTotal
+      : document.getElementById('changeCustomBasePrice')?.value;
     if (!activityId) return notify('Elige el nuevo subservicio', 'warning');
-    if (!notes) return notify('Explica el cambio', 'warning');
+    if (!notes) return notify('Explica el cambio / reevaluación', 'warning');
     if (activityId === 'otro') {
       if (!customName || customName.length < 4) {
         return notify('En Otro, escribe el nombre del servicio', 'warning');
       }
       if (!customBasePrice || Number(customBasePrice) < 100000) {
-        return notify('En Otro, indica el precio base (mín. $100.000)', 'warning');
+        return notify('Indica el nuevo precio (mín. $100.000) o agrega ítems en la lista', 'warning');
       }
     }
     btn.disabled = true;
@@ -254,11 +364,18 @@
       const res = await fetch(`/tecnico/trabajo/${requestId}/cambio-servicio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ activityId, notes, photo, customName, customBasePrice })
+        body: JSON.stringify({
+          activityId,
+          notes,
+          photo,
+          customName,
+          customBasePrice,
+          lineItems
+        })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Error');
-      notify('Cambio enviado al cliente para aprobación', 'success');
+      notify('Cambio de precio enviado al cliente para OK', 'success');
       location.reload();
     } catch (err) {
       btn.disabled = false;

@@ -674,7 +674,8 @@
   "error.lost.tip.1": "Electricians with real-time tracking",
   "error.lost.tip.2": "Home Passport — digital history of your property",
   "error.lost.tip.3": "Guardian Mode — family follows the service without the app",
-  "error.lost.cta_whatsapp": "Talk to Fandez",
+  "error.lost.cta_whatsapp": "Talk to Sofía",
+  "error.lost.cta_sofia": "Talk to Sofía",
   "error.lost.cta_signup": "Create free account",
   "error.lost.whatsapp_msg": "Hi Fandez, I got lost on the website and need help with a home service.",
 
@@ -692,7 +693,8 @@
   "error.system.tip.2": "Live tracking once the tech accepts",
   "error.system.tip.3": "If it takes long, message us — we answer",
   "error.system.cta_retry": "Try again now",
-  "error.system.cta_whatsapp": "Talk to Fandez",
+  "error.system.cta_whatsapp": "Talk to Sofía",
+  "error.system.cta_sofia": "Talk to Sofía",
   "error.system.whatsapp_msg": "Hi Fandez, the app showed an error and I need help continuing my service.",
   "error.system.autoretry": "Retrying automatically in {seconds}s…",
 

@@ -162,9 +162,9 @@ app.get('/site.webmanifest', (req, res) => {
       client_mode: ['navigate-existing', 'auto']
     },
     icons: [
-      { src: '/icons/fandez-v11-192.png?v=11', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fandez-v11-512.png?v=11', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fandez-v11-512.png?v=11', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: '/icons/fandez-v11-192.png?v=12', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-v11-512.png?v=12', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-v11-512.png?v=12', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   });
 });
@@ -356,11 +356,13 @@ app.get('/', (req, res) => {
   if (req.query.ref) {
     req.session.pendingReferral = String(req.query.ref).trim().toUpperCase();
   }
+  // Desde páginas de error: forzar landing para no reentrar al dashboard roto
+  const forceLanding = req.query.landing === '1' || req.query.landing === 'true';
   // Admin con sesión activa: no mostrar landing/CTA público (evita “Empezar gratis” → panel)
-  if (req.session.user?.role === 'admin' || req.session.isAdminSession) {
+  if (!forceLanding && (req.session.user?.role === 'admin' || req.session.isAdminSession)) {
     return res.redirect(ADMIN_BASE);
   }
-  if (req.session.user && store.isReady()) {
+  if (!forceLanding && req.session.user && store.isReady()) {
     const dashboards = {
       client: '/cliente',
       provider: '/proveedor',
@@ -682,10 +684,12 @@ app.use((err, req, res, next) => {
   console.error('[ERROR]', req.method, req.path, err.message);
   if (err.stack) console.error(err.stack);
   if (res.headersSent) return next(err);
+  const retryPath = String(req.originalUrl || req.path || '/').split('#')[0] || '/';
   res.status(500).render('error', {
     title: req.t('error.internal.title'),
     message: req.t('error.internal.message'),
-    code: 500
+    code: 500,
+    retryPath
   });
 });
 
@@ -693,7 +697,8 @@ app.use((req, res) => {
   res.status(404).render('error', {
     title: req.t('error.not_found.title'),
     message: req.t('error.not_found.message'),
-    code: 404
+    code: 404,
+    retryPath: '/'
   });
 });
 
