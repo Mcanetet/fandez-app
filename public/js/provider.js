@@ -216,7 +216,7 @@
             <span class="zilo-badge zilo-badge-success">${t('provider.js.available')}</span>
           </div>
         </div>
-        <p class="text-xs text-zilo-muted mb-1 truncate">${escapeHtml(req.address)}</p>
+        <p class="text-xs text-zilo-muted mb-1 truncate">${escapeHtml(req.zoneLabel || req.communeName || 'Zona disponible')}</p>
         ${whenHtml}
         ${urgency}
         ${notesHtml}
@@ -338,20 +338,13 @@
         : '';
     document.getElementById('modalServiceName').textContent = data.service?.name || '—';
     document.getElementById('modalClient').textContent = data.client?.name || '—';
-    document.getElementById('modalAddress').textContent = data.request.address || '—';
-    document.getElementById('modalCoords').textContent =
-      data.request.coords ? `${data.request.coords.lat}, ${data.request.coords.lng}` : '-33.4489, -70.6693';
+    document.getElementById('modalAddress').textContent = data.request.zoneLabel || data.request.communeName || 'Zona disponible';
+    document.getElementById('modalCoords').textContent = data.request.zoneLabel || data.request.communeName || '—';
 
     const mapEl = document.getElementById('modalMap');
-    if (data.request.coords && typeof FandezMap !== 'undefined') {
-      setTimeout(() => {
-        FandezMap.init(mapEl, {
-          lat: data.request.coords.lat,
-          lng: data.request.coords.lng,
-          label: data.request.address,
-          zoom: 16
-        });
-      }, 400);
+    if (mapEl) {
+      mapEl.classList.add('hidden');
+      mapEl.innerHTML = '';
     }
 
     document.getElementById('modalPrice').textContent = `${t('provider.js.your_payout')}: ${fmt(data.request.providerPayout ?? data.request.estimatedVisit)}`;

@@ -148,7 +148,8 @@
 
   document.querySelectorAll('[data-role="desert-btn"]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      if (!confirm('¿Liberar este pedido? Volverá a búsqueda para otros socios y sumará a tu tasa de liberación.')) return;
+      if (!confirm('¿Liberar este pedido?\n\nVolverá a búsqueda para otros socios y sumará a tu tasa de liberación.\nEsta acción no se puede deshacer.')) return;
+      if (!confirm('Confirma: liberar pedido y devolverlo al muro de la red.')) return;
       btn.disabled = true;
       try {
         const res = await fetch(`/proveedor/desertar/${btn.dataset.id}`, {

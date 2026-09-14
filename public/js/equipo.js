@@ -134,4 +134,26 @@
       }
     });
   });
+
+  const tabButtons = document.querySelectorAll('.equipo-tab');
+  const panels = document.querySelectorAll('[data-equipo-panel]');
+  function showEquipoTab(name) {
+    tabButtons.forEach((btn) => {
+      const on = btn.dataset.tab === name;
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      btn.classList.toggle('bg-white', on);
+      btn.classList.toggle('text-zilo-accent', on);
+      btn.classList.toggle('shadow-sm', on);
+      btn.classList.toggle('text-zilo-muted', !on);
+    });
+    panels.forEach((panel) => {
+      panel.classList.toggle('hidden', panel.dataset.equipoPanel !== name);
+    });
+    try { history.replaceState(null, '', `#${name}`); } catch (_) {}
+  }
+  tabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => showEquipoTab(btn.dataset.tab));
+  });
+  const hash = (location.hash || '').replace('#', '');
+  if (['servicios', 'tecnicos', 'agregar'].includes(hash)) showEquipoTab(hash);
 })();

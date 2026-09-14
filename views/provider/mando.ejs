@@ -100,7 +100,10 @@
                   <p class="text-sm font-semibold text-amber-950 tabular-nums" data-role="accept-countdown"><%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>:00</p>
                   <p class="text-[11px] text-amber-800/80"><%= t('provider.mando_page.accept_timeout_hint') %></p>
                   <a href="/proveedor/trabajo/<%= r.id %>" class="block text-center zilo-btn-ghost !py-2 !text-xs"><%= t('provider.mando_page.view_job') %></a>
-                  <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release') %></button>
+                  <details class="mt-1">
+                    <summary class="text-[11px] text-zilo-muted cursor-pointer py-1">Más opciones</summary>
+                    <button type="button" class="w-full mt-2 py-2 text-xs text-red-700 underline" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release') %></button>
+                  </details>
                 </div>
               <% } else if (r.technicianId) { %>
                 <div class="space-y-2">
@@ -113,7 +116,10 @@
                     <button type="button" class="flex-1 zilo-btn-ghost !py-2 !text-xs" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>"><%= t('provider.mando_page.chat_client') %></button>
                   </div>
                   <% if (!['en_sitio','diagnostico','reparando','comprando','presupuesto_pendiente','presupuesto_aprobado','completado'].includes(r.techStatus)) { %>
-                    <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release_short') %></button>
+                    <details class="mt-1">
+                      <summary class="text-[11px] text-zilo-muted cursor-pointer py-1">Más opciones</summary>
+                      <button type="button" class="w-full mt-2 py-2 text-xs text-red-700 underline" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release_short') %></button>
+                    </details>
                   <% } %>
                 </div>
               <% } else if (technicians.length > 0) { %>
@@ -134,16 +140,22 @@
                     <% }); %>
                   </select>
                   <button type="button" class="zilo-btn-primary w-full !py-3 !text-sm" data-role="assign-btn" data-id="<%= r.id %>" <%= eligibleTechs.length ? '' : 'disabled' %>><%= t('provider.mando_page.assign_btn') %></button>
-                  <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release_no_tech') %></button>
                   <button type="button" class="w-full zilo-btn-ghost !py-2.5 !text-sm" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>"><%= t('provider.mando_page.chat_client') %></button>
+                  <details class="mt-1">
+                    <summary class="text-[11px] text-zilo-muted cursor-pointer py-1">Más opciones</summary>
+                    <button type="button" class="w-full mt-2 py-2 text-xs text-red-700 underline" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release_no_tech') %></button>
+                  </details>
                   <% if (!eligibleTechs.length) { %>
                     <a href="/proveedor/equipo" class="block text-center text-[11px] text-zilo-accent underline"><%= t('provider.mando_page.activate_tech') %></a>
                   <% } %>
                 </div>
               <% } else { %>
                 <a href="/proveedor/equipo" class="block text-center zilo-btn-ghost !py-3 !text-sm"><%= t('provider.mando_page.add_tech') %></a>
-                <button type="button" class="w-full py-2.5 rounded-xl border border-red-300 text-red-700 text-xs font-semibold mt-2" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release_short') %></button>
                 <button type="button" class="w-full zilo-btn-ghost !py-2.5 !text-sm mt-2" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>"><%= t('provider.mando_page.chat_client') %></button>
+                <details class="mt-2">
+                  <summary class="text-[11px] text-zilo-muted cursor-pointer py-1">Más opciones</summary>
+                  <button type="button" class="w-full mt-2 py-2 text-xs text-red-700 underline" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release_short') %></button>
+                </details>
               <% } %>
             </div>
 

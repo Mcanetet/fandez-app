@@ -116,7 +116,7 @@
     showWizardPanel('materiales');
   });
 
-  const WIZARD_PANELS = ['confirmar', 'trayecto', 'llegada', 'accion', 'presupuesto', 'espera', 'materiales', 'cierre', 'cambio'];
+  const WIZARD_PANELS = ['confirmar', 'trayecto', 'llegada', 'diagnostico', 'accion', 'presupuesto', 'espera', 'materiales', 'cierre', 'cambio'];
 
   function resolveWizardStep() {
     const nav = document.getElementById('fieldWizard');
@@ -124,12 +124,13 @@
     if (fromNav && fromNav !== 'done') return fromNav;
     const ts = page.dataset.techStatus || nav?.dataset.techStatus || '';
     const confirm = nav?.dataset.confirmStatus || '';
-    const codeOk = document.getElementById('stepLlegada')?.dataset.codeVerified === '1';
+    const codeOk = document.getElementById('stepLlegada')?.dataset.codeVerified === '1'
+      || document.getElementById('stepDiagnostico')?.dataset.codeVerified === '1';
     if (confirm === 'change_pending') return 'cambio';
     if (ts === 'aceptado' || ts === 'en_camino') return 'trayecto';
     if (ts === 'en_sitio' && !codeOk) return 'llegada';
     if (ts === 'en_sitio' && confirm === 'pending') return 'confirmar';
-    if (ts === 'en_sitio') return 'llegada';
+    if (ts === 'en_sitio') return 'diagnostico';
     if (ts === 'diagnostico') return 'accion';
     if (ts === 'presupuesto_pendiente') return 'presupuesto';
     if (ts === 'comprando') return 'materiales';
@@ -174,6 +175,7 @@
       document.getElementById('arrivalCodeGate')?.classList.add('hidden');
       document.getElementById('arrivalCodeOk')?.classList.remove('hidden');
       document.getElementById('stepLlegada')?.setAttribute('data-code-verified', '1');
+      document.getElementById('stepDiagnostico')?.setAttribute('data-code-verified', '1');
       const confirm = document.getElementById('fieldWizard')?.dataset.confirmStatus
         || document.getElementById('stepLlegada')?.dataset.confirmStatus
         || '';
@@ -183,7 +185,7 @@
         showWizardPanel('confirmar');
       } else {
         document.getElementById('arrivalReviewForm')?.classList.remove('hidden');
-        showWizardPanel('llegada');
+        showWizardPanel('diagnostico');
       }    } catch (err) {
       btn.disabled = false;
       notify(err.message || 'Código incorrecto', 'error');
@@ -201,7 +203,8 @@
     const detail = document.getElementById('diagnosis').value.trim();
     const diagnosis = [chipText, detail].filter(Boolean).join('. ');
     if (!diagnosis) return notify('Elige al menos una opción o escribe un detalle', 'warning');
-    const codeVerified = document.getElementById('stepLlegada')?.dataset.codeVerified === '1';
+    const codeVerified = document.getElementById('stepLlegada')?.dataset.codeVerified === '1'
+      || document.getElementById('stepDiagnostico')?.dataset.codeVerified === '1';
     const arrivalCode = document.getElementById('arrivalCodeInput')?.value.trim();
     if (!codeVerified && (!arrivalCode || arrivalCode.replace(/\D/g, '').length !== 6)) {
       return notify('Primero valida el código de seguridad del cliente', 'warning');

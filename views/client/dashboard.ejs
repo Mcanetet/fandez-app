@@ -72,55 +72,69 @@
     <% }); %>
 
     <% if (hasActive) { %>
-    <!-- Modo visita activa: tracking + opción de pedir otro servicio -->
+    <!-- Modo visita activa: hero seguimiento + catálogo colapsado -->
     <section class="mb-6">
+      <% const primaryActive = activeRequests[0]; %>
+      <a href="/cliente/servicio/<%= primaryActive.serviceId %>?tracking=<%= primaryActive.id %>"
+        class="block p-5 rounded-2xl zilo-card-premium border border-zilo-accent/30 mb-4 hover:border-zilo-accent/50 transition">
+        <p class="zilo-label !mb-1 text-zilo-accent">Visita en curso</p>
+        <h2 class="text-lg font-semibold text-zilo-text mb-1"><%= primaryActive.serviceName %></h2>
+        <p class="text-sm text-zilo-muted mb-3"><%= primaryActive.statusLabel || primaryActive.status %><% if (primaryActive.etaLabel) { %> · ETA <%= primaryActive.etaLabel %><% } %></p>
+        <span class="inline-flex items-center justify-center w-full py-3 rounded-xl zilo-btn-primary !text-sm">Seguir visita</span>
+      </a>
+      <% if (activeRequests.length > 1) { %>
       <div class="flex items-center justify-between mb-3">
         <h2 class="zilo-label !mb-0"><%= t('client.in_progress') %></h2>
         <span class="text-[10px] font-semibold text-zilo-accent"><%= t(activeRequests.length === 1 ? 'client.dashboard.active_one' : 'client.dashboard.active_many', { count: activeRequests.length }) %></span>
       </div>
-      <div class="space-y-2">
-        <% activeRequests.forEach(function(req) { %>
+      <div class="space-y-2 mb-4">
+        <% activeRequests.slice(1).forEach(function(req) { %>
           <a href="/cliente/servicio/<%= req.serviceId %>?tracking=<%= req.id %>"
             class="flex items-center gap-3 p-4 rounded-2xl zilo-card-premium border border-zilo-accent/20 hover:border-zilo-accent/40 transition">
-            <div class="w-11 h-11 rounded-xl bg-zilo-accent/10 text-zilo-accent flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            </div>
             <div class="flex-1 min-w-0">
               <strong class="text-sm block truncate"><%= req.serviceName %></strong>
-              <% if (req.isGift) { %><span class="text-[10px] text-zilo-accent"><%= t('client.dashboard.gift_badge') %> · <%= req.beneficiaryName %></span><% } %>
               <span class="text-xs text-zilo-muted block mt-0.5 truncate"><%= req.statusLabel || req.status %></span>
             </div>
             <span class="text-[11px] font-semibold text-zilo-accent shrink-0"><%= t('client.dashboard.follow') %></span>
           </a>
         <% }); %>
       </div>
+      <% } %>
     </section>
 
     <% if (mod('client_solicitar')) { %>
-    <h2 class="zilo-label mb-1" data-tour="services" id="servicesSection"><%= t('client.dashboard.request_another') %></h2>
-    <p class="text-xs text-zilo-muted mb-3"><%= t('client.dashboard.request_another_hint') %></p>
-    <div id="servicesGrid" class="grid grid-cols-2 gap-3 mb-5">
-      <% (services || []).forEach(function(service, idx) { %>
-        <a href="/cliente/servicio/<%= service.id %>" data-service-id="<%= service.id %>"
-          class="service-item group flex flex-col items-center gap-3 p-5 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 hover:-translate-y-0.5 transition-all duration-300 <%= idx >= 6 ? 'hidden service-item--extra' : '' %>">
-          <%- include('../partials/service-icon', { icon: service.icon, size: 'lg' }) %>
-          <span class="font-medium text-sm text-center leading-tight px-1" style="overflow-wrap:anywhere"><%= service.name %></span>
-          <span class="w-full text-center leading-tight">
-            <span class="block text-[10px] text-zilo-muted"><%= t('client.from_price') %></span>
-            <span class="block text-xs font-medium text-zilo-muted tabular-nums"><%= formatCLP(service.averagePrice) %><% if (service.pricingUnit === 'm2') { %> / m²<% } %></span>
-          </span>
-        </a>
-      <% }); %>
-    </div>
-    <% if ((services || []).length > 6) { %>
-    <button type="button" id="btnShowMoreServicesActive" class="w-full mb-5 py-2.5 rounded-xl zilo-btn-ghost text-sm"><%= t('client.dashboard.more_services') %></button>
-    <script>
-      document.getElementById('btnShowMoreServicesActive')?.addEventListener('click', function () {
-        document.querySelectorAll('#servicesGrid .service-item--extra').forEach(function (el) { el.classList.remove('hidden'); });
-        this.remove();
-      });
-    </script>
-    <% } %>
+    <details class="mb-5 group">
+      <summary class="cursor-pointer list-none flex items-center justify-between gap-2 py-2">
+        <span>
+          <span class="zilo-label !mb-0" data-tour="services" id="servicesSection"><%= t('client.dashboard.request_another') %></span>
+          <span class="block text-xs text-zilo-muted mt-0.5"><%= t('client.dashboard.request_another_hint') %></span>
+        </span>
+        <span class="text-[11px] text-zilo-accent font-semibold group-open:hidden">Ver</span>
+        <span class="text-[11px] text-zilo-muted font-semibold hidden group-open:inline">Ocultar</span>
+      </summary>
+      <div id="servicesGrid" class="grid grid-cols-2 gap-3 mt-3 mb-2">
+        <% (services || []).forEach(function(service, idx) { %>
+          <a href="/cliente/servicio/<%= service.id %>" data-service-id="<%= service.id %>"
+            class="service-item group flex flex-col items-center gap-3 p-5 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 hover:-translate-y-0.5 transition-all duration-300 <%= idx >= 6 ? 'hidden service-item--extra' : '' %>">
+            <%- include('../partials/service-icon', { icon: service.icon, size: 'lg' }) %>
+            <span class="font-medium text-sm text-center leading-tight px-1" style="overflow-wrap:anywhere"><%= service.name %></span>
+            <span class="w-full text-center leading-tight">
+              <span class="block text-[10px] text-zilo-muted"><%= t('client.from_price') %></span>
+              <span class="block text-xs font-medium text-zilo-muted tabular-nums"><%= formatCLP(service.averagePrice) %><% if (service.pricingUnit === 'm2') { %> / m²<% } %></span>
+            </span>
+          </a>
+        <% }); %>
+      </div>
+      <% if ((services || []).length > 6) { %>
+      <button type="button" id="btnShowMoreServicesActive" class="w-full mb-2 py-2.5 rounded-xl zilo-btn-ghost text-sm"><%= t('client.dashboard.more_services') %></button>
+      <script>
+        document.getElementById('btnShowMoreServicesActive')?.addEventListener('click', function () {
+          document.querySelectorAll('#servicesGrid .service-item--extra').forEach(function (el) { el.classList.remove('hidden'); });
+          this.remove();
+        });
+      </script>
+      <% } %>
+    </details>
     <% } %>
 
     <% } else { %>

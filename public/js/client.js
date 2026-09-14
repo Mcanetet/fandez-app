@@ -1414,6 +1414,45 @@
     }
   }
 
+  function getPendingClientAction(request) {
+    if (!request) return null;
+    const sr = request.siteReport;
+    if (request.techStatus === 'presupuesto_pendiente' && sr?.budgetStatus === 'pending') {
+      return { key: 'budget', label: 'Acción requerida', status: 'Aprueba o rechaza el presupuesto', target: 'budgetBanner', cta: 'Revisar' };
+    }
+    if (sr?.activityChange?.status === 'pending') {
+      return { key: 'change', label: 'Acción requerida', status: 'Confirma el cambio de servicio', target: 'activityChangeBanner', cta: 'Revisar' };
+    }
+    if (sr?.additionalPayment?.status === 'pending' || request.additionalPaymentPending) {
+      return { key: 'payment', label: 'Acción requerida', status: 'Completa el pago adicional', target: 'additionalPaymentBanner', cta: 'Pagar' };
+    }
+    if (request.techStatus === 'en_sitio' && request.arrivalCode && !request.arrivalCodeVerified) {
+      return { key: 'code', label: 'Acción requerida', status: 'Entrega el código de seguridad', target: 'arrivalCodeCard', cta: 'Ver código' };
+    }
+    return null;
+  }
+
+  function syncStickyTrackAction(request, step) {
+    const stickyAction = document.getElementById('stickyTrackAction');
+    const stickyChat = document.getElementById('stickyTrackChat');
+    const stickyLabel = document.getElementById('stickyTrackLabel');
+    const stickyStatus = document.getElementById('stickyTrackStatus');
+    const pending = getPendingClientAction(request);
+    if (!stickyAction) return;
+    if (pending && step !== 'done') {
+      stickyAction.classList.remove('hidden');
+      stickyAction.textContent = pending.cta;
+      stickyAction.dataset.target = pending.target;
+      if (stickyChat) stickyChat.classList.add('hidden');
+      if (stickyLabel) stickyLabel.textContent = pending.label;
+      if (stickyStatus) stickyStatus.textContent = pending.status;
+    } else {
+      stickyAction.classList.add('hidden');
+      stickyAction.dataset.target = '';
+      if (stickyChat) stickyChat.classList.remove('hidden');
+    }
+  }
+
   function updateTripStatusHero(request, step) {
     const title = document.getElementById('tripStatusTitle');
     const sub = document.getElementById('tripStatusSub');
@@ -1453,7 +1492,6 @@
       tripLabel.textContent = 'El socio está asignando otro técnico';
     }
 
-    const phone = null;
     const canCall = Boolean(request?.canCallTechnician);
     const applyCall = (el) => {
       if (!el) return;
@@ -1475,6 +1513,7 @@
     applyCall(call);
     applyCall(stickyCall);
     updateArrivalCodeCard(request);
+    syncStickyTrackAction(request, step);
 
     if (sticky) {
       const show = step !== 'done' && !!request?.providerId;
@@ -1773,6 +1812,7 @@
         tag: 'fandez-budget-' + (request.id || currentRequestId)
       });
     }
+    syncStickyTrackAction(request, 'working');
   }
 
   function showActivityChangeBanner(request) {
@@ -2535,6 +2575,55 @@
 
   document.getElementById('tripHeroChat')?.addEventListener('click', openTrackingChat);
   document.getElementById('stickyTrackChat')?.addEventListener('click', openTrackingChat);
+  document.getElementById('stickyTrackAction')?.addEventListener('click', () => {
+    const targetId = document.getElementById('stickyTrackAction')?.dataset.target;
+    const el = targetId ? document.getElementById(targetId) : null;
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-zilo-accent/40');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-zilo-accent/40'), 1600);
+    }
+  });
+
+  (function initCheckoutWizard() {
+    const form = document.getElementById('requestForm');
+    if (!form || form.dataset.checkoutWizard !== '1') return;
+    let step = 1;
+    const panels = form.querySelectorAll('[data-co-panel]');
+    const tabs = form.querySelectorAll('.co-step-tab');
+    function refreshReview() {
+      const act = document.getElementById('activityId');
+      const actLabel = act?.selectedOptions?.[0]?.textContent?.trim() || '—';
+      const addr = document.getElementById('address')?.value?.trim() || '—';
+      const total = document.getElementById('stickyTotal')?.textContent || document.getElementById('priceVisit')?.textContent || '—';
+      const elAct = document.getElementById('coReviewActivity');
+      const elAddr = document.getElementById('coReviewAddress');
+      const elTot = document.getElementById('coReviewTotal');
+      if (elAct) elAct.textContent = actLabel;
+      if (elAddr) elAddr.textContent = addr;
+      if (elTot) elTot.textContent = total;
+    }
+    function showStep(n) {
+      step = Math.max(1, Math.min(3, Number(n) || 1));
+      panels.forEach((p) => p.classList.toggle('hidden', String(p.dataset.coPanel) !== String(step)));
+      tabs.forEach((tab) => {
+        const on = String(tab.dataset.coGoto) === String(step);
+        tab.classList.toggle('bg-white', on);
+        tab.classList.toggle('text-zilo-accent', on);
+        tab.classList.toggle('shadow-sm', on);
+        tab.classList.toggle('text-zilo-muted', !on);
+      });
+      if (step === 3) refreshReview();
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    form.querySelectorAll('[data-co-next]').forEach((btn) => {
+      btn.addEventListener('click', () => showStep(btn.dataset.coNext));
+    });
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => showStep(tab.dataset.coGoto));
+    });
+    showStep(1);
+  })();
 
   document.getElementById('btnNoProviderContinue')?.addEventListener('click', () => {
     const id = document.getElementById('noProviderChoicePanel')?.dataset?.requestId || currentRequestId;
@@ -2593,7 +2682,15 @@
     });
   });
 
-  document.getElementById('btnRequestSticky')?.addEventListener('click', submitRequest);
+  document.getElementById('btnRequestSticky')?.addEventListener('click', () => {
+    const form = document.getElementById('requestForm');
+    const reviewPanel = form?.querySelector('[data-co-panel="3"]');
+    if (form?.dataset.checkoutWizard === '1' && reviewPanel?.classList.contains('hidden')) {
+      form.querySelector('[data-co-goto="3"]')?.click();
+      return;
+    }
+    submitRequest();
+  });
 
   const stickyBar = document.getElementById('stickyOrderBar');
   const requestFormEl = document.getElementById('requestForm');

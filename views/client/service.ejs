@@ -164,7 +164,14 @@
     </section>
     <% } %>
 
-    <section id="requestForm" class="space-y-4 zilo-page-enter-delay-2">
+    <section id="requestForm" class="space-y-4 zilo-page-enter-delay-2" data-checkout-wizard="1">
+      <nav id="checkoutSubSteps" class="flex gap-1 p-1 rounded-xl bg-zilo-elevated border border-zilo-border" aria-label="Pasos del pedido">
+        <button type="button" class="co-step-tab flex-1 py-2 rounded-lg text-[10px] font-semibold bg-white text-zilo-accent shadow-sm" data-co-goto="1"><%= t('client.service.checkout_step_when') %></button>
+        <button type="button" class="co-step-tab flex-1 py-2 rounded-lg text-[10px] font-semibold text-zilo-muted" data-co-goto="2"><%= t('client.service.checkout_step_where') %></button>
+        <button type="button" class="co-step-tab flex-1 py-2 rounded-lg text-[10px] font-semibold text-zilo-muted" data-co-goto="3"><%= t('client.service.checkout_step_review') %></button>
+      </nav>
+
+      <div data-co-panel="1" class="space-y-4">
       <% if (mod('client_regalo')) { %>
       <div class="p-4 rounded-2xl zilo-gift-card">
         <label class="flex items-center gap-3 cursor-pointer">
@@ -190,20 +197,6 @@
         </div>
       </div>
       <% } %>
-
-      <div>
-        <label for="address" class="zilo-label block mb-1.5" id="addressLabel"><%= t('client.service.address') %></label>
-        <input type="text" id="address" placeholder="<%= t('client.service.address_ph') %>"
-          value="<%= typeof profile !== 'undefined' ? profile.address : '' %>" class="zilo-input">
-        <input type="hidden" id="lat"><input type="hidden" id="lng">
-      </div>
-
-      <div>
-        <label class="zilo-label block mb-1.5"><%= t('client.service.location') %></label>
-        <div id="addressMap" class="w-full h-44 rounded-2xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
-        <p id="mapStatus" class="text-[10px] text-zilo-muted mt-1.5"><%= t('client.service.map_hint') %></p>
-        <div id="coverageAlert" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs leading-relaxed" role="alert"></div>
-      </div>
 
       <% if (typeof activities !== 'undefined' && activities.length) { %>
       <div>
@@ -281,6 +274,23 @@
         </div>
       </div>
       <% } %>
+      <button type="button" class="zilo-btn-primary w-full" data-co-next="2"><%= t('client.service.checkout_next') %></button>
+      </div>
+
+      <div data-co-panel="2" class="space-y-4 hidden">
+      <div>
+        <label for="address" class="zilo-label block mb-1.5" id="addressLabel"><%= t('client.service.address') %></label>
+        <input type="text" id="address" placeholder="<%= t('client.service.address_ph') %>"
+          value="<%= typeof profile !== 'undefined' ? profile.address : '' %>" class="zilo-input">
+        <input type="hidden" id="lat"><input type="hidden" id="lng">
+      </div>
+
+      <div>
+        <label class="zilo-label block mb-1.5"><%= t('client.service.location') %></label>
+        <div id="addressMap" class="w-full h-44 rounded-2xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
+        <p id="mapStatus" class="text-[10px] text-zilo-muted mt-1.5"><%= t('client.service.map_hint') %></p>
+        <div id="coverageAlert" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs leading-relaxed" role="alert"></div>
+      </div>
 
       <div>
         <label for="notes" class="zilo-label block mb-1.5"><%= t('client.service.detail') %> <span class="font-normal text-zilo-muted"><%= t('client.service.detail_opt') %></span></label>
@@ -318,9 +328,26 @@
           </span>
         </label>
       </div>
+      <div class="flex gap-2">
+        <button type="button" class="flex-1 py-3 rounded-xl zilo-btn-ghost" data-co-next="1"><%= t('client.service.checkout_back') %></button>
+        <button type="button" class="flex-1 zilo-btn-primary" data-co-next="3"><%= t('client.service.checkout_next') %></button>
+      </div>
+      </div>
 
-      <button type="button" id="btnRequest" class="zilo-btn-primary"><%= t('client.service.continue') %></button>
-      <p class="text-center text-[10px] text-zilo-muted"><%= t('client.service.secure_pay') %></p>
+      <div data-co-panel="3" class="space-y-4 hidden">
+        <div class="p-4 rounded-2xl zilo-card-premium border border-zilo-accent/15 space-y-2" id="checkoutReviewCard">
+          <p class="zilo-label mb-1"><%= t('client.service.checkout_step_review') %></p>
+          <p class="text-sm"><strong id="coReviewService"><%= service.name %></strong></p>
+          <p class="text-xs text-zilo-muted" id="coReviewActivity">—</p>
+          <p class="text-xs text-zilo-muted" id="coReviewAddress">—</p>
+          <p class="text-sm font-semibold text-zilo-accent" id="coReviewTotal">—</p>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" class="flex-1 py-3 rounded-xl zilo-btn-ghost" data-co-next="2"><%= t('client.service.checkout_back') %></button>
+          <button type="button" id="btnRequest" class="flex-1 zilo-btn-primary"><%= t('client.service.continue') %></button>
+        </div>
+        <p class="text-center text-[10px] text-zilo-muted"><%= t('client.service.secure_pay') %></p>
+      </div>
     </section>
 
     <div id="stickyOrderBar" class="sticky-order-bar" aria-hidden="true">
@@ -340,6 +367,7 @@
           <strong id="stickyTrackStatus" class="text-sm text-zilo-text block truncate">Conectando…</strong>
         </div>
         <div class="sticky-track-actions">
+          <button type="button" id="stickyTrackAction" class="sticky-track-btn sticky-track-btn--primary hidden">Revisar</button>
           <button type="button" id="stickyTrackChat" class="sticky-track-btn sticky-track-btn--primary">Mensajes</button>
           <a id="stickyTrackCall" href="#" class="sticky-track-btn sticky-track-btn--ghost hidden">Llamar</a>
         </div>
@@ -594,8 +622,8 @@
           <div class="trip-step active" data-step="assigned"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.assigned') %></strong><p class="text-[10px] text-zilo-muted" id="tripProviderLabel"><%= t('client.service.connecting_dots') %></p></div></div>
           <div class="trip-step" data-step="enroute"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_way') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.enroute_sub') %></p></div></div>
           <div class="trip-step" data-step="arrived"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_site') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.onsite_sub') %></p></div></div>
-          <div class="trip-step" data-step="working"><span class="trip-dot"></span><div><strong class="text-xs">En trabajo</strong><p class="text-[10px] text-zilo-muted">Diagnóstico o reparación</p></div></div>
-          <div class="trip-step" data-step="done"><span class="trip-dot"></span><div><strong class="text-xs">Completado</strong><p class="text-[10px] text-zilo-muted">Listo para calificar</p></div></div>
+          <div class="trip-step" data-step="working"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_working') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.working_sub') %></p></div></div>
+          <div class="trip-step" data-step="done"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_done') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.done_sub') %></p></div></div>
         </div>
       </div>
 
@@ -630,9 +658,18 @@
         </div>
         <div id="providerVerification" class="flex flex-wrap gap-1.5 mb-3"></div>
         <p id="providerAdherence" class="hidden text-xs text-zilo-muted mb-2"></p>
-        <p id="providerBio" class="text-sm text-zilo-muted mb-4 leading-relaxed"></p>
-        <p class="zilo-label mb-3"><%= t('client.service.reviews') %></p>
-        <div id="reviewsList" class="space-y-2 mb-4"></div>
+        <details id="providerTeamDetails" class="mb-4 group">
+          <summary class="cursor-pointer list-none flex items-center justify-between gap-2 py-1">
+            <span class="zilo-label !mb-0"><%= t('client.service.your_team') %></span>
+            <span class="text-[10px] text-zilo-muted group-open:hidden">Ver bio y reseñas</span>
+            <span class="text-[10px] text-zilo-muted hidden group-open:inline">Ocultar</span>
+          </summary>
+          <div class="pt-2">
+            <p id="providerBio" class="text-sm text-zilo-muted mb-4 leading-relaxed"></p>
+            <p class="zilo-label mb-3"><%= t('client.service.reviews') %></p>
+            <div id="reviewsList" class="space-y-2 mb-2"></div>
+          </div>
+        </details>
         <p id="contactPrivacyHint" class="text-[11px] text-zilo-muted mb-3 leading-relaxed"><%= t('client.service.contact_privacy_hint') %></p>
         <button type="button" id="openJobChatBtn" class="hidden zilo-btn-primary w-full mb-2 !text-sm"><%= t('client.service.chat_partner') %></button>
         <a id="providerPhone" href="#" class="hidden zilo-btn-ghost w-full mb-2"><%= t('client.service.call_tech') %></a>

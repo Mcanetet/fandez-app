@@ -408,7 +408,7 @@
   "provider.no_services_active": "Ningún servicio activo. Agrégalos en Mi equipo con técnicos listos.",
   "provider.work_wall": "Trabajos disponibles",
   "provider.work_wall_hint": "Pedidos listos para tomar en tus servicios activos. Debes estar en línea y tener un técnico con expediente completo (o activar «Yo hago el servicio»). El primero que toma, se lo queda.",
-  "provider.work_wall_preview_hint": "Verás una vista previa (foto y descripción corta). En Ver detalle están las fotos completas antes de tomar el trabajo.",
+  "provider.work_wall_preview_hint": "Antes de aceptar solo ves comuna/zona. La dirección exacta aparece al tomar el pedido.",
   "provider.no_requests": "Sin solicitudes ahora",
   "provider.no_requests_desc": "Activa el modo en línea. Si ya lo estás, revisa en Mi equipo que tengas un técnico con expediente completo. Los pedidos pagados (en búsqueda) aparecen aquí en vivo.",
   "provider.active_job": "En curso",

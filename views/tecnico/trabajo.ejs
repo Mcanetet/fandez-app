@@ -64,21 +64,21 @@
       else if (['aceptado','en_camino'].includes(request.techStatus)) wizardStep = 'trayecto';
       else if (request.techStatus === 'en_sitio' && !codeOk) wizardStep = 'llegada';
       else if (request.techStatus === 'en_sitio' && codeOk && request.serviceConfirmStatus === 'pending') wizardStep = 'confirmar';
-      else if (request.techStatus === 'en_sitio') wizardStep = 'llegada';
+      else if (request.techStatus === 'en_sitio' && codeOk) wizardStep = 'diagnostico';
       else if (request.techStatus === 'diagnostico') wizardStep = 'accion';
       else if (budgetForm) wizardStep = 'presupuesto';
       else if (budgetWaiting) wizardStep = 'espera';
       else if (request.techStatus === 'comprando') wizardStep = 'materiales';
       else if (['reparando','presupuesto_aprobado'].includes(request.techStatus)) wizardStep = 'cierre';
       else if (request.techStatus === 'completado') wizardStep = 'done';
-      const wizardOrder = ['trayecto','llegada','confirmar','accion','presupuesto','espera','materiales','cierre','done'];
+      const wizardOrder = ['trayecto','llegada','confirmar','diagnostico','accion','presupuesto','espera','materiales','cierre','done'];
       const wizardIdx = Math.max(0, wizardOrder.indexOf(wizardStep === 'cambio' ? 'accion' : wizardStep));
       const wizardSteps = [
         { id: 'trayecto', label: 'Trayecto' },
         { id: 'llegada', label: 'Llegada' },
         { id: 'confirmar', label: 'Confirmar' },
+        { id: 'diagnostico', label: 'Diagnóstico' },
         { id: 'accion', label: 'Decisión' },
-        { id: 'materiales', label: 'Materiales' },
         { id: 'cierre', label: 'Cierre' }
       ];
     %>
@@ -104,47 +104,38 @@
     </nav>
 
     <% if (isObserver && ['aceptado','asignado','en_camino'].includes(request.techStatus)) { %>
-      <section class="rounded-2xl border border-zilo-accent/25 bg-gradient-to-br from-amber-50/80 to-white p-4 space-y-2">
-        <p class="zilo-label !text-[9px] text-zilo-accent">Coordinación · socio</p>
-        <h2 class="text-sm font-semibold text-zilo-text">Cómo acompañar sin generar presión</h2>
-        <ul class="text-xs text-zilo-muted space-y-1.5 leading-relaxed">
-          <li>· Si delegaste: un aviso breve al técnico (“pedido listo, cliente espera”) basta; evita microgestionar.</li>
-          <li>· Usa el chat para coordinar, no para interrogar al cliente.</li>
-          <li>· Si vas tú a terreno: saluda, presenta Fandez y pide permiso — genera seguridad.</li>
+      <details class="rounded-2xl border border-zilo-accent/25 bg-gradient-to-br from-amber-50/80 to-white p-4">
+        <summary class="cursor-pointer text-sm font-semibold text-zilo-text">Protocolo socio · 2 tips</summary>
+        <ul class="text-xs text-zilo-muted space-y-1.5 leading-relaxed mt-2">
+          <li>· Un aviso breve al técnico basta; evita microgestionar.</li>
           <li>· Cualquier sobrecosto: aprobación explícita antes de ejecutar.</li>
         </ul>
-        <div class="flex flex-wrap gap-2 pt-1">
+        <p class="text-[10px] text-zilo-muted mt-2"><a href="#fieldContext" class="text-zilo-accent font-medium">Ver protocolo Fandez completo</a></p>
+        <div class="flex flex-wrap gap-2 pt-2">
           <% const mapsUrlObserver = googleMapsDirectionsUrl(request.address, { communeName: request.communeName, lat: request.coords && request.coords.lat, lng: request.coords && request.coords.lng }); %>
           <% if (mapsUrlObserver) { %>
-            <a href="<%= mapsUrlObserver %>"
-              target="_blank" rel="noopener"
-              class="inline-flex zilo-btn-ghost !py-2 !px-3 !text-xs">Abrir ruta en Maps</a>
+            <a href="<%= mapsUrlObserver %>" target="_blank" rel="noopener" class="inline-flex zilo-btn-ghost !py-2 !px-3 !text-xs">Abrir ruta en Maps</a>
           <% } %>
           <button type="button" id="btnOpenFieldChatFromTips" class="inline-flex zilo-btn-primary !py-2 !px-3 !text-xs">Abrir chat</button>
         </div>
-      </section>
+      </details>
     <% } %>
 
     <% if (!isObserver && ['aceptado','asignado','en_camino'].includes(request.techStatus)) { %>
-      <section class="rounded-2xl border border-zilo-accent/25 bg-gradient-to-br from-amber-50/80 to-white p-4 space-y-2" id="fieldCareTips">
-        <p class="zilo-label !text-[9px] text-zilo-accent">Antes de llegar · ritual de confianza</p>
-        <h2 class="text-sm font-semibold text-zilo-text">Pequeñas costumbres que bajan la ansiedad del cliente</h2>
-        <ul class="text-xs text-zilo-muted space-y-1.5 leading-relaxed">
-          <li>· Un mensaje corto al salir: “Voy en camino, llego en X min” — reduce incertidumbre.</li>
-          <li>· En la puerta: nombre + “de Fandez”, sonrisa calmada, sin apuro.</li>
-          <li>· Pide permiso para entrar; explica en una frase qué vas a revisar.</li>
-          <li>· Si hay duda de precio, pregunta antes de actuar — el cliente siente control.</li>
-          <li>· Cierra con “¿Algo más que revise?” y pide la calificación en la app.</li>
+      <details class="rounded-2xl border border-zilo-accent/25 bg-gradient-to-br from-amber-50/80 to-white p-4" id="fieldCareTips">
+        <summary class="cursor-pointer text-sm font-semibold text-zilo-text">Antes de llegar · 2 tips</summary>
+        <ul class="text-xs text-zilo-muted space-y-1.5 leading-relaxed mt-2">
+          <li>· Mensaje corto al salir: “Voy en camino, llego en X min”.</li>
+          <li>· En la puerta: nombre + “de Fandez” y pide permiso para entrar.</li>
         </ul>
+        <p class="text-[10px] text-zilo-muted mt-2"><a href="#fieldContext" class="text-zilo-accent font-medium">Protocolo Fandez</a></p>
         <% if (request.techStatus === 'aceptado') { %>
           <% const mapsUrlTips = googleMapsDirectionsUrl(request.address, { communeName: request.communeName, lat: request.coords && request.coords.lat, lng: request.coords && request.coords.lng }); %>
           <% if (mapsUrlTips) { %>
-            <a href="<%= mapsUrlTips %>"
-              target="_blank" rel="noopener"
-              class="inline-flex mt-1 zilo-btn-ghost !py-2 !px-3 !text-xs">Abrir ruta en Google Maps</a>
+            <a href="<%= mapsUrlTips %>" target="_blank" rel="noopener" class="inline-flex mt-2 zilo-btn-ghost !py-2 !px-3 !text-xs">Abrir ruta en Google Maps</a>
           <% } %>
         <% } %>
-      </section>
+      </details>
     <% } %>
 
     <details class="zilo-card-premium rounded-2xl overflow-hidden" id="fieldContext"<%= ['aceptado','en_camino','asignado'].includes(request.techStatus) || wizardStep === 'confirmar' ? ' open' : '' %>>
@@ -223,7 +214,7 @@
         class="w-full py-4 rounded-xl zilo-btn-primary text-base"><%= request.techStatus === 'aceptado' ? 'Salí hacia el cliente' : 'Ya estoy en la puerta' %></button>
     </section>
 
-    <!-- Paso: Llegada — código primero -->
+    <!-- Paso: Llegada — solo código -->
     <section id="stepLlegada" data-wizard-panel="llegada" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'llegada' ? '' : 'hidden' %>"
       data-code-verified="<%= request.arrivalCodeVerified ? '1' : '0' %>"
       data-confirm-status="<%= request.serviceConfirmStatus || '' %>">
@@ -247,10 +238,15 @@
         <% if (request.serviceConfirmStatus === 'pending') { %>
           Ahora confirma si el servicio es el correcto.
         <% } else { %>
-          Puedes registrar el diagnóstico.
+          Continúa con el diagnóstico.
         <% } %>
       </div>
+    </section>
 
+    <!-- Paso: Diagnóstico (post-código) -->
+    <section id="stepDiagnostico" data-wizard-panel="diagnostico" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'diagnostico' ? '' : 'hidden' %>"
+      data-code-verified="<%= request.arrivalCodeVerified ? '1' : '0' %>">
+      <p class="zilo-label mb-1">Ahora · Diagnóstico</p>
       <div id="arrivalReviewForm" class="space-y-3 <%= request.arrivalCodeVerified && request.serviceConfirmStatus !== 'pending' && request.serviceConfirmStatus !== 'change_pending' ? '' : 'hidden' %>">
         <h2 class="text-sm font-semibold">¿Qué ves? · <%= request.serviceName %></h2>
         <div>
@@ -269,7 +265,7 @@
             <img src="" alt="Vista previa" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
           </div>
         </div>
-        <button type="button" id="btnLlegada" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Confirmar llegada y revisión</button>
+        <button type="button" id="btnLlegada" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Confirmar diagnóstico</button>
       </div>
     </section>
 

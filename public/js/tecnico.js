@@ -305,7 +305,7 @@
             <span class="zilo-badge zilo-badge-success">${t('tecnico.js.wall_available')}</span>
           </div>
         </div>
-        <p class="text-xs text-zilo-muted mb-2 truncate">${escapeHtml(req.address)}</p>
+        <p class="text-xs text-zilo-muted mb-2 truncate">${escapeHtml(req.zoneLabel || req.communeName || 'Zona disponible')}</p>
         ${notesHtml}
         <p class="text-xs font-semibold text-zilo-success mb-3">${t('provider.js.your_payout')}: ${fmt(req.providerPayout ?? req.estimatedVisit)}</p>
         <div class="hidden mb-3 p-3 rounded-xl bg-zilo-bg/70 border border-zilo-border space-y-2" data-role="wall-detail">

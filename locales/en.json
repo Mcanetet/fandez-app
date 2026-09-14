@@ -409,7 +409,7 @@
   "provider.no_services_active": "No active services. Add them in My team with ready technicians.",
   "provider.work_wall": "Available jobs",
   "provider.work_wall_hint": "Jobs ready to take for your active services. You must be online and have a technician with a complete dossier (or turn on “I do the visits myself”). First to take it gets it.",
-  "provider.work_wall_preview_hint": "You’ll see a short preview (photo and description). Open View details for full photos before taking the job.",
+  "provider.work_wall_preview_hint": "Before accepting you only see commune/zone. Exact address appears after you take the job.",
   "provider.no_requests": "No requests right now",
   "provider.no_requests_desc": "Go online. If you already are, check My team for a technician with a complete dossier. Paid jobs (searching) appear here live.",
   "provider.active_job": "In progress",
