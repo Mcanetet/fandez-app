@@ -111,4 +111,27 @@
       }
     });
   });
+
+  document.querySelectorAll('.tech-claim-wall').forEach((input) => {
+    input.addEventListener('change', async () => {
+      const id = input.dataset.id;
+      const enabled = input.checked;
+      input.disabled = true;
+      try {
+        const res = await fetch(`/proveedor/equipo/${id}/claim-wall`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Error');
+        notify(enabled ? 'Puede tomar pedidos del muro' : 'Solo tú le asignarás pedidos', 'success');
+      } catch (err) {
+        input.checked = !enabled;
+        notify(err.message || 'No se pudo guardar el permiso', 'error');
+      } finally {
+        input.disabled = false;
+      }
+    });
+  });
 })();

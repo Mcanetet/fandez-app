@@ -1712,16 +1712,18 @@ function getClientAttentionItems(clientId, now = Date.now()) {
       ['assigned', 'in_progress'].includes(request.status)
       && request.serviceConfirmStatus === 'pending'
       && request.technicianId
+      && request.techStatus === 'en_sitio'
+      && request.arrivalCodeVerifiedAt
     ) {
-      const assignedAt = Date.parse(request.technicianAssignedAt || request.assignedAt || '');
-      const waitingMin = Number.isFinite(assignedAt) ? Math.floor((now - assignedAt) / 60000) : 0;
-      if (waitingMin >= 30) {
+      const arrivedAt = Date.parse(request.arrivalCodeVerifiedAt || '');
+      const waitingMin = Number.isFinite(arrivedAt) ? Math.floor((now - arrivedAt) / 60000) : 0;
+      if (waitingMin >= 20) {
         items.push({
           requestId: request.id,
           type: 'awaiting_tech_confirm',
-          urgency: waitingMin >= 120 ? 'high' : 'medium',
+          urgency: waitingMin >= 60 ? 'high' : 'medium',
           title: 'El técnico aún no confirma el servicio',
-          body: `Tu solicitud de ${request.serviceName} sigue abierta sin confirmación del técnico.`,
+          body: `Tu técnico ya llegó y todavía no confirma si el trabajo de ${request.serviceName} es el correcto.`,
           url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
         });
       }
@@ -1733,8 +1735,11 @@ function getClientAttentionItems(clientId, now = Date.now()) {
 function confirmServiceSame(requestId, technicianId) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
-  if (!['aceptado', 'en_camino', 'en_sitio', 'diagnostico'].includes(request.techStatus)) {
-    return { error: 'No puedes confirmar el servicio en este estado.' };
+  if (!['en_sitio', 'diagnostico'].includes(request.techStatus)) {
+    return { error: 'Confirma el servicio solo después de llegar al domicilio.' };
+  }
+  if (!request.arrivalCodeVerifiedAt) {
+    return { error: 'Primero valida el código de seguridad del cliente.' };
   }
   if (request.serviceConfirmStatus === 'confirmed') {
     return { success: true, already: true, request };
@@ -3167,10 +3172,8 @@ async function createTechnician(socioId, { name, email, password, phone, special
   email = (email || '').trim().toLowerCase();
   password = password || '';
 
-  if (!name || !email || !password) return { error: 'Completa nombre, correo y contraseña.' };
+  if (!name || !email) return { error: 'Completa nombre y correo.' };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: 'Ingresa un correo válido.' };
-  if (password.length < 10) return { error: 'La contraseña debe tener al menos 10 caracteres.' };
-  if (getUserByEmail(email)) return { error: 'Ya existe una cuenta con ese correo.' };
 
   if (!Array.isArray(socio.specialties) || !socio.specialties.length) {
     return { error: 'Primero activa al menos un servicio de tu empresa para asignárselo al técnico.' };
@@ -3182,6 +3185,28 @@ async function createTechnician(socioId, { name, email, password, phone, special
       error: 'Selecciona al menos una especialidad alineada con los servicios de tu empresa.'
     };
   }
+
+  const existing = getUserByEmail(email);
+  if (existing) {
+    if (existing.role !== 'tecnico') {
+      return { error: 'Ese correo ya pertenece a otra cuenta (no técnico). Usa otro correo o vincula un técnico existente.' };
+    }
+    const linked = linkTechnicianToProvider(socioId, { email, specialties: cleanSpecialties });
+    if (linked.error) return linked;
+    setTechnicianCanClaimWall(socioId, linked.tecnico.id, false);
+    const rut = formatProviderRutLabel(socio);
+    return {
+      success: true,
+      linked: true,
+      tecnico: linked.tecnico,
+      message: rut
+        ? `El técnico ya estaba registrado. Se enlazó al RUT ${rut} de tu empresa. Activa “Puede tomar pedidos” si quieres que tome del muro.`
+        : 'El técnico ya estaba registrado. Se enlazó a tu empresa. Activa “Puede tomar pedidos” si quieres que tome del muro.'
+    };
+  }
+
+  if (!password) return { error: 'Completa nombre, correo y contraseña.' };
+  if (password.length < 10) return { error: 'La contraseña debe tener al menos 10 caracteres.' };
 
   const hashedPassword = await hashPassword(password);
   const tecnico = {
@@ -3208,6 +3233,7 @@ async function createTechnician(socioId, { name, email, password, phone, special
       criminalRecord: null,
       studyCertificates: [],
       otherCertificates: [],
+      claimWallByProvider: { [socioId]: false },
       updatedAt: null
     },
     locationShare: defaultLocationShare(),
@@ -3228,7 +3254,67 @@ async function createTechnician(socioId, { name, email, password, phone, special
     console.error('Error creando técnico:', err.message);
     return { error: 'No se pudo crear el técnico. Intenta nuevamente.' };
   }
-  return { success: true, tecnico };
+  return { success: true, linked: false, tecnico };
+}
+
+function formatProviderRutLabel(provider) {
+  if (!provider) return '';
+  const raw = provider.billing?.rut
+    || provider.verification?.companyRut
+    || provider.verification?.rut
+    || '';
+  const text = String(raw || '').trim();
+  if (!text) return '';
+  try {
+    const { formatRut } = require('../lib/rut');
+    return formatRut(text) || text;
+  } catch (_) {
+    return text;
+  }
+}
+
+function getClaimWallMap(tecnico) {
+  if (!tecnico) return {};
+  ensureTechnicianDossier(tecnico);
+  if (!tecnico.verification.claimWallByProvider || typeof tecnico.verification.claimWallByProvider !== 'object') {
+    tecnico.verification.claimWallByProvider = {};
+  }
+  return tecnico.verification.claimWallByProvider;
+}
+
+/** ¿El socio autorizó a este técnico a tomar pedidos del muro? */
+function technicianCanClaimWallForProvider(tecnico, providerId) {
+  if (!tecnico || tecnico.role !== 'tecnico' || !providerId) return false;
+  if (tecnico.isSelfOperator) return true;
+  if (!technicianBelongsToProvider(tecnico, providerId)) return false;
+  const map = getClaimWallMap(tecnico);
+  if (Object.prototype.hasOwnProperty.call(map, providerId)) {
+    return Boolean(map[providerId]);
+  }
+  // Legacy sin flag: mantener comportamiento previo (sí puede tomar).
+  return true;
+}
+
+function technicianCanClaimAnyWall(tecnico) {
+  if (!tecnico || tecnico.role !== 'tecnico') return false;
+  if (tecnico.isSelfOperator) return true;
+  return getTechnicianParentIds(tecnico).some((pid) => technicianCanClaimWallForProvider(tecnico, pid));
+}
+
+function setTechnicianCanClaimWall(socioId, tecnicoId, enabled) {
+  const tecnico = getTechnicianForProvider(socioId, tecnicoId);
+  if (!tecnico) return { error: 'Técnico no encontrado.' };
+  if (tecnico.isSelfOperator) {
+    return { error: 'Tu perfil “yo hago el servicio” siempre puede tomar pedidos.' };
+  }
+  const map = getClaimWallMap(tecnico);
+  map[socioId] = Boolean(enabled);
+  repository.persist(() => repository.saveUser(tecnico), `claim-wall ${tecnicoId} → ${socioId}`);
+  return {
+    success: true,
+    canClaimWall: Boolean(enabled),
+    tecnicoId: tecnico.id
+  };
 }
 
 function getTechnicianParentIds(tecnico) {
@@ -3275,7 +3361,16 @@ function linkTechnicianToProvider(socioId, { email, specialties } = {}) {
   }
 
   repository.persist(() => repository.saveUser(tecnico), `vincular técnico ${tecnico.id} → ${socioId}`);
-  return { success: true, tecnico };
+  setTechnicianCanClaimWall(socioId, tecnico.id, false);
+  const rut = formatProviderRutLabel(socio);
+  return {
+    success: true,
+    tecnico,
+    linked: true,
+    message: rut
+      ? `Técnico ya registrado: se enlazó al RUT ${rut}. Activa “Puede tomar pedidos” si corresponde.`
+      : 'Técnico ya registrado: se enlazó a tu empresa. Activa “Puede tomar pedidos” si corresponde.'
+  };
 }
 
 function ensureTechnicianDossier(tecnico) {
@@ -3830,9 +3925,13 @@ function getWorkWallItems(userId) {
         const parentIds = getTechnicianParentIds(user);
         if (parentIds.includes(r.clientId)) return false;
         if (!canTechnicianOperate(user).ok) return false;
+        if (!technicianCanClaimAnyWall(user)) return false;
         const hasSocioCoverage = parentIds.some((pid) => {
           const socio = getUserById(pid);
-          return socio && Array.isArray(socio.specialties) && socio.specialties.includes(r.serviceId);
+          if (!socio || !Array.isArray(socio.specialties) || !socio.specialties.includes(r.serviceId)) {
+            return false;
+          }
+          return technicianCanClaimWallForProvider(user, pid);
         });
         if (!hasSocioCoverage) return false;
       }
@@ -3963,8 +4062,17 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
     if (!operational.ok) return { error: `Expediente incompleto: ${operational.missing.join(', ')}` };
     const socio = parentIds
       .map((id) => getUserById(id))
-      .find((s) => s && Array.isArray(s.specialties) && s.specialties.includes(request.serviceId));
-    if (!socio) return { error: 'Ninguno de tus socios ofrece este servicio actualmente.' };
+      .find((s) => (
+        s
+        && Array.isArray(s.specialties)
+        && s.specialties.includes(request.serviceId)
+        && technicianCanClaimWallForProvider(user, s.id)
+      ));
+    if (!socio) {
+      return {
+        error: 'Tu socio no te autorizó a tomar pedidos del muro para este servicio. Pídele que active “Puede tomar pedidos” en Mi equipo.'
+      };
+    }
 
     const actorCoords = resolveActorCoords(user.id, lat, lng);
     let etaApplied = null;
@@ -4640,12 +4748,6 @@ function getEligibleTechniciansForProvider(providerId, serviceId) {
 function updateTechStatus(requestId, technicianId, techStatus, { lat, lng } = {}) {
   const request = requests.find(r => r.id === requestId);
   if (!request || request.technicianId !== technicianId) return null;
-  if (
-    ['en_camino', 'en_sitio'].includes(techStatus)
-    && request.serviceConfirmStatus === 'pending'
-  ) {
-    return { error: 'Primero confirma que el servicio es el mismo o propón un cambio para que el cliente apruebe.' };
-  }
   const change = request.siteReport?.activityChange;
   if (
     ['en_camino', 'en_sitio'].includes(techStatus)
@@ -4824,6 +4926,12 @@ function recordSiteArrival(requestId, technicianId, { diagnosis, photoStart, arr
     const verified = verifyArrivalCode(requestId, technicianId, arrivalCode);
     if (verified.error) return verified;
   }
+  if (request.serviceConfirmStatus === 'pending') {
+    return { error: 'Confirma si el servicio es el correcto o propón un cambio antes del diagnóstico.' };
+  }
+  if (request.serviceConfirmStatus === 'change_pending') {
+    return { error: 'Espera el OK del cliente al cambio de precio/servicio.' };
+  }
   diagnosis = (diagnosis || '').trim();
   if (!diagnosis) return { error: 'Describe lo que observas en el lugar.' };
   if (!photoStart) return { error: 'Sube la foto inicial de la visita.' };
@@ -4951,8 +5059,11 @@ function proposeActivityChange(requestId, technicianId, {
 }) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
-  if (!['aceptado', 'en_camino', 'en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(request.techStatus)) {
-    return { error: 'Confirma o cambia el servicio desde que aceptas la visita.' };
+  if (!['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(request.techStatus)) {
+    return { error: 'El cambio de servicio se hace después de llegar al domicilio.' };
+  }
+  if (!request.arrivalCodeVerifiedAt) {
+    return { error: 'Primero valida el código de seguridad del cliente.' };
   }
   if (!photoUrl) return { error: 'Sube una foto que respalde el cambio de servicio.' };
   notes = (notes || '').trim();
@@ -6532,6 +6643,9 @@ module.exports = {
   technicianBelongsToProvider,
   getTechnicianParentIds,
   getTechnicianForProvider,
+  technicianCanClaimWallForProvider,
+  technicianCanClaimAnyWall,
+  setTechnicianCanClaimWall,
   canTechnicianOperate,
   saveTechnicianDocument,
   getReadyTechniciansForService,

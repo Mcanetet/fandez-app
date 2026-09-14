@@ -29,6 +29,11 @@
     <% if (typeof ok !== 'undefined' && ok === 'self') { %>
       <div class="mb-4 p-3 rounded-xl border border-zilo-success/30 bg-zilo-success/10 text-sm text-zilo-success">Listo: ya puedes tomar pedidos y hacer las visitas tú mismo.</div>
     <% } %>
+    <% if (typeof ok !== 'undefined' && ok === 'linked') { %>
+      <div class="mb-4 p-3 rounded-xl border border-zilo-success/30 bg-zilo-success/10 text-sm text-zilo-success">
+        <%= typeof okDetail === 'string' && okDetail ? okDetail : 'El técnico ya estaba registrado y se enlazó a tu empresa.' %>
+      </div>
+    <% } %>
 
     <% if (typeof error !== 'undefined' && error) { %>
       <div class="mb-4 p-3 rounded-xl border border-zilo-danger/30 bg-zilo-danger/10 text-sm text-zilo-danger"><%= error %></div>
@@ -106,7 +111,7 @@
 
     <section class="mb-6 zilo-page-enter">
       <p class="zilo-label mb-2">Técnicos</p>
-      <p class="text-xs text-zilo-muted mb-4">Ingresa a cada técnico con su información y especialidades. Así podrás delegarle los pedidos desde Mis trabajos.</p>
+      <p class="text-xs text-zilo-muted mb-4">Asigna pedidos desde Mis trabajos, o activa “Puede tomar pedidos” para que el técnico tome del muro. Un técnico puede estar en varias empresas.</p>
 
       <% if (technicians.length === 0) { %>
         <div class="zilo-empty zilo-card-premium rounded-2xl">
@@ -121,25 +126,38 @@
               return svc ? svc.name : id;
             });
           %>
-            <div class="flex items-center justify-between p-4 rounded-xl zilo-card-premium" data-tech-id="<%= t.id %>">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-10 h-10 rounded-xl bg-zilo-accent/15 border border-zilo-accent/25 flex items-center justify-center text-xs font-semibold text-zilo-accent shrink-0"><%= t.avatar %></div>
-                <div class="min-w-0">
-                  <strong class="text-sm block truncate"><%= t.name %></strong>
-                  <span class="text-xs text-zilo-muted truncate block"><%= t.email %></span>
-                  <% if (techSpecs.length) { %>
-                    <span class="text-[10px] text-zilo-muted truncate block mt-0.5"><%= techSpecs.join(' · ') %></span>
-                  <% } %>
-                  <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %>"><%= t.isSelfOperator ? 'Tú · listo para visitas' : (t.dossierCheck.ok ? 'Expediente completo' : 'Expediente incompleto') %></span>
+            <div class="p-4 rounded-xl zilo-card-premium space-y-3" data-tech-id="<%= t.id %>">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-10 h-10 rounded-xl bg-zilo-accent/15 border border-zilo-accent/25 flex items-center justify-center text-xs font-semibold text-zilo-accent shrink-0"><%= t.avatar %></div>
+                  <div class="min-w-0">
+                    <strong class="text-sm block truncate"><%= t.name %></strong>
+                    <span class="text-xs text-zilo-muted truncate block"><%= t.email %></span>
+                    <% if (techSpecs.length) { %>
+                      <span class="text-[10px] text-zilo-muted truncate block mt-0.5"><%= techSpecs.join(' · ') %></span>
+                    <% } %>
+                    <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %>"><%= t.isSelfOperator ? 'Tú · listo para visitas' : (t.dossierCheck.ok ? 'Expediente completo' : 'Expediente incompleto') %></span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <a href="/proveedor/equipo/<%= t.id %>/expediente" class="zilo-btn-ghost !py-1.5 !px-2 !text-[10px]">Expediente</a>
+                  <label class="toggle-ios" title="Activar / desactivar">
+                    <input type="checkbox" class="tech-toggle" data-id="<%= t.id %>" <%= t.active !== false ? 'checked' : '' %>>
+                    <span class="slider"></span>
+                  </label>
                 </div>
               </div>
-              <div class="flex items-center gap-2 shrink-0">
-                <a href="/proveedor/equipo/<%= t.id %>/expediente" class="zilo-btn-ghost !py-1.5 !px-2 !text-[10px]">Expediente</a>
-                <label class="toggle-ios" title="Activar / desactivar">
-                  <input type="checkbox" class="tech-toggle" data-id="<%= t.id %>" <%= t.active !== false ? 'checked' : '' %>>
-                  <span class="slider"></span>
+              <% if (!t.isSelfOperator) { %>
+                <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-zilo-bg/50 cursor-pointer">
+                  <input type="checkbox" class="tech-claim-wall mt-0.5 accent-[#C45C14] shrink-0" data-id="<%= t.id %>" <%= t.canClaimWall ? 'checked' : '' %>>
+                  <span class="min-w-0">
+                    <span class="text-sm font-medium text-zilo-text block">Puede tomar pedidos</span>
+                    <span class="text-[11px] text-zilo-muted block">Si está activo, este técnico ve el muro y puede aceptar pedidos sin que tú se los asignes.</span>
+                  </span>
                 </label>
-              </div>
+              <% } else { %>
+                <p class="text-[11px] text-zilo-muted px-1">Como “yo hago el servicio”, siempre puedes tomar pedidos del muro.</p>
+              <% } %>
             </div>
           <% }); %>
         </div>
@@ -148,7 +166,7 @@
 
     <section class="zilo-card-premium rounded-2xl p-5 mb-6">
       <p class="zilo-label mb-1">Vincular técnico existente</p>
-      <p class="text-xs text-zilo-muted mb-3">Un técnico puede trabajar con varios socios. Si ya tiene cuenta, invítalo con su correo.</p>
+      <p class="text-xs text-zilo-muted mb-3">Un técnico puede trabajar con varios socios. Si ya tiene cuenta, se enlaza al RUT de tu empresa (no se duplica).</p>
       <form method="POST" action="/proveedor/equipo/vincular" class="space-y-3">
         <div>
           <label class="text-xs text-zilo-muted">Correo del técnico</label>
@@ -174,6 +192,7 @@
 
     <section class="zilo-card-premium rounded-2xl p-5">
       <p class="zilo-label mb-3">Crear técnico nuevo</p>
+      <p class="text-xs text-zilo-muted mb-3">Si el correo ya existe como técnico, no se crea otra cuenta: se enlaza al RUT de tu empresa.</p>
       <form method="POST" action="/proveedor/equipo" class="space-y-3">
         <div>
           <label class="text-xs text-zilo-muted">Nombre completo</label>
@@ -188,8 +207,8 @@
           <input type="tel" name="phone" class="zilo-input w-full mt-1" placeholder="+56 9 ...">
         </div>
         <div>
-          <label class="text-xs text-zilo-muted">Contraseña</label>
-          <input type="password" name="password" required minlength="10" class="zilo-input w-full mt-1" placeholder="Mínimo 10 caracteres">
+          <label class="text-xs text-zilo-muted">Contraseña <span class="opacity-60">(solo si es cuenta nueva)</span></label>
+          <input type="password" name="password" minlength="10" class="zilo-input w-full mt-1" placeholder="Mínimo 10 caracteres si es nuevo">
         </div>
         <div>
           <span class="text-xs text-zilo-muted block mb-2">Especialidades del técnico</span>

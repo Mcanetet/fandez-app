@@ -124,9 +124,11 @@
     if (fromNav && fromNav !== 'done') return fromNav;
     const ts = page.dataset.techStatus || nav?.dataset.techStatus || '';
     const confirm = nav?.dataset.confirmStatus || '';
-    if (ts === 'aceptado' && confirm === 'pending') return 'confirmar';
+    const codeOk = document.getElementById('stepLlegada')?.dataset.codeVerified === '1';
     if (confirm === 'change_pending') return 'cambio';
     if (ts === 'aceptado' || ts === 'en_camino') return 'trayecto';
+    if (ts === 'en_sitio' && !codeOk) return 'llegada';
+    if (ts === 'en_sitio' && confirm === 'pending') return 'confirmar';
     if (ts === 'en_sitio') return 'llegada';
     if (ts === 'diagnostico') return 'accion';
     if (ts === 'presupuesto_pendiente') return 'presupuesto';
@@ -171,9 +173,18 @@
       notify('Código verificado', 'success');
       document.getElementById('arrivalCodeGate')?.classList.add('hidden');
       document.getElementById('arrivalCodeOk')?.classList.remove('hidden');
-      document.getElementById('arrivalReviewForm')?.classList.remove('hidden');
       document.getElementById('stepLlegada')?.setAttribute('data-code-verified', '1');
-    } catch (err) {
+      const confirm = document.getElementById('fieldWizard')?.dataset.confirmStatus
+        || document.getElementById('stepLlegada')?.dataset.confirmStatus
+        || '';
+      document.getElementById('fieldExtraActions')?.classList.remove('hidden');
+      if (confirm === 'pending') {
+        document.getElementById('arrivalReviewForm')?.classList.add('hidden');
+        showWizardPanel('confirmar');
+      } else {
+        document.getElementById('arrivalReviewForm')?.classList.remove('hidden');
+        showWizardPanel('llegada');
+      }    } catch (err) {
       btn.disabled = false;
       notify(err.message || 'Código incorrecto', 'error');
     }

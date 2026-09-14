@@ -346,6 +346,7 @@
   }
 
   async function loadWorkWall() {
+    if (page.dataset.canClaimWall === '0') return;
     if (!onlineToggle?.checked) return;
     try {
       const res = await fetch('/tecnico/muro');
@@ -474,28 +475,11 @@
 
     if (status === 'asignado') {
       addBtn(t('tecnico.js.accept_job'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) => transition(b, 'aceptado', t('tecnico.js.job_accepted')));
+      addLink('Ver pedido', `/tecnico/trabajo/${card.dataset.jobId}`);
     } else if (status === 'aceptado') {
-      const confirmStatus = card.dataset.confirmStatus || '';
       const mapUrl = mapsDirectionsUrl(card);
-      // Debe confirmar/reevaluar el trabajo antes de marcar "en camino"
-      if (confirmStatus === 'pending' || confirmStatus === 'change_pending' || !confirmStatus) {
-        addLink(t('tecnico.js.confirm_or_reevaluate'), `/tecnico/trabajo/${card.dataset.jobId}`);
-        if (mapUrl) {
-          const a = document.createElement('a');
-          a.href = mapUrl;
-          a.target = '_blank';
-          a.rel = 'noopener';
-          a.className = 'flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm text-center';
-          a.textContent = t('tecnico.js.open_map');
-          actions.appendChild(a);
-        }
-        const hint = document.createElement('p');
-        hint.className = 'w-full text-[11px] text-amber-800 mt-1';
-        hint.textContent = t('tecnico.js.confirm_before_route');
-        actions.appendChild(hint);
-        return;
-      }
       startSharing(card);
+      addLink('Abrir visita', `/tecnico/trabajo/${card.dataset.jobId}`);
       addBtn(t('tecnico.js.head_out'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) =>
         transition(b, 'en_camino', t('tecnico.js.sharing_location'))
       );
@@ -509,13 +493,23 @@
         actions.appendChild(a);
       }
     } else if (status === 'en_camino') {
+      const mapUrl = mapsDirectionsUrl(card);
       const info = document.createElement('span');
-      info.className = 'flex-1 py-2.5 text-xs text-zilo-success flex items-center gap-1.5';
+      info.className = 'w-full text-xs text-zilo-success flex items-center gap-1.5 mb-1';
       info.innerHTML = `<span class="w-2 h-2 rounded-full bg-zilo-success animate-pulse"></span> ${t('tecnico.js.gps_active')}`;
       actions.appendChild(info);
-      addBtn(t('tecnico.js.arrived_btn'), 'py-2.5 px-4 rounded-xl zilo-btn-primary !text-sm', (b) =>
+      addBtn(t('tecnico.js.arrived_btn'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) =>
         transition(b, 'en_sitio', t('tecnico.js.welcome_site'), `/tecnico/trabajo/${card.dataset.jobId}`)
       );
+      if (mapUrl) {
+        const a = document.createElement('a');
+        a.href = mapUrl;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.className = 'flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm text-center';
+        a.textContent = t('tecnico.js.open_map');
+        actions.appendChild(a);
+      }
       startSharing(card);
     }
   }
@@ -527,12 +521,14 @@
     });
 
     socket.on('work_wall_sync', ({ items }) => {
+      if (page.dataset.canClaimWall === '0') return;
       wallItems.clear();
       (items || []).forEach(upsertWallItem);
       renderWorkWall();
     });
 
     socket.on('work_wall_new', (data) => {
+      if (page.dataset.canClaimWall === '0') return;
       if (!onlineToggle?.checked) return;
       upsertWallItem(data);
       playAlertSound();

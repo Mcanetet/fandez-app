@@ -63,6 +63,7 @@ async function ensureProviderAiReviews(providerId) {
 const { CONSENT_DEFINITIONS, POLICY_VERSION } = require('../lib/consent-policy');
 const { serializeFieldJob } = require('../lib/fieldJob');
 const { ATTENTION_CHECKLIST } = require('../lib/onboarding');
+const { getDiagnosisChips } = require('../lib/diagnosisChips');
 
 function equipoViewLocals(req, provider, extra = {}) {
   const onlineGate = store.canProviderGoOnline(provider);
@@ -72,7 +73,8 @@ function equipoViewLocals(req, provider, extra = {}) {
     provider,
     technicians: store.getTechniciansByProvider(provider.id).map((tecnico) => ({
       ...tecnico,
-      dossierCheck: store.canTechnicianOperate(tecnico)
+      dossierCheck: store.canTechnicianOperate(tecnico),
+      canClaimWall: store.technicianCanClaimWallForProvider(tecnico, provider.id)
     })),
     selfOperator: store.getSelfOperator(provider.id),
     canEnableSelf: onlineGate.ok && Array.isArray(provider.specialties) && provider.specialties.length > 0,
@@ -462,7 +464,13 @@ router.post('/ubicacion', requireRole('provider'), requireModule('provider_ubica
 
 router.get('/equipo', requireRole('provider'), requireModule('provider_equipo'), (req, res) => {
   const provider = store.getUserById(req.session.user.id);
-  res.render('provider/equipo', equipoViewLocals(req, provider, { ok: req.query.ok || null }));
+  let okMsg = null;
+  if (req.query.ok === 'self') okMsg = 'self';
+  if (req.query.ok === 'linked') okMsg = 'linked';
+  res.render('provider/equipo', equipoViewLocals(req, provider, {
+    ok: okMsg,
+    okDetail: typeof req.query.msg === 'string' ? req.query.msg : null
+  }));
 });
 
 router.post('/equipo/yo-hago-servicio', requireRole('provider'), requireModule('provider_equipo'), async (req, res) => {
@@ -568,7 +576,7 @@ router.post('/equipo/vincular', requireRole('provider'), requireModule('provider
     return res.status(400).render('provider/equipo', equipoViewLocals(req, provider, { error: result.error }));
   }
   store.logSecurityEvent('tecnico_vinculado', result.tecnico.email, req);
-  res.redirect('/proveedor/equipo');
+  res.redirect(`/proveedor/equipo?ok=linked&msg=${encodeURIComponent(result.message || 'Técnico enlazado')}`);
 });
 
 router.post('/equipo', requireRole('provider'), requireModule('provider_equipo'), async (req, res) => {
@@ -586,23 +594,39 @@ router.post('/equipo', requireRole('provider'), requireModule('provider_equipo')
     return res.status(400).render('provider/equipo', equipoViewLocals(req, provider, { error: result.error }));
   }
 
-  store.logSecurityEvent('tecnico_creado', result.tecnico.email, req);
-  await store.issueEmailVerification(result.tecnico.id, { locale: req.locale || 'es' });
+  store.logSecurityEvent(result.linked ? 'tecnico_vinculado' : 'tecnico_creado', result.tecnico.email, req);
+  if (!result.linked) {
+    await store.issueEmailVerification(result.tecnico.id, { locale: req.locale || 'es' });
+  }
   const isJson = req.xhr || (req.get('accept') || '').includes('application/json');
   if (isJson) {
     return res.json({
       success: true,
+      linked: Boolean(result.linked),
+      message: result.message || null,
       tecnico: {
         id: result.tecnico.id,
         name: result.tecnico.name,
         email: result.tecnico.email,
         phone: result.tecnico.phone,
         specialties: result.tecnico.specialties,
-        active: true
+        active: true,
+        canClaimWall: false
       }
     });
   }
+  if (result.linked) {
+    return res.redirect(`/proveedor/equipo?ok=linked&msg=${encodeURIComponent(result.message || 'Técnico enlazado')}`);
+  }
   res.redirect('/proveedor/equipo');
+});
+
+router.post('/equipo/:id/claim-wall', requireRole('provider'), requireModule('provider_equipo'), (req, res) => {
+  const enabled = req.body.enabled === 'true' || req.body.enabled === true;
+  const result = store.setTechnicianCanClaimWall(req.session.user.id, req.params.id, enabled);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  store.logSecurityEvent('tecnico_claim_wall', `${req.params.id}:${enabled ? 'on' : 'off'}`, req);
+  res.json({ success: true, ...result });
 });
 
 router.post('/equipo/:id/toggle', requireRole('provider'), requireModule('provider_equipo'), (req, res) => {
@@ -675,6 +699,7 @@ router.get('/trabajo/:requestId', requireRole('provider'), requireModule('provid
     techLabels,
     formatCLP: store.formatCLP,
     attentionChecklist: ATTENTION_CHECKLIST,
+    diagnosisChips: getDiagnosisChips(request.serviceId),
     materialsCatalog: store.getMaterialsCatalogForService(request.serviceId)
   });
 });

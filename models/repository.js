@@ -189,7 +189,10 @@ const SEED_USERS = [
     avatar: 'LD',
     bio: 'Técnico demo con expediente completo para pruebas del muro.',
     reviews: [],
-    verification: demoTechnicianVerification(),
+    verification: {
+      ...demoTechnicianVerification(),
+      claimWallByProvider: { 'provider-pedro': true }
+    },
     locationShare: pedroLocationShare(),
     active: true,
     memberSince: '2025-10-01',

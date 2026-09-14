@@ -6,6 +6,7 @@ const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
 const { requireModule } = require('../middleware/modules');
 const { saveRequestFile } = require('../lib/uploads');
 const { getTechnicianOnboardingSteps, ATTENTION_CHECKLIST } = require('../lib/onboarding');
+const { getDiagnosisChips } = require('../lib/diagnosisChips');
 const { serializeFieldJob } = require('../lib/fieldJob');
 
 router.use(requireRole('tecnico'), requireVerifiedEmail);
@@ -90,9 +91,40 @@ router.get('/', requireRole('tecnico'), (req, res) => {
     return res.redirect('/login');
   }
   const socio = tecnico.parentId ? store.getUserById(tecnico.parentId) : null;
-  const jobs = store.getRequestsByTechnician(tecnico.id)
-    .filter(r => r && r.techStatus !== 'completado' && r.status !== 'completed')
+  const allJobs = store.getRequestsByTechnician(tecnico.id).filter(Boolean);
+  const jobs = allJobs
+    .filter(r => r.techStatus !== 'completado' && r.status !== 'completed' && r.status !== 'cancelled')
     .map(serializeJob);
+  const completedJobs = allJobs
+    .filter(r => r.techStatus === 'completado' || r.status === 'completed')
+    .sort((a, b) => new Date(b.completedAt || b.updatedAt || 0) - new Date(a.completedAt || a.updatedAt || 0))
+    .slice(0, 40)
+    .map((r) => {
+      const rawSummary = (r.siteReport && r.siteReport.workNotes)
+        || (r.siteReport && r.siteReport.diagnosis)
+        || r.notes
+        || '';
+      const summary = String(rawSummary).trim().replace(/\s+/g, ' ').slice(0, 140);
+      const completedAt = r.completedAt || r.updatedAt || null;
+      let completedAtLabel = '';
+      try {
+        if (completedAt) {
+          completedAtLabel = new Date(completedAt).toLocaleDateString(req.locale === 'en' ? 'en-US' : 'es-CL', {
+            day: '2-digit', month: 'short'
+          });
+        }
+      } catch (_) { /* noop */ }
+      return {
+        id: r.id,
+        serviceName: r.serviceName,
+        activityName: r.activityName || null,
+        address: r.address || '',
+        communeName: r.communeName || '',
+        summary: summary || null,
+        completedAt,
+        completedAtLabel
+      };
+    });
 
   res.render('tecnico/dashboard', {
     title: 'Fandez — Panel Técnico',
@@ -100,6 +132,8 @@ router.get('/', requireRole('tecnico'), (req, res) => {
     tecnico,
     socio,
     jobs,
+    completedJobs,
+    canClaimWall: store.technicianCanClaimAnyWall(tecnico),
     linkedProvider: req.session.linkedProvider || null,
     techLabels: getTechLabels(req.t),
     services: store.SERVICES,
@@ -134,6 +168,7 @@ router.get('/trabajo/:requestId', requireRole('tecnico'), (req, res) => {
     techLabels: getTechLabels(req.t),
     formatCLP: store.formatCLP,
     attentionChecklist: ATTENTION_CHECKLIST,
+    diagnosisChips: getDiagnosisChips(request.serviceId),
     materialsCatalog: store.getMaterialsCatalogForService(request.serviceId)
   });
 });
