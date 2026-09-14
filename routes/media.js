@@ -7,6 +7,8 @@ const {
   mimeFromPath,
   toServingUrl,
   stableRequestPhotoUrl,
+  stableTechnicianPhotoUrl,
+  resolveTechnicianPhotoPath,
   REQUEST_UPLOAD_ROOT,
   DATA_REQUEST_ROOT
 } = require('../lib/uploads');
@@ -156,6 +158,58 @@ router.get('/media/request/:requestId/kind/:kind', sendPhotoByKind);
 router.get('/uploads/requests/:requestId/:file', sendPhoto);
 router.get('/media/request/:requestId/:file', sendPhoto);
 
+function canViewTechnicianPhoto(user, technician) {
+  if (!user || !technician) return false;
+  if (user.role === 'admin') return true;
+  if (user.id === technician.id) return true;
+  if (user.role === 'provider') {
+    const linked = store.getTechnicianForProvider?.(user.id, technician.id);
+    if (linked) return true;
+  }
+  if (user.role === 'client') {
+    const list = Array.isArray(store.requests) ? store.requests : [];
+    const parentIds = [
+      technician.parentId,
+      ...(Array.isArray(technician.parentIds) ? technician.parentIds : [])
+    ].filter(Boolean);
+    return list.some((r) => {
+      if (!r || r.clientId !== user.id) return false;
+      if (!['assigned', 'in_progress', 'completed'].includes(String(r.status || ''))) return false;
+      if (r.technicianId === technician.id) return true;
+      if (r.providerId === technician.id) return true;
+      if (technician.isSelfOperator && r.providerId && parentIds.includes(r.providerId)) return true;
+      return false;
+    });
+  }
+  return false;
+}
+
+function sendTechnicianPhoto(req, res) {
+  const user = req.session && req.session.user;
+  if (!user) return res.status(401).end();
+  const technicianId = String(req.params.technicianId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!technicianId) return res.status(400).end();
+  const technician = store.getUserById?.(technicianId);
+  if (!technician || !['tecnico', 'provider'].includes(technician.role)) {
+    return res.status(404).end();
+  }
+  if (!canViewTechnicianPhoto(user, technician)) return res.status(404).end();
+
+  const dossier = technician.verification || {};
+  let abs = resolveTechnicianPhotoPath(dossier.photo || dossier.selfie || null);
+  if (!abs && technician.isSelfOperator) {
+    const parentId = technician.parentId
+      || (Array.isArray(technician.parentIds) ? technician.parentIds[0] : null);
+    if (parentId) {
+      const provider = store.getUserById(parentId);
+      abs = resolveTechnicianPhotoPath(provider?.verification?.selfie || provider?.verification?.photo);
+    }
+  }
+  return sendResolvedPhoto(res, abs);
+}
+
+router.get('/media/technician/:technicianId/photo', sendTechnicianPhoto);
+
 function stablePhotoUrl(requestId, kind) {
   return stableRequestPhotoUrl(requestId, kind);
 }
@@ -178,8 +232,11 @@ function normalizeRequestPhotos(request) {
 module.exports = {
   router,
   canViewRequestPhoto,
+  canViewTechnicianPhoto,
   sendPhoto,
   sendPhotoByKind,
+  sendTechnicianPhoto,
   normalizeRequestPhotos,
-  stablePhotoUrl
+  stablePhotoUrl,
+  stableTechnicianPhotoUrl
 };

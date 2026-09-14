@@ -1756,12 +1756,80 @@
       invoiceLink.href = request.providerInvoicePlan.url;
       invoiceLink.classList.remove('hidden');
     }
-    const reviewLink = document.getElementById('finalReviewLink');
-    if (reviewLink && request?.id) {
-      reviewLink.href = `/cliente/historial?calificar=${encodeURIComponent(request.id)}`;
-      reviewLink.classList.toggle('hidden', Boolean(request.clientReview));
+    setupInlineReview(request);
+    box.classList.remove('hidden');
+  }
+
+  let inlineReviewBound = false;
+  let inlineReviewRating = 0;
+
+  function setupInlineReview(request) {
+    const form = document.getElementById('inlineReviewForm');
+    const done = document.getElementById('inlineReviewDone');
+    const box = document.getElementById('inlineReviewBox');
+    if (!box || !form || !done) return;
+    if (!request?.id) {
+      box.classList.add('hidden');
+      return;
     }
     box.classList.remove('hidden');
+    if (request.clientReview) {
+      form.classList.add('hidden');
+      done.classList.remove('hidden');
+      return;
+    }
+    form.classList.remove('hidden');
+    done.classList.add('hidden');
+    form.dataset.requestId = request.id;
+
+    if (inlineReviewBound) return;
+    inlineReviewBound = true;
+    const stars = form.querySelectorAll('.inline-review-star');
+    const submitBtn = document.getElementById('inlineReviewSubmit');
+    stars.forEach((star) => {
+      star.addEventListener('click', () => {
+        inlineReviewRating = parseInt(star.dataset.rating, 10) || 0;
+        stars.forEach((s) => {
+          const n = parseInt(s.dataset.rating, 10);
+          s.classList.toggle('text-yellow-500', n <= inlineReviewRating);
+          s.classList.toggle('text-zilo-border', n > inlineReviewRating);
+        });
+        if (submitBtn) submitBtn.disabled = !inlineReviewRating;
+      });
+    });
+    submitBtn?.addEventListener('click', async () => {
+      const requestId = form.dataset.requestId || currentRequestId;
+      if (!requestId || !inlineReviewRating) return;
+      submitBtn.disabled = true;
+      try {
+        const res = await fetch(`/cliente/resena/${requestId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rating: inlineReviewRating,
+            text: document.getElementById('inlineReviewText')?.value.trim() || ''
+          })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          FandezNotify.show(data.error || 'No se pudo enviar la calificación', 'error');
+          submitBtn.disabled = false;
+          return;
+        }
+        FandezNotify.show(
+          data.pointsAwarded
+            ? (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.historial.thanks') : '¡Gracias! +25 puntos Fandez')
+            : (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.historial.thanks_plain') : '¡Gracias por tu calificación!'),
+          'success'
+        );
+        form.classList.add('hidden');
+        done.classList.remove('hidden');
+        if (lastTrackedRequest) lastTrackedRequest.clientReview = data.review || { rating: inlineReviewRating };
+      } catch (_) {
+        FandezNotify.show('No se pudo enviar la calificación', 'error');
+        submitBtn.disabled = false;
+      }
+    });
   }
 
   async function loadCompletionSummary(requestId) {
@@ -2071,11 +2139,48 @@
       if (request.urgencyTier) page.dataset.urgencyTier = request.urgencyTier;
     }
 
-    document.getElementById('providerAvatar').textContent = provider.avatar;
-    document.getElementById('providerName').textContent = provider.name;
-    document.getElementById('providerRating').textContent = provider.rating;
-    document.getElementById('providerReviews').textContent = t('client.js.reviews_count', { count: provider.reviewsCount });
-    document.getElementById('providerStars').textContent = '★'.repeat(Math.round(provider.rating));
+    const team = request?.visitTeam || null;
+    const displayName = team?.displayName || provider.name;
+    const displayRating = team?.displayRating != null ? team.displayRating : provider.rating;
+    const displayReviews = team?.displayReviewsCount != null ? team.displayReviewsCount : provider.reviewsCount;
+    const photoUrl = team?.photoUrl || provider.photoUrl || null;
+    const initials = team?.technicianAvatar || provider.avatar || '—';
+
+    const avatarImg = document.getElementById('providerAvatarImg');
+    const avatarInitials = document.getElementById('providerAvatarInitials');
+    if (avatarImg && avatarInitials) {
+      if (photoUrl) {
+        avatarImg.src = photoUrl;
+        avatarImg.alt = displayName;
+        avatarImg.classList.remove('hidden');
+        avatarInitials.classList.add('hidden');
+        avatarImg.onerror = () => {
+          avatarImg.classList.add('hidden');
+          avatarInitials.classList.remove('hidden');
+          avatarInitials.textContent = initials;
+        };
+      } else {
+        avatarImg.classList.add('hidden');
+        avatarImg.removeAttribute('src');
+        avatarInitials.classList.remove('hidden');
+        avatarInitials.textContent = initials;
+      }
+    } else {
+      const avatarEl = document.getElementById('providerAvatar');
+      if (avatarEl) avatarEl.textContent = initials;
+    }
+
+    const roleLabel = document.getElementById('providerRoleLabel');
+    if (roleLabel) roleLabel.textContent = 'Tu técnico';
+    document.getElementById('providerName').textContent = displayName;
+    const companyLine = document.getElementById('providerCompanyLine');
+    if (companyLine) {
+      companyLine.textContent = team?.displaySub || '';
+      companyLine.classList.toggle('hidden', !team?.displaySub);
+    }
+    document.getElementById('providerRating').textContent = displayRating != null ? displayRating : '—';
+    document.getElementById('providerReviews').textContent = t('client.js.reviews_count', { count: displayReviews || 0 });
+    document.getElementById('providerStars').textContent = '★'.repeat(Math.max(0, Math.round(Number(displayRating) || 0)));
     document.getElementById('providerBio').textContent = provider.bio;
     const adherenceEl = document.getElementById('providerAdherence');
     if (adherenceEl) {
@@ -2108,13 +2213,17 @@
       }
     }
     renderVerificationBadges(provider);
-    document.getElementById('tripProviderLabel').textContent = `${provider.name} · ${provider.rating}★`;
+    const tripLabel = document.getElementById('tripProviderLabel');
+    if (tripLabel) {
+      const ratingTxt = displayRating != null ? ` · ${displayRating}★` : '';
+      tripLabel.textContent = `${displayName}${ratingTxt}`;
+    }
     if (request) {
       showBudgetBanner(request);
       showActivityChangeBanner(request);
       showAdditionalPaymentBanner(request);
-      renderCompletionSummary(request.clientTotals, request.vouchers);
-      setupJobChat(request.id, provider.name);
+      renderCompletionSummary(request.clientTotals, request.vouchers, request);
+      setupJobChat(request.id, displayName);
     }
     const waBtn = document.getElementById('whatsappSupport');
     if (waBtn) {

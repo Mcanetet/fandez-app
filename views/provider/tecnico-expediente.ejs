@@ -60,11 +60,22 @@
         <label class="text-sm font-medium"><%= label %></label>
         <span class="text-[10px] <%= done ? 'text-zilo-success' : 'text-amber-600' %>"><%= done ? '✓ Cargado' : (type === 'otherCertificate' ? 'Opcional' : 'Pendiente') %></span>
       </div>
+      <% if (type === 'photo' && done) { %>
+        <div class="mb-3 flex items-center gap-3">
+          <img
+            src="/media/technician/<%= tecnico.id %>/photo?v=<%= encodeURIComponent(String(done).slice(-12)) %>"
+            alt="Foto de <%= tecnico.name %>"
+            class="w-16 h-16 rounded-xl object-cover border border-zilo-border bg-zilo-bg"
+            loading="lazy"
+          >
+          <p class="text-[11px] text-zilo-muted leading-relaxed">Esta foto es la que verá el cliente en el seguimiento de la visita.</p>
+        </div>
+      <% } %>
       <% if (['studyCertificate','otherCertificate'].includes(type)) { %>
         <input type="text" class="zilo-input !py-2 text-xs mb-2" data-label-for="<%= type %>" placeholder="Nombre del certificado">
       <% } %>
       <input type="file" data-doc-type="<%= type %>" accept="<%= accept %>" <%= capture ? 'capture="' + capture + '"' : '' %> class="block w-full text-xs">
-      <button type="button" data-upload="<%= type %>" class="mt-3 w-full zilo-btn-ghost !py-2 !text-xs">Subir archivo</button>
+      <button type="button" data-upload="<%= type %>" class="mt-3 w-full zilo-btn-ghost !py-2 !text-xs"><%= done && type === 'photo' ? 'Reemplazar foto' : 'Subir archivo' %></button>
     </section>
     <% }); %>
     <p class="text-[11px] text-zilo-muted">Los documentos se almacenan en el expediente del técnico. El socio es responsable de verificar su vigencia y autenticidad.</p>

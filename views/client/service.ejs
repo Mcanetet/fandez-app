@@ -591,7 +591,21 @@
         <p class="text-[11px] text-zilo-muted mt-3">Los materiales se incluyen a su valor real, sin comisión ni recargos Fandez.</p>
         <a id="finalVoucherLink" href="#" target="_blank" class="hidden mt-3 block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm">Ver voucher del trabajo</a>
         <a id="finalProviderInvoiceLink" href="#" target="_blank" class="hidden mt-2 block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm">Ver factura o boleta del socio</a>
-        <a id="finalReviewLink" href="/cliente/historial" class="mt-2 block text-center py-2.5 rounded-xl zilo-btn-primary !text-sm">Calificar y dejar un comentario</a>
+        <div id="inlineReviewBox" class="mt-4 pt-4 border-t border-zilo-border">
+          <p class="zilo-label mb-2">¿Cómo estuvo tu visita?</p>
+          <p id="inlineReviewDone" class="hidden text-sm text-zilo-success">Gracias por tu calificación.</p>
+          <div id="inlineReviewForm">
+            <div class="flex justify-center gap-2 mb-3" id="inlineReviewStars" role="group" aria-label="Calificación">
+              <button type="button" class="inline-review-star text-2xl text-zilo-border leading-none" data-rating="1" aria-label="1 estrella">★</button>
+              <button type="button" class="inline-review-star text-2xl text-zilo-border leading-none" data-rating="2" aria-label="2 estrellas">★</button>
+              <button type="button" class="inline-review-star text-2xl text-zilo-border leading-none" data-rating="3" aria-label="3 estrellas">★</button>
+              <button type="button" class="inline-review-star text-2xl text-zilo-border leading-none" data-rating="4" aria-label="4 estrellas">★</button>
+              <button type="button" class="inline-review-star text-2xl text-zilo-border leading-none" data-rating="5" aria-label="5 estrellas">★</button>
+            </div>
+            <textarea id="inlineReviewText" rows="2" maxlength="400" class="zilo-input !text-sm mb-2" placeholder="Comentario opcional"></textarea>
+            <button type="button" id="inlineReviewSubmit" class="w-full py-2.5 rounded-xl zilo-btn-primary !text-sm" disabled>Enviar calificación</button>
+          </div>
+        </div>
         <div class="mt-3 grid grid-cols-1 gap-2" id="completionNextActions">
           <a href="/cliente/servicio/<%= service.id %>" class="block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.dashboard.repeat') %></a>
           <a href="/cliente/hogar" class="block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.passport') %></a>
@@ -644,9 +658,14 @@
           <%= t('client.service.live_location') %>
         </p>
         <div class="flex items-center gap-3 mb-3">
-          <div id="providerAvatar" class="w-14 h-14 rounded-xl zilo-card-premium flex items-center justify-center font-semibold text-zilo-accent border border-zilo-accent/20">—</div>
-          <div class="flex-1">
-            <h3 id="providerName" class="font-semibold">—</h3>
+          <div id="providerAvatar" class="w-14 h-14 rounded-xl zilo-card-premium flex items-center justify-center font-semibold text-zilo-accent border border-zilo-accent/20 overflow-hidden shrink-0 bg-zilo-accent/5">
+            <img id="providerAvatarImg" src="" alt="" class="hidden w-full h-full object-cover">
+            <span id="providerAvatarInitials">—</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="zilo-label !mb-0.5 !text-[9px]" id="providerRoleLabel">Tu técnico</p>
+            <h3 id="providerName" class="font-semibold truncate">—</h3>
+            <p id="providerCompanyLine" class="text-[11px] text-zilo-muted truncate mb-0.5"></p>
             <div class="flex items-center gap-1.5 text-sm">
               <span id="providerStars" class="text-zilo-accent">★★★★★</span>
               <span id="providerRating" class="font-medium">—</span>

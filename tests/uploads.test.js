@@ -19,6 +19,12 @@ describe('uploads — URLs y persistencia de fotos de pedidos', () => {
     expect(stableRequestPhotoUrl('req-abc', 'brand')).toBe('/media/request/req-abc/kind/brand');
   });
 
+  test('stableTechnicianPhotoUrl es estable por id de técnico', () => {
+    const { stableTechnicianPhotoUrl } = require('../lib/uploads');
+    expect(stableTechnicianPhotoUrl('tech-42')).toBe('/media/technician/tech-42/photo');
+    expect(stableTechnicianPhotoUrl('')).toBe(null);
+  });
+
   test('guarda, mueve y resuelve una foto de pedido', () => {
     const dataUrl = 'data:image/jpeg;base64,' + Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9]).toString('base64');
     const tmpId = 'tmp-testuploads';

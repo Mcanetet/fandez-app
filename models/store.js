@@ -2173,6 +2173,7 @@ function getPublicProviderProfile(provider, { includeContact = false } = {}) {
 
   const loc = provider.locationShare;
   const adherence = getProviderAdherenceStats(provider);
+  const { stableTechnicianPhotoUrl } = require('../lib/uploads');
   const profile = {
     id: provider.id,
     name: provider.name,
@@ -2182,6 +2183,9 @@ function getPublicProviderProfile(provider, { includeContact = false } = {}) {
     reviewsCount: provider.reviewsCount,
     bio: provider.bio,
     avatar: provider.avatar,
+    photoUrl: (v.selfie || v.photo)
+      ? (stableTechnicianPhotoUrl(provider.id) || null)
+      : null,
     reviews: provider.reviews || [],
     adherenceRate: adherence.adherenceRate,
     desertionRate: adherence.desertionRate,
@@ -2206,6 +2210,58 @@ function getPublicProviderProfile(provider, { includeContact = false } = {}) {
     profile.email = provider.email || null;
   }
   return profile;
+}
+
+/** Equipo visible al cliente en tracking: cara del técnico + nombre + rating + socio. */
+function getClientVisitTeam(request) {
+  if (!request?.providerId) return null;
+  const { stableTechnicianPhotoUrl } = require('../lib/uploads');
+  const provider = getUserById(request.providerId);
+  if (!provider) return null;
+
+  let technician = request.technicianId ? getUserById(request.technicianId) : null;
+  if (!technician) {
+    technician = getSelfOperator(request.providerId);
+  }
+
+  const techPhotoStored = technician?.verification?.photo
+    || technician?.verification?.selfie
+    || (technician?.isSelfOperator ? provider.verification?.selfie : null);
+  const hasTechPhoto = Boolean(techPhotoStored && techPhotoStored !== 'demo');
+
+  const techName = request.technicianName
+    || technician?.name
+    || provider.name;
+  const techId = technician?.id || null;
+  const displayRating = (technician && technician.rating != null)
+    ? technician.rating
+    : (provider.rating != null ? provider.rating : null);
+  const displayReviews = (technician && technician.reviewsCount != null && technician.id !== provider.id)
+    ? technician.reviewsCount
+    : (provider.reviewsCount || 0);
+
+  return {
+    technicianId: techId,
+    technicianName: techName,
+    technicianAvatar: technician?.avatar || provider.avatar || '—',
+    technicianPhotoUrl: (techId && hasTechPhoto) ? stableTechnicianPhotoUrl(techId) : null,
+    technicianRating: technician?.rating != null ? technician.rating : null,
+    technicianReviewsCount: technician?.reviewsCount || 0,
+    providerId: provider.id,
+    providerName: provider.name,
+    providerAvatar: provider.avatar || '—',
+    providerRating: provider.rating != null ? provider.rating : null,
+    providerReviewsCount: provider.reviewsCount || 0,
+    displayName: techName,
+    displaySub: technician && technician.id !== provider.id && !technician.isSelfOperator
+      ? `Empresa · ${provider.name}`
+      : 'Socio Fandez',
+    displayRating,
+    displayReviewsCount: displayReviews,
+    photoUrl: (techId && hasTechPhoto)
+      ? stableTechnicianPhotoUrl(techId)
+      : null
+  };
 }
 
 /** Contacto de coordinación: solo canal in-app (sin teléfono). */
@@ -5742,7 +5798,8 @@ function enrichRequestForClient(request, locale = 'es') {
       && !['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado', 'completado'].includes(request.techStatus)
     ),
     awaitingProviderReassign: Boolean(request.awaitingProviderReassign),
-    canCallTechnician
+    canCallTechnician,
+    visitTeam: getClientVisitTeam(request)
   };
 }
 
@@ -6824,6 +6881,7 @@ module.exports = {
   reviewProviderContract,
   getContractStats,
   getPublicProviderProfile,
+  getClientVisitTeam,
   getClientServiceCallContact,
   saveProviderDocument,
   setVerificationDocReview,
