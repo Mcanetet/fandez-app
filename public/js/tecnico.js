@@ -62,6 +62,15 @@
     }
     address = String(address || '').trim();
     commune = String(commune || '').trim();
+    // Quitar depto/oficina: Google Maps toma el último número como calle
+    address = address
+      .replace(/\b(depto|dpto|departamento|dept\.?|apt\.?|apto\.?|apartment|oficina|of\.?|interno|int\.?|piso|block|bloque|torre|tower|unit|unidad)\.?\s*[#:]?\s*\d+[A-Za-z]?\b/gi, '')
+      .replace(/,\s*(?:depto|dpto|departamento|apt\.?|apto\.?|#)?\s*\d+[A-Za-z]?\b(?=\s*,|\s*$)/gi, '')
+      .replace(/\s+#\s*\d+[A-Za-z]?\b/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+,/g, ',')
+      .replace(/,\s*$/g, '')
+      .trim();
     if (address) {
       let dest = address;
       if (commune && !new RegExp(commune.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(dest)) {
@@ -136,9 +145,9 @@
     if (typeof Notification === 'undefined') return;
     if (Notification.permission === 'granted') {
       try {
-        new Notification(title, { body, icon: '/icons/fandez-v11-notify.png?v=12', badge: '/icons/fandez-v11-badge-96.png?v=12', requireInteraction: true, tag: 'fandez-tech-wall' });
+        new Notification(title, { body, icon: '/icons/fandez-v11-notify.png?v=13', badge: '/icons/fandez-v11-badge-96.png?v=13', requireInteraction: true, tag: 'fandez-tech-wall' });
       } catch (_) {
-        new Notification(title, { body, icon: '/icons/fandez-v11-notify.png?v=12', badge: '/icons/fandez-v11-badge-96.png?v=12' });
+        new Notification(title, { body, icon: '/icons/fandez-v11-notify.png?v=13', badge: '/icons/fandez-v11-badge-96.png?v=13' });
       }
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission();

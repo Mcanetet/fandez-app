@@ -183,14 +183,13 @@ window.FandezAlerts = {
     if (!this.prefs().system) return null;
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return null;
     const { type = 'default', tag, requireInteraction = false, onClick, url } = opts;
-    // Same-origin + cache-bust (evita Saturno Chrome por APP_URL/CDN vieja)
-    const icon = '/icons/fandez-v11-notify.png?v=12';
-    const badge = '/icons/fandez-v11-badge-96.png?v=12';
+    const icon = '/icons/fandez-v11-notify.png?v=13';
+    const badge = '/icons/fandez-v11-badge-96.png?v=13';
     const payload = {
       title: title || 'Fandez',
       body: body || '',
-      icon,
-      badge,
+      icon: (typeof location !== 'undefined' ? location.origin : '') + icon,
+      badge: (typeof location !== 'undefined' ? location.origin : '') + badge,
       tag: tag || ('fandez-' + type),
       renotify: true,
       vibrate: this.VIBRATE[type] || this.VIBRATE.default,
@@ -207,8 +206,8 @@ window.FandezAlerts = {
         try { reg.update(); } catch (_) { /* ignore */ }
         return reg.showNotification(payload.title, {
           body: payload.body,
-          icon: payload.icon,
-          badge: payload.badge,
+          icon: payload.icon || ((typeof location !== 'undefined' ? location.origin : '') + '/icons/fandez-v11-notify.png?v=13'),
+          badge: payload.badge || ((typeof location !== 'undefined' ? location.origin : '') + '/icons/fandez-v11-badge-96.png?v=13'),
           tag: payload.tag,
           renotify: true,
           requireInteraction: payload.requireInteraction,

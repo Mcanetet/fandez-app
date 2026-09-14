@@ -3068,15 +3068,17 @@ body.session-role--tecnico::before {
 .field-wizard-step.is-done,
 .field-wizard-step.is-active { opacity: 1; }
 .field-wizard-dot {
-  width: 0.55rem;
-  height: 0.55rem;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 999px;
   background: var(--zilo-border);
 }
 .field-wizard-step.is-done .field-wizard-dot { background: var(--zilo-success); }
 .field-wizard-step.is-active .field-wizard-dot {
   background: var(--zilo-accent);
-  box-shadow: 0 0 0 4px rgba(196, 92, 20, 0.18);
+  box-shadow: none;
+  outline: 2px solid rgba(196, 92, 20, 0.35);
+  outline-offset: 2px;
 }
 .field-wizard-label {
   font-size: 0.625rem;

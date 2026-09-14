@@ -1,8 +1,8 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v38';
+const SW_VERSION = 'fandez-sw-v39';
 
-/** Ámbar + ventosa Fandez (v11). Query rompe caché Saturno/globo en Chrome/Android. */
-const ICON_VER = '12';
+/** Ámbar + ventosa Fandez (v11). Subir ICON_VER rompe caché Saturno en Android. */
+const ICON_VER = '13';
 const DEFAULT_ICON = `/icons/fandez-v11-notify.png?v=${ICON_VER}`;
 const DEFAULT_BADGE = `/icons/fandez-v11-badge-96.png?v=${ICON_VER}`;
 
@@ -152,8 +152,9 @@ function sameOriginIcon(raw) {
 
 async function showFandezNotification(data = {}) {
   const title = data.title || 'Fandez';
-  const icon = sameOriginIcon(data.icon) || absUrl(DEFAULT_ICON);
-  const badge = sameOriginIcon(data.badge) || absUrl(DEFAULT_BADGE);
+  // Absolute same-origin + cache-bust: relative/CDN viejo cae al PWA Saturno en Android.
+  const icon = absUrl(DEFAULT_ICON);
+  const badge = absUrl(DEFAULT_BADGE);
   const options = {
     body: data.body || '',
     icon,

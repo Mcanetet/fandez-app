@@ -162,9 +162,9 @@ app.get('/site.webmanifest', (req, res) => {
       client_mode: ['navigate-existing', 'auto']
     },
     icons: [
-      { src: '/icons/fandez-v11-192.png?v=12', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fandez-v11-512.png?v=12', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fandez-v11-512.png?v=12', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: '/icons/fandez-v11-192.png?v=13', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-v11-512.png?v=13', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-v11-512.png?v=13', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
   });
 });
