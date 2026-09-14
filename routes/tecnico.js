@@ -8,6 +8,7 @@ const { saveRequestFile } = require('../lib/uploads');
 const { getTechnicianOnboardingSteps, ATTENTION_CHECKLIST } = require('../lib/onboarding');
 const { getDiagnosisChips } = require('../lib/diagnosisChips');
 const { serializeFieldJob } = require('../lib/fieldJob');
+const { emitRequestUpdateToParties } = require('../lib/realtime');
 
 router.use(requireRole('tecnico'), requireVerifiedEmail);
 
@@ -46,8 +47,7 @@ function requestUpdatePayload(request) {
 function emitRequestUpdate(io, request, extra = {}) {
   if (!io || !request) return;
   const payload = { ...requestUpdatePayload(request), ...extra };
-  io.emit(`request_update_${request.id}`, payload);
-  io.to(`request_${request.id}`).emit(`request_update_${request.id}`, payload);
+  emitRequestUpdateToParties(io, store, request, payload);
   if (request.clientId && request.arrivalCode) {
     io.to(`aland_client_${request.clientId}`).emit('client_arrival_code', {
       requestId: request.id,
@@ -184,7 +184,7 @@ router.post('/chat/:requestId', requireRole('tecnico'), (req, res) => {
   if (result.error) return res.status(400).json(result);
   const io = req.app.get('io');
   io.emit(`request_chat_${result.requestId}`, { message: result.message });
-  io.emit(`request_update_${result.requestId}`, {
+  emitRequestUpdateToParties(io, store, store.requests.find((r) => r.id === result.requestId), {
     request: store.requests.find((r) => r.id === result.requestId),
     chatMessage: result.message
   });
@@ -234,8 +234,7 @@ router.post('/accept/:requestId', requireRole('tecnico'), (req, res) => {
     provider: store.getPublicProviderProfile(socio),
     chatMessage: result.chatMessage || null
   };
-  io.emit(`request_update_${request.id}`, payload);
-  io.to(`request_${request.id}`).emit(`request_update_${request.id}`, payload);
+  emitRequestUpdateToParties(io, store, request, payload);
   io.to(store.technicianSockets.get(req.session.user.id) || '').emit(`tecnico_assignment_${req.session.user.id}`, { request: serializeJob(request) });
 
   if (request.liveEtaMinutes != null && request.coords) {
@@ -263,7 +262,7 @@ router.post('/trabajo/:requestId/eta', requireRole('tecnico'), (req, res) => {
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   const payload = { request: result.request, chatMessage: result.chatMessage || null };
-  req.app.get('io').emit(`request_update_${result.request.id}`, payload);
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, payload);
   if (result.request.liveEtaMinutes != null) {
     const loc = store.resolveActorCoords(req.session.user.id, req.body?.lat, req.body?.lng);
     if (loc) {
@@ -309,7 +308,7 @@ router.post('/status/:requestId', requireRole('tecnico'), (req, res) => {
 router.post('/trabajo/:requestId/confirmar-servicio', requireRole('tecnico'), (req, res) => {
   const result = store.confirmServiceSame(req.params.requestId, req.session.user.id);
   if (result.error) return res.status(400).json({ success: false, error: result.error });
-  req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
   res.json({ success: true, request: serializeJob(result.request) });
 });
 
@@ -348,14 +347,14 @@ router.post('/trabajo/:requestId/llegada', requireRole('tecnico'), (req, res) =>
 router.post('/trabajo/:requestId/accion', requireRole('tecnico'), (req, res) => {
   const result = store.setSiteAction(req.params.requestId, req.session.user.id, req.body.action);
   if (result.error) return res.status(400).json({ success: false, error: result.error });
-  req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
   res.json({ success: true, request: serializeJob(result.request) });
 });
 
 router.post('/trabajo/:requestId/presupuesto', requireRole('tecnico'), (req, res) => {
   const result = store.submitSiteBudget(req.params.requestId, req.session.user.id, req.body);
   if (result.error) return res.status(400).json({ success: false, error: result.error });
-  req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
   res.json({ success: true, request: serializeJob(result.request) });
 });
 
@@ -394,7 +393,7 @@ router.post('/trabajo/:requestId/cambio-servicio', requireRole('tecnico'), (req,
     lineItems: req.body.lineItems
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
-  req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
   res.json({ success: true, request: serializeJob(result.request), activityChange: result.activityChange });
 });
 
@@ -455,7 +454,7 @@ router.post('/trabajo/:requestId/material', requireRole('tecnico'), async (req, 
   if (result.error) {
     return res.status(400).json({ success: false, error: result.error, review: result.review || review });
   }
-  req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
   res.json({
     success: true,
     material: result.material,
@@ -482,7 +481,7 @@ router.post('/trabajo/:requestId/completar', requireRole('tecnico'), (req, res) 
     attentionChecklist: req.body.attentionChecklist
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
-  req.app.get('io').emit(`request_update_${result.request.id}`, { request: result.request });
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
   const enriched = store.enrichRequestForProvider(result.request);
   res.json({
     success: true,
@@ -520,7 +519,7 @@ router.post('/ubicacion', requireRole('tecnico'), requireModule('provider_ubicac
         distanceKm: eta ? eta.distanceKm : null
       });
       if (eta?.etaMinutes != null) {
-        io.emit(`request_update_${requestId}`, { request });
+        emitRequestUpdateToParties(io, store, store.requests.find((r) => r.id === requestId), { request });
       }
     }
   }

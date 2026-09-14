@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const store = require('../models/store');
+const { emitRequestUpdateToParties } = require('../lib/realtime');
 const mp = require('../lib/mercadopago');
 const { readGatewayInstallments } = require('../lib/mercadopagoFees');
 const transbank = require('../lib/transbank');
@@ -180,7 +181,7 @@ router.post('/ajuste/demo/confirmar', requireRole('client'), (req, res) => {
     return res.status(400).json({ error: 'Ajuste no disponible.' });
   }
   store.markAdditionalPaymentApproved(request.id, `demo-${charge.id}`);
-  req.app.get('io').emit(`request_update_${request.id}`, { request });
+  emitRequestUpdateToParties(req.app.get('io'), store, request, { request });
   res.json({
     success: true,
     redirect: `/pagos/exito?ref=${request.id}&charge=${encodeURIComponent(charge.id)}`
@@ -387,7 +388,7 @@ router.get('/paypal/retorno', requireRole('client'), async (req, res) => {
       const paymentId = paypal.getCaptureId(result) || orderId;
       if (chargeId && charge) {
         store.markAdditionalPaymentApproved(request.id, String(paymentId));
-        req.app.get('io').emit(`request_update_${request.id}`, { request });
+        emitRequestUpdateToParties(req.app.get('io'), store, request, { request });
         return res.redirect(`/pagos/exito?ref=${ref}&charge=${encodeURIComponent(charge.id)}`);
       }
       store.markPaymentApproved(request.id, String(paymentId));
@@ -449,7 +450,7 @@ router.post('/transbank/retorno', requireRole('client'), async (req, res) => {
       const extras = cardInstallmentsExtras(result);
       if (chargeId && charge) {
         store.markAdditionalPaymentApproved(request.id, String(paymentId), extras);
-        req.app.get('io').emit(`request_update_${request.id}`, { request });
+        emitRequestUpdateToParties(req.app.get('io'), store, request, { request });
         return res.redirect(`/pagos/exito?ref=${ref}&charge=${encodeURIComponent(charge.id)}`);
       }
       store.markPaymentApproved(request.id, String(paymentId), extras);
@@ -688,7 +689,7 @@ router.post('/webhook', async (req, res) => {
         if (chargeId && charge) {
           store.markAdditionalPaymentApproved(request.id, String(data.id), cardInstallmentsExtras(payment));
           const io = req.app.get('io');
-          if (io) io.emit(`request_update_${request.id}`, { request });
+          if (io) emitRequestUpdateToParties(io, store, request, { request });
           return res.sendStatus(200);
         }
         store.markPaymentApproved(request.id, String(data.id), cardInstallmentsExtras(payment));

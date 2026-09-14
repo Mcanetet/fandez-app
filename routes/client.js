@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const store = require('../models/store');
+const { emitRequestUpdateToParties } = require('../lib/realtime');
 const { saveRequestFile, moveRequestPhoto } = require('../lib/uploads');
 const company = require('../config/company');
 const { getClientOnboardingSteps } = require('../lib/onboarding');
@@ -826,7 +827,7 @@ router.post('/presupuesto/:id/responder', requireRole('client'), (req, res) => {
   if (result.error) return res.status(400).json({ success: false, error: result.error });
 
   const io = req.app.get('io');
-  io.emit(`request_update_${result.request.id}`, { request: result.request });
+  emitRequestUpdateToParties(io, store, result.request, { request: result.request });
 
   res.json({
     success: true,
@@ -847,7 +848,7 @@ router.post('/cambio-servicio/:id/responder', requireRole('client'), (req, res) 
   if (result.error) return res.status(400).json({ success: false, error: result.error });
 
   const io = req.app.get('io');
-  io.emit(`request_update_${result.request.id}`, { request: result.request });
+  emitRequestUpdateToParties(io, store, result.request, { request: result.request });
 
   res.json({
     success: true,
@@ -885,7 +886,7 @@ router.post('/chat/:requestId', requireRole('client'), (req, res) => {
   if (result.error) return res.status(400).json(result);
   const io = req.app.get('io');
   io.emit(`request_chat_${result.requestId}`, { message: result.message });
-  io.emit(`request_update_${result.requestId}`, {
+  emitRequestUpdateToParties(io, store, store.requests.find((r) => r.id === result.requestId), {
     request: store.requests.find((r) => r.id === result.requestId),
     chatMessage: result.message
   });

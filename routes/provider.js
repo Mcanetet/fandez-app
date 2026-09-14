@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const store = require('../models/store');
+const { emitRequestUpdateToParties } = require('../lib/realtime');
 const { dispatchPendingToProvider, broadcastRequestTaken, buildWorkWallPayload } = require('../lib/dispatch');
 const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
 const { requireModule } = require('../middleware/modules');
@@ -216,7 +217,7 @@ router.post('/accept/:requestId', requireRole('provider'), requireModule('provid
     provider: publicProvider,
     chatMessage: result.chatMessage || null
   };
-  io.emit(`request_update_${request.id}`, payload);
+  emitRequestUpdateToParties(io, store, request, payload);
   if (request.technicianId) {
     io.emit(`tecnico_assignment_${request.technicianId}`, { requestId: request.id, request: store.enrichRequestForProvider?.(request) || request });
   }
@@ -250,7 +251,7 @@ router.post('/desertar/:requestId', requireRole('provider'), requireModule('prov
     notifyProvidersForRequest(io, result.request);
   } catch (_) { /* ignore */ }
 
-  io.emit(`request_update_${result.request.id}`, {
+  emitRequestUpdateToParties(io, store, result.request, {
     request: enriched,
     providerReleased: true,
     searching: true
@@ -281,7 +282,7 @@ router.post('/status/:requestId', requireRole('provider'), (req, res) => {
   if (!request) return res.status(404).json({ error: 'Solicitud no encontrada' });
 
   const io = req.app.get('io');
-  io.emit(`request_update_${request.id}`, { request });
+  emitRequestUpdateToParties(io, store, request, { request });
 
   res.json({ success: true, request: store.enrichRequestForProvider(request, req.locale) });
 });
@@ -711,7 +712,7 @@ router.post('/asignar/:requestId', requireRole('provider'), requireModule('provi
 
   const io = req.app.get('io');
   io.emit(`tecnico_assignment_${result.tecnico.id}`, { requestId: result.request.id });
-  io.emit(`request_update_${result.request.id}`, { request: result.request });
+  emitRequestUpdateToParties(io, store, result.request, { request: result.request });
   store.logSecurityEvent('tecnico_asignado', `${result.tecnico.email} -> ${result.request.id}`, req);
 
   res.json({
@@ -731,7 +732,7 @@ router.post('/chat/:requestId', requireRole('provider'), (req, res) => {
   if (result.error) return res.status(400).json(result);
   const io = req.app.get('io');
   io.emit(`request_chat_${result.requestId}`, { message: result.message });
-  io.emit(`request_update_${result.requestId}`, {
+  emitRequestUpdateToParties(io, store, store.requests.find((r) => r.id === result.requestId), {
     request: store.requests.find((r) => r.id === result.requestId),
     chatMessage: result.message
   });

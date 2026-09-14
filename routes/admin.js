@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const store = require('../models/store');
+const { emitRequestUpdateToParties } = require('../lib/realtime');
 const company = require('../config/company');
 const backup = require('../lib/backup');
 const { getAppVersionInfo } = require('../lib/version');
@@ -1618,7 +1619,7 @@ router.post('/solicitudes/:requestId/asignar', requireRole('admin'), requireAdmi
   if (io) {
     broadcastRequestTaken(io, result.request.id, providerId);
     const publicProvider = store.getPublicProviderProfile(result.provider);
-    io.emit(`request_update_${result.request.id}`, {
+    emitRequestUpdateToParties(io, store, result.request, {
       request: result.request,
       provider: publicProvider
     });
