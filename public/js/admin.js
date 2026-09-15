@@ -3649,4 +3649,119 @@
       }
     });
   });
+
+  /* ——— Auditoría durable ——— */
+  async function refreshAuditLogs() {
+    const list = document.getElementById('auditLogList');
+    const meta = document.getElementById('auditMeta');
+    if (!list) return;
+    const q = document.getElementById('auditSearch')?.value || '';
+    const event = document.getElementById('auditEvent')?.value || '';
+    const exportBtn = document.getElementById('btnAuditExport');
+    if (exportBtn) {
+      const params = new URLSearchParams({ q, event, limit: '1000' });
+      exportBtn.href = adminHref(`/auditoria/export.csv?${params.toString()}`);
+    }
+    try {
+      const res = await adminFetch(`/auditoria?q=${encodeURIComponent(q)}&event=${encodeURIComponent(event)}&limit=120`);
+      const data = await res.json();
+      if (!data.success && data.logs == null) {
+        if (meta) meta.textContent = data.error || 'No se pudo cargar';
+        return;
+      }
+      const logs = data.logs || [];
+      if (meta) meta.textContent = `${data.total || logs.length} evento(s) · fuente ${data.source || '—'}`;
+      if (!logs.length) {
+        list.innerHTML = '<p class="text-xs text-gray-500 p-3">Sin resultados.</p>';
+        return;
+      }
+      list.innerHTML = logs.map((log) => `
+        <div class="p-3 rounded-lg bg-zilo-bg border border-gray-200 text-xs font-mono">
+          <span class="text-blue-600">${escapeHtml(log.event || '')}</span>
+          <span class="text-gray-500"> · ${escapeHtml(log.user || '—')} · ${escapeHtml(log.ip || '—')}</span>
+          <span class="text-gray-500 block">${escapeHtml(String(log.createdAt || '').slice(0, 19).replace('T', ' '))}</span>
+          ${log.detail ? `<span class="text-gray-400 block truncate">${escapeHtml(log.detail)}</span>` : ''}
+        </div>
+      `).join('');
+    } catch (_) {
+      if (meta) meta.textContent = 'Error de red al cargar auditoría';
+    }
+  }
+  document.getElementById('btnAuditSearch')?.addEventListener('click', refreshAuditLogs);
+  document.getElementById('auditSearch')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); refreshAuditLogs(); }
+  });
+  if (document.getElementById('auditLogList')) refreshAuditLogs();
+
+  /* ——— DSAR ——— */
+  function canManageDsar() {
+    return document.querySelector('[data-panel="datos"]')?.dataset.canDsar === '1';
+  }
+
+  async function refreshDsarResults() {
+    const box = document.getElementById('dsarResults');
+    if (!box) return;
+    const q = document.getElementById('dsarSearch')?.value || '';
+    if (!String(q).trim()) {
+      box.innerHTML = '<p class="text-xs text-gray-500">Escribe un correo, nombre o teléfono para buscar.</p>';
+      return;
+    }
+    const res = await adminFetch(`/dsar/buscar?q=${encodeURIComponent(q)}&limit=20`);
+    const data = await res.json().catch(() => ({}));
+    if (!data.success) {
+      box.innerHTML = `<p class="text-xs text-red-600">${escapeHtml(data.error || 'No se pudo buscar')}</p>`;
+      return;
+    }
+    if (!data.users?.length) {
+      box.innerHTML = '<p class="text-xs text-gray-500">Sin resultados.</p>';
+      return;
+    }
+    const manage = canManageDsar();
+    box.innerHTML = data.users.map((u) => `
+      <div class="p-3 rounded-xl border border-gray-200 bg-zilo-bg flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div class="min-w-0">
+          <strong class="text-sm">${escapeHtml(u.name || '')}</strong>
+          <span class="text-[10px] uppercase ml-1 px-1.5 py-0.5 rounded bg-gray-100">${escapeHtml(u.role || '')}</span>
+          ${u.anonymizedAt ? '<span class="text-[10px] ml-1 px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">Anonimizado</span>' : ''}
+          <p class="text-xs text-gray-500 truncate">${escapeHtml(u.email || '')}${u.phone ? ' · ' + escapeHtml(u.phone) : ''}</p>
+        </div>
+        <div class="flex flex-wrap gap-2 shrink-0">
+          ${manage && !u.anonymizedAt ? `
+            <a class="text-xs px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-700" href="${adminHref(`/dsar/${encodeURIComponent(u.id)}/download.json`)}">Exportar JSON</a>
+            <button type="button" class="btn-dsar-anon text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-700" data-id="${escapeHtml(u.id)}" data-email="${escapeHtml(u.email || '')}">Anonimizar</button>
+          ` : ''}
+          <button type="button" class="managed-user-diag text-xs px-2.5 py-1.5 rounded-lg bg-violet-500/10 text-violet-800" data-id="${escapeHtml(u.id)}">Diagnóstico</button>
+        </div>
+      </div>
+    `).join('');
+    box.querySelectorAll('.managed-user-diag').forEach((btn) => {
+      btn.onclick = () => openManagedUserDiag(btn.dataset.id);
+    });
+    box.querySelectorAll('.btn-dsar-anon').forEach((btn) => {
+      btn.onclick = async () => {
+        const reason = window.prompt(`Motivo de anonimización para ${btn.dataset.email || btn.dataset.id}:`, 'Solicitud del titular') || '';
+        const confirm = window.prompt('Escribe ANONIMIZAR para confirmar (irreversible):', '');
+        if (String(confirm || '').toUpperCase() !== 'ANONIMIZAR') {
+          FandezNotify.show('Confirmación cancelada', 'warning');
+          return;
+        }
+        const resAnon = await adminFetch(`/dsar/${encodeURIComponent(btn.dataset.id)}/anonimizar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: 'ANONIMIZAR', reason })
+        });
+        const dataAnon = await resAnon.json().catch(() => ({}));
+        if (!dataAnon.success) {
+          FandezNotify.show(dataAnon.error || 'No se pudo anonimizar', 'error');
+          return;
+        }
+        FandezNotify.show('Cuenta anonimizada', 'success');
+        refreshDsarResults();
+      };
+    });
+  }
+  document.getElementById('btnDsarSearch')?.addEventListener('click', refreshDsarResults);
+  document.getElementById('dsarSearch')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); refreshDsarResults(); }
+  });
 })();

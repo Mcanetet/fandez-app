@@ -1473,6 +1473,65 @@ async function saveSecurityLog(log) {
   );
 }
 
+async function querySecurityLogs({
+  q = '',
+  event = '',
+  from = '',
+  to = '',
+  limit = 100,
+  offset = 0
+} = {}) {
+  const lim = Math.min(500, Math.max(1, Number(limit) || 100));
+  const off = Math.max(0, Number(offset) || 0);
+  const clauses = [];
+  const params = [];
+
+  if (event) {
+    clauses.push('event = ?');
+    params.push(String(event).slice(0, 80));
+  }
+  if (q) {
+    const like = `%${String(q).trim().slice(0, 120)}%`;
+    clauses.push('(detail LIKE ? OR `user` LIKE ? OR ip LIKE ? OR event LIKE ?)');
+    params.push(like, like, like, like);
+  }
+  if (from) {
+    clauses.push('created_at >= ?');
+    params.push(String(from).slice(0, 32));
+  }
+  if (to) {
+    clauses.push('created_at <= ?');
+    params.push(String(to).slice(0, 32));
+  }
+
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+  const countRes = await db.query(
+    `SELECT COUNT(*) AS total FROM security_logs ${where}`,
+    params
+  );
+  const total = Number(countRes.rows?.[0]?.total || 0);
+  const listRes = await db.query(
+    `SELECT id, event, detail, \`user\`, ip, created_at
+     FROM security_logs
+     ${where}
+     ORDER BY created_at DESC
+     LIMIT ${lim} OFFSET ${off}`,
+    params
+  );
+
+  return {
+    total,
+    logs: (listRes.rows || []).map((row) => ({
+      id: row.id,
+      event: row.event,
+      detail: row.detail,
+      user: row.user,
+      ip: row.ip,
+      createdAt: row.created_at ? new Date(row.created_at).toISOString() : null
+    }))
+  };
+}
+
 async function saveNotification(record) {
   await db.query(
     `INSERT INTO notifications (id, event, channel, status, recipient, subject, body, meta, request_id, user_id, error, created_at)
@@ -1640,6 +1699,7 @@ module.exports = {
   saveComplaint,
   saveConsent,
   saveSecurityLog,
+  querySecurityLogs,
   saveNotification,
   saveChat,
   restoreFromSnapshot,

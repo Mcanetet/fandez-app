@@ -911,6 +911,89 @@ router.post('/profiles/:id/delete', requireRole('admin'), requireAdminPermission
   res.json({ success: true, profiles: result.profiles });
 });
 
+router.get('/auditoria', requireRole('admin'), requireAdminPermission('seguridad.view'), async (req, res) => {
+  const result = await store.getSecurityAuditLogs({
+    q: req.query.q || '',
+    event: req.query.event || '',
+    from: req.query.from || '',
+    to: req.query.to || '',
+    limit: Number(req.query.limit) || 100,
+    offset: Number(req.query.offset) || 0
+  });
+  res.json(result);
+});
+
+router.get('/auditoria/export.csv', requireRole('admin'), requireAdminPermission('seguridad.view'), async (req, res) => {
+  const result = await store.getSecurityAuditLogs({
+    q: req.query.q || '',
+    event: req.query.event || '',
+    from: req.query.from || '',
+    to: req.query.to || '',
+    limit: Math.min(2000, Number(req.query.limit) || 1000),
+    offset: 0
+  });
+  store.logSecurityEvent('audit_export', `rows=${result.logs.length} by ${req.session.user.email}`, req);
+  const escape = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  const lines = [
+    'id,event,user,ip,createdAt,detail',
+    ...result.logs.map((l) => [
+      escape(l.id),
+      escape(l.event),
+      escape(l.user),
+      escape(l.ip),
+      escape(l.createdAt),
+      escape(l.detail)
+    ].join(','))
+  ];
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="fandez-auditoria-${new Date().toISOString().slice(0, 10)}.csv"`);
+  res.send(`\uFEFF${lines.join('\n')}`);
+});
+
+router.get('/dsar/buscar', requireRole('admin'), requireAdminPermission('datos.view', 'datos.manage', 'usuarios.view'), (req, res) => {
+  const users = store.getManagedUsers({
+    q: req.query.q || '',
+    role: req.query.role || '',
+    limit: Number(req.query.limit) || 20
+  });
+  res.json({ success: true, users });
+});
+
+router.get('/dsar/:userId', requireRole('admin'), requireAdminPermission('datos.manage', 'usuarios.manage'), (req, res) => {
+  const result = store.buildUserDsarPackage(req.params.userId);
+  if (result.error) return res.status(404).json({ error: result.error });
+  store.logSecurityEvent('dsar_export', `${req.params.userId} by ${req.session.user.email}`, req);
+  res.json(result);
+});
+
+router.get('/dsar/:userId/download.json', requireRole('admin'), requireAdminPermission('datos.manage', 'usuarios.manage'), (req, res) => {
+  const result = store.buildUserDsarPackage(req.params.userId);
+  if (result.error) return res.status(404).json({ error: result.error });
+  store.logSecurityEvent('dsar_export_download', `${req.params.userId} by ${req.session.user.email}`, req);
+  const filename = `fandez-dsar-${req.params.userId}-${new Date().toISOString().slice(0, 10)}.json`;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(JSON.stringify(result.package, null, 2));
+});
+
+router.post('/dsar/:userId/anonimizar', requireRole('admin'), requireAdminPermission('datos.manage'), async (req, res) => {
+  const confirm = String(req.body?.confirm || '').trim().toUpperCase();
+  if (confirm !== 'ANONIMIZAR') {
+    return res.status(400).json({ error: 'Escribe ANONIMIZAR para confirmar.' });
+  }
+  const result = await store.anonymizeUserAccount(
+    req.params.userId,
+    {
+      reason: req.body?.reason || '',
+      actorEmail: req.session.user.email,
+      actorId: req.session.user.id
+    },
+    req
+  );
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json({ success: true, user: result.user });
+});
+
 router.get('/usuarios', requireRole('admin'), requireAdminPermission('usuarios.view', 'usuarios.manage'), (req, res) => {
   const users = store.getManagedUsers({
     q: req.query.q || '',

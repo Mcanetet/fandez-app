@@ -3784,6 +3784,7 @@ function serializeManagedUser(u) {
     clientEnabled: u.role === 'provider' ? u.clientEnabled !== false : undefined,
     parentId: u.parentId || null,
     memberSince: u.memberSince || null,
+    anonymizedAt: u.anonymizedAt || null,
     specialties: specialtyIds,
     services
   };
@@ -6602,16 +6603,222 @@ function getConsentsSummary() {
 
 function logSecurityEvent(event, detail, req) {
   const log = {
-    id: `sec-${Date.now()}`,
-    event,
-    detail: detail || null,
+    id: `sec-${uuidv4()}`,
+    event: String(event || 'event').slice(0, 80),
+    detail: detail == null ? null : String(detail).slice(0, 4000),
     user: req?.session?.user?.email || null,
     ip: req?.ip || null,
     createdAt: new Date().toISOString()
   };
   securityLogs.unshift(log);
-  if (securityLogs.length > 200) securityLogs.pop();
+  if (securityLogs.length > 1000) securityLogs.length = 1000;
   repository.persist(() => repository.saveSecurityLog(log), `log ${log.id}`);
+  return log;
+}
+
+function filterSecurityLogsMemory({ q = '', event = '', from = '', to = '', limit = 100, offset = 0 } = {}) {
+  const query = String(q || '').trim().toLowerCase();
+  const eventFilter = String(event || '').trim();
+  const fromTs = from ? Date.parse(from) : null;
+  const toTs = to ? Date.parse(to) : null;
+  const filtered = (securityLogs || []).filter((log) => {
+    if (eventFilter && log.event !== eventFilter) return false;
+    if (Number.isFinite(fromTs)) {
+      const at = Date.parse(log.createdAt || '');
+      if (!Number.isFinite(at) || at < fromTs) return false;
+    }
+    if (Number.isFinite(toTs)) {
+      const at = Date.parse(log.createdAt || '');
+      if (!Number.isFinite(at) || at > toTs) return false;
+    }
+    if (!query) return true;
+    return [log.event, log.detail, log.user, log.ip]
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(query));
+  });
+  const lim = Math.min(500, Math.max(1, Number(limit) || 100));
+  const off = Math.max(0, Number(offset) || 0);
+  return {
+    total: filtered.length,
+    logs: filtered.slice(off, off + lim),
+    source: 'memory'
+  };
+}
+
+async function getSecurityAuditLogs(filters = {}) {
+  ensureReady();
+  try {
+    if (typeof repository.querySecurityLogs === 'function') {
+      const result = await repository.querySecurityLogs(filters);
+      return { success: true, ...result, source: 'database' };
+    }
+  } catch (err) {
+    console.warn('[audit] DB query fallback:', err.message);
+  }
+  return { success: true, ...filterSecurityLogsMemory(filters) };
+}
+
+function summarizeRequestForDsar(r) {
+  return {
+    id: r.id,
+    status: r.status,
+    serviceName: r.serviceName || r.serviceId || null,
+    paymentStatus: r.paymentStatus || null,
+    amountDue: r.amountDue || r.visitPricePaid || null,
+    refundStatus: r.refundStatus || null,
+    refundAmount: r.refundAmount || null,
+    address: r.address || null,
+    commune: r.commune || r.communeName || null,
+    createdAt: r.createdAt || null,
+    completedAt: r.completedAt || null,
+    cancelledAt: r.cancelledAt || null
+  };
+}
+
+function buildUserDsarPackage(userId) {
+  ensureReady();
+  const user = getUserById(userId);
+  if (!user || user.role === 'admin') return { error: 'Usuario no encontrado o no exportable.' };
+  if (user.anonymizedAt) return { error: 'Esta cuenta ya fue anonimizada.' };
+
+  let related = [];
+  if (user.role === 'client') related = getRequestsByClient(user.id);
+  else if (user.role === 'provider') related = getRequestsByProvider(user.id);
+  else if (user.role === 'tecnico') related = getRequestsByTechnician(user.id);
+
+  const complaints = (COMPLAINTS || []).filter(
+    (c) => c.clientId === user.id || c.providerId === user.id || c.userId === user.id
+  );
+
+  return {
+    success: true,
+    package: {
+      meta: {
+        exportedAt: new Date().toISOString(),
+        law: 'Ley 21.719 (Chile) — derecho de acceso',
+        subjectUserId: user.id,
+        role: user.role
+      },
+      account: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || null,
+        role: user.role,
+        active: user.active !== false,
+        memberSince: user.memberSince || null,
+        address: user.address || null,
+        emailVerifiedAt: user.emailVerifiedAt || null,
+        billing: user.billing || null,
+        specialties: user.specialties || [],
+        clientEnabled: user.clientEnabled
+      },
+      consents: getUserConsents(user.id),
+      requests: related.map(summarizeRequestForDsar),
+      complaints: complaints.map((c) => ({
+        id: c.id,
+        status: c.status,
+        subject: c.subject || c.reason || null,
+        createdAt: c.createdAt || null,
+        requestId: c.requestId || null
+      })),
+      logbook: (homeLogbook || [])
+        .filter((e) => e.clientId === user.id)
+        .slice(0, 100)
+        .map((e) => ({
+          id: e.id,
+          title: e.title || e.serviceName || null,
+          entryDate: e.entryDate || e.createdAt || null
+        }))
+    }
+  };
+}
+
+async function anonymizeUserAccount(userId, { reason = '', actorEmail = null, actorId = null } = {}, req = null) {
+  ensureReady();
+  const user = getUserById(userId);
+  if (!user || user.role === 'admin') return { error: 'Usuario no encontrado o no anonimizable.' };
+  if (user.anonymizedAt) return { error: 'Esta cuenta ya fue anonimizada.' };
+
+  const now = new Date().toISOString();
+  const originalEmail = user.email;
+  const label = `Usuario anonimizado ${String(user.id).slice(-8)}`;
+
+  user.name = label;
+  user.email = `deleted+${user.id}@anonymized.local`;
+  user.phone = null;
+  user.address = null;
+  user.addressLat = null;
+  user.addressLng = null;
+  user.addressPlaceId = null;
+  user.avatar = null;
+  user.bio = null;
+  user.online = false;
+  user.active = false;
+  user.billing = null;
+  user.locationShare = null;
+  user.verification = null;
+  user.providerContract = user.role === 'provider' ? null : user.providerContract;
+  user.mfa = null;
+  user.emailVerifiedAt = null;
+  user.emailVerificationCodeHash = null;
+  user.passwordResetTokenHash = null;
+  user.password = await hashPassword(`anon-${uuidv4()}-${Date.now()}`);
+  user.anonymizedAt = now;
+  user.anonymizedReason = String(reason || '').trim().slice(0, 400) || null;
+  user.anonymizedBy = actorEmail || actorId || null;
+  user.updatedAt = now;
+
+  if (user.role === 'client') {
+    requests.filter((r) => r.clientId === user.id).forEach((r) => {
+      r.clientName = label;
+      r.clientPhone = null;
+      if (r.billingSnapshot) {
+        r.billingSnapshot = {
+          ...r.billingSnapshot,
+          legalName: label,
+          email: null,
+          phone: null,
+          address: null
+        };
+      }
+      repository.persist(() => repository.saveRequest(r), `dsar scrub request ${r.id}`);
+    });
+    (homeLogbook || []).filter((e) => e.clientId === user.id).forEach((e) => {
+      e.title = e.title ? '[anonimizado]' : e.title;
+      e.notes = null;
+      e.address = null;
+    });
+  }
+
+  if (user.role === 'provider') {
+    requests.filter((r) => r.providerId === user.id).forEach((r) => {
+      // Conservamos providerId para contabilidad; el nombre vivo sale del user anonimizado.
+      repository.persist(() => repository.saveRequest(r), `dsar keep request ${r.id}`);
+    });
+  }
+
+  repository.persist(() => repository.saveUser(user), `dsar anonymize ${user.id}`);
+  logSecurityEvent(
+    'dsar_anonymize',
+    JSON.stringify({
+      userId: user.id,
+      previousEmail: originalEmail,
+      reason: user.anonymizedReason,
+      by: actorEmail || actorId
+    }),
+    req || { session: { user: { email: actorEmail } } }
+  );
+
+  return {
+    success: true,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      anonymizedAt: user.anonymizedAt
+    }
+  };
 }
 
 function getPayments() {
@@ -7354,6 +7561,9 @@ module.exports = {
   get consentRecords() { return consentRecords; },
   get securityLogs() { return securityLogs; },
   logSecurityEvent,
+  getSecurityAuditLogs,
+  buildUserDsarPackage,
+  anonymizeUserAccount,
   updateComplaintStatus,
   markPayoutPaid,
   getAdminRefundQueue,

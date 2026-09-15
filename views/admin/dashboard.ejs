@@ -1405,9 +1405,19 @@ function hasPerm(key) {
     </section>
 
     <!-- DATOS / CONSENTIMIENTO -->
-    <section class="<%= panelClass('datos') %>" data-panel="datos">
+    <section class="<%= panelClass('datos') %>" data-panel="datos" data-can-dsar="<%= hasPerm('datos.manage') ? '1' : '0' %>">
       <h3 class="text-lg font-semibold mb-1"><%= t('admin.datos.title') %></h3>
       <p class="text-xs text-gray-500 mb-4"><%= t('admin.datos.subtitle', { email: company.dpoEmail }) %></p>
+
+      <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4">
+        <h4 class="text-sm font-semibold mb-1">DSAR — derechos del titular (Ley 21.719)</h4>
+        <p class="text-xs text-gray-500 mb-3">Busca una cuenta, exporta su paquete de datos o anonimízala. Los pedidos contables se conservan sin PII.</p>
+        <div class="flex flex-col sm:flex-row gap-2 mb-3">
+          <input type="search" id="dsarSearch" class="zilo-input !py-2 flex-1 text-sm" placeholder="Email, nombre o teléfono" autocomplete="off">
+          <button type="button" id="btnDsarSearch" class="zilo-btn-primary !py-2 !px-4 !text-sm">Buscar</button>
+        </div>
+        <div id="dsarResults" class="space-y-2"></div>
+      </div>
 
       <% if (hasPerm('solicitudes.manage')) { %>
       <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4">
@@ -1444,7 +1454,7 @@ function hasPerm(key) {
         <% }); %>
       </div>
       <div class="mt-4 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/25 text-xs text-gray-600">
-        <strong class="text-blue-300 block mb-1">Checklist legal pre-lanzamiento</strong>
+        <strong class="text-blue-700 block mb-1">Checklist legal pre-lanzamiento</strong>
         <ul class="space-y-1 list-disc list-inside">
           <li>Política de privacidad publicada</li>
           <li>Términos y condiciones publicados</li>
@@ -1453,6 +1463,7 @@ function hasPerm(key) {
           <li>Canal soporte: <%= company.supportEmail %></li>
           <li>Canal DPD: <%= company.dpoEmail %></li>
           <li>HTTPS obligatorio en producción (Hostinger)</li>
+          <li>DSAR: exportar / anonimizar desde este panel</li>
         </ul>
       </div>
     </section>
@@ -2693,14 +2704,24 @@ function hasPerm(key) {
       </div>
 
       <h4 class="text-sm font-semibold mb-2"><%= t('admin.seguridad.audit') %></h4>
-      <div class="space-y-1 max-h-80 overflow-y-auto">
-        <% securityLogs.forEach(log => { %>
-          <div class="p-3 rounded-lg bg-zilo-card border border-gray-200 text-xs font-mono">
-            <span class="text-blue-600"><%= log.event %></span>
-            <span class="text-gray-500"> · <%= log.user || '—' %> · <%= log.ip || '—' %></span>
-            <span class="text-gray-500 block"><%= new Date(log.createdAt).toLocaleString('es-CL') %></span>
-          </div>
-        <% }); %>
+      <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-3">
+        <div class="flex flex-col sm:flex-row gap-2 mb-3">
+          <input type="search" id="auditSearch" class="zilo-input !py-2 flex-1 text-sm" placeholder="Buscar evento, usuario, IP o detalle" value="">
+          <input type="text" id="auditEvent" class="zilo-input !py-2 text-sm sm:w-40" placeholder="evento (opcional)">
+          <button type="button" id="btnAuditSearch" class="zilo-btn-primary !py-2 !px-4 !text-sm">Filtrar</button>
+          <a id="btnAuditExport" href="<%= adminBase %>/auditoria/export.csv" class="zilo-btn-ghost !py-2 !px-4 !text-sm text-center">Exportar CSV</a>
+        </div>
+        <p id="auditMeta" class="text-[11px] text-gray-500 mb-2">Cargando auditoría…</p>
+        <div id="auditLogList" class="space-y-1 max-h-96 overflow-y-auto">
+          <% securityLogs.forEach(log => { %>
+            <div class="p-3 rounded-lg bg-zilo-bg border border-gray-200 text-xs font-mono">
+              <span class="text-blue-600"><%= log.event %></span>
+              <span class="text-gray-500"> · <%= log.user || '—' %> · <%= log.ip || '—' %></span>
+              <span class="text-gray-500 block"><%= new Date(log.createdAt).toLocaleString('es-CL') %></span>
+              <% if (log.detail) { %><span class="text-gray-400 block truncate"><%= log.detail %></span><% } %>
+            </div>
+          <% }); %>
+        </div>
       </div>
     </section>
 
