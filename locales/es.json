@@ -223,7 +223,7 @@
   "verify.expires_in": "Este código vence en {time}. Si no llega, espera y toca Reenviar.",
   "verify.resend_ready": "Ya puedes pedir un código nuevo.",
   "verify.gmail_hint": "Gmail: busca from:soporte@fandez.cl o revisa Spam y la pestaña Promociones. Luego pulsa Reenviar código.",
-  "verify.hotmail_hint": "Si usas Outlook/Hotmail, revisa Correo no deseado y la carpeta Otros. A veces el primer correo tarda unos minutos.",
+  "verify.hotmail_hint": "Outlook / Hotmail / Live: revisa Correo no deseado y la carpeta «Otros». Marca soporte@fandez.cl como seguro y pulsa Reenviar. Si sigue vacío, escribe a soporte@fandez.cl con tu correo de registro.",
   "verify.exists_resent": "Ya existía una cuenta con este correo, pero aún no estaba verificada. Te enviamos un código nuevo.",
   "verify.other_email": "Usar otro correo",
   "verify.law_title": "Protección de datos (Ley 21.719)",

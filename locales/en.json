@@ -224,7 +224,7 @@
   "verify.expires_in": "This code expires in {time}. If it doesn’t arrive, wait and tap Resend.",
   "verify.resend_ready": "You can request a new code now.",
   "verify.gmail_hint": "Gmail: search from:soporte@fandez.cl or check Spam and the Promotions tab. Then tap Resend code.",
-  "verify.hotmail_hint": "If you use Outlook/Hotmail, check Junk and the Other folder. The first email can take a few minutes.",
+  "verify.hotmail_hint": "Outlook / Hotmail / Live: check Junk and the Other folder. Mark soporte@fandez.cl as safe, then tap Resend. If it still doesn’t arrive, email soporte@fandez.cl with your signup address.",
   "verify.exists_resent": "An account with this email already existed but was not verified. We sent a new code.",
   "verify.other_email": "Use another email",
   "verify.law_title": "Data protection (Law 21.719)",
