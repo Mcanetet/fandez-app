@@ -147,8 +147,11 @@
 
     <% if (typeof providerStats !== 'undefined') { %>
     <section class="mb-4 zilo-page-enter-delay-1" aria-label="<%= t('provider.finance.title') %>">
-      <p class="zilo-label mb-2"><%= t('provider.finance.title') %></p>
-      <div class="grid grid-cols-2 gap-2">
+      <div class="flex items-center justify-between mb-2">
+        <p class="zilo-label mb-0"><%= t('provider.finance.title') %></p>
+        <a href="/proveedor/finanzas" class="text-xs text-zilo-accent font-medium"><%= t('provider.finance.view_all') %></a>
+      </div>
+      <a href="/proveedor/finanzas" class="grid grid-cols-2 gap-2">
         <div class="p-3 rounded-xl zilo-card-premium">
           <strong class="text-zilo-accent text-sm block"><%= formatCLP(providerStats.pendingPayout || 0) %></strong>
           <span class="text-[10px] text-zilo-muted"><%= t('provider.finance.pending') %></span>
@@ -165,7 +168,7 @@
           <strong class="text-sm block text-zilo-success"><%= providerStats.nextPayDateLabel || t('provider.finance.no_schedule') %></strong>
           <span class="text-[10px] text-zilo-muted"><%= providerStats.nextPayAmount ? formatCLP(providerStats.nextPayAmount) : t('provider.finance.next_pay') %></span>
         </div>
-      </div>
+      </a>
     </section>
     <% } %>
 

@@ -28,6 +28,21 @@
       <p class="text-[10px] text-zilo-muted mt-2"><%= vDone %> de <%= vItems.length %> requisitos completados</p>
     </div>
 
+    <a href="/proveedor/contrato" class="block p-4 rounded-2xl zilo-card-premium border border-zilo-accent/20 hover:border-zilo-accent/40 transition">
+      <p class="text-sm font-semibold text-zilo-text"><%= t('provider.profile.contract_cta') %></p>
+      <p class="text-xs text-zilo-muted mt-1"><%= t('provider.profile.contract_hint') %></p>
+    </a>
+
+    <a href="/proveedor/finanzas" class="block p-4 rounded-2xl zilo-card-premium border border-zilo-border hover:border-zilo-accent/30 transition">
+      <p class="text-sm font-semibold text-zilo-text"><%= t('provider.finance.page_title') %></p>
+      <p class="text-xs text-zilo-muted mt-1"><%= t('provider.finance.view_all') %></p>
+    </a>
+
+    <a href="/proveedor/equipo" class="block p-4 rounded-2xl zilo-card-premium border border-zilo-border hover:border-zilo-accent/30 transition">
+      <p class="text-sm font-semibold text-zilo-text"><%= t('provider.equipo.title') %></p>
+      <p class="text-xs text-zilo-muted mt-1"><%= t('provider.equipo.add') %> · servicios · expediente</p>
+    </a>
+
     <div class="text-center py-2">
       <div class="w-20 h-20 mx-auto rounded-2xl zilo-card-premium flex items-center justify-center text-xl font-semibold text-zilo-accent border border-zilo-accent/25 mb-3" id="avatarDisplay"><%= provider.avatar %></div>
       <h2 class="zilo-display text-2xl" id="nameDisplay"><%= provider.name %></h2>

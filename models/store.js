@@ -5985,6 +5985,102 @@ function getProviderDashboardStats(providerId) {
   };
 }
 
+/** Libro de finanzas del socio: trabajos completados con liquidación. */
+function getProviderFinanceLedger(providerId, { limit = 60 } = {}) {
+  const pricing = getPricingConfig();
+  const rows = requests
+    .filter((r) => r.providerId === providerId && r.status === 'completed')
+    .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt))
+    .slice(0, Math.max(1, Math.min(200, Number(limit) || 60)))
+    .map((r) => {
+      const fin = computeRequestFinancials(r, pricing);
+      const payoutStatus = r.payoutStatus === 'pagado' ? 'pagado' : 'programado';
+      return {
+        id: r.id,
+        serviceName: r.serviceName || r.serviceId || 'Servicio',
+        activityName: r.activityName || null,
+        clientName: r.clientName || 'Cliente',
+        communeName: r.communeName || null,
+        completedAt: r.completedAt || r.createdAt,
+        completedAtLabel: formatPayDate(String(r.completedAt || r.createdAt).slice(0, 10)),
+        payoutStatus,
+        payoutStatusLabel: payoutStatus === 'pagado' ? 'Pagado' : 'Por pagar',
+        payoutScheduledDate: r.payoutScheduledDate || null,
+        payoutScheduledLabel: r.payoutScheduledDate ? formatPayDate(r.payoutScheduledDate) : null,
+        payoutPaidAt: r.payoutPaidAt || null,
+        providerPayout: fin.providerTotal || 0,
+        materialsTotal: fin.materialsTotal || 0,
+        laborCommission: fin.laborCommission || 0,
+        cardFee: fin.cardFee || 0,
+        grandTotal: fin.grandTotal || 0,
+        visitPaid: fin.visitPaid || 0,
+        serviceAmount: fin.serviceAmount || 0
+      };
+    });
+
+  const pending = rows.filter((r) => r.payoutStatus !== 'pagado');
+  const paid = rows.filter((r) => r.payoutStatus === 'pagado');
+  return {
+    stats: getProviderDashboardStats(providerId),
+    rows,
+    pendingCount: pending.length,
+    paidCount: paid.length,
+    pendingTotal: pending.reduce((s, r) => s + (r.providerPayout || 0), 0),
+    paidTotal: paid.reduce((s, r) => s + (r.providerPayout || 0), 0)
+  };
+}
+
+/** Actualiza datos básicos de un técnico del equipo del socio. */
+async function updateTechnicianForProvider(socioId, tecnicoId, { name, phone, password } = {}) {
+  const tecnico = getTechnicianForProvider(socioId, tecnicoId);
+  if (!tecnico) return { error: 'Técnico no encontrado en tu equipo.' };
+  if (tecnico.isSelfOperator) {
+    return { error: 'Tu perfil de “yo hago el servicio” se edita en Mi perfil.' };
+  }
+  const nextName = String(name || '').trim();
+  if (nextName && nextName.length >= 2) {
+    tecnico.name = nextName.slice(0, 80);
+    tecnico.avatar = nextName.split(/\s+/).map((p) => p[0]).join('').slice(0, 2).toUpperCase() || tecnico.avatar;
+  }
+  if (phone != null) {
+    tecnico.phone = String(phone).trim().slice(0, 32);
+  }
+  if (password && String(password).length >= 10) {
+    tecnico.password = await hashPassword(String(password));
+  } else if (password && String(password).length > 0) {
+    return { error: 'La contraseña debe tener al menos 10 caracteres.' };
+  }
+  repository.persist(() => repository.saveUser(tecnico), `editar técnico ${tecnico.id}`);
+  return { success: true, tecnico };
+}
+
+/** Quita al técnico de la empresa del socio (no borra la cuenta global). */
+function unlinkTechnicianFromProvider(socioId, tecnicoId) {
+  const tecnico = getTechnicianForProvider(socioId, tecnicoId);
+  if (!tecnico) return { error: 'Técnico no encontrado en tu equipo.' };
+  if (tecnico.isSelfOperator && (tecnico.parentId === socioId || getTechnicianParentIds(tecnico)[0] === socioId)) {
+    return { error: 'No puedes quitar tu propio perfil de “yo hago el servicio”. Desactívalo desde Equipo si no lo usas.' };
+  }
+  const activeJobs = requests.filter((r) =>
+    r.technicianId === tecnicoId
+    && r.providerId === socioId
+    && ['assigned', 'in_progress', 'searching'].includes(r.status)
+  );
+  if (activeJobs.length) {
+    return { error: `Tiene ${activeJobs.length} trabajo(s) activo(s). Reasigna o cierra antes de quitarlo.` };
+  }
+  const ids = getTechnicianParentIds(tecnico).filter((id) => id !== socioId);
+  tecnico.parentIds = ids;
+  if (tecnico.parentId === socioId) {
+    tecnico.parentId = ids[0] || null;
+  }
+  if (tecnico.claimWallByProvider && typeof tecnico.claimWallByProvider === 'object') {
+    delete tecnico.claimWallByProvider[socioId];
+  }
+  repository.persist(() => repository.saveUser(tecnico), `desvincular técnico ${tecnico.id} de ${socioId}`);
+  return { success: true };
+}
+
 function dismissWorkWallItem(providerId, requestId, reason) {
   const provider = getUserById(providerId);
   if (!provider || provider.role !== 'provider') return { error: 'Socio no encontrado' };
@@ -6697,6 +6793,8 @@ module.exports = {
   getSelfOperator,
   getTechniciansByProvider,
   linkTechnicianToProvider,
+  updateTechnicianForProvider,
+  unlinkTechnicianFromProvider,
   technicianBelongsToProvider,
   getTechnicianParentIds,
   getTechnicianForProvider,
@@ -6796,6 +6894,7 @@ module.exports = {
   getRequestsByProvider,
   getActiveRequestsForProvider,
   getProviderDashboardStats,
+  getProviderFinanceLedger,
   getProviderPayoutSummary,
   registerProviderInvoice,
   getProviderWorkflowStep,

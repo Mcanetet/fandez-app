@@ -156,4 +156,110 @@
   });
   const hash = (location.hash || '').replace('#', '');
   if (['servicios', 'tecnicos', 'agregar'].includes(hash)) showEquipoTab(hash);
+
+  const editModal = document.getElementById('techEditModal');
+  const editForm = document.getElementById('techEditForm');
+  const editId = document.getElementById('techEditId');
+  const editName = document.getElementById('techEditName');
+  const editPhone = document.getElementById('techEditPhone');
+  const editPassword = document.getElementById('techEditPassword');
+
+  function closeEditModal() {
+    editModal?.classList.add('hidden');
+    if (editPassword) editPassword.value = '';
+  }
+
+  document.getElementById('techEditClose')?.addEventListener('click', closeEditModal);
+  editModal?.addEventListener('click', (ev) => {
+    if (ev.target === editModal) closeEditModal();
+  });
+
+  document.querySelectorAll('.tech-edit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('[data-tech-id]');
+      if (!card || !editModal) return;
+      editId.value = card.dataset.techId || '';
+      editName.value = card.dataset.techName || '';
+      editPhone.value = card.dataset.techPhone || '';
+      if (editPassword) editPassword.value = '';
+      editModal.classList.remove('hidden');
+    });
+  });
+
+  editForm?.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const id = editId?.value;
+    if (!id) return;
+    const submitBtn = editForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const res = await fetch(`/proveedor/equipo/${id}/editar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          name: editName.value.trim(),
+          phone: editPhone.value.trim(),
+          password: editPassword?.value || ''
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo guardar');
+      const card = document.querySelector(`[data-tech-id="${CSS.escape(id)}"]`);
+      if (card && data.tecnico) {
+        card.dataset.techName = data.tecnico.name || '';
+        card.dataset.techPhone = data.tecnico.phone || '';
+        const nameEl = card.querySelector('[data-role="tech-name"]');
+        const phoneEl = card.querySelector('[data-role="tech-phone"]');
+        const avatarEl = card.querySelector('[data-role="tech-avatar"]');
+        if (nameEl) nameEl.textContent = data.tecnico.name || '';
+        if (avatarEl && data.tecnico.avatar) avatarEl.textContent = data.tecnico.avatar;
+        if (phoneEl) {
+          phoneEl.textContent = data.tecnico.phone || '';
+          phoneEl.classList.toggle('hidden', !data.tecnico.phone);
+        } else if (data.tecnico.phone) {
+          const emailEl = card.querySelector('[data-role="tech-email"]');
+          if (emailEl) {
+            const span = document.createElement('span');
+            span.className = 'text-[10px] text-zilo-muted truncate block';
+            span.dataset.role = 'tech-phone';
+            span.textContent = data.tecnico.phone;
+            emailEl.insertAdjacentElement('afterend', span);
+          }
+        }
+      }
+      notify('Técnico actualizado', 'success');
+      closeEditModal();
+    } catch (err) {
+      notify(err.message || 'No se pudo guardar', 'error');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+
+  document.querySelectorAll('.tech-unlink-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const card = btn.closest('[data-tech-id]');
+      const name = card?.dataset.techName || 'este técnico';
+      if (!id) return;
+      if (!confirm(`¿Quitar a ${name} de tu equipo? No elimina su cuenta Fandez; solo lo desvincula de tu empresa.`)) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/proveedor/equipo/${id}/desvincular`, {
+          method: 'POST',
+          headers: { Accept: 'application/json' }
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo quitar');
+        notify('Técnico quitado del equipo', 'success');
+        card?.remove();
+        if (!document.querySelector('#techList [data-tech-id]')) {
+          setTimeout(() => location.reload(), 500);
+        }
+      } catch (err) {
+        notify(err.message || 'No se pudo quitar', 'error');
+        btn.disabled = false;
+      }
+    });
+  });
 })();

@@ -135,26 +135,24 @@
               return svc ? svc.name : id;
             });
           %>
-            <div class="p-4 rounded-xl zilo-card-premium space-y-3" data-tech-id="<%= t.id %>">
-              <div class="flex items-center justify-between gap-3">
+            <div class="tech-list-card rounded-xl zilo-card-premium border border-zilo-border/70" data-tech-id="<%= t.id %>" data-tech-name="<%= t.name %>" data-tech-phone="<%= t.phone || '' %>" data-tech-email="<%= t.email %>" data-self="<%= t.isSelfOperator ? '1' : '0' %>">
+              <div class="tech-list-card__head">
                 <div class="flex items-center gap-3 min-w-0">
-                  <div class="w-10 h-10 rounded-xl bg-zilo-accent/15 border border-zilo-accent/25 flex items-center justify-center text-xs font-semibold text-zilo-accent shrink-0"><%= t.avatar %></div>
+                  <div class="w-10 h-10 rounded-xl bg-zilo-accent/15 border border-zilo-accent/25 flex items-center justify-center text-xs font-semibold text-zilo-accent shrink-0" data-role="tech-avatar"><%= t.avatar %></div>
                   <div class="min-w-0">
-                    <strong class="text-sm block truncate"><%= t.name %></strong>
-                    <span class="text-xs text-zilo-muted truncate block"><%= t.email %></span>
+                    <strong class="text-sm block truncate" data-role="tech-name"><%= t.name %></strong>
+                    <span class="text-xs text-zilo-muted truncate block" data-role="tech-email"><%= t.email %></span>
+                    <% if (t.phone) { %><span class="text-[10px] text-zilo-muted truncate block" data-role="tech-phone"><%= t.phone %></span><% } %>
                     <% if (techSpecs.length) { %>
                       <span class="text-[10px] text-zilo-muted truncate block mt-0.5"><%= techSpecs.join(' · ') %></span>
                     <% } %>
                     <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %>"><%= t.isSelfOperator ? 'Tú · listo para visitas' : (t.dossierCheck.ok ? 'Expediente completo' : 'Expediente incompleto') %></span>
                   </div>
                 </div>
-                <div class="flex items-center gap-2 shrink-0">
-                  <a href="/proveedor/equipo/<%= t.id %>/expediente" class="zilo-btn-ghost !py-1.5 !px-2 !text-[10px]">Expediente</a>
-                  <label class="toggle-ios" title="Activar / desactivar">
-                    <input type="checkbox" class="tech-toggle" data-id="<%= t.id %>" <%= t.active !== false ? 'checked' : '' %>>
-                    <span class="slider"></span>
-                  </label>
-                </div>
+                <label class="toggle-ios shrink-0" title="Activar / desactivar">
+                  <input type="checkbox" class="tech-toggle" data-id="<%= t.id %>" <%= t.active !== false ? 'checked' : '' %>>
+                  <span class="slider"></span>
+                </label>
               </div>
               <% if (!t.isSelfOperator) { %>
                 <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-zilo-bg/50 cursor-pointer">
@@ -165,8 +163,15 @@
                   </span>
                 </label>
               <% } else { %>
-                <p class="text-[11px] text-zilo-muted px-1">Como “yo hago el servicio”, siempre puedes tomar pedidos del muro.</p>
+                <p class="text-[11px] text-zilo-muted">Como “yo hago el servicio”, siempre puedes tomar pedidos del muro.</p>
               <% } %>
+              <div class="tech-list-card__actions">
+                <a href="/proveedor/equipo/<%= t.id %>/expediente" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-center">Expediente</a>
+                <% if (!t.isSelfOperator) { %>
+                  <button type="button" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-xs tech-edit-btn" data-id="<%= t.id %>">Editar</button>
+                  <button type="button" class="flex-1 py-2.5 rounded-xl border border-red-200 text-red-700 !text-xs font-semibold tech-unlink-btn" data-id="<%= t.id %>">Quitar</button>
+                <% } %>
+              </div>
             </div>
           <% }); %>
         </div>
@@ -244,6 +249,32 @@
     </section>
     </div>
   </main>
+</div>
+
+<div id="techEditModal" class="hidden fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-4 bg-black/50">
+  <div class="w-full max-w-md rounded-2xl bg-zilo-surface border border-zilo-border p-5 shadow-xl">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-semibold text-sm">Editar técnico</h3>
+      <button type="button" id="techEditClose" class="text-zilo-muted text-sm">Cerrar</button>
+    </div>
+    <form id="techEditForm" class="space-y-3">
+      <input type="hidden" id="techEditId" value="">
+      <div>
+        <label class="text-xs text-zilo-muted">Nombre</label>
+        <input type="text" id="techEditName" required class="zilo-input w-full mt-1" maxlength="80">
+      </div>
+      <div>
+        <label class="text-xs text-zilo-muted">Teléfono</label>
+        <input type="tel" id="techEditPhone" class="zilo-input w-full mt-1" placeholder="+56 9 ...">
+      </div>
+      <div>
+        <label class="text-xs text-zilo-muted">Nueva contraseña <span class="opacity-60">(opcional)</span></label>
+        <input type="password" id="techEditPassword" minlength="10" class="zilo-input w-full mt-1" placeholder="Dejar vacío para no cambiar">
+      </div>
+      <p class="text-[11px] text-zilo-muted">El correo no se cambia aquí. Para especialidades usa el expediente.</p>
+      <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary">Guardar cambios</button>
+    </form>
+  </div>
 </div>
 
 <%- include('../partials/nav-provider', { navActive: 'equipo' }) %>

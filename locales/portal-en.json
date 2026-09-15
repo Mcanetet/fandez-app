@@ -73,7 +73,6 @@
   "client.service.schedule_later": "Schedule for later",
   "client.service.schedule_later_hint": "Tomorrow or in 2 days · 10% off",
   "client.service.urgency_normal": "Normal",
-  "client.service.urgency_surcharge": "Urgency surcharge",
   "client.service.aland_title": "Questions for Sofia",
   "client.service.aland_sub": "Human-like assistant · guides you before requesting a visit",
   "client.service.aland_open": "Open chat",
@@ -300,8 +299,6 @@
   "client.js.service_completed_title": "Service completed",
   "client.js.service_completed_body": "Your service is done. Check the summary and leave a review.",
   "client.js.budget_alert_title": "Quote received",
-  "client.js.activity_change_alert_title": "Price change",
-  "client.js.activity_change_alert_body": "New total {{amount}}. Open the app and tap OK.",
   "client.js.additional_payment_alert_title": "Additional payment pending",
   "client.js.no_providers": "No providers available",
   "client.js.process_error": "Processing error",
@@ -706,7 +703,6 @@
   "client.service.cancel_tip_schedule": "You can reschedule later. Cancelling now frees the assigned technician.",
   "client.service.cancel_tip_safety": "Your comfort matters. You can talk to support before closing the case.",
   "client.service.cancel_tip_default": "Your request is already underway. Cancelling means starting over if you need help later.",
-
   "provider.nav.aria": "Partner navigation",
   "provider.nav.home": "Home",
   "provider.nav.wall": "Wall",
@@ -823,5 +819,15 @@
   "landing.emergency_hint": "Priority response · 2 min signup",
   "js.socket_reconnecting": "Reconnecting…",
   "js.socket_connected": "Connection restored",
-  "js.socket_error": "No connection. Retrying…"
+  "js.socket_error": "No connection. Retrying…",
+  "provider.nav.finance": "Finance",
+  "provider.finance.page_title": "My finances",
+  "provider.finance.hint": "See earnings from closed jobs, pending payouts and each settlement breakdown.",
+  "provider.finance.ledger_title": "Settlements",
+  "provider.finance.empty": "No settlements yet",
+  "provider.finance.empty_sub": "When you complete visits, they will show here with your net payout.",
+  "provider.finance.scheduled": "Scheduled payout",
+  "provider.finance.view_all": "View finances →",
+  "provider.profile.contract_cta": "Review partner contract",
+  "provider.profile.contract_hint": "Signature and legal documents required to operate on Fandez."
 }

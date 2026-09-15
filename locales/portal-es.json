@@ -58,7 +58,7 @@
   "client.service.pay_hint_dynamic": "Hoy: sin recargo. Mañana o en 2 días: 10% de descuento. Inmediato puede incluir recargo de urgencia y horario (tarde/madrugada). Si solo hay diagnóstico sin trabajo, el mínimo es $19.990.",
   "client.service.dynamic_surcharge": "Recargo horario / urgencia",
   "client.service.schedule_surcharge": "Recargo horario",
-  "client.service.urgency_surcharge": "Recargo de urgencia",
+  "client.service.urgency_surcharge": "Recargo urgencia",
   "client.service.guarantees": "¿Qué incluye y garantías?",
   "client.service.g1": "Visita técnica con diagnóstico en tu domicilio",
   "client.service.g2": "Técnicos con identidad verificada por Fandez",
@@ -74,7 +74,6 @@
   "client.service.schedule_later_hint": "Mañana o en 2 días · 10% dcto.",
   "client.service.urgency_normal": "Normal",
   "client.service.photo_optional_hint": "Recomendada: ayuda al técnico a llegar preparado. Puedes continuar sin foto.",
-  "client.service.urgency_surcharge": "Recargo urgencia",
   "client.service.aland_title": "Consultas con Sofía",
   "client.service.aland_sub": "Asistente humano · te guía antes de solicitar visita",
   "client.service.aland_open": "Abrir chat",
@@ -705,7 +704,6 @@
   "tecnico.js.gift": "Regalo",
   "tecnico.js.take_job": "Tomar trabajo",
   "tecnico.js.wall_available": "Disponible",
-
   "provider.nav.aria": "Navegación socio",
   "provider.nav.home": "Inicio",
   "provider.nav.wall": "Muro",
@@ -822,5 +820,15 @@
   "landing.emergency_hint": "Respuesta prioritaria · registro en 2 min",
   "js.socket_reconnecting": "Reconectando…",
   "js.socket_connected": "Conexión restablecida",
-  "js.socket_error": "Sin conexión. Reintentando…"
+  "js.socket_error": "Sin conexión. Reintentando…",
+  "provider.nav.finance": "Finanzas",
+  "provider.finance.page_title": "Mis finanzas",
+  "provider.finance.hint": "Aquí ves lo ganado por trabajos cerrados, lo pendiente de pago y el desglose de cada liquidación.",
+  "provider.finance.ledger_title": "Liquidaciones",
+  "provider.finance.empty": "Aún no hay liquidaciones",
+  "provider.finance.empty_sub": "Cuando completes visitas, aparecerán aquí con el neto a tu favor.",
+  "provider.finance.scheduled": "Pago programado",
+  "provider.finance.view_all": "Ver finanzas →",
+  "provider.profile.contract_cta": "Revisar contrato de socio",
+  "provider.profile.contract_hint": "Firma y documentos legales para operar en Fandez."
 }

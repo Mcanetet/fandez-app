@@ -1,0 +1,97 @@
+<%- include('../partials/head') %>
+<%
+  const ledger = typeof finance !== 'undefined' && finance ? finance : { stats: {}, rows: [] };
+  const stats = ledger.stats || {};
+%>
+<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter">
+  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
+    <div class="app-session-header__row">
+      <div class="app-session-header__identity">
+        <a href="/proveedor" class="zilo-icon-btn" title="Volver" aria-label="Volver">
+          <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </a>
+        <div class="app-session-header__meta">
+          <p class="session-role-pill session-role-pill--provider"><%= t('session.role.provider') %></p>
+          <h1><%= t('provider.finance.page_title') %></h1>
+        </div>
+      </div>
+      <div class="app-session-header__end app-session-header__end--logout">
+        <%- include('../partials/lang-switcher') %>
+        <%- include('../partials/logout-btn', { withLabel: true }) %>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 px-5 py-5 pb-28 space-y-4">
+    <section class="grid grid-cols-2 gap-2" aria-label="<%= t('provider.finance.title') %>">
+      <div class="tech-list-card rounded-2xl zilo-card-premium border border-zilo-accent/20">
+        <strong class="text-zilo-accent text-lg block"><%= formatCLP(stats.pendingPayout || ledger.pendingTotal || 0) %></strong>
+        <span class="text-[11px] text-zilo-muted"><%= t('provider.finance.pending') %></span>
+      </div>
+      <div class="tech-list-card rounded-2xl zilo-card-premium">
+        <strong class="text-lg block"><%= formatCLP(stats.paidTotal || ledger.paidTotal || 0) %></strong>
+        <span class="text-[11px] text-zilo-muted"><%= t('provider.finance.paid_total') %></span>
+      </div>
+      <div class="tech-list-card rounded-2xl zilo-card-premium">
+        <strong class="text-base block text-zilo-success"><%= stats.nextPayDateLabel || t('provider.finance.no_schedule') %></strong>
+        <span class="text-[11px] text-zilo-muted"><%= stats.nextPayAmount ? formatCLP(stats.nextPayAmount) : t('provider.finance.next_pay') %></span>
+      </div>
+      <div class="tech-list-card rounded-2xl zilo-card-premium">
+        <strong class="text-base block"><%= stats.monthCompleted || 0 %></strong>
+        <span class="text-[11px] text-zilo-muted"><%= t('provider.finance.month_jobs') %></span>
+      </div>
+    </section>
+
+    <p class="text-xs text-zilo-muted leading-relaxed"><%= t('provider.finance.hint') %></p>
+
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <p class="zilo-label mb-0"><%= t('provider.finance.ledger_title') %></p>
+        <span class="text-[11px] text-zilo-muted tabular-nums"><%= (ledger.rows || []).length %></span>
+      </div>
+
+      <% if (!(ledger.rows || []).length) { %>
+        <div class="zilo-empty zilo-card-premium rounded-2xl">
+          <p class="zilo-display text-base"><%= t('provider.finance.empty') %></p>
+          <p class="text-sm"><%= t('provider.finance.empty_sub') %></p>
+        </div>
+      <% } else { %>
+        <div class="tech-list-stack">
+          <% ledger.rows.forEach(row => { %>
+            <article class="tech-list-card rounded-2xl zilo-card-premium border border-zilo-border/80">
+              <div class="tech-list-card__head">
+                <div class="tech-list-card__body min-w-0">
+                  <strong class="text-sm block truncate"><%= row.serviceName %><% if (row.activityName) { %> · <%= row.activityName %><% } %></strong>
+                  <span class="text-xs text-zilo-muted block truncate"><%= row.clientName %><% if (row.communeName) { %> · <%= row.communeName %><% } %></span>
+                  <span class="text-[10px] text-zilo-muted"><%= row.completedAtLabel || '' %></span>
+                </div>
+                <div class="text-right shrink-0">
+                  <span class="zilo-badge <%= row.payoutStatus === 'pagado' ? 'zilo-badge-success' : 'zilo-badge-muted' %> mb-1"><%= row.payoutStatusLabel %></span>
+                  <strong class="text-sm text-zilo-success block"><%= formatCLP(row.providerPayout) %></strong>
+                </div>
+              </div>
+              <details>
+                <summary class="text-[11px] text-zilo-accent font-semibold cursor-pointer py-0.5"><%= t('provider.settlement') %></summary>
+                <div class="mt-2 text-[11px] text-zilo-muted space-y-0.5">
+                  <p><%= t('provider.settlement_charged') %>: <%= formatCLP(row.grandTotal) %></p>
+                  <p><%= t('provider.settlement_card') %>: −<%= formatCLP(row.cardFee) %></p>
+                  <p><%= t('provider.settlement_app') %>: −<%= formatCLP(row.laborCommission) %></p>
+                  <% if (row.materialsTotal) { %>
+                    <p class="text-zilo-success"><%= t('provider.settlement_materials_keep') %>: <%= formatCLP(row.materialsTotal) %></p>
+                  <% } %>
+                  <% if (row.payoutScheduledLabel && row.payoutStatus !== 'pagado') { %>
+                    <p><%= t('provider.finance.scheduled') %>: <%= row.payoutScheduledLabel %></p>
+                  <% } %>
+                  <p class="text-zilo-success font-medium"><%= t('provider.js.your_payout') %>: <%= formatCLP(row.providerPayout) %></p>
+                </div>
+              </details>
+            </article>
+          <% }); %>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../partials/nav-provider', { navActive: 'finanzas' }) %>
+</div>
+<%- include('../partials/footer') %>

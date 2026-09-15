@@ -136,6 +136,16 @@ router.get('/', requireRole('provider'), (req, res) => {
   });
 });
 
+router.get('/finanzas', requireRole('provider'), (req, res) => {
+  const finance = store.getProviderFinanceLedger(req.session.user.id, { limit: 80 });
+  res.render('provider/finanzas', {
+    title: 'Finanzas — Fandez',
+    user: req.session.user,
+    finance,
+    formatCLP: store.formatCLP
+  });
+});
+
 router.post('/onboarding/complete', requireRole('provider'), (req, res) => {
   const user = store.completeOnboarding(req.session.user.id);
   if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -642,6 +652,33 @@ router.post('/equipo/:id/toggle', requireRole('provider'), requireModule('provid
     active,
     services: store.getProviderServicesStatus(req.session.user.id)
   });
+});
+
+router.post('/equipo/:id/editar', requireRole('provider'), requireModule('provider_equipo'), async (req, res) => {
+  const result = await store.updateTechnicianForProvider(req.session.user.id, req.params.id, {
+    name: req.body.name,
+    phone: req.body.phone,
+    password: req.body.password
+  });
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  store.logSecurityEvent('tecnico_editado', req.params.id, req);
+  res.json({
+    success: true,
+    tecnico: {
+      id: result.tecnico.id,
+      name: result.tecnico.name,
+      phone: result.tecnico.phone || '',
+      avatar: result.tecnico.avatar,
+      email: result.tecnico.email
+    }
+  });
+});
+
+router.post('/equipo/:id/desvincular', requireRole('provider'), requireModule('provider_equipo'), (req, res) => {
+  const result = store.unlinkTechnicianFromProvider(req.session.user.id, req.params.id);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  store.logSecurityEvent('tecnico_desvinculado', req.params.id, req);
+  res.json({ success: true });
 });
 
 router.get('/mando', requireRole('provider'), requireModule('provider_mando'), (req, res) => {

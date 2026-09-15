@@ -18,6 +18,7 @@ zilo-hostinger.zip
 
 # Capturas y artefactos locales de prueba
 tmp/
+dist/
 
 # Playwright
 /test-results/
