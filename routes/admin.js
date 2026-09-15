@@ -869,6 +869,22 @@ router.get('/usuarios', requireRole('admin'), requireAdminPermission('usuarios.v
   res.json({ success: true, users });
 });
 
+router.get('/usuarios/:id/diagnostico', requireRole('admin'), requireAdminPermission('usuarios.view', 'usuarios.manage'), (req, res) => {
+  const result = store.getUserSupportDossier(req.params.id, {
+    limitRequests: Number(req.query.requests) || 12,
+    limitLogs: Number(req.query.logs) || 40
+  });
+  if (result.error) return res.status(404).json({ error: result.error });
+  store.logSecurityEvent('support_dossier_view', `${req.params.id} by ${req.session.user.email}`, req);
+  res.json(result);
+});
+
+router.post('/usuarios/:id/soporte/nota', requireRole('admin'), requireAdminPermission('usuarios.manage'), (req, res) => {
+  const result = store.addSupportNote(req.params.id, req.body?.note || req.body?.text, req.session.user.id, req);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json({ success: true });
+});
+
 router.post('/usuarios/:id', requireRole('admin'), requireAdminPermission('usuarios.manage'), (req, res) => {
   const result = store.adminUpdateManagedUser(req.params.id, req.body || {}, req.session.user.id);
   if (result.error) return res.status(400).json({ error: result.error });

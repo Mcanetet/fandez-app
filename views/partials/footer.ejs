@@ -11,6 +11,9 @@
   <script src="<%= asset('/js/pwa-install.js') %>"></script>
   <script src="<%= asset('/js/mobile-lifecycle.js') %>"></script>
   <script src="<%= asset('/js/socket-reconnect.js') %>"></script>
+  <% if (typeof user !== 'undefined' && user && user.role !== 'admin') { %>
+    <script src="<%= asset('/js/telemetry.js') %>"></script>
+  <% } %>
   <% if (typeof extraScripts !== 'undefined') { extraScripts.forEach(function(src) { %>
     <script src="<%= asset(src) %>"></script>
   <% }); } %>

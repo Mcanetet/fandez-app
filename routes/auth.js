@@ -857,4 +857,37 @@ router.post('/cuenta/password', async (req, res) => {
   }
 });
 
+/** Telemetría de errores de app (clientes/socios/técnicos) para soporte técnico. */
+const telemetryHits = new Map();
+router.post('/api/telemetry/error', (req, res) => {
+  const sessionUser = req.session?.user;
+  if (!sessionUser?.id || sessionUser.role === 'admin') {
+    return res.status(401).json({ success: false, error: 'Sesión requerida.' });
+  }
+  const key = sessionUser.id;
+  const now = Date.now();
+  const bucket = telemetryHits.get(key) || { count: 0, resetAt: now + 60_000 };
+  if (now > bucket.resetAt) {
+    bucket.count = 0;
+    bucket.resetAt = now + 60_000;
+  }
+  bucket.count += 1;
+  telemetryHits.set(key, bucket);
+  if (bucket.count > 20) {
+    return res.status(429).json({ success: false, error: 'Demasiados reportes.' });
+  }
+
+  const result = store.logClientTelemetry({
+    message: req.body?.message || req.body?.error,
+    stack: req.body?.stack,
+    url: req.body?.url,
+    path: req.body?.path,
+    source: req.body?.source || 'client',
+    userAgent: req.body?.userAgent,
+    meta: req.body?.meta
+  }, req);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  res.json({ success: true });
+});
+
 module.exports = router;

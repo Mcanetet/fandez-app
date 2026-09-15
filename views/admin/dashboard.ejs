@@ -1403,7 +1403,7 @@ function hasPerm(key) {
     </section>
 
     <% if (canAccessPanelFn('usuarios')) { %>
-    <section class="<%= panelClass('usuarios') %>" data-panel="usuarios">
+    <section class="<%= panelClass('usuarios') %>" data-panel="usuarios" data-can-manage="<%= hasPerm('usuarios.manage') ? '1' : '0' %>">
       <div class="flex justify-between items-start gap-3 mb-4">
         <div>
           <h3 class="text-lg font-semibold"><%= t('admin.usuarios.title') %></h3>
@@ -1416,20 +1416,26 @@ function hasPerm(key) {
           <option value="">Todos</option>
           <option value="client">Clientes</option>
           <option value="provider">Socios</option>
-          <option value="technician">Técnicos</option>
+          <option value="tecnico">Técnicos</option>
         </select>
         <button type="button" id="btnManagedUserSearch" class="zilo-btn-primary !py-2 !px-4 !text-sm">Buscar</button>
       </div>
       <div id="managedUsersList" class="space-y-2">
         <% (typeof managedUsers !== 'undefined' ? managedUsers : []).forEach(function(u) { %>
-          <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-user-id="<%= u.id %>">
+          <div class="p-4 rounded-2xl bg-zilo-card border <%= u.active ? 'border-gray-200' : 'border-red-200 bg-red-50/40' %> flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-user-id="<%= u.id %>">
             <div class="min-w-0">
               <strong class="text-sm"><%= u.name %></strong>
               <span class="text-[10px] uppercase ml-2 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600"><%= u.role %></span>
+              <% if (!u.active) { %>
+                <span class="text-[10px] uppercase ml-1 px-1.5 py-0.5 rounded bg-red-100 text-red-700">Bloqueado</span>
+              <% } %>
               <p class="text-xs text-gray-500 truncate"><%= u.email %><% if (u.phone) { %> · <%= u.phone %><% } %></p>
               <p class="text-[10px] text-gray-400 mt-1">
-                <%= u.active ? 'Activo' : 'Inactivo' %>
+                <%= u.active ? 'Activo' : 'Bloqueado' %>
                 · <%= u.emailVerified ? 'Email OK' : 'Email pendiente' %>
+                <% if (u.role === 'provider' || u.role === 'tecnico') { %>
+                  · <%= u.online ? 'En línea' : 'Fuera de línea' %>
+                <% } %>
               </p>
               <% if (u.services && u.services.length) { %>
                 <div class="flex flex-wrap gap-1 mt-2">
@@ -1441,23 +1447,97 @@ function hasPerm(key) {
                 <p class="text-[10px] text-amber-700 mt-1">Sin servicios activados</p>
               <% } %>
             </div>
-            <% if (hasPerm('usuarios.manage')) { %>
-              <div class="flex flex-wrap gap-2 shrink-0">
-                <label class="inline-flex items-center gap-1.5 text-xs">
-                  <input type="checkbox" class="managed-user-active" data-id="<%= u.id %>" <%= u.active ? 'checked' : '' %>>
-                  Activo
-                </label>
+            <div class="flex flex-wrap gap-2 shrink-0">
+              <button type="button" class="managed-user-diag text-xs px-2.5 py-1.5 rounded-lg bg-violet-500/10 text-violet-800 hover:bg-violet-500/20" data-id="<%= u.id %>">Diagnóstico</button>
+              <% if (hasPerm('usuarios.manage')) { %>
+                <button type="button"
+                  class="managed-user-edit text-xs px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200"
+                  data-id="<%= u.id %>"
+                  data-name="<%= u.name %>"
+                  data-email="<%= u.email %>"
+                  data-phone="<%= u.phone || '' %>"
+                  data-role="<%= u.role %>"
+                  data-active="<%= u.active ? '1' : '0' %>"
+                  data-online="<%= u.online ? '1' : '0' %>"
+                  data-client-enabled="<%= u.clientEnabled !== false ? '1' : '0' %>">Editar</button>
+                <% if (u.active) { %>
+                  <button type="button" class="managed-user-block text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-700 hover:bg-red-500/20" data-id="<%= u.id %>" data-active="0">Bloquear</button>
+                <% } else { %>
+                  <button type="button" class="managed-user-block text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20" data-id="<%= u.id %>" data-active="1">Desbloquear</button>
+                <% } %>
                 <% if (!u.emailVerified) { %>
                   <button type="button" class="managed-user-verify text-xs px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-700" data-email="<%= u.email %>">Verificar email</button>
                 <% } %>
-              </div>
-            <% } %>
+              <% } %>
+            </div>
           </div>
         <% }); %>
         <% if (!(typeof managedUsers !== 'undefined' && managedUsers.length)) { %>
           <p class="text-sm text-gray-500 text-center py-6">Sin resultados. Usa el buscador para encontrar clientes o socios.</p>
         <% } %>
       </div>
+
+      <div id="managedUserDiagModal" class="fixed inset-0 z-[85] hidden items-center justify-center p-3 sm:p-4" aria-hidden="true">
+        <div class="absolute inset-0 bg-black/45" data-close-managed-diag></div>
+        <div class="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white border border-gray-200 shadow-xl p-4 sm:p-5" role="dialog" aria-labelledby="managedUserDiagTitle">
+          <div class="flex items-start justify-between gap-3 mb-3 sticky top-0 bg-white pb-2 z-10">
+            <div class="min-w-0">
+              <h4 id="managedUserDiagTitle" class="text-base font-semibold">Diagnóstico de soporte</h4>
+              <p id="managedUserDiagSub" class="text-xs text-gray-500 mt-0.5 truncate"></p>
+            </div>
+            <button type="button" class="text-gray-400 hover:text-gray-700 text-lg leading-none shrink-0" data-close-managed-diag aria-label="Cerrar">&times;</button>
+          </div>
+          <div id="managedUserDiagBody" class="space-y-4 text-sm">
+            <p class="text-gray-500">Cargando…</p>
+          </div>
+          <% if (hasPerm('usuarios.manage')) { %>
+          <form id="managedUserDiagNoteForm" class="mt-4 pt-4 border-t border-gray-100 space-y-2">
+            <input type="hidden" id="managedUserDiagId">
+            <label class="text-[11px] font-medium text-gray-600 block" for="managedUserDiagNote">Nota interna de soporte</label>
+            <textarea id="managedUserDiagNote" class="zilo-input !py-2 text-sm min-h-[72px]" maxlength="1000" placeholder="Ej: Cliente no ve el pago; se verificó email y se desbloqueó."></textarea>
+            <button type="submit" class="zilo-btn-primary !py-2 !px-4 !text-sm">Guardar nota</button>
+          </form>
+          <% } %>
+        </div>
+      </div>
+
+      <% if (hasPerm('usuarios.manage')) { %>
+      <div id="managedUserEditModal" class="fixed inset-0 z-[80] hidden items-center justify-center p-4" aria-hidden="true">
+        <div class="absolute inset-0 bg-black/40" data-close-managed-edit></div>
+        <div class="relative w-full max-w-md rounded-2xl bg-white border border-gray-200 shadow-xl p-5" role="dialog" aria-labelledby="managedUserEditTitle">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h4 id="managedUserEditTitle" class="text-base font-semibold">Editar cuenta</h4>
+              <p id="managedUserEditEmail" class="text-xs text-gray-500 mt-0.5 truncate"></p>
+            </div>
+            <button type="button" class="text-gray-400 hover:text-gray-700 text-lg leading-none" data-close-managed-edit aria-label="Cerrar">&times;</button>
+          </div>
+          <form id="managedUserEditForm" class="space-y-3">
+            <input type="hidden" id="managedUserEditId">
+            <div>
+              <label class="text-[11px] font-medium text-gray-600 block mb-1" for="managedUserEditName">Nombre</label>
+              <input id="managedUserEditName" type="text" class="zilo-input !py-2 text-sm" required maxlength="120">
+            </div>
+            <div>
+              <label class="text-[11px] font-medium text-gray-600 block mb-1" for="managedUserEditPhone">Teléfono</label>
+              <input id="managedUserEditPhone" type="tel" class="zilo-input !py-2 text-sm" maxlength="40" placeholder="+56 9 ...">
+            </div>
+            <label id="managedUserEditOnlineWrap" class="hidden items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" id="managedUserEditOnline" class="rounded border-gray-300">
+              En línea (puede recibir trabajos)
+            </label>
+            <label id="managedUserEditClientWrap" class="hidden items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" id="managedUserEditClientEnabled" class="rounded border-gray-300">
+              Puede usar la app también como cliente
+            </label>
+            <div class="flex gap-2 pt-2">
+              <button type="button" class="flex-1 zilo-btn-ghost !py-2.5 !text-sm" data-close-managed-edit>Cancelar</button>
+              <button type="submit" class="flex-1 zilo-btn-primary !py-2.5 !text-sm">Guardar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <% } %>
     </section>
     <% } %>
 

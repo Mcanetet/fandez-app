@@ -263,6 +263,56 @@
   });
 
   /* ——— Intervención clientes/socios ——— */
+  function canManageUsers() {
+    const panel = document.querySelector('[data-panel="usuarios"]');
+    return panel?.dataset.canManage === '1';
+  }
+
+  function roleLabel(role) {
+    return ({ client: 'cliente', provider: 'socio', tecnico: 'técnico', technician: 'técnico' })[role] || role;
+  }
+
+  function renderManagedUserCard(u) {
+    const manage = canManageUsers();
+    const blockedBadge = u.active ? '' : '<span class="text-[10px] uppercase ml-1 px-1.5 py-0.5 rounded bg-red-100 text-red-700">Bloqueado</span>';
+    const onlineLine = (u.role === 'provider' || u.role === 'tecnico')
+      ? ` · ${u.online ? 'En línea' : 'Fuera de línea'}`
+      : '';
+    const servicesHtml = (u.services && u.services.length)
+      ? `<div class="flex flex-wrap gap-1 mt-2">${u.services.map((s) => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-800">${escapeHtml(s.name || s.id || '')}</span>`).join('')}</div>`
+      : (u.role === 'provider' ? '<p class="text-[10px] text-amber-700 mt-1">Sin servicios activados</p>' : '');
+    const manageActions = manage ? `
+        <button type="button" class="managed-user-edit text-xs px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200"
+          data-id="${escapeHtml(u.id)}"
+          data-name="${escapeHtml(u.name || '')}"
+          data-email="${escapeHtml(u.email || '')}"
+          data-phone="${escapeHtml(u.phone || '')}"
+          data-role="${escapeHtml(u.role || '')}"
+          data-active="${u.active ? '1' : '0'}"
+          data-online="${u.online ? '1' : '0'}"
+          data-client-enabled="${u.clientEnabled !== false ? '1' : '0'}">Editar</button>
+        ${u.active
+          ? `<button type="button" class="managed-user-block text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-700 hover:bg-red-500/20" data-id="${escapeHtml(u.id)}" data-active="0">Bloquear</button>`
+          : `<button type="button" class="managed-user-block text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20" data-id="${escapeHtml(u.id)}" data-active="1">Desbloquear</button>`}
+        ${!u.emailVerified ? `<button type="button" class="managed-user-verify text-xs px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-700" data-email="${escapeHtml(u.email || '')}">Verificar email</button>` : ''}
+    ` : '';
+    return `
+      <div class="p-4 rounded-2xl bg-zilo-card border ${u.active ? 'border-gray-200' : 'border-red-200 bg-red-50/40'} flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-user-id="${escapeHtml(u.id)}">
+        <div class="min-w-0">
+          <strong class="text-sm">${escapeHtml(u.name || '')}</strong>
+          <span class="text-[10px] uppercase ml-2 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">${escapeHtml(u.role || '')}</span>
+          ${blockedBadge}
+          <p class="text-xs text-gray-500 truncate">${escapeHtml(u.email || '')}${u.phone ? ' · ' + escapeHtml(u.phone) : ''}</p>
+          <p class="text-[10px] text-gray-400 mt-1">${u.active ? 'Activo' : 'Bloqueado'} · ${u.emailVerified ? 'Email OK' : 'Email pendiente'}${onlineLine}</p>
+          ${servicesHtml}
+        </div>
+        <div class="flex flex-wrap gap-2 shrink-0">
+          <button type="button" class="managed-user-diag text-xs px-2.5 py-1.5 rounded-lg bg-violet-500/10 text-violet-800 hover:bg-violet-500/20" data-id="${escapeHtml(u.id)}">Diagnóstico</button>
+          ${manageActions}
+        </div>
+      </div>`;
+  }
+
   async function refreshManagedUsers() {
     const q = document.getElementById('managedUserSearch')?.value || '';
     const role = document.getElementById('managedUserRole')?.value || '';
@@ -276,46 +326,69 @@
         list.innerHTML = '<p class="text-sm text-gray-500 text-center py-6">Sin resultados.</p>';
         return;
       }
-      list.innerHTML = data.users.map((u) => `
-        <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-user-id="${u.id}">
-          <div class="min-w-0">
-            <strong class="text-sm">${u.name || ''}</strong>
-            <span class="text-[10px] uppercase ml-2 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">${u.role}</span>
-            <p class="text-xs text-gray-500 truncate">${u.email || ''}${u.phone ? ' · ' + u.phone : ''}</p>
-            <p class="text-[10px] text-gray-400 mt-1">${u.active ? 'Activo' : 'Inactivo'} · ${u.emailVerified ? 'Email OK' : 'Email pendiente'}</p>
-            ${(u.services && u.services.length)
-              ? `<div class="flex flex-wrap gap-1 mt-2">${u.services.map((s) => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-800">${escapeHtml(s.name || s.id || '')}</span>`).join('')}</div>`
-              : (u.role === 'provider' ? '<p class="text-[10px] text-amber-700 mt-1">Sin servicios activados</p>' : '')}
-          </div>
-          <div class="flex flex-wrap gap-2 shrink-0 items-center">
-            <label class="inline-flex items-center gap-1.5 text-xs">
-              <input type="checkbox" class="managed-user-active" data-id="${u.id}" ${u.active ? 'checked' : ''}>
-              Activo
-            </label>
-            ${!u.emailVerified ? `<button type="button" class="managed-user-verify text-xs px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-700" data-email="${u.email}">Verificar email</button>` : ''}
-          </div>
-        </div>
-      `).join('');
+      list.innerHTML = data.users.map(renderManagedUserCard).join('');
       bindManagedUserActions();
     } catch (_) { /* noop */ }
   }
 
+  function openManagedUserEdit(btn) {
+    const modal = document.getElementById('managedUserEditModal');
+    if (!modal) return;
+    document.getElementById('managedUserEditId').value = btn.dataset.id || '';
+    document.getElementById('managedUserEditName').value = btn.dataset.name || '';
+    document.getElementById('managedUserEditPhone').value = btn.dataset.phone || '';
+    document.getElementById('managedUserEditEmail').textContent = `${btn.dataset.email || ''} · ${roleLabel(btn.dataset.role)}`;
+    const onlineWrap = document.getElementById('managedUserEditOnlineWrap');
+    const clientWrap = document.getElementById('managedUserEditClientWrap');
+    const online = document.getElementById('managedUserEditOnline');
+    const clientEnabled = document.getElementById('managedUserEditClientEnabled');
+    const isOps = btn.dataset.role === 'provider' || btn.dataset.role === 'tecnico';
+    onlineWrap.classList.toggle('hidden', !isOps);
+    onlineWrap.classList.toggle('flex', isOps);
+    online.checked = btn.dataset.online === '1';
+    online.disabled = btn.dataset.active !== '1';
+    const isProvider = btn.dataset.role === 'provider';
+    clientWrap.classList.toggle('hidden', !isProvider);
+    clientWrap.classList.toggle('flex', isProvider);
+    clientEnabled.checked = btn.dataset.clientEnabled !== '0';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeManagedUserEdit() {
+    const modal = document.getElementById('managedUserEditModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
   function bindManagedUserActions() {
-    document.querySelectorAll('.managed-user-active').forEach((toggle) => {
-      toggle.onchange = async () => {
-        const res = await adminFetch(`/usuarios/${toggle.dataset.id}`, {
+    document.querySelectorAll('.managed-user-diag').forEach((btn) => {
+      btn.onclick = () => openManagedUserDiag(btn.dataset.id);
+    });
+    document.querySelectorAll('.managed-user-block').forEach((btn) => {
+      btn.onclick = async () => {
+        const enable = btn.dataset.active === '1';
+        const label = enable ? 'desbloquear' : 'bloquear';
+        if (!window.confirm(`¿Seguro que quieres ${label} esta cuenta?`)) return;
+        const res = await adminFetch(`/usuarios/${btn.dataset.id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ active: toggle.checked })
+          body: JSON.stringify({ active: enable })
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!data.success) {
-          toggle.checked = !toggle.checked;
           FandezNotify.show(data.error || 'No se pudo actualizar', 'error');
           return;
         }
-        FandezNotify.show(toggle.checked ? 'Usuario activado' : 'Usuario desactivado', 'success');
+        FandezNotify.show(enable ? 'Cuenta desbloqueada' : 'Cuenta bloqueada', enable ? 'success' : 'warning');
+        refreshManagedUsers();
       };
+    });
+    document.querySelectorAll('.managed-user-edit').forEach((btn) => {
+      btn.onclick = () => openManagedUserEdit(btn);
     });
     document.querySelectorAll('.managed-user-verify').forEach((btn) => {
       btn.onclick = async () => {
@@ -336,12 +409,194 @@
     });
   }
 
+  function flagClass(level) {
+    if (level === 'danger') return 'bg-red-50 text-red-800 border-red-200';
+    if (level === 'warn') return 'bg-amber-50 text-amber-900 border-amber-200';
+    return 'bg-slate-50 text-slate-700 border-slate-200';
+  }
+
+  function renderDiagList(items, emptyText, mapper) {
+    if (!items || !items.length) return `<p class="text-xs text-gray-400">${emptyText}</p>`;
+    return `<ul class="space-y-1.5">${items.map(mapper).join('')}</ul>`;
+  }
+
+  function renderSupportDossier(dossier) {
+    const a = dossier.account || {};
+    const flags = (dossier.flags || []).map((f) =>
+      `<span class="inline-flex text-[11px] px-2 py-1 rounded-lg border ${flagClass(f.level)}">${escapeHtml(f.label)}</span>`
+    ).join(' ') || '<span class="text-xs text-emerald-700">Sin alertas críticas</span>';
+
+    const menu = (dossier.menu || []).map((m) =>
+      `<li class="text-xs text-gray-700">• ${escapeHtml(m)}</li>`
+    ).join('');
+
+    const requests = renderDiagList(dossier.requests, 'Sin solicitudes recientes.', (r) => `
+      <li class="text-xs border border-gray-100 rounded-lg px-2.5 py-2">
+        <strong>${escapeHtml(r.serviceName || r.id)}</strong>
+        <span class="text-gray-500"> · ${escapeHtml(r.status || '')}${r.techStatus ? ' / ' + escapeHtml(r.techStatus) : ''}</span>
+        <div class="text-[10px] text-gray-400 mt-0.5">${escapeHtml(r.id)} · pago ${escapeHtml(r.paymentStatus || '—')} · ${escapeHtml((r.createdAt || '').slice(0, 16).replace('T', ' '))}</div>
+      </li>`);
+
+    const errors = renderDiagList(dossier.clientErrors, 'Sin errores de app reportados.', (e) => {
+      const d = e.detail || {};
+      return `<li class="text-xs border border-red-100 bg-red-50/40 rounded-lg px-2.5 py-2">
+        <strong>${escapeHtml(d.message || e.summary || 'Error')}</strong>
+        <div class="text-[10px] text-gray-500 mt-0.5">${escapeHtml((e.createdAt || '').slice(0, 19).replace('T', ' '))} · ${escapeHtml(d.source || e.event || '')}</div>
+        ${d.path ? `<div class="text-[10px] text-gray-400 truncate">${escapeHtml(d.path)}</div>` : ''}
+      </li>`;
+    });
+
+    const notes = renderDiagList(dossier.supportNotes, 'Sin notas internas.', (n) => {
+      const d = n.detail || {};
+      return `<li class="text-xs border border-violet-100 bg-violet-50/30 rounded-lg px-2.5 py-2">
+        ${escapeHtml(d.note || n.summary || '')}
+        <div class="text-[10px] text-gray-400 mt-0.5">${escapeHtml((n.createdAt || '').slice(0, 19).replace('T', ' '))} · ${escapeHtml(d.by || '')}</div>
+      </li>`;
+    });
+
+    const team = dossier.team?.length
+      ? `<ul class="space-y-1">${dossier.team.map((t) => `<li class="text-xs">${escapeHtml(t.name)} · ${escapeHtml(t.email)} · ${t.active ? 'activo' : 'bloqueado'} · ${t.online ? 'online' : 'offline'}</li>`).join('')}</ul>`
+      : '';
+    const parent = dossier.parent?.length
+      ? `<ul class="space-y-1">${dossier.parent.map((p) => `<li class="text-xs">${escapeHtml(p.name || p.id)} · ${escapeHtml(p.email || '')}</li>`).join('')}</ul>`
+      : '';
+    const services = (dossier.services || []).map((s) => escapeHtml(s.name)).join(', ') || '—';
+    const contract = dossier.contract
+      ? `${escapeHtml(dossier.contract.label || dossier.contract.status || '')}${dossier.contract.canOperate ? ' (operativo)' : ' (no operativo)'}`
+      : null;
+
+    return `
+      <div class="flex flex-wrap gap-1.5 mb-1">${flags}</div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div class="rounded-xl border border-gray-100 p-3 space-y-1">
+          <p class="text-[11px] font-bold uppercase text-gray-400">Cuenta</p>
+          <p><strong>${escapeHtml(a.name || '')}</strong> · ${escapeHtml(roleLabel(a.role))}</p>
+          <p class="text-xs text-gray-600 break-all">${escapeHtml(a.email || '')}</p>
+          <p class="text-xs text-gray-500">${escapeHtml(a.phone || 'Sin teléfono')} · ${a.active ? 'Activo' : 'Bloqueado'} · ${a.emailVerified ? 'Email OK' : 'Email pendiente'}</p>
+          <p class="text-[10px] text-gray-400 font-mono">${escapeHtml(a.id || '')}</p>
+        </div>
+        <div class="rounded-xl border border-gray-100 p-3 space-y-1">
+          <p class="text-[11px] font-bold uppercase text-gray-400">Menú que debería ver</p>
+          <ul class="space-y-0.5">${menu || '<li class="text-xs text-gray-400">—</li>'}</ul>
+          ${contract ? `<p class="text-xs mt-2"><span class="text-gray-400">Contrato:</span> ${contract}</p>` : ''}
+          ${(a.role === 'provider' || a.role === 'tecnico') ? `<p class="text-xs"><span class="text-gray-400">Servicios:</span> ${services}</p>` : ''}
+        </div>
+      </div>
+      ${team ? `<div class="rounded-xl border border-gray-100 p-3"><p class="text-[11px] font-bold uppercase text-gray-400 mb-1">Equipo técnico</p>${team}</div>` : ''}
+      ${parent ? `<div class="rounded-xl border border-gray-100 p-3"><p class="text-[11px] font-bold uppercase text-gray-400 mb-1">Socio(s) vinculado(s)</p>${parent}</div>` : ''}
+      <div class="rounded-xl border border-gray-100 p-3">
+        <p class="text-[11px] font-bold uppercase text-gray-400 mb-1">Solicitudes recientes</p>
+        ${requests}
+      </div>
+      <div class="rounded-xl border border-gray-100 p-3">
+        <p class="text-[11px] font-bold uppercase text-gray-400 mb-1">Errores de app</p>
+        ${errors}
+      </div>
+      <div class="rounded-xl border border-gray-100 p-3">
+        <p class="text-[11px] font-bold uppercase text-gray-400 mb-1">Notas de soporte</p>
+        ${notes}
+      </div>
+      <p class="text-[10px] text-gray-400">Vista de solo lectura · generado ${escapeHtml((dossier.generatedAt || '').slice(0, 19).replace('T', ' '))}</p>
+    `;
+  }
+
+  async function openManagedUserDiag(userId) {
+    const modal = document.getElementById('managedUserDiagModal');
+    const body = document.getElementById('managedUserDiagBody');
+    const sub = document.getElementById('managedUserDiagSub');
+    const noteId = document.getElementById('managedUserDiagId');
+    if (!modal || !body || !userId) return;
+    if (noteId) noteId.value = userId;
+    body.innerHTML = '<p class="text-gray-500">Cargando diagnóstico…</p>';
+    sub.textContent = '';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+    try {
+      const res = await adminFetch(`/usuarios/${encodeURIComponent(userId)}/diagnostico`);
+      const data = await res.json().catch(() => ({}));
+      if (!data.success || !data.dossier) {
+        body.innerHTML = `<p class="text-red-600">${escapeHtml(data.error || 'No se pudo cargar el diagnóstico')}</p>`;
+        return;
+      }
+      const a = data.dossier.account || {};
+      sub.textContent = `${a.email || ''} · ${roleLabel(a.role)}`;
+      body.innerHTML = renderSupportDossier(data.dossier);
+    } catch (_) {
+      body.innerHTML = '<p class="text-red-600">Error de red al cargar el diagnóstico.</p>';
+    }
+  }
+
+  function closeManagedUserDiag() {
+    const modal = document.getElementById('managedUserDiagModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
   document.getElementById('btnManagedUserSearch')?.addEventListener('click', refreshManagedUsers);
   document.getElementById('managedUserSearch')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       refreshManagedUsers();
     }
+  });
+  document.getElementById('managedUserRole')?.addEventListener('change', refreshManagedUsers);
+  document.querySelectorAll('[data-close-managed-edit]').forEach((el) => {
+    el.addEventListener('click', closeManagedUserEdit);
+  });
+  document.querySelectorAll('[data-close-managed-diag]').forEach((el) => {
+    el.addEventListener('click', closeManagedUserDiag);
+  });
+  document.getElementById('managedUserDiagNoteForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('managedUserDiagId')?.value;
+    const note = document.getElementById('managedUserDiagNote')?.value?.trim();
+    if (!id || !note) return;
+    const res = await adminFetch(`/usuarios/${encodeURIComponent(id)}/soporte/nota`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!data.success) {
+      FandezNotify.show(data.error || 'No se pudo guardar la nota', 'error');
+      return;
+    }
+    document.getElementById('managedUserDiagNote').value = '';
+    FandezNotify.show('Nota guardada', 'success');
+    openManagedUserDiag(id);
+  });
+  document.getElementById('managedUserEditForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('managedUserEditId')?.value;
+    if (!id) return;
+    const payload = {
+      name: document.getElementById('managedUserEditName').value.trim(),
+      phone: document.getElementById('managedUserEditPhone').value.trim()
+    };
+    const onlineWrap = document.getElementById('managedUserEditOnlineWrap');
+    const clientWrap = document.getElementById('managedUserEditClientWrap');
+    if (onlineWrap && !onlineWrap.classList.contains('hidden')) {
+      payload.online = document.getElementById('managedUserEditOnline').checked;
+    }
+    if (clientWrap && !clientWrap.classList.contains('hidden')) {
+      payload.clientEnabled = document.getElementById('managedUserEditClientEnabled').checked;
+    }
+    const res = await adminFetch(`/usuarios/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!data.success) {
+      FandezNotify.show(data.error || 'No se pudo guardar', 'error');
+      return;
+    }
+    closeManagedUserEdit();
+    FandezNotify.show('Cuenta actualizada', 'success');
+    refreshManagedUsers();
   });
   bindManagedUserActions();
 

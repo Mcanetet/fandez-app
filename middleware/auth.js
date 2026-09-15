@@ -8,11 +8,32 @@ function wantsJson(req) {
   return xhr || accept.includes('application/json') || req.path.includes('/api/');
 }
 
+function rejectBlockedSession(req, res) {
+  try {
+    const sessionUser = req.session?.user;
+    if (!sessionUser?.id) return false;
+    // Admins se gestionan aparte; aquí cortamos clientes/socios/técnicos bloqueados.
+    if (sessionUser.role === 'admin') return false;
+    const live = store.getUserById(sessionUser.id);
+    if (live && live.active !== false) return false;
+    delete req.session.user;
+    if (wantsJson(req)) {
+      res.status(403).json({ success: false, error: 'Tu cuenta fue desactivada. Contacta a soporte.' });
+    } else {
+      res.redirect('/login?blocked=1');
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 function requireAuth(req, res, next) {
   if (!req.session.user) {
     if (wantsJson(req)) return res.status(401).json({ success: false, error: 'Sesión expirada. Vuelve a iniciar sesión.' });
     return res.redirect('/login');
   }
+  if (rejectBlockedSession(req, res)) return;
   next();
 }
 
@@ -25,6 +46,7 @@ function requireRole(...roles) {
       }
       return res.redirect('/login');
     }
+    if (rejectBlockedSession(req, res)) return;
     if (!roles.includes(req.session.user.role)) {
       if (wantsJson(req)) return res.status(403).json({ success: false, error: 'No tienes permisos para esta acción.' });
       return res.status(403).render('error', {

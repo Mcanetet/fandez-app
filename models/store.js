@@ -3757,11 +3757,43 @@ async function deleteAdminProfile(profileId, actorId) {
   return { success: true, profiles: getProfilesList() };
 }
 
+function normalizeManagedRoleFilter(role = '') {
+  const value = String(role || '').trim().toLowerCase();
+  if (value === 'technician' || value === 'tecnico') return 'tecnico';
+  if (value === 'client' || value === 'provider') return value;
+  return '';
+}
+
+function serializeManagedUser(u) {
+  const specialtyIds = Array.isArray(u.specialties) ? u.specialties : [];
+  const services = u.role === 'provider' || u.role === 'tecnico'
+    ? specialtyIds.map((id) => {
+      const s = (SERVICES || []).find((x) => x.id === id);
+      return { id, name: s?.name || id };
+    })
+    : [];
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    phone: u.phone || '',
+    role: u.role,
+    active: u.active !== false,
+    emailVerified: Boolean(u.emailVerifiedAt),
+    online: Boolean(u.online),
+    clientEnabled: u.role === 'provider' ? u.clientEnabled !== false : undefined,
+    parentId: u.parentId || null,
+    memberSince: u.memberSince || null,
+    specialties: specialtyIds,
+    services
+  };
+}
+
 function getManagedUsers({ q = '', role = '', limit = 40 } = {}) {
   const query = String(q || '').trim().toLowerCase();
-  const roleFilter = String(role || '').trim();
+  const roleFilter = normalizeManagedRoleFilter(role);
   return USERS
-    .filter((u) => u.role === 'client' || u.role === 'provider' || u.role === 'technician')
+    .filter((u) => u.role === 'client' || u.role === 'provider' || u.role === 'tecnico')
     .filter((u) => !roleFilter || u.role === roleFilter)
     .filter((u) => {
       if (!query) return true;
@@ -3771,50 +3803,39 @@ function getManagedUsers({ q = '', role = '', limit = 40 } = {}) {
     })
     .sort((a, b) => String(b.memberSince || '').localeCompare(String(a.memberSince || '')))
     .slice(0, Math.min(100, Math.max(1, Number(limit) || 40)))
-    .map((u) => {
-      const specialtyIds = Array.isArray(u.specialties) ? u.specialties : [];
-      const services = u.role === 'provider' || u.role === 'technician'
-        ? specialtyIds.map((id) => {
-          const s = (SERVICES || []).find((x) => x.id === id);
-          return { id, name: s?.name || id };
-        })
-        : [];
-      return {
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        phone: u.phone || '',
-        role: u.role,
-        active: u.active !== false,
-        emailVerified: Boolean(u.emailVerifiedAt),
-        online: Boolean(u.online),
-        parentId: u.parentId || null,
-        memberSince: u.memberSince || null,
-        specialties: specialtyIds,
-        services
-      };
-    });
+    .map(serializeManagedUser);
 }
 
 function adminUpdateManagedUser(userId, patch = {}, actorId) {
   ensureReady();
   const user = getUserById(userId);
   if (!user || user.role === 'admin') return { error: 'Usuario no encontrado o no editable aquí.' };
+  if (!['client', 'provider', 'tecnico'].includes(user.role)) {
+    return { error: 'Este tipo de cuenta no se edita aquí.' };
+  }
 
   if (patch.active !== undefined) {
     user.active = patch.active === true || patch.active === 'true' || patch.active === 1;
+    // Al bloquear un socio/técnico, sacarlo de línea para que no reciba trabajos.
+    if (!user.active && (user.role === 'provider' || user.role === 'tecnico')) {
+      user.online = false;
+    }
   }
   if (patch.name !== undefined) {
     const name = String(patch.name || '').trim();
-    if (name) user.name = name;
+    if (!name) return { error: 'El nombre no puede quedar vacío.' };
+    user.name = name;
   }
   if (patch.phone !== undefined) {
     user.phone = String(patch.phone || '').trim() || null;
   }
-  if (patch.online !== undefined && (user.role === 'provider' || user.role === 'technician')) {
+  if (patch.online !== undefined && (user.role === 'provider' || user.role === 'tecnico')) {
+    if (user.active === false && (patch.online === true || patch.online === 'true')) {
+      return { error: 'No puedes poner en línea una cuenta bloqueada. Desbloquéala primero.' };
+    }
     user.online = patch.online === true || patch.online === 'true';
   }
-  if (patch.clientEnabled !== undefined && user.role === 'client') {
+  if (patch.clientEnabled !== undefined && user.role === 'provider') {
     user.clientEnabled = patch.clientEnabled === true || patch.clientEnabled === 'true';
   }
 
@@ -3825,12 +3846,223 @@ function adminUpdateManagedUser(userId, patch = {}, actorId) {
   }
   return {
     success: true,
-    user: getManagedUsers({ q: user.email, limit: 1 })[0] || {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      active: user.active !== false
+    user: serializeManagedUser(user)
+  };
+}
+
+const SUPPORT_MENU_BY_ROLE = {
+  client: ['Inicio', 'Solicitar servicio', 'Historial / expediente', 'Perfil'],
+  provider: ['Inicio', 'Finanzas', 'Mando', 'Equipo', 'Perfil', 'Contrato (si aplica)'],
+  tecnico: ['Inicio', 'Trabajo activo', 'Perfil / expediente']
+};
+
+function summarizeRequestForSupport(r) {
+  return {
+    id: r.id,
+    status: r.status,
+    techStatus: r.techStatus || null,
+    paymentStatus: r.paymentStatus || null,
+    serviceName: r.serviceName || r.serviceId || null,
+    createdAt: r.createdAt || null,
+    updatedAt: r.updatedAt || r.completedAt || r.paidAt || null,
+    providerId: r.providerId || null,
+    technicianId: r.technicianId || null,
+    clientId: r.clientId || null,
+    payoutStatus: r.payoutStatus || null,
+    refundStatus: r.refundStatus || null
+  };
+}
+
+function parseSupportLogDetail(detail) {
+  if (!detail) return null;
+  if (typeof detail === 'object') return detail;
+  const raw = String(detail);
+  try {
+    return JSON.parse(raw);
+  } catch (_) {
+    return { message: raw };
+  }
+}
+
+function logClientTelemetry(payload = {}, req = null) {
+  ensureReady();
+  const sessionUser = req?.session?.user || null;
+  const userId = sessionUser?.id || payload.userId || null;
+  const user = userId ? getUserById(userId) : null;
+  const message = String(payload.message || payload.error || '').trim().slice(0, 500);
+  if (!message) return { error: 'Mensaje de error vacío.' };
+
+  const body = {
+    userId: user?.id || userId || null,
+    role: user?.role || sessionUser?.role || payload.role || null,
+    message,
+    stack: String(payload.stack || '').slice(0, 2000) || null,
+    url: String(payload.url || '').slice(0, 500) || null,
+    path: String(payload.path || '').slice(0, 300) || null,
+    source: String(payload.source || 'client').slice(0, 60),
+    userAgent: String(payload.userAgent || req?.get?.('user-agent') || '').slice(0, 300) || null,
+    meta: payload.meta && typeof payload.meta === 'object'
+      ? Object.fromEntries(Object.entries(payload.meta).slice(0, 12))
+      : null
+  };
+
+  logSecurityEvent('client_error', JSON.stringify(body), req || {
+    session: { user: { email: user?.email || sessionUser?.email || null } },
+    ip: req?.ip || null
+  });
+  return { success: true };
+}
+
+function addSupportNote(userId, note, actorId, req = null) {
+  ensureReady();
+  const user = getUserById(userId);
+  if (!user || user.role === 'admin') return { error: 'Usuario no encontrado.' };
+  const text = String(note || '').trim().slice(0, 1000);
+  if (!text) return { error: 'Escribe una nota.' };
+  const actor = actorId ? getUserById(actorId) : null;
+  logSecurityEvent('support_note', JSON.stringify({
+    userId: user.id,
+    email: user.email,
+    note: text,
+    by: actor?.email || actorId || null
+  }), req || { session: { user: { email: actor?.email || null } } });
+  return { success: true };
+}
+
+function getUserSupportDossier(userId, { limitRequests = 12, limitLogs = 40 } = {}) {
+  ensureReady();
+  const user = getUserById(userId);
+  if (!user || user.role === 'admin') return { error: 'Usuario no encontrado.' };
+
+  const email = String(user.email || '').toLowerCase();
+  let relatedRequests = [];
+  if (user.role === 'client') relatedRequests = getRequestsByClient(user.id);
+  else if (user.role === 'provider') relatedRequests = getRequestsByProvider(user.id);
+  else if (user.role === 'tecnico') relatedRequests = getRequestsByTechnician(user.id);
+
+  relatedRequests = [...relatedRequests]
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    .slice(0, Math.min(30, Math.max(1, Number(limitRequests) || 12)));
+
+  const complaints = (COMPLAINTS || [])
+    .filter((c) => c.clientId === user.id || c.providerId === user.id || c.userId === user.id)
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    .slice(0, 10)
+    .map((c) => ({
+      id: c.id,
+      status: c.status,
+      subject: c.subject || c.reason || c.type || null,
+      createdAt: c.createdAt || null,
+      requestId: c.requestId || null
+    }));
+
+  const logs = (securityLogs || [])
+    .filter((log) => {
+      const detail = parseSupportLogDetail(log.detail);
+      if (detail?.userId && detail.userId === user.id) return true;
+      if (log.user && String(log.user).toLowerCase() === email) return true;
+      if (typeof log.detail === 'string' && log.detail.includes(user.id)) return true;
+      return false;
+    })
+    .slice(0, Math.min(80, Math.max(1, Number(limitLogs) || 40)))
+    .map((log) => {
+      const detail = parseSupportLogDetail(log.detail);
+      return {
+        id: log.id,
+        event: log.event,
+        createdAt: log.createdAt,
+        ip: log.ip || null,
+        detail,
+        summary: detail?.message || detail?.note || (typeof log.detail === 'string' ? log.detail.slice(0, 180) : log.event)
+      };
+    });
+
+  const clientErrors = logs.filter((l) => l.event === 'client_error');
+  const supportNotes = logs.filter((l) => l.event === 'support_note');
+
+  const flags = [];
+  if (user.active === false) flags.push({ code: 'blocked', level: 'danger', label: 'Cuenta bloqueada' });
+  if (!isEmailVerified(user)) flags.push({ code: 'email_unverified', level: 'warn', label: 'Email no verificado' });
+  if (!user.phone) flags.push({ code: 'no_phone', level: 'info', label: 'Sin teléfono' });
+
+  let contract = null;
+  let team = [];
+  let parent = null;
+  if (user.role === 'provider') {
+    ensureProviderFields(user);
+    contract = getContractSummary(user.providerContract);
+    if (!contract?.canOperate) {
+      flags.push({ code: 'contract_blocked', level: 'danger', label: `Contrato: ${contract?.label || 'no operativo'}` });
+    }
+    if (!user.online) flags.push({ code: 'offline', level: 'warn', label: 'Fuera de línea' });
+    const specs = Array.isArray(user.specialties) ? user.specialties : [];
+    if (!specs.length) flags.push({ code: 'no_services', level: 'warn', label: 'Sin servicios activados' });
+    team = getTechniciansByProvider(user.id).map((t) => ({
+      id: t.id,
+      name: t.name,
+      email: t.email,
+      active: t.active !== false,
+      online: Boolean(t.online),
+      specialties: t.specialties || []
+    }));
+    if (!team.length) flags.push({ code: 'no_team', level: 'info', label: 'Sin técnicos en el equipo' });
+  }
+  if (user.role === 'tecnico') {
+    if (!user.online) flags.push({ code: 'offline', level: 'warn', label: 'Fuera de línea' });
+    const parentIds = getTechnicianParentIds(user);
+    if (!parentIds.length) flags.push({ code: 'no_parent', level: 'danger', label: 'Sin socio padre vinculado' });
+    parent = parentIds.map((id) => {
+      const p = getUserById(id);
+      return p ? { id: p.id, name: p.name, email: p.email, active: p.active !== false } : { id };
+    });
+  }
+
+  const openStuck = relatedRequests.filter((r) => r.status === 'searching' || r.status === 'assigned' || r.status === 'in_progress');
+  if (openStuck.length) {
+    flags.push({ code: 'open_jobs', level: 'info', label: `${openStuck.length} solicitud(es) abiertas` });
+  }
+  if (clientErrors.length) {
+    flags.push({ code: 'client_errors', level: 'warn', label: `${clientErrors.length} error(es) de app recientes` });
+  }
+  if (complaints.length) {
+    flags.push({ code: 'complaints', level: 'warn', label: `${complaints.length} reclamo(s)` });
+  }
+
+  const specialtyIds = Array.isArray(user.specialties) ? user.specialties : [];
+  const services = specialtyIds.map((id) => {
+    const s = (SERVICES || []).find((x) => x.id === id);
+    return { id, name: s?.name || id };
+  });
+
+  return {
+    success: true,
+    dossier: {
+      account: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role,
+        active: user.active !== false,
+        online: Boolean(user.online),
+        emailVerified: isEmailVerified(user),
+        memberSince: user.memberSince || null,
+        updatedAt: user.updatedAt || null,
+        clientEnabled: user.role === 'provider' ? user.clientEnabled !== false : undefined,
+        billingComplete: typeof isBillingComplete === 'function' ? Boolean(isBillingComplete(user)) : null
+      },
+      menu: SUPPORT_MENU_BY_ROLE[user.role] || [],
+      flags,
+      contract,
+      services,
+      team,
+      parent,
+      requests: relatedRequests.map(summarizeRequestForSupport),
+      complaints,
+      clientErrors: clientErrors.slice(0, 20),
+      supportNotes: supportNotes.slice(0, 15),
+      securityEvents: logs.filter((l) => l.event !== 'client_error' && l.event !== 'support_note').slice(0, 20),
+      generatedAt: new Date().toISOString()
     }
   };
 }
@@ -6817,6 +7049,9 @@ module.exports = {
   deleteAdminProfile,
   getManagedUsers,
   adminUpdateManagedUser,
+  getUserSupportDossier,
+  logClientTelemetry,
+  addSupportNote,
   resolveAdminAccess,
   isMfaEnabled,
   beginMfaSetup,

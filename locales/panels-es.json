@@ -76,7 +76,7 @@
   "admin.finanzas.costs_ledger": "Libro de costos",
 
   "admin.usuarios.title": "Clientes y socios",
-  "admin.usuarios.subtitle": "Intervén cuentas cuando hay problemas: activar/desactivar y verificar correo",
+  "admin.usuarios.subtitle": "Diagnóstico técnico, editar, bloquear y verificar clientes, socios y técnicos",
 
   "admin.crm.title": "CRM socios estratégicos",
   "admin.crm.subtitle": "Reuniones, contactos y pipeline para incorporar nuevos socios a Fandez",
