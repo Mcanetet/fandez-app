@@ -76,23 +76,23 @@
         <a href="/proveedor/mando" class="text-xs text-zilo-accent font-medium"><%= t('provider.dashboard.mando_link') %></a>
         <% } %>
       </div>
-      <div class="space-y-2" id="activeJobsList">
+      <div class="space-y-3" id="activeJobsList">
         <% activeJobs.forEach(job => { %>
-          <a href="/proveedor/trabajo/<%= job.id %>" class="block p-4 rounded-2xl zilo-card-premium border border-zilo-success/20 hover:border-zilo-success/35 transition">
-            <div class="flex justify-between items-start mb-1">
-              <strong class="text-sm"><%= job.serviceName %></strong>
-              <span class="zilo-badge zilo-badge-success"><%= job.techStatusLabel || job.statusLabel %></span>
+          <a href="/proveedor/trabajo/<%= job.id %>" class="tech-list-card block rounded-2xl zilo-card-premium border border-zilo-success/20 hover:border-zilo-success/35 transition">
+            <div class="tech-list-card__head">
+              <strong class="text-sm min-w-0 truncate"><%= job.serviceName %></strong>
+              <span class="zilo-badge zilo-badge-success shrink-0"><%= job.techStatusLabel || job.statusLabel %></span>
             </div>
             <p class="text-xs text-zilo-muted truncate"><%= job.clientName %> · <%= job.address %></p>
             <% if (job.providerPayout != null) { %>
-              <p class="text-[11px] text-zilo-success font-medium mt-1"><%= t('provider.js.your_payout') %>: <%= formatCLP(job.providerPayout) %></p>
+              <p class="text-[11px] text-zilo-success font-medium"><%= t('provider.js.your_payout') %>: <%= formatCLP(job.providerPayout) %></p>
             <% } %>
             <% if (job.urgencyTierLabel) {
               const jobUrgent = job.urgencyTier === 'immediate' || job.urgencyTier === 'critical' || job.urgencyTier === 'medium';
             %>
-              <p class="text-[10px] <%= jobUrgent ? 'text-orange-600' : 'text-zilo-muted' %> mt-1"><%= jobUrgent ? 'Urgencia' : 'Llegada' %>: <%= job.urgencyTierLabel %></p>
+              <p class="text-[10px] <%= jobUrgent ? 'text-orange-600' : 'text-zilo-muted' %>"><%= jobUrgent ? 'Urgencia' : 'Llegada' %>: <%= job.urgencyTierLabel %></p>
             <% } %>
-            <p class="text-[11px] font-semibold text-zilo-accent mt-2">Abrir terreno →</p>
+            <p class="text-[11px] font-semibold text-zilo-accent">Abrir terreno →</p>
           </a>
         <% }); %>
       </div>
@@ -212,11 +212,11 @@
           <p class="text-sm"><%= t('provider.dashboard.go_online') %></p>
         </div>
       <% } else { %>
-        <div class="space-y-2">
+        <div class="tech-list-stack">
           <% myRequests.forEach(req => { %>
-            <div class="p-4 rounded-xl zilo-card-premium">
-              <div class="flex justify-between items-start gap-3 min-w-0">
-                <div class="min-w-0 flex-1 overflow-hidden">
+            <div class="tech-list-card rounded-xl zilo-card-premium">
+              <div class="tech-list-card__head">
+                <div class="tech-list-card__body min-w-0 flex-1 overflow-hidden">
                   <strong class="text-sm block truncate"><%= req.serviceName %></strong>
                   <span class="text-xs text-zilo-muted block truncate"><%= req.clientName %></span>
                   <span class="text-[10px] text-zilo-muted"><%= formatDate(req.createdAt, { day: 'numeric', month: 'short' }) %></span>
@@ -229,11 +229,11 @@
                 </div>
               </div>
               <% if (['assigned', 'in_progress'].includes(req.status)) { %>
-                <a href="/proveedor/trabajo/<%= req.id %>" class="mt-3 block text-center zilo-btn-primary !py-2.5 !text-sm">Abrir pedido · chat y terreno</a>
+                <a href="/proveedor/trabajo/<%= req.id %>" class="block text-center zilo-btn-primary !py-2.5 !text-sm">Abrir pedido · chat y terreno</a>
               <% } %>
               <% if (req.status === 'completed' && req.financialsVisible && req.financialsVisible.completed) { %>
                   <% const fin = req.financialsVisible; %>
-                  <details class="mt-2 text-left">
+                  <details class="text-left">
                     <summary class="text-[10px] text-zilo-muted cursor-pointer"><%= t('provider.settlement') %></summary>
                     <div class="text-[10px] text-zilo-muted mt-1 space-y-0.5">
                       <p><%= t('provider.settlement_charged') %>: <%= formatCLP(fin.grandTotal) %></p>
@@ -246,7 +246,7 @@
                     </div>
                   </details>
               <% } else if (req.providerPayout != null && req.status !== 'completed') { %>
-                <p class="text-[10px] text-zilo-muted mt-2"><%= t('provider.payout_until_complete') %></p>
+                <p class="text-[10px] text-zilo-muted"><%= t('provider.payout_until_complete') %></p>
               <% } %>
             </div>
           <% }); %>

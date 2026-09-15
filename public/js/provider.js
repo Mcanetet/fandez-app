@@ -202,7 +202,7 @@
         : '';
 
       const card = document.createElement('article');
-      card.className = 'p-4 rounded-2xl zilo-card-premium border border-zilo-accent/15 provider-wall-card';
+      card.className = 'tech-list-card provider-wall-card rounded-2xl zilo-card-premium border border-zilo-accent/15';
       card.dataset.requestId = req.id;
       card.innerHTML = `
         <div class="flex items-start justify-between gap-3 mb-2">

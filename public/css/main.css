@@ -1312,7 +1312,7 @@ body.session-role--tecnico::before {
   align-items: center;
   justify-content: center;
   max-width: min(11rem, 46vw);
-  padding: 0.2rem 0.55rem;
+  padding: 0.28rem 0.7rem;
   border-radius: 9999px;
   font-size: 0.625rem;
   font-weight: 600;
@@ -3107,6 +3107,55 @@ body.session-role--tecnico::before {
 .provider-workflow .checkout-progress-line { max-width: 1.75rem; }
 .provider-wall-card { transition: border-color 0.2s, transform 0.2s; }
 .provider-wall-card:hover { border-color: rgba(196, 92, 20,0.35); transform: translateY(-1px); }
+
+/* Polyfill: p-3.5 no estaba en el Tailwind compilado → textos pegados al borde */
+.p-3\.5 { padding: 0.875rem; }
+
+/* Tarjetas de lista técnico/socio: padding garantizado (muro, activos, historial) */
+.tech-list-card,
+.provider-wall-card {
+  padding: 1rem 1.15rem 1.05rem !important;
+  box-sizing: border-box;
+}
+.tech-list-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.tech-list-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.tech-list-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.tech-list-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+.tech-list-card__actions > * {
+  min-width: 0;
+}
+.tech-list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+#sectionWall > div,
+#sectionActive > div,
+#sectionDone > div {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-bottom: 1.1rem;
+  padding-top: 0.85rem;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .zilo-page-enter,

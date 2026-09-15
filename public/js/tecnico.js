@@ -301,11 +301,11 @@
       }
 
       const card = document.createElement('article');
-      card.className = 'p-4 rounded-2xl zilo-card-premium border border-zilo-accent/15';
+      card.className = 'tech-list-card provider-wall-card rounded-2xl zilo-card-premium border border-zilo-accent/15';
       card.dataset.requestId = req.id;
       card.innerHTML = `
-        <div class="flex items-start justify-between gap-3 mb-2">
-          <div class="min-w-0 flex-1">
+        <div class="tech-list-card__head">
+          <div class="tech-list-card__body min-w-0 flex-1">
             <strong class="text-sm block">${escapeHtml(data.service.name)}</strong>
             <span class="text-xs text-zilo-muted block truncate">${escapeHtml(data.client.name)}</span>
           </div>
@@ -314,14 +314,14 @@
             <span class="zilo-badge zilo-badge-success">${t('tecnico.js.wall_available')}</span>
           </div>
         </div>
-        <p class="text-xs text-zilo-muted mb-2 truncate">${escapeHtml(req.zoneLabel || req.communeName || 'Zona disponible')}</p>
+        <p class="text-xs text-zilo-muted truncate">${escapeHtml(req.zoneLabel || req.communeName || 'Zona disponible')}</p>
         ${notesHtml}
-        <p class="text-xs font-semibold text-zilo-success mb-3">${t('provider.js.your_payout')}: ${fmt(req.providerPayout ?? req.estimatedVisit)}</p>
-        <div class="hidden mb-3 p-3 rounded-xl bg-zilo-bg/70 border border-zilo-border space-y-2" data-role="wall-detail">
+        <p class="text-xs font-semibold text-zilo-success">${t('provider.js.your_payout')}: ${fmt(req.providerPayout ?? req.estimatedVisit)}</p>
+        <div class="hidden p-3 rounded-xl bg-zilo-bg/70 border border-zilo-border space-y-2" data-role="wall-detail">
           ${detailNotes}
           ${photoParts.length ? `<div class="space-y-2">${photoParts.join('')}</div>` : ''}
         </div>
-        <div class="flex gap-2">
+        <div class="tech-list-card__actions">
           <button type="button" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm" data-detail="${escapeHtml(req.id)}">${t('provider.js.view_details')}</button>
           <button type="button" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm" data-take="${escapeHtml(req.id)}">${t('tecnico.js.take_job')}</button>
         </div>
