@@ -1631,6 +1631,22 @@ function hasPerm(key) {
         </div>
       </div>
 
+      <% const gh = typeof githubBackupStatus !== 'undefined' ? githubBackupStatus : { enabled: false, configured: {} }; %>
+      <div class="mb-4 p-4 rounded-2xl border <%= gh.enabled ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200' %>">
+        <h4 class="text-sm font-semibold <%= gh.enabled ? 'text-emerald-800' : 'text-amber-900' %>">Copia offsite en GitHub (cifrada)</h4>
+        <% if (gh.enabled) { %>
+          <p class="text-xs text-emerald-800/90 mt-1">Activo → repo <code class="bg-white/70 px-1 rounded"><%= gh.repo %></code> · rama <code class="bg-white/70 px-1 rounded"><%= gh.branch %></code> · retención <%= gh.retentionDays %> días</p>
+          <p class="text-[11px] text-emerald-700/80 mt-1">Cada backup automático/manual también se sube cifrado. GitHub Actions lo dispara a las 03:00 Chile.</p>
+        <% } else { %>
+          <p class="text-xs text-amber-900/90 mt-1">Aún no configurado. En Hostinger define <code>BACKUP_GITHUB_ENABLED</code>, <code>BACKUP_GITHUB_TOKEN</code>, <code>BACKUP_GITHUB_REPO</code>, <code>BACKUP_GITHUB_ENCRYPT_KEY</code> y <code>BACKUP_SYNC_TOKEN</code>. Detalle en <code>HOSTINGER.md</code>.</p>
+          <p class="text-[11px] text-amber-800/80 mt-1">Falta: <%= [
+            !gh.configured?.token ? 'TOKEN' : null,
+            !gh.configured?.repo ? 'REPO' : null,
+            !gh.configured?.encryptKey ? 'ENCRYPT_KEY' : null
+          ].filter(Boolean).join(', ') || 'activar ENABLED=true' %></p>
+        <% } %>
+      </div>
+
       <form id="backupConfigForm" class="p-4 rounded-2xl bg-zilo-card border border-gray-200 space-y-3 mb-4">
         <p class="text-sm font-semibold"><%= t('admin.backups.config') %></p>
 

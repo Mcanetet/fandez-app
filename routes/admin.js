@@ -133,10 +133,11 @@ function buildAdminAttentionInbox(storeRef, locale = 'es') {
 router.use(adminIpAllowlist());
 router.use(attachAdminAccess);
 router.use(attachCsrf);
-// Mutaciones admin (excepto login/MFA públicos) requieren CSRF.
+  // Mutaciones admin (excepto login/MFA públicos y sync de backup por token) requieren CSRF.
 router.use((req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   const p = req.path || '';
+  if (p === '/backups/github-sync') return next();
   if (
     p === '/login'
     || p === '/mfa'
@@ -472,6 +473,7 @@ router.get('/', requireRole('admin'), async (req, res) => {
     backupConfig: await backup.loadConfigAsync(),
     backups: await backup.listBackups(),
     backupRetention: backup.getRetentionSummary(),
+    githubBackupStatus: typeof backup.githubStatus === 'function' ? backup.githubStatus() : backup.githubStatus,
     formatBytes: backup.formatBytes,
     appVersion: getAppVersionInfo(),
     mfaStatus: store.getAdminMfaStatus(req.session.user.id),
@@ -1456,6 +1458,7 @@ router.post('/backups/run', requireRole('admin'), requireAdminPermission('backup
     res.json({
       success: true,
       backup: result.manifest,
+      github: result.github || null,
       removed,
       config: backup.loadConfig(),
       backups: await backup.listBackups()
@@ -1464,6 +1467,38 @@ router.post('/backups/run', requireRole('admin'), requireAdminPermission('backup
     await backup.saveConfig({ lastBackupStatus: 'error', lastBackupError: err.message });
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+/** Disparo diario desde GitHub Actions (sin sesión admin; token de sync). */
+router.post('/backups/github-sync', async (req, res) => {
+  const expected = String(process.env.BACKUP_SYNC_TOKEN || process.env.BACKUP_GITHUB_SYNC_TOKEN || '').trim();
+  const provided = String(req.get('X-Backup-Token') || req.body?.token || '').trim();
+  if (!expected || !provided || provided !== expected) {
+    return res.status(401).json({ success: false, error: 'Token de sync inválido.' });
+  }
+  if (!store.isReady()) {
+    return res.status(503).json({ success: false, error: 'Store no listo' });
+  }
+  try {
+    const result = await backup.runGithubBackupSync(store, {
+      type: req.body?.type || 'daily',
+      triggeredBy: 'github-action'
+    });
+    store.logSecurityEvent(
+      'backup_github_sync',
+      result.github?.path || result.github?.reason || result.error || 'ok',
+      req
+    );
+    const status = result.success === false ? 500 : 200;
+    return res.status(status).json(result);
+  } catch (err) {
+    await backup.saveConfig({ lastBackupStatus: 'error', lastBackupError: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.get('/backups/github-status', requireRole('admin'), requireAdminPermission('backups.view', 'backups.manage'), (req, res) => {
+  res.json({ success: true, github: backup.githubStatus() });
 });
 
 router.post('/backups/retention', requireRole('admin'), requireAdminPermission('backups.manage'), async (req, res) => {

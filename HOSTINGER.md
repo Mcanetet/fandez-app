@@ -170,6 +170,28 @@ Esto crea las tablas e inserta los usuarios demo:
 
 > **Backups:** el historial se guarda en **MySQL** (`app_backups`), no en archivos del deploy. Al subir una nueva versión desde GitHub el historial se conserva. Los documentos KYC (carpeta uploads) siguen en disco del servidor.
 
+### Backup diario automático → GitHub (cifrado)
+
+1. Crea un repo **privado** (ej. `Mcanetet/fandez-backups`). No uses el repo de la app.
+2. Crea un PAT (fine-grained) con permiso **Contents: Read and write** solo a ese repo.
+3. En Hostinger (variables de entorno):
+   ```bash
+   BACKUP_GITHUB_ENABLED=true
+   BACKUP_GITHUB_TOKEN=ghp_xxx
+   BACKUP_GITHUB_REPO=Mcanetet/fandez-backups
+   BACKUP_GITHUB_ENCRYPT_KEY=una-frase-larga-que-solo-tu-sepas
+   BACKUP_SYNC_TOKEN=otro-secreto-para-github-actions
+   ```
+4. En el repo `fandez-app` → Settings → Secrets → Actions:
+   - `FANDEZ_BACKUP_SYNC_URL` = `https://www.fandez.cl/<ADMIN_PATH>/backups/github-sync`
+   - `FANDEZ_BACKUP_SYNC_TOKEN` = el mismo `BACKUP_SYNC_TOKEN`
+5. El workflow `.github/workflows/daily-backup.yml` corre a las **03:00 Chile** y también se puede lanzar a mano (Actions → Daily backup → Run).
+
+Descifrar un `.enc` descargado del repo de backups:
+```bash
+BACKUP_GITHUB_ENCRYPT_KEY='...' node scripts/decrypt-github-backup.js ./archivo.enc ./snapshot.json
+```
+
 ### Si entra un virus o te hackean (recuperar BD + resetear web)
 
 1. **Tener copias fuera del servidor**  

@@ -26,6 +26,7 @@
     "backup:export": "node scripts/disaster-recovery.js export",
     "backup:restore": "node scripts/disaster-recovery.js restore",
     "backup:status": "node scripts/disaster-recovery.js status",
+    "backup:decrypt-github": "node scripts/decrypt-github-backup.js",
     "disaster:recover": "node scripts/disaster-recovery.js recover"
   },
   "engines": {

@@ -1,0 +1,49 @@
+name: Daily backup → GitHub
+
+# Dispara en producción un backup diario y lo guarda cifrado en el repo de backups.
+# Secrets requeridos en este repo (Settings → Secrets → Actions):
+#   FANDEZ_BACKUP_SYNC_URL   = https://www.fandez.cl/<ADMIN_PATH>/backups/github-sync
+#   FANDEZ_BACKUP_SYNC_TOKEN = mismo valor que BACKUP_SYNC_TOKEN en Hostinger
+
+on:
+  schedule:
+    # 06:00 UTC ≈ 03:00 Chile (UTC-3)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'Tipo de backup (daily|weekly|manual)'
+        required: false
+        default: 'daily'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Trigger production backup + GitHub push
+        env:
+          URL: ${{ secrets.FANDEZ_BACKUP_SYNC_URL }}
+          TOKEN: ${{ secrets.FANDEZ_BACKUP_SYNC_TOKEN }}
+          TYPE: ${{ github.event.inputs.type || 'daily' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${URL:-}" ] || [ -z "${TOKEN:-}" ]; then
+            echo "Faltan secrets FANDEZ_BACKUP_SYNC_URL / FANDEZ_BACKUP_SYNC_TOKEN"
+            exit 1
+          fi
+          echo "POST $URL (type=$TYPE)"
+          curl -fsS -X POST "$URL" \
+            -H "X-Backup-Token: $TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            --data "{\"type\":\"$TYPE\"}" \
+            -o /tmp/backup-sync.json \
+            -w "\nHTTP %{http_code}\n"
+          python3 - <<'PY'
+          import json
+          data = json.load(open('/tmp/backup-sync.json'))
+          print(json.dumps(data, indent=2)[:4000])
+          if data.get('success') is False:
+            raise SystemExit(1)
+          PY
