@@ -33,13 +33,34 @@
 
   const ADMIN_JS = (window.FandezAdminI18n && window.FandezAdminI18n.js) || {};
   const ADMIN_BASE = window.FandezAdminBase || '/admin';
-  function adminFetch(path, options) {
+  const ADMIN_CSRF = window.FandezAdminCsrf || '';
+  function adminFetch(path, options = {}) {
     const url = path.startsWith('http') ? path : `${ADMIN_BASE}${path.startsWith('/') ? path : '/' + path}`;
-    return fetch(url, options);
+    const method = String(options.method || 'GET').toUpperCase();
+    const headers = Object.assign({}, options.headers || {});
+    if (ADMIN_CSRF && method !== 'GET' && method !== 'HEAD') {
+      headers['X-CSRF-Token'] = ADMIN_CSRF;
+    }
+    return fetch(url, Object.assign({}, options, { headers, credentials: 'same-origin' }));
   }
   function adminHref(path) {
     return `${ADMIN_BASE}${path.startsWith('/') ? path : '/' + path}`;
   }
+
+  // Asegura CSRF también en fetch directos al ADMIN_BASE (alertas, florencia, etc.).
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    const opts = init ? Object.assign({}, init) : {};
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    const method = String(opts.method || 'GET').toUpperCase();
+    const isAdminUrl = url.startsWith(ADMIN_BASE) || url.startsWith(location.origin + ADMIN_BASE);
+    if (ADMIN_CSRF && isAdminUrl && method !== 'GET' && method !== 'HEAD') {
+      const headers = new Headers(opts.headers || {});
+      if (!headers.has('X-CSRF-Token')) headers.set('X-CSRF-Token', ADMIN_CSRF);
+      opts.headers = headers;
+    }
+    return nativeFetch(input, opts);
+  };
 
 
   const ADMIN_STATUS = (window.FandezAdminI18n && window.FandezAdminI18n.status) || { on: 'ON', off: 'OFF', active: 'ACTIVA', inactive: 'INACTIVA' };
@@ -1387,6 +1408,129 @@
         FandezNotify.show(data.error || 'No se pudo confirmar', 'error');
       }
     });
+  });
+
+  document.querySelectorAll('.btn-refund-status').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const status = btn.dataset.status;
+      const labels = {
+        processing: 'marcar en proceso',
+        paid: 'marcar como pagada (devolución hecha al cliente)',
+        failed: 'marcar como fallida'
+      };
+      if (!confirm(`¿Seguro que quieres ${labels[status] || status}?`)) return;
+      let externalRef = null;
+      let notes = null;
+      if (status === 'paid') {
+        externalRef = window.prompt('ID de devolución en el medio de pago (opcional):', '') || null;
+        notes = window.prompt('Nota interna (opcional):', '') || null;
+      }
+      btn.disabled = true;
+      const res = await adminFetch(`/devoluciones/${btn.dataset.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, externalRef, notes })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.success) {
+        FandezNotify.show('Devolución actualizada', 'success');
+        setTimeout(() => location.reload(), 700);
+      } else {
+        btn.disabled = false;
+        FandezNotify.show(data.error || 'No se pudo actualizar la devolución', 'error');
+      }
+    });
+  });
+
+  function closeRequestCaseModal() {
+    const modal = document.getElementById('adminRequestCaseModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function renderRequestCase(payload) {
+    const c = payload || {};
+    const r = c.request || {};
+    const timeline = (c.timeline || []).map((ev) =>
+      `<li class="text-xs border-l-2 border-violet-200 pl-2 py-1">
+        <strong>${escapeHtml(ev.label || '')}</strong>
+        <span class="text-gray-400"> · ${escapeHtml(String(ev.at || '').slice(0, 19).replace('T', ' '))}</span>
+        ${ev.detail ? `<div class="text-gray-500">${escapeHtml(ev.detail)}</div>` : ''}
+      </li>`
+    ).join('') || '<li class="text-xs text-gray-400">Sin eventos</li>';
+
+    const party = (label, p) => p
+      ? `<div class="rounded-xl border border-gray-100 p-3">
+          <p class="text-[11px] font-bold uppercase text-gray-400 mb-1">${label}</p>
+          <p class="text-sm font-medium">${escapeHtml(p.name || '')}</p>
+          <p class="text-xs text-gray-500 break-all">${escapeHtml(p.email || '')}${p.phone ? ' · ' + escapeHtml(p.phone) : ''}</p>
+        </div>`
+      : '';
+
+    const refund = r.refund && r.refund.refundStatus && r.refund.refundStatus !== 'not_applicable'
+      ? `<div class="rounded-xl border border-rose-100 bg-rose-50/40 p-3 text-xs">
+          <strong>Devolución:</strong> ${escapeHtml(r.refund.refundStatus)} · ${escapeHtml(String(r.refund.refundAmount || 0))}
+          ${r.refund.refundScheduledDate ? ` · prog. ${escapeHtml(r.refund.refundScheduledDate)}` : ''}
+          ${r.refund.refundExternalRef ? ` · ref ${escapeHtml(r.refund.refundExternalRef)}` : ''}
+        </div>`
+      : '';
+
+    const fin = c.financials
+      ? `<div class="text-xs text-gray-600">Total ${escapeHtml(String(c.financials.grandTotal || 0))} · comisión ${escapeHtml(String(c.financials.appTotal || 0))} · socio ${escapeHtml(String(c.financials.providerTotal || 0))}</div>`
+      : '';
+
+    return `
+      <div class="rounded-xl border border-gray-100 p-3 space-y-1">
+        <p class="text-sm font-semibold">${escapeHtml(r.serviceName || r.id || '')}</p>
+        <p class="text-xs text-gray-500">${escapeHtml(r.status || '')} · pago ${escapeHtml(r.paymentStatus || '—')} · ${escapeHtml(r.paymentMethod || '')}</p>
+        <p class="text-[10px] text-gray-400 font-mono">${escapeHtml(r.id || '')}</p>
+        ${r.address ? `<p class="text-xs text-gray-600">${escapeHtml(r.address)}</p>` : ''}
+        ${fin}
+      </div>
+      ${refund}
+      <div class="grid sm:grid-cols-3 gap-2">
+        ${party('Cliente', c.client)}
+        ${party('Socio', c.provider)}
+        ${party('Técnico', c.technician)}
+      </div>
+      <div class="rounded-xl border border-gray-100 p-3">
+        <p class="text-[11px] font-bold uppercase text-gray-400 mb-2">Timeline</p>
+        <ul class="space-y-1">${timeline}</ul>
+      </div>
+    `;
+  }
+
+  async function openRequestCase(requestId) {
+    const modal = document.getElementById('adminRequestCaseModal');
+    const body = document.getElementById('adminRequestCaseBody');
+    const sub = document.getElementById('adminRequestCaseSub');
+    if (!modal || !body || !requestId) return;
+    body.innerHTML = '<p class="text-gray-500">Cargando caso…</p>';
+    if (sub) sub.textContent = requestId;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+    try {
+      const res = await adminFetch(`/solicitudes/${encodeURIComponent(requestId)}/caso`);
+      const data = await res.json().catch(() => ({}));
+      if (!data.success || !data.case) {
+        body.innerHTML = `<p class="text-red-600">${escapeHtml(data.error || 'No se pudo cargar el caso')}</p>`;
+        return;
+      }
+      if (sub) sub.textContent = `${data.case.request?.serviceName || ''} · ${requestId}`;
+      body.innerHTML = renderRequestCase(data.case);
+    } catch (_) {
+      body.innerHTML = '<p class="text-red-600">Error de red al cargar el caso.</p>';
+    }
+  }
+
+  document.querySelectorAll('.btn-request-case').forEach((btn) => {
+    btn.addEventListener('click', () => openRequestCase(btn.dataset.id));
+  });
+  document.querySelectorAll('[data-close-request-case]').forEach((el) => {
+    el.addEventListener('click', closeRequestCaseModal);
   });
 
   document.querySelectorAll('[data-dispatch-id]').forEach((card) => {

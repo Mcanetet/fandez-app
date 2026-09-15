@@ -28,6 +28,7 @@ const {
   getNavForLocale
 } = require('../lib/i18n-admin');
 const { rateLimitLogin, adminIpAllowlist, getClientIp, parseAdminIpAllowlist } = require('../middleware/security');
+const { attachCsrf, requireCsrf, rotateCsrfToken } = require('../middleware/csrf');
 const { qrDataUrl } = require('../lib/mfa');
 const notifications = require('../lib/notifications');
 const events = require('../lib/events');
@@ -88,6 +89,20 @@ function buildAdminAttentionInbox(storeRef, locale = 'es') {
       actionLabel: 'Ir a Socios'
     });
   });
+  try {
+    const refunds = storeRef.getAdminRefundQueue({ status: 'open', limit: 8 });
+    refunds.forEach((r) => {
+      inbox.push({
+        type: 'refund',
+        urgency: 'high',
+        tab: 'pagos',
+        title: `Devolución pendiente · ${r.serviceName || 'Servicio'}`,
+        body: `${r.clientName || 'Cliente'} · ${storeRef.formatCLP(r.refundAmount || 0)} · ${r.refundScheduledDate || r.refundStatus}`,
+        actionLabel: 'Procesar',
+        requestId: r.id
+      });
+    });
+  } catch (_) { /* ignore */ }
   openComplaints.slice(0, 5).forEach((c) => {
     inbox.push({
       type: 'complaint',
@@ -117,6 +132,24 @@ function buildAdminAttentionInbox(storeRef, locale = 'es') {
 
 router.use(adminIpAllowlist());
 router.use(attachAdminAccess);
+router.use(attachCsrf);
+// Mutaciones admin (excepto login/MFA públicos) requieren CSRF.
+router.use((req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const p = req.path || '';
+  if (
+    p === '/login'
+    || p === '/mfa'
+    || p === '/mfa/setup'
+    || p.startsWith('/mfa/')
+  ) {
+    return requireCsrf(req, res, next);
+  }
+  if (req.session?.user?.role === 'admin') {
+    return requireCsrf(req, res, next);
+  }
+  return next();
+});
 
 const ADMIN_SESSION_MS = 4 * 60 * 60 * 1000;
 const MFA_PENDING_MS = 5 * 60 * 1000;
@@ -186,13 +219,15 @@ router.get('/login', (req, res) => {
   if (!store.isReady()) {
     return res.render('admin/login', {
       title: 'Admin — Fandez',
-      error: adminDbNotReadyMessage(req)
+      error: adminDbNotReadyMessage(req),
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
     });
   }
   const expired = req.query.expired === '1';
   res.render('admin/login', {
     title: 'Admin — Fandez',
-    error: expired ? 'La verificación MFA expiró. Ingresa nuevamente.' : null
+    error: expired ? 'La verificación MFA expiró. Ingresa nuevamente.' : null,
+    csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
   });
 });
 
@@ -200,7 +235,8 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
   if (!store.isReady()) {
     return res.render('admin/login', {
       title: 'Admin — Fandez',
-      error: adminDbNotReadyMessage(req)
+      error: adminDbNotReadyMessage(req),
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
     });
   }
   const email = String(req.body.email || '').trim().toLowerCase();
@@ -211,7 +247,8 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
     store.logSecurityEvent('admin_login_wrong_role', email, req);
     return res.render('admin/login', {
       title: 'Admin — Fandez',
-      error: 'Credenciales no válidas para administración.'
+      error: 'Credenciales no válidas para administración.',
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
     });
   }
 
@@ -219,7 +256,8 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
     store.logSecurityEvent('admin_login_blocked', email, req);
     return res.render('admin/login', {
       title: 'Admin — Fandez',
-      error: 'Esta cuenta está desactivada.'
+      error: 'Esta cuenta está desactivada.',
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
     });
   }
 
@@ -227,14 +265,16 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
     store.logSecurityEvent('admin_login_fail', email, req);
     return res.render('admin/login', {
       title: 'Admin — Fandez',
-      error: 'Credenciales incorrectas.'
+      error: 'Credenciales incorrectas.',
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
     });
   }
 
   const user = result.user;
   const access = resolveAdminAccess(user);
   const mfaEnabled = store.isMfaEnabled(user.id);
-  const mustSetupMfa = isProductionMode() && hasFullSystemAccess(access) && !mfaEnabled;
+  // En producción todo admin debe configurar MFA.
+  const mustSetupMfa = isProductionMode() && !mfaEnabled;
 
   if (mfaEnabled) {
     req.session.pendingAdminMfa = {
@@ -244,12 +284,14 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
     };
     delete req.session.user;
     delete req.session.adminMfaVerified;
+    rotateCsrfToken(req);
     store.logSecurityEvent('admin_login_mfa_required', email, req);
     return res.redirect(adminUrl('/mfa'));
   }
 
   if (mustSetupMfa) {
     completeAdminSession(req, user, () => {
+      rotateCsrfToken(req);
       store.logSecurityEvent('admin_login_mfa_setup_required', email, req);
       res.redirect(adminUrl('/mfa/setup') + '?required=1');
     });
@@ -257,6 +299,7 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
   }
 
   completeAdminSession(req, user, () => {
+    rotateCsrfToken(req);
     store.logSecurityEvent('admin_login_ok', email, req);
     res.redirect(adminUrl());
   });
@@ -270,7 +313,8 @@ router.get('/mfa', (req, res) => {
   res.render('admin/mfa', {
     title: 'Verificación MFA — Fandez',
     email: pending.email,
-    error: null
+    error: null,
+    csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
   });
 });
 
@@ -286,7 +330,8 @@ router.post('/mfa', rateLimitLogin(6), async (req, res) => {
     return res.render('admin/mfa', {
       title: 'Verificación MFA — Fandez',
       email: pending.email,
-      error: 'Código incorrecto o expirado.'
+      error: 'Código incorrecto o expirado.',
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
     });
   }
 
@@ -297,6 +342,7 @@ router.post('/mfa', rateLimitLogin(6), async (req, res) => {
   }
 
   completeAdminSession(req, user, () => {
+    rotateCsrfToken(req);
     store.logSecurityEvent('admin_mfa_ok', user.email, req);
     res.redirect(adminUrl());
   });
@@ -319,7 +365,8 @@ router.get('/mfa/setup', requireRole('admin'), async (req, res) => {
     qrDataUrl: qr,
     secret: setup.secret,
     email: req.session.user.email,
-    error: null
+    error: null,
+    csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
   });
 });
 
@@ -332,11 +379,13 @@ router.post('/mfa/setup', requireRole('admin'), async (req, res) => {
       secret: null,
       email: req.session.user.email,
       error: result.error,
-      needsRestart: true
+      needsRestart: true,
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
     });
   }
 
   req.session.adminMfaVerified = true;
+  rotateCsrfToken(req);
   store.logSecurityEvent('admin_mfa_enabled', req.session.user.email, req);
   res.redirect(adminUrl('?tab=seguridad&mfa=enabled'));
 });
@@ -408,7 +457,9 @@ router.get('/', requireRole('admin'), async (req, res) => {
     payouts: store.getProviderPayouts(),
     providersDirectory: store.getAdminProvidersDirectory(),
     pendingTransfers: store.getAllRequests().filter(r => r.paymentStatus === 'pending_transfer'),
+    refundQueue: store.getAdminRefundQueue({ status: 'open', limit: 60 }),
     dispatchQueue: store.getAdminDispatchQueue(req.locale || 'es'),
+    csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
     complaints: store.COMPLAINTS,
     chats: store.CHATS,
     consents: store.consentRecords.slice(0, 20),
@@ -1250,7 +1301,36 @@ router.post('/payout/:requestId', requireRole('admin'), requireAdminPermission('
   res.json({ success: true, request: req_ });
 });
 
-router.get('/backups/config', requireRole('admin'), async (req, res) => {
+router.get('/devoluciones', requireRole('admin'), requireAdminPermission('pagos.view', 'pagos.manage'), (req, res) => {
+  const refunds = store.getAdminRefundQueue({
+    status: req.query.status || 'open',
+    limit: Number(req.query.limit) || 60
+  });
+  res.json({ success: true, refunds });
+});
+
+router.post('/devoluciones/:requestId', requireRole('admin'), requireAdminPermission('pagos.manage'), (req, res) => {
+  const result = store.updateRefundStatus(
+    req.params.requestId,
+    {
+      status: req.body?.status,
+      notes: req.body?.notes,
+      externalRef: req.body?.externalRef || req.body?.external_ref
+    },
+    req.session.user.email
+  );
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json({ success: true, refund: result.refund });
+});
+
+router.get('/solicitudes/:requestId/caso', requireRole('admin'), requireAdminPermission('solicitudes.view', 'pagos.view', 'usuarios.view'), (req, res) => {
+  const result = store.getAdminRequestCase(req.params.requestId);
+  if (result.error) return res.status(404).json({ error: result.error });
+  store.logSecurityEvent('request_case_view', `${req.params.requestId} by ${req.session.user.email}`, req);
+  res.json(result);
+});
+
+router.get('/backups/config', requireRole('admin'), requireAdminPermission('backups.view', 'backups.manage'), async (req, res) => {
   res.json({
     success: true,
     config: backup.loadConfig(),
@@ -1354,9 +1434,11 @@ router.post('/backups/import', requireRole('admin'), requireAdminPermission('bac
   }
 });
 
-router.get('/backups/:id/download', requireRole('admin'), async (req, res) => {
+router.get('/backups/:id/download', requireRole('admin'), requireAdminPermission('backups.view', 'backups.manage'), async (req, res) => {
   const item = await backup.getBackupById(req.params.id);
   if (!item) return res.status(404).json({ error: 'Backup no encontrado' });
+
+  store.logSecurityEvent('backup_download', `${req.params.id} by ${req.session.user.email}`, req);
 
   const ver = item.appVersion || 'backup';
   const filename = `fandez-backup-v${ver}-${String(item.createdAt).slice(0, 10)}.json`;

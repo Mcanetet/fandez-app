@@ -24,6 +24,7 @@
     <% } %>
 
     <form action="<%= typeof adminBase !== 'undefined' ? adminBase : '/admin' %>/mfa/setup" method="POST" class="space-y-4">
+      <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
       <div>
         <label for="code" class="zilo-label block mb-1.5">Código de verificación</label>
         <input type="text" id="code" name="code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000" class="zilo-input text-center text-2xl tracking-[0.4em] font-mono">

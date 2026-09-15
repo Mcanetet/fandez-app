@@ -143,6 +143,14 @@ function hasPerm(key) {
           <p class="text-lg font-extrabold text-red-600"><%= stats.openComplaints %></p>
         </div>
       </div>
+      <% if (typeof stats.openRefunds !== 'undefined' && stats.openRefunds > 0) { %>
+      <div class="mb-4">
+        <button type="button" class="admin-goto-tab w-full text-left p-3 rounded-xl bg-rose-50 border border-rose-200 hover:border-rose-400" data-tab="pagos">
+          <strong class="text-sm text-rose-800"><%= stats.openRefunds %> devolución(es) pendiente(s)</strong>
+          <span class="text-xs text-rose-700/80 block mt-0.5">Ir a Pagos para procesarlas →</span>
+        </button>
+      </div>
+      <% } %>
       <div class="grid grid-cols-3 gap-2 mb-4">
         <div class="p-3 rounded-xl bg-zilo-card border border-gray-200 text-center">
           <strong class="block text-lg"><%= stats.activeRequests %></strong>
@@ -1053,6 +1061,47 @@ function hasPerm(key) {
     <section class="<%= panelClass('pagos') %>" data-panel="pagos">
       <h3 class="text-lg font-semibold mb-3"><%= t('admin.pagos.title') %></h3>
 
+      <% const refunds = typeof refundQueue !== 'undefined' ? refundQueue : []; %>
+      <div class="mb-6" id="adminRefundQueue">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <h4 class="text-sm font-semibold text-rose-700">Devoluciones pendientes <span class="text-xs font-normal text-gray-500">(<%= refunds.length %>)</span></h4>
+        </div>
+        <% if (!refunds.length) { %>
+          <p class="text-xs text-gray-500 p-3 rounded-xl bg-gray-50 border border-gray-100">No hay devoluciones en cola.</p>
+        <% } else { %>
+          <div class="space-y-2">
+            <% refunds.forEach(function(r) { %>
+              <div class="p-4 rounded-xl bg-rose-500/5 border border-rose-200 text-sm" data-refund-id="<%= r.id %>">
+                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <strong class="block"><%= r.serviceName || 'Servicio' %></strong>
+                    <p class="text-xs text-gray-500"><%= r.clientName || 'Cliente' %> · <%= formatCLP(r.refundAmount || 0) %></p>
+                    <p class="text-[10px] text-gray-400 mt-1">
+                      Estado: <%= r.refundStatus %>
+                      <% if (r.refundScheduledDate) { %> · programada <%= r.refundScheduledDate %><% } %>
+                      <% if (r.paymentMethod) { %> · medio <%= r.paymentMethod %><% } %>
+                    </p>
+                    <% if (r.cancelReasonLabel || r.cancelReason) { %>
+                      <p class="text-[10px] text-gray-500 mt-0.5">Motivo: <%= r.cancelReasonLabel || r.cancelReason %></p>
+                    <% } %>
+                  </div>
+                  <div class="flex flex-wrap gap-2 shrink-0">
+                    <button type="button" class="btn-request-case text-xs px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-800" data-id="<%= r.id %>">Ver caso</button>
+                    <% if (hasPerm('pagos.manage')) { %>
+                      <% if (r.refundStatus !== 'processing') { %>
+                        <button type="button" class="btn-refund-status text-xs px-2.5 py-1.5 rounded-lg bg-amber-500/15 text-amber-800" data-id="<%= r.id %>" data-status="processing">En proceso</button>
+                      <% } %>
+                      <button type="button" class="btn-refund-status text-xs px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white" data-id="<%= r.id %>" data-status="paid">Marcar pagada</button>
+                      <button type="button" class="btn-refund-status text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-700" data-id="<%= r.id %>" data-status="failed">Fallida</button>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+
       <% if (pendingTransfers.length > 0) { %>
         <div class="mb-5">
           <h4 class="text-sm font-semibold mb-2 text-yellow-600"><%= t('admin.pagos.transfers_pending', { count: pendingTransfers.length }) %></h4>
@@ -1067,11 +1116,16 @@ function hasPerm(key) {
                       <p class="text-[10px] text-gray-500 mt-1"><%= t('admin.pagos.invoice') %>: <%= r.billingSnapshot.legalName %> · <%= r.billingSnapshot.rut %></p>
                     <% } %>
                   </div>
-                  <button type="button" class="btn-approve-transfer px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold shrink-0"
-                    data-id="<%= r.id %>"
-                    data-amount="<%= formatCLP(r.amountDue) %>"
-                    data-client="<%= r.clientName || '' %>"
-                    data-service="<%= r.serviceName || '' %>"><%= t('admin.pagos.confirm_payment') %></button>
+                  <div class="flex flex-wrap gap-2 shrink-0">
+                    <button type="button" class="btn-request-case text-xs px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-800" data-id="<%= r.id %>">Ver caso</button>
+                    <% if (hasPerm('pagos.manage')) { %>
+                    <button type="button" class="btn-approve-transfer px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold"
+                      data-id="<%= r.id %>"
+                      data-amount="<%= formatCLP(r.amountDue) %>"
+                      data-client="<%= r.clientName || '' %>"
+                      data-service="<%= r.serviceName || '' %>"><%= t('admin.pagos.confirm_payment') %></button>
+                    <% } %>
+                  </div>
                 </div>
               </div>
             <% }); %>
@@ -1085,14 +1139,17 @@ function hasPerm(key) {
         <div class="space-y-2">
           <% payments.forEach(p => { %>
             <div class="p-4 rounded-xl bg-zilo-card border border-gray-200 text-sm">
-              <div class="flex justify-between mb-1">
+              <div class="flex justify-between mb-1 gap-2">
                 <strong><%= p.serviceName %></strong>
                 <span class="text-emerald-600 font-bold"><%= formatCLP(p.amount) %></span>
               </div>
               <p class="text-xs text-gray-500"><%= p.clientName %> · <%= p.providerName %></p>
-              <div class="flex justify-between mt-2 text-[10px]">
+              <div class="flex justify-between mt-2 text-[10px] items-center gap-2">
                 <span class="text-gray-500">ID: <%= p.paymentId || '—' %></span>
-                <span class="px-2 py-0.5 rounded-full bg-gray-50 uppercase"><%= p.status %></span>
+                <div class="flex items-center gap-2">
+                  <button type="button" class="btn-request-case text-[10px] px-2 py-1 rounded-md bg-gray-100 text-gray-700" data-id="<%= p.id %>">Ver caso</button>
+                  <span class="px-2 py-0.5 rounded-full bg-gray-50 uppercase"><%= p.status %></span>
+                </div>
               </div>
               <div class="flex gap-3 mt-2 text-xs text-gray-600 flex-wrap">
                 <span><%= t('admin.pagos.commission') %>: <%= formatCLP(p.commission) %></span>
@@ -1103,8 +1160,6 @@ function hasPerm(key) {
           <% }); %>
         </div>
       <% } %>
-    </section>
-
     </section>
 
     <!-- SOLICITUDES / CANALIZACIÓN MANUAL -->
@@ -2588,6 +2643,7 @@ function hasPerm(key) {
         <% } else { %>
           <p class="text-xs text-gray-500 mb-3">Activado<%= mfaStatus.confirmedAt ? ' el ' + new Date(mfaStatus.confirmedAt).toLocaleString('es-CL') : '' %>.</p>
           <form action="<%= adminBase %>/mfa/disable" method="POST" class="space-y-3">
+            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
             <div>
               <label class="text-[10px] text-gray-500 uppercase block mb-1">Contraseña actual</label>
               <input type="password" name="password" required autocomplete="current-password" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
@@ -2652,8 +2708,24 @@ function hasPerm(key) {
   </div>
 </div>
 
+<div id="adminRequestCaseModal" class="fixed inset-0 z-[90] hidden items-center justify-center p-3 sm:p-4" aria-hidden="true">
+  <div class="absolute inset-0 bg-black/45" data-close-request-case></div>
+  <div class="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white border border-gray-200 shadow-xl p-4 sm:p-5" role="dialog" aria-labelledby="adminRequestCaseTitle">
+    <div class="flex items-start justify-between gap-3 mb-3 sticky top-0 bg-white pb-2 z-10">
+      <div class="min-w-0">
+        <h4 id="adminRequestCaseTitle" class="text-base font-semibold">Caso 360°</h4>
+        <p id="adminRequestCaseSub" class="text-xs text-gray-500 mt-0.5 truncate"></p>
+      </div>
+      <button type="button" class="text-gray-400 hover:text-gray-700 text-lg leading-none" data-close-request-case aria-label="Cerrar">&times;</button>
+    </div>
+    <div id="adminRequestCaseBody" class="space-y-3 text-sm">
+      <p class="text-gray-500">Cargando…</p>
+    </div>
+  </div>
+</div>
+
 <script type="application/json" id="adminProfilesData"><%- JSON.stringify(adminProfiles) %></script>
 <script type="application/json" id="adminTeamData"><%- JSON.stringify(adminTeam) %></script>
 
-<script>window.FandezAdminI18n = <%- JSON.stringify(as) %>; window.FandezAdminBase = <%- JSON.stringify(typeof adminBase !== "undefined" ? adminBase : "/admin") %>;</script>
+<script>window.FandezAdminI18n = <%- JSON.stringify(as) %>; window.FandezAdminBase = <%- JSON.stringify(typeof adminBase !== "undefined" ? adminBase : "/admin") %>; window.FandezAdminCsrf = <%- JSON.stringify(typeof csrfToken !== "undefined" ? csrfToken : "") %>;</script>
 <%- include('../partials/footer', { pageScript: '/js/admin.js' }) %>

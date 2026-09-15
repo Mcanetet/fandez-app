@@ -6742,6 +6742,188 @@ function markPayoutPaid(requestId) {
   return req;
 }
 
+const REFUND_OPEN_STATUSES = new Set(['requested', 'pending', 'processing']);
+const REFUND_ALLOWED_STATUSES = new Set(['requested', 'processing', 'paid', 'failed']);
+
+function summarizeRefundForAdmin(r) {
+  const amount = Math.max(
+    0,
+    parseInt(r.refundAmount != null ? r.refundAmount : (r.visitPricePaid || r.amountDue || 0), 10) || 0
+  );
+  return {
+    id: r.id,
+    serviceName: r.serviceName || r.serviceId || null,
+    clientId: r.clientId || null,
+    clientName: r.clientName || null,
+    status: r.status,
+    paymentStatus: r.paymentStatus || null,
+    paymentMethod: r.paymentMethod || r.paymentGateway || null,
+    paymentId: r.paymentId || null,
+    refundStatus: r.refundStatus || null,
+    refundAmount: amount,
+    refundRequestedAt: r.refundRequestedAt || null,
+    refundScheduledDate: r.refundScheduledDate || null,
+    refundProcessedAt: r.refundProcessedAt || null,
+    refundNotes: r.refundNotes || null,
+    refundExternalRef: r.refundExternalRef || null,
+    refundUpdatedBy: r.refundUpdatedBy || null,
+    cancelReason: r.cancelReason || null,
+    cancelReasonLabel: r.cancelReasonLabel || null,
+    retentionFee: r.cancellationFeeCharged || 0,
+    createdAt: r.createdAt || null
+  };
+}
+
+function getAdminRefundQueue({ status = 'open', limit = 60 } = {}) {
+  ensureReady();
+  const mode = String(status || 'open').toLowerCase();
+  return requests
+    .filter((r) => {
+      const s = String(r.refundStatus || '');
+      if (!s || s === 'not_applicable') return false;
+      if (mode === 'open') return REFUND_OPEN_STATUSES.has(s);
+      if (mode === 'all') return true;
+      return s === mode;
+    })
+    .sort((a, b) => String(b.refundRequestedAt || b.cancelledAt || b.createdAt || '')
+      .localeCompare(String(a.refundRequestedAt || a.cancelledAt || a.createdAt || '')))
+    .slice(0, Math.min(100, Math.max(1, Number(limit) || 60)))
+    .map(summarizeRefundForAdmin);
+}
+
+function updateRefundStatus(requestId, patch = {}, actorEmail = null) {
+  ensureReady();
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (!request.refundStatus || request.refundStatus === 'not_applicable') {
+    return { error: 'Esta solicitud no tiene una devolución pendiente.' };
+  }
+
+  const next = String(patch.status || '').trim().toLowerCase();
+  if (!REFUND_ALLOWED_STATUSES.has(next)) {
+    return { error: 'Estado de devolución inválido.' };
+  }
+
+  const now = new Date().toISOString();
+  request.refundStatus = next;
+  if (patch.notes !== undefined) {
+    request.refundNotes = String(patch.notes || '').trim().slice(0, 500) || null;
+  }
+  if (patch.externalRef !== undefined) {
+    request.refundExternalRef = String(patch.externalRef || '').trim().slice(0, 120) || null;
+  }
+  request.refundUpdatedAt = now;
+  request.refundUpdatedBy = actorEmail || null;
+  if (next === 'paid') {
+    request.refundProcessedAt = now;
+  } else if (next === 'failed' || next === 'processing' || next === 'requested') {
+    if (next !== 'paid') request.refundProcessedAt = next === 'failed' ? now : (request.refundProcessedAt || null);
+  }
+
+  repository.persist(() => repository.saveRequest(request), `refund ${requestId}=${next}`);
+  logSecurityEvent('refund_status', `${requestId}=${next} by ${actorEmail || 'admin'}`, {
+    session: { user: { email: actorEmail } }
+  });
+  return { success: true, refund: summarizeRefundForAdmin(request) };
+}
+
+function pushTimeline(events, at, label, detail = null) {
+  if (!at) return;
+  events.push({ at, label, detail });
+}
+
+function getAdminRequestCase(requestId) {
+  ensureReady();
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+
+  const client = request.clientId ? getUserById(request.clientId) : null;
+  const provider = request.providerId ? getUserById(request.providerId) : null;
+  const technician = request.technicianId ? getUserById(request.technicianId) : null;
+  const pricing = getPricingConfig();
+  const financials = request.status === 'completed' || request.financials
+    ? (request.financials || computeRequestFinancials(request, pricing))
+    : null;
+
+  const timeline = [];
+  pushTimeline(timeline, request.createdAt, 'Creada');
+  pushTimeline(timeline, request.paidAt, 'Pago aprobado', request.paymentId || request.paymentMethod || null);
+  pushTimeline(timeline, request.scheduledSearchAt, 'Búsqueda programada');
+  pushTimeline(timeline, request.searchingAt, 'En muro / buscando socio');
+  pushTimeline(timeline, request.assignedAt, 'Socio asignado', provider?.name || null);
+  pushTimeline(timeline, request.technicianAcceptedAt || request.techAcceptedAt, 'Técnico aceptó', technician?.name || null);
+  pushTimeline(timeline, request.inProgressAt || request.startedAt, 'En progreso');
+  pushTimeline(timeline, request.completedAt, 'Completada');
+  pushTimeline(timeline, request.cancelledAt, 'Cancelada', request.cancelReasonLabel || request.cancelReason || null);
+  pushTimeline(timeline, request.refundRequestedAt, 'Devolución solicitada', request.refundStatus || null);
+  pushTimeline(timeline, request.refundProcessedAt, 'Devolución procesada', request.refundStatus || null);
+  pushTimeline(timeline, request.payoutPaidAt, 'Payout al socio marcado pagado');
+  timeline.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+
+  const chat = (CHATS || []).find((c) => c.requestId === request.id) || null;
+
+  return {
+    success: true,
+    case: {
+      request: {
+        id: request.id,
+        status: request.status,
+        techStatus: request.techStatus || null,
+        paymentStatus: request.paymentStatus || null,
+        paymentMethod: request.paymentMethod || request.paymentGateway || null,
+        paymentId: request.paymentId || null,
+        serviceName: request.serviceName || request.serviceId,
+        address: request.address || null,
+        commune: request.commune || request.communeName || null,
+        notes: request.notes || null,
+        amountDue: request.amountDue || request.visitPricePaid || 0,
+        visitPricePaid: request.visitPricePaid || 0,
+        payoutStatus: request.payoutStatus || null,
+        refund: summarizeRefundForAdmin(request),
+        createdAt: request.createdAt || null,
+        updatedAt: request.updatedAt || null
+      },
+      client: client ? {
+        id: client.id,
+        name: client.name,
+        email: client.email,
+        phone: client.phone || null,
+        active: client.active !== false
+      } : null,
+      provider: provider ? {
+        id: provider.id,
+        name: provider.name,
+        email: provider.email,
+        phone: provider.phone || null,
+        online: Boolean(provider.online),
+        active: provider.active !== false
+      } : null,
+      technician: technician ? {
+        id: technician.id,
+        name: technician.name,
+        email: technician.email,
+        phone: technician.phone || null,
+        online: Boolean(technician.online)
+      } : null,
+      financials: financials ? {
+        grandTotal: financials.grandTotal,
+        providerTotal: financials.providerTotal,
+        appTotal: financials.appTotal,
+        laborCommission: financials.laborCommission,
+        materialsTotal: financials.materialsTotal
+      } : null,
+      timeline,
+      chat: chat ? {
+        id: chat.id,
+        status: chat.status,
+        unread: chat.unread || 0,
+        updatedAt: chat.updatedAt || null
+      } : null,
+      generatedAt: new Date().toISOString()
+    }
+  };
+}
+
 function getAdminStats() {
   const payments = getPayments();
   const totalRevenue = payments.reduce((s, p) => s + p.amount, 0);
@@ -6754,6 +6936,7 @@ function getAdminStats() {
     totalCommission,
     owedToProviders,
     openComplaints: COMPLAINTS.filter(c => c.status !== 'resuelto').length,
+    openRefunds: getAdminRefundQueue({ status: 'open', limit: 200 }).length,
     activeChats: CHATS.filter(c => c.status === 'activo').length,
     unreadChats: CHATS.reduce((s, c) => s + c.unread, 0),
     consentRate: getConsentsSummary().rate
@@ -7173,6 +7356,9 @@ module.exports = {
   logSecurityEvent,
   updateComplaintStatus,
   markPayoutPaid,
+  getAdminRefundQueue,
+  updateRefundStatus,
+  getAdminRequestCase,
   updateUserProfile,
   updateUserBilling,
   isBillingComplete,

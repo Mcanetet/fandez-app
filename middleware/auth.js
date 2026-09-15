@@ -1,6 +1,6 @@
 const store = require('../models/store');
 const { adminUrl } = require('../lib/appMode');
-const { resolveAdminAccess, hasFullSystemAccess } = require('../lib/adminPermissions');
+const { resolveAdminAccess } = require('../lib/adminPermissions');
 
 function wantsJson(req) {
   const accept = String(req.get('Accept') || '');
@@ -60,9 +60,11 @@ function requireRole(...roles) {
         const user = store.getUserById(req.session.user.id);
         const access = resolveAdminAccess(user);
         const mfaOn = store.isMfaEnabled(req.session.user.id);
-        const requireMfa = mfaOn || (require('../lib/appMode').isProductionMode() && hasFullSystemAccess(access));
+        const inProd = require('../lib/appMode').isProductionMode();
+        // En producción: MFA obligatorio para cualquier admin (no solo full-access).
+        const requireMfa = mfaOn || inProd;
         if (requireMfa && !req.session.adminMfaVerified) {
-          if (!mfaOn && require('../lib/appMode').isProductionMode() && hasFullSystemAccess(access)) {
+          if (!mfaOn && inProd) {
             return res.redirect(adminUrl('/mfa/setup?required=1'));
           }
           req.session.pendingAdminMfa = {
