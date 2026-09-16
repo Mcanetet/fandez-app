@@ -3,6 +3,7 @@ window.FandezIcons = {
     const icons = {
       electrico: '<path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>',
       gasfiter: '<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>',
+      aires: '<rect x="4" y="8" width="16" height="10" rx="2"/><path d="M8 8V6a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M8 13h8M10 16h4"/>',
       cerrajero: '<circle cx="8" cy="16" r="4"/><path d="M12 16V4l6 4-6 4"/><path d="M18 8h2a2 2 0 012 2v1"/>',
       termos: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 3V1h6v2"/><path d="M9 14h6"/><path d="M12 7v3"/>',
       lavavajillas: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 10h18"/><circle cx="7" cy="14" r="0.5" fill="currentColor" stroke="none"/><circle cx="12" cy="14" r="0.5" fill="currentColor" stroke="none"/><circle cx="17" cy="14" r="0.5" fill="currentColor" stroke="none"/>',
@@ -10,7 +11,8 @@ window.FandezIcons = {
       calderas: '<rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8 4V2h8v2M9 16h6"/><path d="M12 8c2 2 2 4 0 6-2-2-2-4 0-6z"/>',
       generadores: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="3"/><path d="M15 9h3M15 12h3M15 15h2M7 3v2M17 3v2"/>',
       pintura: '<path d="M18.37 2.63a2.12 2.12 0 010 3l-7.07 7.07-3.54.35.35-3.54 7.07-7.07a2.12 2.12 0 013.19 0z"/><path d="M9 15l-2.5 5.5L12 18"/><path d="M14 7l3 3"/>',
-      jardineria: '<path d="M12 22V10"/><path d="M9 22h6"/><path d="M12 13c-3-4-7-5-8-2 2 0 4 1 5 4"/><path d="M12 13c3-4 7-5 8-2-2 0-4 1-5 4"/><path d="M7 8c1.5-3 4-4 5-1"/><path d="M17 8c-1.5-3-4-4-5-1"/>'
+      jardineria: '<path d="M12 22V10"/><path d="M9 22h6"/><path d="M12 13c-3-4-7-5-8-2 2 0 4 1 5 4"/><path d="M12 13c3-4 7-5 8-2-2 0-4 1-5 4"/><path d="M7 8c1.5-3 4-4 5-1"/><path d="M17 8c-1.5-3-4-4-5-1"/>',
+      otros: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>'
     };
     const paths = icons[icon] || '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>';
     return `<svg class="zilo-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;

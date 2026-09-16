@@ -1788,14 +1788,17 @@ function decorateServiceForClient(service) {
 }
 
 function getActiveServices() {
-  return SERVICES.filter(s => s.enabled).map(decorateServiceForClient);
+  // Retirados del grid cliente: viven en gasfitería (hidráulica) y Otros (electrónica)
+  const retired = new Set(['lavadora', 'lavavajillas']);
+  return SERVICES.filter((s) => s.enabled && !retired.has(s.id)).map(decorateServiceForClient);
 }
 
 function getLandingServices() {
   const active = getActiveServices();
   if (active.length) return active;
   const { SEED_SERVICES } = require('./repository');
-  return SEED_SERVICES.filter(s => s.enabled).map(decorateServiceForClient);
+  const retired = new Set(['lavadora', 'lavavajillas']);
+  return SEED_SERVICES.filter((s) => s.enabled && !retired.has(s.id)).map(decorateServiceForClient);
 }
 
 function toggleService(serviceId, enabled) {
@@ -2881,7 +2884,11 @@ async function registerUser({
   let otherService = null;
   if (role === 'provider') {
     const raw = Array.isArray(specialties) ? specialties : (specialties ? [specialties] : []);
-    cleanSpecialties = raw.filter((id) => id !== 'otros' && SERVICES.some((s) => s.id === id));
+    cleanSpecialties = raw.filter((id) => {
+      if (!id || id === 'specialty_custom') return false;
+      // "otros" es especialidad real del catálogo; el oficio libre va por otherServiceName
+      return SERVICES.some((s) => s.id === id && s.enabled !== false);
+    });
     const otherName = String(otherServiceName || '').trim();
     const otherDesc = String(otherServiceDescription || '').trim();
     if (otherName || otherDesc) {
