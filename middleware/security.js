@@ -64,15 +64,20 @@ function rateLimitLogin(maxPerMinute = 10) {
 
 function getClientIp(req) {
   const forwarded = req.get('x-forwarded-for');
-  if (forwarded) return String(forwarded).split(',')[0].trim();
-  return req.ip || req.socket?.remoteAddress || 'unknown';
+  let ip = forwarded
+    ? String(forwarded).split(',')[0].trim()
+    : (req.get('x-real-ip') || req.ip || req.socket?.remoteAddress || 'unknown');
+  ip = String(ip).trim();
+  if (ip.startsWith('::ffff:')) ip = ip.slice(7);
+  return ip;
 }
 
 function parseAdminIpAllowlist() {
   return String(process.env.ADMIN_IP_ALLOWLIST || '')
     .split(',')
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((ip) => (ip.startsWith('::ffff:') ? ip.slice(7) : ip));
 }
 
 function adminIpAllowlist() {
@@ -85,16 +90,27 @@ function adminIpAllowlist() {
     if (!enforce) return next();
 
     const ip = getClientIp(req);
-    if (allowed.includes(ip)) return next();
+    if (allowed.includes(ip) || allowed.includes('*')) return next();
 
     try {
       const store = require('../models/store');
       store.logSecurityEvent('admin_ip_blocked', ip, req);
     } catch (_) { /* store no listo */ }
 
+    // Login GET: página clara (no 403 genérico de hosting)
+    const p = String(req.path || '');
+    if (req.method === 'GET' && (p === '/login' || p === '/' || p === '')) {
+      return res.status(403).render('admin/login', {
+        title: 'Admin — Fandez',
+        error: `IP no autorizada (${ip}). En Hostinger quita o actualiza ADMIN_IP_ALLOWLIST, o añade esta IP.`,
+        csrfToken: null,
+        ipBlocked: true
+      });
+    }
+
     return res.status(403).render('error', {
       title: 'Acceso restringido',
-      message: 'Tu dirección IP no está autorizada para el panel de administración.',
+      message: `Tu IP (${ip}) no está autorizada para el panel. Actualiza ADMIN_IP_ALLOWLIST en Hostinger o bórrala para desactivar el filtro.`,
       code: 403
     });
   };

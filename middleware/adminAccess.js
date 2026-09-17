@@ -6,7 +6,7 @@ const {
   getFirstAccessiblePanel,
   canAccessPanel
 } = require('../lib/adminPermissions');
-const { adminUrl, getAdminBasePath, getPublicStatus } = require('../lib/appMode');
+const { adminUrl, getAdminBasePath, getPublicStatus, absoluteAdminUrl } = require('../lib/appMode');
 
 function getSessionAccess(req) {
   if (req.session?.adminAccess) return req.session.adminAccess;

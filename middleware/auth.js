@@ -1,5 +1,5 @@
 const store = require('../models/store');
-const { adminUrl } = require('../lib/appMode');
+const { adminUrl, absoluteAdminUrl } = require('../lib/appMode');
 const { resolveAdminAccess } = require('../lib/adminPermissions');
 
 function wantsJson(req) {
@@ -42,7 +42,7 @@ function requireRole(...roles) {
     if (!req.session.user) {
       if (wantsJson(req)) return res.status(401).json({ success: false, error: 'Sesión expirada. Vuelve a iniciar sesión.' });
       if (roles.includes('admin')) {
-        return res.redirect(adminUrl('/login'));
+        return res.redirect(absoluteAdminUrl('/login'));
       }
       return res.redirect('/login');
     }

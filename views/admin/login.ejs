@@ -20,6 +20,9 @@
         <div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-700 text-sm text-center"><%= error %></div>
       <% } %>
 
+      <% if (typeof ipBlocked !== 'undefined' && ipBlocked) { %>
+        <p class="text-xs text-gray-500 text-center">Entra por <strong>www.fandez.cl</strong> y revisa la variable <code>ADMIN_IP_ALLOWLIST</code> en Hostinger.</p>
+      <% } else { %>
       <form action="<%= typeof adminBase !== 'undefined' ? adminBase : '/admin' %>/login" method="POST" class="space-y-4">
         <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
         <div>
@@ -38,6 +41,7 @@
         </div>
         <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary"><%= t('admin.login.submit') %></button>
       </form>
+      <% } %>
     </div>
   </div>
 </div>

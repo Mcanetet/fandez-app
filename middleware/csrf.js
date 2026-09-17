@@ -28,6 +28,21 @@ function requireCsrf(req, res, next) {
     if (req.xhr || (req.get('accept') || '').includes('application/json')) {
       return res.status(403).json({ success: false, error: 'Token de seguridad inválido. Recarga el panel.' });
     }
+    // Login/MFA admin: volver al formulario (tras redeploy la sesión/CSRF se reinicia)
+    const p = String(req.path || '');
+    if (
+      p === '/login'
+      || p === '/mfa'
+      || p === '/mfa/setup'
+      || p.startsWith('/mfa/')
+    ) {
+      const fresh = ensureCsrfToken(req);
+      return res.status(403).render('admin/login', {
+        title: 'Admin — Fandez',
+        error: 'La sesión de seguridad expiró (normal tras un deploy). Vuelve a ingresar.',
+        csrfToken: fresh
+      });
+    }
     return res.status(403).render('error', {
       title: 'Sesión de seguridad',
       message: 'Token CSRF inválido. Vuelve atrás, recarga la página e inténtalo de nuevo.',
