@@ -53,6 +53,21 @@ body,
   color: #E8E0D6 !important;
 }
 
+.admin-modal-sheet,
+.admin-modal-head,
+.admin-modal-body,
+.admin-modal-foot {
+  background-color: #FFFCF8 !important;
+  background-image: none !important;
+  color: #1A1714 !important;
+  opacity: 1 !important;
+}
+
+.admin-modal-backdrop {
+  background-color: rgba(23, 20, 17, 0.58) !important;
+  background-image: none !important;
+}
+
 #fandezSplash {
   background: #ffffff !important;
 }

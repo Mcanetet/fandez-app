@@ -2695,9 +2695,20 @@ body.session-role--tecnico::before {
 .admin-modal {
   overscroll-behavior: contain;
 }
+.admin-modal > .admin-modal-backdrop,
+.admin-modal > [data-close-managed-diag].absolute {
+  background: rgba(23, 20, 17, 0.58) !important;
+  background-image: none !important;
+}
 .admin-modal-sheet {
   max-height: min(92vh, 100dvh);
-  max-height: min(92vh, 100svh);
+  background: #FFFCF8 !important;
+  background-image: none !important;
+  color: #1A1714;
+  border: 1px solid rgba(26, 23, 20, 0.12) !important;
+  box-shadow: 0 24px 64px rgba(23, 20, 17, 0.28) !important;
+  opacity: 1 !important;
+  isolation: isolate;
 }
 @supports (height: 100dvh) {
   .admin-modal-sheet {
@@ -2710,8 +2721,19 @@ body.session-role--tecnico::before {
     max-height: calc(100svh - 0.25rem);
   }
 }
+.admin-modal-head,
+.admin-modal-body,
+.admin-modal-foot {
+  background: #FFFCF8 !important;
+  background-image: none !important;
+}
 .admin-modal-body {
   -webkit-overflow-scrolling: touch;
+}
+.admin-modal-body .rounded-xl,
+.admin-modal-body [class*="bg-"] {
+  background: #FFFEFB !important;
+  background-image: none !important;
 }
 body.admin-modal-open {
   overflow: hidden;
