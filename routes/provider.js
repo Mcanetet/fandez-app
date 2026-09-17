@@ -5,13 +5,14 @@ const { emitRequestUpdateToParties } = require('../lib/realtime');
 const { dispatchPendingToProvider, broadcastRequestTaken, buildWorkWallPayload } = require('../lib/dispatch');
 const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
 const { requireModule } = require('../middleware/modules');
-const { saveProviderFile, saveProviderInvoice, saveTechnicianDocumentFile } = require('../lib/uploads');
+const { saveProviderFile, saveProviderInvoice, saveTechnicianDocumentFile, toServingUrl } = require('../lib/uploads');
 const { verifySelfie } = require('../lib/faceVerify');
 const { getProviderOnboardingSteps, getProviderActivationSteps } = require('../lib/onboarding');
 const { getClientIp } = require('../middleware/security');
 const {
   ENTITY_TYPES,
   DOCUMENT_CATALOG,
+  BANK_ACCOUNT_TYPES,
   LEGAL_DECLARATIONS,
   CONTRACT_CLAUSES,
   TEMPLATE_VERSION,
@@ -24,12 +25,27 @@ const { reviewIdentityDocument } = require('../lib/documentReview');
 async function runKycAi(providerId, type, url) {
   const ai = await reviewIdentityDocument({ url, docKey: type });
   store.setVerificationDocReview(providerId, type, { ai });
+  if (type === 'idFront') {
+    store.runRepresentativeMatchValidation(providerId).catch((err) => {
+      console.error('Rep match KYC:', err.message);
+    });
+  }
   return ai;
 }
 
 async function runContractAi(providerId, docKey, url) {
   const ai = await reviewIdentityDocument({ url, docKey });
   store.setContractDocumentAiReview(providerId, docKey, ai);
+  if (docKey === 'incorporation_deed' || docKey === 'rep_id_front') {
+    store.runRepresentativeMatchValidation(providerId).catch((err) => {
+      console.error('Rep match contrato:', err.message);
+    });
+  }
+  if (docKey === 'company_rut') {
+    store.runErutValidation(providerId).catch((err) => {
+      console.error('e-RUT validation:', err.message);
+    });
+  }
   return ai;
 }
 
@@ -373,13 +389,21 @@ router.post('/verificacion/documento', requireRole('provider'), requireModule('p
   try {
     const url = saveProviderFile(req.session.user.id, type, data);
     let verification = store.saveProviderDocument(req.session.user.id, type, url, label);
-    let ai = null;
+    const servingUrl = toServingUrl(url) || url;
+    // Responder altiro; la IA corre en segundo plano (más expedito para el socio)
     if (type === 'idFront' || type === 'idBack') {
-      ai = await reviewIdentityDocument({ url, docKey: type });
-      store.setVerificationDocReview(req.session.user.id, type, { ai });
-      verification = store.getUserById(req.session.user.id).verification;
+      setImmediate(() => {
+        runKycAi(req.session.user.id, type, url).catch((err) => {
+          console.error('IA KYC async:', err.message);
+        });
+      });
     }
-    res.json({ success: true, url, verification, ai });
+    res.json({
+      success: true,
+      url: servingUrl,
+      verification,
+      ai: { status: 'pending', reason: 'Revisión IA en curso…' }
+    });
   } catch (err) {
     console.error('Error subiendo documento:', err.message);
     res.status(400).json({ error: err.message || 'No se pudo guardar el documento' });
@@ -418,10 +442,19 @@ router.post('/verificacion/selfie', requireRole('provider'), requireModule('prov
   try {
     const url = saveProviderFile(req.session.user.id, 'selfie', data);
     let verification = store.saveProviderSelfie(req.session.user.id, url, faceResult);
-    const ai = await reviewIdentityDocument({ url, docKey: 'selfie' });
-    store.setVerificationDocReview(req.session.user.id, 'selfie', { ai });
-    verification = store.getUserById(req.session.user.id).verification;
-    res.json({ success: true, url, verification, faceResult, ai });
+    const servingUrl = toServingUrl(url) || url;
+    setImmediate(() => {
+      runKycAi(req.session.user.id, 'selfie', url).catch((err) => {
+        console.error('IA selfie async:', err.message);
+      });
+    });
+    res.json({
+      success: true,
+      url: servingUrl,
+      verification,
+      faceResult,
+      ai: { status: 'pending', reason: 'Revisión IA en curso…' }
+    });
   } catch (err) {
     res.status(400).json({ error: err.message || 'Error al guardar la selfie' });
   }
@@ -721,6 +754,7 @@ router.get('/trabajo/:requestId', requireRole('provider'), requireModule('provid
     diagnostico: req.t('status.tech.diagnostico_label'),
     reparando: req.t('status.tech.reparando'),
     comprando: req.t('status.tech.comprando'),
+    materiales_pendiente: req.t('status.tech.materiales_pendiente'),
     presupuesto_pendiente: req.t('status.tech.presupuesto_pendiente'),
     presupuesto_aprobado: req.t('status.tech.presupuesto_aprobado'),
     completado: req.t('status.tech.completado')
@@ -738,7 +772,8 @@ router.get('/trabajo/:requestId', requireRole('provider'), requireModule('provid
     formatCLP: store.formatCLP,
     attentionChecklist: ATTENTION_CHECKLIST,
     diagnosisChips: getDiagnosisChips(request.serviceId),
-    materialsCatalog: store.getMaterialsCatalogForService(request.serviceId)
+    materialsCatalog: store.getMaterialsCatalogForService(request.serviceId),
+    materialsIncludedThreshold: store.getMaterialsIncludedThreshold()
   });
 });
 
@@ -822,6 +857,7 @@ router.get('/contrato', requireRole('provider'), requireModule('provider_contrat
     summary,
     entityTypes: ENTITY_TYPES,
     documentCatalog: DOCUMENT_CATALOG,
+    bankAccountTypes: BANK_ACCOUNT_TYPES,
     legalDeclarations: LEGAL_DECLARATIONS,
     contractClauses: CONTRACT_CLAUSES,
     templateVersion: TEMPLATE_VERSION,
@@ -841,13 +877,23 @@ router.post('/contrato/documento', requireRole('provider'), requireModule('provi
   if (!docKey || !data) return res.status(400).json({ error: 'Documento inválido.' });
   try {
     const url = saveProviderFile(req.session.user.id, `contract-${docKey}`, data);
-    let contract = store.saveContractDocument(req.session.user.id, docKey, url, label);
+    const contract = store.saveContractDocument(req.session.user.id, docKey, url, label);
     const reviewKey = docKey === 'technical_certs'
       ? `technical_certs:${Math.max(0, (contract.technicalCerts || []).length - 1)}`
       : docKey;
-    const ai = await runContractAi(req.session.user.id, reviewKey, url);
-    contract = store.getProviderContract(req.session.user.id);
-    res.json({ success: true, url, contract, ai, summary: getContractSummary(contract) });
+    const servingUrl = toServingUrl(url) || url;
+    setImmediate(() => {
+      runContractAi(req.session.user.id, reviewKey, url).catch((err) => {
+        console.error('IA contrato async:', err.message);
+      });
+    });
+    res.json({
+      success: true,
+      url: servingUrl,
+      contract,
+      ai: { status: 'pending', reason: 'Revisión IA en curso…' },
+      summary: getContractSummary(contract)
+    });
   } catch (err) {
     res.status(400).json({ error: err.message || 'No se pudo guardar el documento.' });
   }

@@ -73,6 +73,22 @@ function requireFullAdminAccess() {
   };
 }
 
+function requireFounderDecision(req, res, next) {
+  if (!req.session?.user || req.session.user.role !== 'admin') {
+    return res.status(403).json({ success: false, error: 'No autorizado' });
+  }
+  const access = getSessionAccess(req);
+  const { isFounderActor } = require('../lib/founderGates');
+  if (!isFounderActor(req.session.user, access)) {
+    return res.status(403).json({
+      success: false,
+      error: 'Solo el founder (o superadmin) puede aprobar o publicar. Pide decisión a Miguel.'
+    });
+  }
+  req.adminAccess = access;
+  return next();
+}
+
 function refreshSessionAdminAccess(req, user) {
   const access = resolveAdminAccess(user);
   req.session.adminAccess = access;
@@ -88,6 +104,7 @@ module.exports = {
   attachAdminAccess,
   requireAdminPermission,
   requireFullAdminAccess,
+  requireFounderDecision,
   refreshSessionAdminAccess,
   canAccessPanel,
   getFirstAccessiblePanel,

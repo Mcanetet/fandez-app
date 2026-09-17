@@ -21,6 +21,7 @@ function getTechLabels(t) {
     diagnostico: t('status.tech.diagnostico_label'),
     reparando: t('status.tech.reparando'),
     comprando: t('status.tech.comprando'),
+    materiales_pendiente: t('status.tech.materiales_pendiente'),
     presupuesto_pendiente: t('status.tech.presupuesto_pendiente'),
     presupuesto_aprobado: t('status.tech.presupuesto_aprobado'),
     completado: t('status.tech.completado')
@@ -169,7 +170,8 @@ router.get('/trabajo/:requestId', requireRole('tecnico'), (req, res) => {
     formatCLP: store.formatCLP,
     attentionChecklist: ATTENTION_CHECKLIST,
     diagnosisChips: getDiagnosisChips(request.serviceId),
-    materialsCatalog: store.getMaterialsCatalogForService(request.serviceId)
+    materialsCatalog: store.getMaterialsCatalogForService(request.serviceId),
+    materialsIncludedThreshold: store.getMaterialsIncludedThreshold()
   });
 });
 
@@ -351,6 +353,21 @@ router.post('/trabajo/:requestId/accion', requireRole('tecnico'), (req, res) => 
   res.json({ success: true, request: serializeJob(result.request) });
 });
 
+router.post('/trabajo/:requestId/materiales-compra', requireRole('tecnico'), (req, res) => {
+  const result = store.submitMaterialsPurchase(req.params.requestId, req.session.user.id, {
+    estimatedAmount: req.body.estimatedAmount,
+    description: req.body.description
+  });
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
+  res.json({
+    success: true,
+    included: Boolean(result.included),
+    materialsPurchase: result.materialsPurchase,
+    request: serializeJob(result.request)
+  });
+});
+
 router.post('/trabajo/:requestId/presupuesto', requireRole('tecnico'), (req, res) => {
   const result = store.submitSiteBudget(req.params.requestId, req.session.user.id, req.body);
   if (result.error) return res.status(400).json({ success: false, error: result.error });
@@ -429,7 +446,8 @@ router.post('/trabajo/:requestId/material', requireRole('tecnico'), async (req, 
         amount: req.body.amount,
         receiptUrl,
         serviceName: requestPreview?.serviceName,
-        activityName: requestPreview?.activityName
+        activityName: requestPreview?.activityName,
+        pricing: store.getPricingConfig()
       });
     } catch (err) {
       review = {
@@ -525,6 +543,65 @@ router.post('/ubicacion', requireRole('tecnico'), requireModule('provider_ubicac
   }
 
   res.json({ success: true, location: loc, eta });
+});
+
+router.post('/trabajo/:requestId/seguridad', requireRole('tecnico'), (req, res) => {
+  try {
+    const company = require('../config/company');
+    const notifications = require('../lib/notifications');
+    const categoryId = req.body?.categoryId || 'unsafe_feeling';
+    const channel = req.body?.channel === 'sos' ? 'sos' : 'report';
+    const notes = req.body?.notes || '';
+    const result = store.createSafetyIncident({
+      requestId: req.params.requestId,
+      reporterId: req.session.user.id,
+      reporterRole: 'tecnico',
+      categoryId,
+      channel,
+      notes,
+      endVisit: Boolean(req.body?.endVisit)
+    });
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
+    const io = req.app.get('io');
+    const c = result.complaint;
+    if (io) {
+      io.to('aland_admin').emit('aland_security_alert', {
+        type: 'safety_incident',
+        complaintId: c.id,
+        requestId: c.requestId,
+        categoryId: c.categoryId,
+        severity: c.severity,
+        channel: c.channel,
+        subject: c.subject,
+        reporterRole: 'tecnico',
+        at: c.createdAt
+      });
+      if (result.request) {
+        emitRequestUpdateToParties(io, store, result.request, {
+          request: result.request,
+          safetyAlert: true
+        });
+      }
+    }
+    notifications.notify({
+      event: 'safety.incident',
+      to: company.supportEmail,
+      subject: `Alerta seguridad técnico — ${c.subject}`,
+      text: c.description,
+      requestId: c.requestId,
+      userId: req.session.user.id
+    }).catch(() => {});
+    return res.json({
+      success: true,
+      complaintId: c.id,
+      severity: result.category.severity,
+      emergency: { carabineros: '133', bomberos: '132', samu: '131' },
+      message: 'Alerta registrada. Si hay riesgo inmediato llama al 133. Puedes retirarte del domicilio.'
+    });
+  } catch (err) {
+    console.error('[seguridad tecnico]', err.message);
+    return res.status(500).json({ success: false, error: 'No se pudo registrar la alerta.' });
+  }
 });
 
 module.exports = router;

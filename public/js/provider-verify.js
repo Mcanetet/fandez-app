@@ -49,6 +49,7 @@
         FandezNotify.show(
           aiStatus === 'fake' ? 'Guardado, pero la IA marcó el documento como posible falso' :
           aiStatus === 'verified' ? 'Documento guardado y verificado por IA' :
+          aiStatus === 'pending' ? 'Documento guardado · revisión automática en curso' :
           'Documento guardado',
           aiStatus === 'fake' ? 'warning' : 'success'
         );

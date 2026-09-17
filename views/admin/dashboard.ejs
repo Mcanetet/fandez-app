@@ -37,10 +37,10 @@ function hasPerm(key) {
         <h1 class="text-sm font-semibold truncate"><%= t('admin.title') %></h1>
         <% const modeSt = typeof appModeStatus !== 'undefined' ? appModeStatus : { mode: 'demo', label: 'Modo demo', isDemo: true }; %>
         <p class="mt-1">
-          <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full <%= modeSt.isProduction ? 'bg-emerald-500/15 text-emerald-700' : 'bg-amber-500/15 text-amber-800' %>"><%= modeSt.label %></span>
+          <span class="admin-mode-pill <%= modeSt.isProduction ? 'is-live' : '' %>"><%= modeSt.label %></span>
         </p>
         <% if (typeof appVersion !== 'undefined' && appVersion) { %>
-          <p class="text-[10px] text-zilo-muted font-mono truncate"><%= appVersion.label %></p>
+          <p class="admin-version truncate"><%= appVersion.label %></p>
         <% } %>
       </div>
     </div>
@@ -69,7 +69,7 @@ function hasPerm(key) {
       </button>
       <div class="admin-topbar-title">
         <h2 class="text-base font-semibold" id="adminPanelTitle"><%= as.panels[initialTab] || as.panels.resumen || t('admin.panel_title') %></h2>
-        <p class="text-xs text-zilo-muted hidden sm:block"><%= t('admin.panel_subtitle') %></p>
+        <p class="text-xs text-zilo-muted hidden sm:block" id="adminPanelSubtitle"><%= t('admin.panel_subtitle') %></p>
       </div>
       <div class="admin-topbar-actions">
         <%- include('../partials/lang-switcher') %>
@@ -181,14 +181,11 @@ function hasPerm(key) {
     </section>
 
     <!-- FINANZAS -->
-    <section class="<%= panelClass('finanzas') %>" data-panel="finanzas">
+    <section class="<%= panelClass('finanzas') %>" data-panel="finanzas" data-subtitle="<%= t('admin.finanzas.subtitle') %>">
       <% const fin = financialReport.summary; %>
       <div class="flex justify-between items-start gap-3 mb-4">
-        <div>
-          <h3 class="text-lg font-semibold"><%= t('admin.finanzas.title') %></h3>
-          <p class="text-xs text-gray-500 mt-1"><%= t('admin.finanzas.subtitle') %></p>
-        </div>
-        <div class="flex flex-col items-end gap-2 shrink-0">
+        <p class="text-xs text-gray-500 sm:hidden"><%= t('admin.finanzas.subtitle') %></p>
+        <div class="flex flex-col items-end gap-2 shrink-0 ml-auto">
           <a href="<%= adminBase %>/finanzas/export.csv" class="text-xs px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-700 font-medium"><%= t('admin.common.export_csv') %></a>
           <a href="<%= adminBase %>/finanzas/balance.csv" class="text-xs px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 font-medium"><%= t('admin.finanzas.export_balance') %></a>
         </div>
@@ -418,14 +415,11 @@ function hasPerm(key) {
     </section>
 
     <!-- CRM SOCIOS ESTRATÉGICOS -->
-    <section class="<%= panelClass('crm') %>" data-panel="crm">
+    <section class="<%= panelClass('crm') %>" data-panel="crm" data-subtitle="<%= t('admin.crm.subtitle') %>">
       <% const crmList = crmLeads || []; const crmSt = crmStats || { byStage: {} }; const stages = crmStages || []; %>
       <div class="flex justify-between items-start gap-3 mb-4">
-        <div>
-          <h3 class="text-lg font-semibold"><%= t('admin.crm.title') %></h3>
-          <p class="text-xs text-gray-500 mt-1"><%= t('admin.crm.subtitle') %></p>
-        </div>
-        <span class="text-xs text-gray-500 shrink-0"><%= crmSt.total || 0 %> <%= t('admin.crm.records') %></span>
+        <p class="text-xs text-gray-500 sm:hidden"><%= t('admin.crm.subtitle') %></p>
+        <span class="text-xs text-gray-500 shrink-0 ml-auto"><%= crmSt.total || 0 %> <%= t('admin.crm.records') %></span>
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 text-center">
@@ -584,13 +578,10 @@ function hasPerm(key) {
     </section>
 
     <!-- DOCUMENTOS TRIBUTARIOS -->
-    <section class="<%= panelClass('documentos') %>" data-panel="documentos">
+    <section class="<%= panelClass('documentos') %>" data-panel="documentos" data-subtitle="<%= t('admin.documentos.subtitle') %>">
       <div class="flex justify-between items-start gap-3 mb-4">
-        <div>
-          <h3 class="text-lg font-semibold"><%= t('admin.documentos.title') %></h3>
-          <p class="text-xs text-gray-500 mt-1"><%= t('admin.documentos.subtitle') %></p>
-        </div>
-        <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full <%= dteStatus.mode === 'production' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-yellow-500/15 text-yellow-700' %>">
+        <p class="text-xs text-gray-500 sm:hidden"><%= t('admin.documentos.subtitle') %></p>
+        <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full ml-auto <%= dteStatus.mode === 'production' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-yellow-500/15 text-yellow-700' %>">
           <%= dteStatus.mode === 'production' ? 'LibreDTE' : t('admin.common.demo_mode') %>
         </span>
       </div>
@@ -629,13 +620,8 @@ function hasPerm(key) {
 
     <% if (canAccessPanelFn('contratos')) { %>
     <!-- CONTRATOS SOCIOS -->
-    <section class="<%= panelClass('contratos') %>" data-panel="contratos">
-      <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
-        <div>
-          <h3 class="text-lg font-semibold"><%= t('admin.contratos.title') %></h3>
-          <p class="text-xs text-gray-500 mt-1"><%= t('admin.contratos.subtitle') %></p>
-        </div>
-      </div>
+    <section class="<%= panelClass('contratos') %>" data-panel="contratos" data-subtitle="<%= t('admin.contratos.subtitle') %>">
+      <p class="text-xs text-gray-500 mb-5 sm:hidden"><%= t('admin.contratos.subtitle') %></p>
 
       <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-5 text-center">
         <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20"><strong class="block text-lg text-amber-700"><%= contractStats.pending_review || 0 %></strong><span class="text-[9px] text-gray-500 uppercase"><%= t('admin.contratos.pending_review') %></span></div>
@@ -672,6 +658,24 @@ function hasPerm(key) {
                   <div class="flex flex-wrap gap-1.5 mt-1">
                     <span class="admin-badge admin-badge-blue"><%= item.summary.label %></span>
                     <% if (c.entityType) { %><span class="admin-badge admin-badge-gray"><%= c.entityType === 'empresa' ? t('admin.contratos.company') : t('admin.contratos.individual') %></span><% } %>
+                    <% const repMatch = c.representativeMatch || {}; %>
+                    <% if (repMatch.status === 'validated' || repMatch.validated) { %>
+                      <span class="admin-badge admin-badge-green">Representante validado</span>
+                    <% } else if (repMatch.status === 'mismatch') { %>
+                      <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-red-500/15 text-red-700">Representante no coincide</span>
+                    <% } else if (c.entityType === 'empresa' && (c.documents?.incorporation_deed?.url || c.documents?.rep_id_front?.url)) { %>
+                      <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-800">Representante pendiente</span>
+                    <% } %>
+                    <% const erut = c.erutValidation || {}; %>
+                    <% if (erut.status === 'validated' || erut.validated) { %>
+                      <span class="admin-badge admin-badge-green">e-RUT validado</span>
+                    <% } else if (erut.status === 'fake' || erut.status === 'mismatch') { %>
+                      <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-red-500/15 text-red-700"><%= erut.label || 'e-RUT inválido' %></span>
+                    <% } else if (erut.status === 'suspicious') { %>
+                      <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-800"><%= erut.label || 'e-RUT en duda' %></span>
+                    <% } else if (c.entityType === 'empresa' && c.documents?.company_rut?.url) { %>
+                      <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-800">e-RUT pendiente</span>
+                    <% } %>
                     <% if (item.online) { %><span class="admin-badge admin-badge-green"><%= t('admin.common.online') %></span><% } %>
                   </div>
                 </div>
@@ -690,27 +694,73 @@ function hasPerm(key) {
               <% } %>
             </div>
 
-            <details class="mt-3">
-              <summary class="text-xs text-blue-600 cursor-pointer select-none">Ver expediente legal y documentos</summary>
+            <details class="mt-3" <%= ['pending_review','needs_info','incomplete'].includes(item.summary.status) ? 'open' : '' %>>
+              <summary class="text-xs text-blue-600 cursor-pointer select-none">Ver expediente y documentos</summary>
               <div class="mt-3 grid md:grid-cols-2 gap-4 text-xs">
                 <div class="space-y-2">
-                  <p class="font-semibold text-gray-700">Representante legal</p>
+                  <p class="font-semibold text-gray-700">Datos</p>
                   <p><strong>Nombre:</strong> <%= rep.fullName || '—' %></p>
-                  <p><strong>RUT:</strong> <%= rep.rut || '—' %></p>
-                  <p><strong>Entidad RUT:</strong> <%= le.rut || '—' %></p>
-                  <p><strong>Domicilio:</strong> <%= le.fiscalAddress || '—' %></p>
+                  <p><strong>RUT titular:</strong> <%= rep.rut || '—' %></p>
+                  <p><strong>RUT entidad:</strong> <%= le.rut || '—' %></p>
+                  <p><strong>Razón social:</strong> <%= le.legalName || '—' %></p>
+                  <% const rm = c.representativeMatch || {}; %>
+                  <% if (c.entityType === 'empresa') { %>
+                    <p class="font-semibold text-gray-700 pt-2">Validación representante</p>
+                    <% if (rm.status === 'validated' || rm.validated) { %>
+                      <p class="text-emerald-700 font-semibold">Representante validado</p>
+                    <% } else if (rm.status === 'mismatch') { %>
+                      <p class="text-red-700 font-semibold">Representante no coincide</p>
+                    <% } else { %>
+                      <p class="text-amber-700">Pendiente de cruzar carnet ↔ escritura</p>
+                    <% } %>
+                    <% if (rm.reason) { %><p class="text-gray-500"><%= rm.reason %></p><% } %>
+                    <% if (rm.carnetName || rm.deedName) { %>
+                      <p class="text-gray-500">Carnet: <%= rm.carnetName || '—' %> · <%= rm.carnetRut || '' %></p>
+                      <p class="text-gray-500">Escritura: <%= rm.deedName || '—' %> · <%= rm.deedRut || '' %></p>
+                    <% } %>
+                  <% } %>
+                  <% const erutV = c.erutValidation || {}; %>
+                  <% if (c.entityType === 'empresa') { %>
+                    <p class="font-semibold text-gray-700 pt-2">Validación e-RUT</p>
+                    <% if (erutV.status === 'validated' || erutV.validated) { %>
+                      <p class="text-emerald-700 font-semibold">e-RUT validado</p>
+                    <% } else if (erutV.status === 'fake' || erutV.status === 'mismatch') { %>
+                      <p class="text-red-700 font-semibold"><%= erutV.label || 'e-RUT inválido' %></p>
+                    <% } else if (erutV.status === 'suspicious') { %>
+                      <p class="text-amber-700 font-semibold"><%= erutV.label || 'e-RUT en duda' %></p>
+                    <% } else { %>
+                      <p class="text-amber-700">Pendiente de revisar QR/datos del e-RUT</p>
+                    <% } %>
+                    <% if (erutV.reason) { %><p class="text-gray-500"><%= erutV.reason %></p><% } %>
+                    <% if (erutV.hasQrOrBarcode != null) { %>
+                      <p class="text-gray-500">QR/barras: <%= erutV.hasQrOrBarcode ? (erutV.qrLooksAuthentic === false ? 'presente pero dudoso' : 'presente') : 'no visible' %></p>
+                    <% } %>
+                    <% if (erutV.extractedRut || erutV.extractedLegalName) { %>
+                      <p class="text-gray-500">Leído: <%= erutV.extractedLegalName || '—' %> · <%= erutV.extractedRut || '' %></p>
+                    <% } %>
+                  <% } %>
+                  <% const bank = c.bankAccount || {}; %>
+                  <p class="font-semibold text-gray-700 pt-2">Cuenta liquidaciones</p>
+                  <% if (bank.bankName || bank.accountNumber) { %>
+                    <p><strong>Banco:</strong> <%= bank.bankName || '—' %></p>
+                    <p><strong>Tipo:</strong> <%= bank.accountType || '—' %></p>
+                    <p><strong>Nº:</strong> <%= bank.accountNumber || '—' %></p>
+                    <p><strong>Titular:</strong> <%= bank.holderName || '—' %> · <%= bank.holderRut || '' %></p>
+                  <% } else { %>
+                    <p class="text-amber-700">Sin cuenta bancaria declarada.</p>
+                  <% } %>
                   <% if (c.signature?.signedAt) { %>
-                    <p><strong>Firma:</strong> <%= c.signature.signerName %> · <%= new Date(c.signature.signedAt).toLocaleString('es-CL') %></p>
+                    <p class="pt-2"><strong>Firma:</strong> <%= c.signature.signerName %> · <%= new Date(c.signature.signedAt).toLocaleString('es-CL') %></p>
                   <% } %>
                 </div>
                 <div class="space-y-3">
+                  <% const reviewDocs = typeof listProviderReviewDocuments === 'function' ? listProviderReviewDocuments(item.id) : []; %>
                   <div class="flex items-center justify-between gap-2">
                     <p class="font-semibold text-gray-700">Documentos</p>
-                    <% if (hasPerm('contratos.review') && ['pending_review','needs_info'].includes(item.summary.status)) { %>
+                    <% if (hasPerm('contratos.review') && reviewDocs.length) { %>
                       <button type="button" class="btn-contract-ai-review text-[10px] px-2 py-1 rounded-lg bg-blue-500/10 text-blue-700" data-id="<%= item.id %>">Re-chequear IA</button>
                     <% } %>
                   </div>
-                  <% const reviewDocs = typeof listProviderReviewDocuments === 'function' ? listProviderReviewDocuments(item.id) : []; %>
                   <% if (!reviewDocs.length) { %>
                     <p class="text-gray-500">Sin documentos cargados aún.</p>
                   <% } %>
@@ -733,19 +783,34 @@ function hasPerm(key) {
                     };
                     const aiLabel = { verified: 'IA: verificado', suspicious: 'IA: sospechoso', fake: 'IA: posible falso', unreadable: 'IA: ilegible', pending_manual: 'IA: revisión humana', pending: 'IA: pendiente' }[ai.status] || 'IA: pendiente';
                     const humanLabel = { approved: 'Equipo: aprobado', rejected: 'Equipo: rechazado', needs_info: 'Equipo: corrección', pending: 'Equipo: pendiente' }[human.status] || 'Equipo: pendiente';
+                    const docUrl = doc.url || '';
+                    const isPdf = /\.pdf($|\?)/i.test(docUrl);
+                    const isImg = /\.(jpe?g|png|webp)($|\?)/i.test(docUrl) || docUrl.includes('/media/provider/');
+                    const rawAiReason = String(ai.reason || '');
+                    const aiReasonSafe = /api key|sk-proj|Incorrect API/i.test(rawAiReason)
+                      ? 'Revisión automática no disponible. Aprueba o rechaza tú el documento.'
+                      : rawAiReason.replace(/sk-[a-zA-Z0-9_-]+/g, 'sk-…');
+                    const canReviewDoc = hasPerm('contratos.review') && reviewDocs.length;
                   %>
                     <div class="p-3 rounded-xl border border-gray-200 bg-white space-y-2 contract-doc-row" data-provider-id="<%= item.id %>" data-doc-key="<%= doc.key %>">
                       <div class="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <a href="<%= doc.url %>" target="_blank" class="text-blue-600 hover:underline font-medium"><%= (doc.def && doc.def.label) || doc.key %> ↗</a>
+                        <div class="min-w-0 flex-1">
+                          <a href="<%= docUrl %>" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium"><%= (doc.def && doc.def.label) || doc.key %> ↗</a>
                           <div class="flex flex-wrap gap-1 mt-1">
                             <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded <%= aiColors[ai.status] || aiColors.pending %>"><%= aiLabel %></span>
                             <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded <%= humanColors[human.status] || humanColors.pending %>"><%= humanLabel %></span>
                           </div>
                         </div>
                       </div>
-                      <% if (ai.reason) { %><p class="text-[11px] text-gray-500">IA: <%= ai.reason %></p><% } %>
-                      <% if (hasPerm('contratos.review') && ['pending_review','needs_info','approved'].includes(item.summary.status)) { %>
+                      <% if (isImg && !isPdf) { %>
+                        <a href="<%= docUrl %>" target="_blank" rel="noopener" class="block">
+                          <img src="<%= docUrl %>" alt="<%= (doc.def && doc.def.label) || doc.key %>" loading="lazy" class="w-full max-h-48 object-contain rounded-lg border border-gray-100 bg-gray-50" onerror="this.replaceWith(Object.assign(document.createElement('p'),{className:'text-[11px] text-amber-700',textContent:'Archivo no disponible en servidor. Pide al socio que vuelva a subir el documento.'}))">
+                        </a>
+                      <% } else if (isPdf) { %>
+                        <a href="<%= docUrl %>" target="_blank" rel="noopener" class="inline-flex text-[11px] text-blue-600 underline">Abrir PDF</a>
+                      <% } %>
+                      <% if (aiReasonSafe) { %><p class="text-[11px] text-gray-500">IA: <%= aiReasonSafe %></p><% } %>
+                      <% if (canReviewDoc) { %>
                         <textarea class="doc-notes w-full text-xs border border-gray-200 rounded-lg p-2" rows="2" placeholder="Observaciones de este documento"><%= human.notes || '' %></textarea>
                         <div class="flex flex-wrap gap-1.5">
                           <button type="button" class="btn-doc-approve text-[10px] px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-700">Aprobar</button>
@@ -770,9 +835,8 @@ function hasPerm(key) {
     <% } %>
 
     <!-- NOTIFICACIONES -->
-    <section class="<%= panelClass('notificaciones') %>" data-panel="notificaciones">
-      <h3 class="text-lg font-semibold mb-1"><%= t('admin.notificaciones.title') %></h3>
-      <p class="text-xs text-gray-500 mb-4"><%= t('admin.notificaciones.subtitle', { smtp: notificationStats.emailConfigured ? t('admin.notificaciones.smtp_configured') : t('admin.notificaciones.smtp_demo') }) %></p>
+    <section class="<%= panelClass('notificaciones') %>" data-panel="notificaciones" data-subtitle="<%= t('admin.notificaciones.subtitle', { smtp: notificationStats.emailConfigured ? t('admin.notificaciones.smtp_configured') : t('admin.notificaciones.smtp_demo') }) %>">
+      <p class="text-xs text-gray-500 mb-4 sm:hidden"><%= t('admin.notificaciones.subtitle', { smtp: notificationStats.emailConfigured ? t('admin.notificaciones.smtp_configured') : t('admin.notificaciones.smtp_demo') }) %></p>
 
       <div class="grid grid-cols-3 gap-2 mb-4 text-center">
         <div class="p-3 rounded-xl bg-zilo-card border border-gray-200">
@@ -808,12 +872,11 @@ function hasPerm(key) {
     </section>
 
     <!-- MÓDULOS -->
-    <section class="<%= panelClass('modulos') %>" data-panel="modulos">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-lg font-semibold"><%= as.modulos.title %></h3>
+    <section class="<%= panelClass('modulos') %>" data-panel="modulos" data-subtitle="<%= as.modulos.hint %>">
+      <div class="flex justify-end items-center mb-3">
         <span class="text-xs text-gray-500"><%= t('admin.modulos.active_count', { active: modules.filter(m => m.enabled).length, total: modules.length }) %></span>
       </div>
-      <p class="text-xs text-gray-500 mb-4"><%= as.modulos.hint %></p>
+      <p class="text-xs text-gray-500 mb-4 sm:hidden"><%= as.modulos.hint %></p>
       <p class="text-xs text-violet-700 mb-4 p-3 rounded-xl bg-violet-500/10 border border-violet-500/20">
         Para que los clientes vean <strong>Aland IA</strong>, el módulo <strong>Chat Aland IA</strong> debe estar <strong>ON</strong>.
         El chat aparece en el inicio del cliente y al abrir un servicio.
@@ -859,12 +922,11 @@ function hasPerm(key) {
     </section>
 
     <!-- PROMOCIONES -->
-    <section class="<%= panelClass('promos') %>" data-panel="promos">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-lg font-semibold">Códigos promocionales</h3>
+    <section class="<%= panelClass('promos') %>" data-panel="promos" data-subtitle="Crea códigos con % de descuento para el checkout. BIENVENIDO es especial: solo aplica en el primer servicio.">
+      <div class="flex justify-end items-center mb-3">
         <span class="text-xs text-gray-500"><%= (promos || []).filter(p => p.enabled !== false).length %> activos</span>
       </div>
-      <p class="text-xs text-gray-500 mb-4">Crea códigos con % de descuento para el checkout. BIENVENIDO es especial: solo aplica en el primer servicio y se valida internamente por correo/teléfono (el cliente solo ve “código no disponible” si ya se usó).</p>
+      <p class="text-xs text-gray-500 mb-4 sm:hidden">Crea códigos con % de descuento para el checkout. BIENVENIDO es especial: solo aplica en el primer servicio y se valida internamente por correo/teléfono (el cliente solo ve “código no disponible” si ya se usó).</p>
 
       <% if (hasPerm('promos.manage')) { %>
       <form id="promoForm" class="p-4 rounded-2xl bg-zilo-card border border-gray-200 space-y-3 mb-5">
@@ -947,14 +1009,13 @@ function hasPerm(key) {
     </section>
 
     <!-- COBERTURA -->
-    <section class="<%= panelClass('cobertura') %>" data-panel="cobertura">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-lg font-semibold"><%= as.cobertura.title %></h3>
+    <section class="<%= panelClass('cobertura') %>" data-panel="cobertura" data-subtitle="<%= as.cobertura.hint %>">
+      <div class="flex justify-end items-center mb-3">
         <span class="text-xs text-gray-500" id="coverageStatsLabel"
           data-communes-template="<%= t('admin.cobertura.active_count', { active: '{{active}}', total: '{{total}}' }) %>"
           data-regions-template="<%= t('admin.cobertura.regions_active', { active: '{{active}}', total: '{{total}}' }) %>"><%= t('admin.cobertura.active_count', { active: coverageStats.enabled, total: coverageStats.total }) %> · <%= t('admin.cobertura.regions_active', { active: coverageStats.regionsActive, total: coverageStats.regionsTotal }) %></span>
       </div>
-      <p class="text-xs text-gray-500 mb-4"><%= as.cobertura.hint %></p>
+      <p class="text-xs text-gray-500 mb-4 sm:hidden"><%= as.cobertura.hint %></p>
 
       <div id="coverageRegionsList" class="space-y-3">
         <% (coverageRegions || []).forEach(function(region) { %>
@@ -994,8 +1055,7 @@ function hasPerm(key) {
 
     <!-- SERVICIOS -->
     <section class="<%= panelClass('servicios') %>" data-panel="servicios">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-lg font-semibold"><%= as.servicios.title %></h3>
+      <div class="flex justify-end items-center mb-3">
         <span class="text-xs text-gray-500"><%= t('admin.servicios.active_count', { active: stats.activeServices, total: stats.totalServices }) %></span>
       </div>
       <div id="servicesList" class="space-y-2">
@@ -1021,12 +1081,11 @@ function hasPerm(key) {
     </section>
 
     <!-- CUENTAS DEMO -->
-    <section class="<%= panelClass('demo') %>" data-panel="demo">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-lg font-semibold"><%= t('admin.demo.title') %></h3>
+    <section class="<%= panelClass('demo') %>" data-panel="demo" data-subtitle="<%= t('admin.demo.hint') %>">
+      <div class="flex justify-end items-center mb-3">
         <span class="text-xs text-gray-500"><%= t('admin.demo.visible', { active: demoAccounts.filter(a => a.active).length, total: demoAccounts.length }) %></span>
       </div>
-      <p class="text-xs text-gray-500 mb-4">
+      <p class="text-xs text-gray-500 mb-4 sm:hidden">
         <%= t('admin.demo.hint') %>
         <% const modeDemoHint = typeof appModeStatus !== 'undefined' ? appModeStatus : null; %>
         <% if (modeDemoHint && modeDemoHint.isProduction) { %>
@@ -1059,8 +1118,6 @@ function hasPerm(key) {
 
     <!-- PAGOS -->
     <section class="<%= panelClass('pagos') %>" data-panel="pagos">
-      <h3 class="text-lg font-semibold mb-3"><%= t('admin.pagos.title') %></h3>
-
       <% const refunds = typeof refundQueue !== 'undefined' ? refundQueue : []; %>
       <div class="mb-6" id="adminRefundQueue">
         <div class="flex items-center justify-between gap-2 mb-2">
@@ -1163,9 +1220,8 @@ function hasPerm(key) {
     </section>
 
     <!-- SOLICITUDES / CANALIZACIÓN MANUAL -->
-    <section class="<%= panelClass('solicitudes') %>" data-panel="solicitudes">
-      <h3 class="text-lg font-semibold mb-1"><%= t('admin.solicitudes.title') %></h3>
-      <p class="text-xs text-gray-500 mb-4"><%= t('admin.solicitudes.subtitle') %></p>
+    <section class="<%= panelClass('solicitudes') %>" data-panel="solicitudes" data-subtitle="<%= t('admin.solicitudes.subtitle') %>">
+      <p class="text-xs text-gray-500 mb-4 sm:hidden"><%= t('admin.solicitudes.subtitle') %></p>
       <% const queue = typeof dispatchQueue !== 'undefined' ? dispatchQueue : []; %>
       <% if (!queue.length) { %>
         <p class="text-center py-10 text-gray-500 text-sm"><%= t('admin.solicitudes.empty') %></p>
@@ -1211,9 +1267,8 @@ function hasPerm(key) {
     </section>
 
     <!-- PROVEEDORES / PAYOUTS -->
-    <section class="<%= panelClass('proveedores') %>" data-panel="proveedores">
-      <h3 class="text-lg font-semibold mb-1"><%= t('admin.proveedores.title') %></h3>
-      <p class="text-xs text-gray-500 mb-4"><%= t('admin.proveedores.subtitle', { labor: Math.round(pricing.laborCommissionRate * 100), materials: Math.round(pricing.materialsCommissionRate * 100) }) %></p>
+    <section class="<%= panelClass('proveedores') %>" data-panel="proveedores" data-subtitle="<%= t('admin.proveedores.subtitle', { labor: Math.round(pricing.laborCommissionRate * 100), materials: Math.round(pricing.materialsCommissionRate * 100) }) %>">
+      <p class="text-xs text-gray-500 mb-4 sm:hidden"><%= t('admin.proveedores.subtitle', { labor: Math.round(pricing.laborCommissionRate * 100), materials: Math.round(pricing.materialsCommissionRate * 100) }) %></p>
 
       <!-- Directorio socios + servicios -->
       <div class="mb-8">
@@ -1222,9 +1277,9 @@ function hasPerm(key) {
             <h4 class="text-sm font-semibold"><%= t('admin.proveedores.directory_title') %></h4>
             <p class="text-[11px] text-gray-500 mt-0.5"><%= t('admin.proveedores.directory_subtitle') %></p>
           </div>
-          <div class="flex flex-wrap gap-2">
-            <input type="search" id="providersDirSearch" class="zilo-input !py-2 text-sm min-w-[12rem]" placeholder="<%= t('admin.proveedores.search_placeholder') %>" autocomplete="off">
-            <select id="providersDirFilter" class="zilo-input !py-2 text-sm">
+          <div class="admin-toolbar">
+            <input type="search" id="providersDirSearch" class="zilo-input admin-toolbar-grow !py-2 text-sm" placeholder="<%= t('admin.proveedores.search_placeholder') %>" autocomplete="off">
+            <select id="providersDirFilter" class="zilo-input admin-toolbar-select !py-2 text-sm" aria-label="Filtrar socios">
               <option value=""><%= t('admin.proveedores.filter_all') %></option>
               <option value="with"><%= t('admin.proveedores.filter_with_services') %></option>
               <option value="without"><%= t('admin.proveedores.filter_without_services') %></option>
@@ -1348,7 +1403,6 @@ function hasPerm(key) {
 
     <!-- RECLAMOS -->
     <section class="<%= panelClass('reclamos') %>" data-panel="reclamos">
-      <h3 class="text-lg font-semibold mb-3"><%= t('admin.reclamos.title') %></h3>
       <div class="space-y-2">
         <% complaints.forEach(c => { %>
           <div class="p-4 rounded-xl bg-zilo-card border border-gray-200" data-complaint-id="<%= c.id %>">
@@ -1375,15 +1429,14 @@ function hasPerm(key) {
     </section>
 
     <!-- WHATSAPP -->
-    <section class="<%= panelClass('whatsapp') %>" data-panel="whatsapp">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-semibold"><%= t('admin.whatsapp.title') %></h3>
+    <section class="<%= panelClass('whatsapp') %>" data-panel="whatsapp" data-subtitle="<%= t('admin.whatsapp.official_line') %>: <%= company.whatsappDisplay %>">
+      <div class="flex items-center justify-end mb-3">
         <a href="<%= company.whatsappLink('Hola, soy soporte Fandez Admin') %>" target="_blank" rel="noopener" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#25D366]/20 border border-[#25D366]/40 text-[#25D366] text-xs font-semibold">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
           <%= t('admin.whatsapp.open_company') %>
         </a>
       </div>
-      <p class="text-xs text-gray-500 mb-4"><%= t('admin.whatsapp.official_line') %>: <strong class="text-gray-700"><%= company.whatsappDisplay %></strong></p>
+      <p class="text-xs text-gray-500 mb-4 sm:hidden"><%= t('admin.whatsapp.official_line') %>: <strong class="text-gray-700"><%= company.whatsappDisplay %></strong></p>
       <div class="space-y-2">
         <% chats.forEach(ch => { %>
           <a href="<%= company.whatsappLink('Hola ' + ch.clientName + ', te contactamos desde Fandez Soporte.') %>" target="_blank" rel="noopener"
@@ -1405,16 +1458,15 @@ function hasPerm(key) {
     </section>
 
     <!-- DATOS / CONSENTIMIENTO -->
-    <section class="<%= panelClass('datos') %>" data-panel="datos" data-can-dsar="<%= hasPerm('datos.manage') ? '1' : '0' %>">
-      <h3 class="text-lg font-semibold mb-1"><%= t('admin.datos.title') %></h3>
-      <p class="text-xs text-gray-500 mb-4"><%= t('admin.datos.subtitle', { email: company.dpoEmail }) %></p>
+    <section class="<%= panelClass('datos') %>" data-panel="datos" data-can-dsar="<%= hasPerm('datos.manage') ? '1' : '0' %>" data-subtitle="<%= t('admin.datos.subtitle', { email: company.dpoEmail }) %>">
+      <p class="text-xs text-gray-500 mb-4 sm:hidden"><%= t('admin.datos.subtitle', { email: company.dpoEmail }) %></p>
 
       <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4">
         <h4 class="text-sm font-semibold mb-1">DSAR — derechos del titular (Ley 21.719)</h4>
         <p class="text-xs text-gray-500 mb-3">Busca una cuenta, exporta su paquete de datos o anonimízala. Los pedidos contables se conservan sin PII.</p>
-        <div class="flex flex-col sm:flex-row gap-2 mb-3">
-          <input type="search" id="dsarSearch" class="zilo-input !py-2 flex-1 text-sm" placeholder="Email, nombre o teléfono" autocomplete="off">
-          <button type="button" id="btnDsarSearch" class="zilo-btn-primary !py-2 !px-4 !text-sm">Buscar</button>
+        <div class="admin-toolbar mb-3">
+          <input type="search" id="dsarSearch" class="zilo-input admin-toolbar-grow !py-2 text-sm" placeholder="Email, nombre o teléfono" autocomplete="off">
+          <button type="button" id="btnDsarSearch" class="zilo-btn-primary admin-toolbar-action !py-2 !px-4 !text-sm">Buscar</button>
         </div>
         <div id="dsarResults" class="space-y-2"></div>
       </div>
@@ -1469,55 +1521,58 @@ function hasPerm(key) {
     </section>
 
     <% if (canAccessPanelFn('usuarios')) { %>
-    <section class="<%= panelClass('usuarios') %>" data-panel="usuarios" data-can-manage="<%= hasPerm('usuarios.manage') ? '1' : '0' %>">
-      <div class="flex justify-between items-start gap-3 mb-4">
-        <div>
-          <h3 class="text-lg font-semibold"><%= t('admin.usuarios.title') %></h3>
-          <p class="text-xs text-gray-500 mt-1"><%= t('admin.usuarios.subtitle') %></p>
-        </div>
-      </div>
-      <div class="flex flex-col sm:flex-row gap-2 mb-4">
-        <input type="search" id="managedUserSearch" class="zilo-input !py-2 flex-1 text-sm" placeholder="Buscar por nombre, email o teléfono">
-        <select id="managedUserRole" class="zilo-input !py-2 text-sm">
+    <section class="<%= panelClass('usuarios') %>" data-panel="usuarios" data-can-manage="<%= hasPerm('usuarios.manage') ? '1' : '0' %>" data-subtitle="<%= t('admin.usuarios.subtitle') %>">
+      <p class="text-xs text-gray-500 mb-4 sm:hidden"><%= t('admin.usuarios.subtitle') %></p>
+      <div class="admin-users-filters mb-4">
+        <input type="search" id="managedUserSearch" class="admin-users-search" placeholder="Buscar por nombre, email o teléfono" autocomplete="off">
+        <select id="managedUserRole" class="admin-users-role" aria-label="Filtrar por rol">
           <option value="">Todos</option>
           <option value="client">Clientes</option>
           <option value="provider">Socios</option>
           <option value="tecnico">Técnicos</option>
         </select>
-        <button type="button" id="btnManagedUserSearch" class="zilo-btn-primary !py-2 !px-4 !text-sm">Buscar</button>
+        <button type="button" id="btnManagedUserSearch" class="admin-users-go">Buscar</button>
       </div>
       <div id="managedUsersList" class="space-y-2">
-        <% (typeof managedUsers !== 'undefined' ? managedUsers : []).forEach(function(u) { %>
-          <div class="p-4 rounded-2xl bg-zilo-card border <%= u.active ? 'border-gray-200' : 'border-red-200 bg-red-50/40' %> flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-user-id="<%= u.id %>">
+        <% (typeof managedUsers !== 'undefined' ? managedUsers : []).forEach(function(u) {
+          var roleBadge = ({ client: 'Cliente', provider: 'Socio', tecnico: 'Técnico', technician: 'Técnico' })[u.role] || u.role;
+          var svcList = u.services || [];
+          var svcShown = svcList.slice(0, 4);
+          var svcRest = svcList.length - svcShown.length;
+        %>
+          <div class="admin-row <%= u.active ? '' : 'is-blocked' %>" data-user-id="<%= u.id %>">
             <div class="min-w-0">
-              <strong class="text-sm"><%= u.name %></strong>
-              <span class="text-[10px] uppercase ml-2 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600"><%= u.role %></span>
+              <strong class="text-sm text-[color:var(--admin-ink,#1A1714)]"><%= u.name %></strong>
+              <span class="admin-row-role"><%= roleBadge %></span>
               <% if (!u.active) { %>
-                <span class="text-[10px] uppercase ml-1 px-1.5 py-0.5 rounded bg-red-100 text-red-700">Bloqueado</span>
+                <span class="admin-row-role" style="background:rgba(184,58,46,0.12);color:#9A3228">Bloqueado</span>
               <% } %>
-              <p class="text-xs text-gray-500 truncate"><%= u.email %><% if (u.phone) { %> · <%= u.phone %><% } %></p>
-              <p class="text-[10px] text-gray-400 mt-1">
+              <p class="text-xs text-gray-500 truncate mt-0.5"><%= u.email %><% if (u.phone) { %> · <%= u.phone %><% } %></p>
+              <p class="admin-row-meta">
                 <%= u.active ? 'Activo' : 'Bloqueado' %>
                 · <%= u.emailVerified ? 'Email OK' : 'Email pendiente' %>
                 <% if (u.role === 'provider' || u.role === 'tecnico') { %>
                   · <%= u.online ? 'En línea' : 'Fuera de línea' %>
                 <% } %>
               </p>
-              <% if (u.services && u.services.length) { %>
+              <% if (svcShown.length) { %>
                 <div class="flex flex-wrap gap-1 mt-2">
-                  <% u.services.forEach(function(svc) { %>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-800"><%= svc.name %></span>
+                  <% svcShown.forEach(function(svc) { %>
+                    <span class="admin-chip"><%= svc.name %></span>
                   <% }); %>
+                  <% if (svcRest > 0) { %>
+                    <span class="admin-chip admin-chip-more">+<%= svcRest %> más</span>
+                  <% } %>
                 </div>
               <% } else if (u.role === 'provider') { %>
-                <p class="text-[10px] text-amber-700 mt-1">Sin servicios activados</p>
+                <p class="admin-row-meta" style="color:#9A6B20">Sin servicios activados</p>
               <% } %>
             </div>
-            <div class="flex flex-wrap gap-2 shrink-0">
-              <button type="button" class="managed-user-diag text-xs px-2.5 py-1.5 rounded-lg bg-violet-500/10 text-violet-800 hover:bg-violet-500/20" data-id="<%= u.id %>">Diagnóstico</button>
+            <div class="admin-actions">
+              <button type="button" class="managed-user-diag admin-action" data-id="<%= u.id %>">Diagnóstico</button>
               <% if (hasPerm('usuarios.manage')) { %>
                 <button type="button"
-                  class="managed-user-edit text-xs px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200"
+                  class="managed-user-edit admin-action"
                   data-id="<%= u.id %>"
                   data-name="<%= u.name %>"
                   data-email="<%= u.email %>"
@@ -1527,12 +1582,12 @@ function hasPerm(key) {
                   data-online="<%= u.online ? '1' : '0' %>"
                   data-client-enabled="<%= u.clientEnabled !== false ? '1' : '0' %>">Editar</button>
                 <% if (u.active) { %>
-                  <button type="button" class="managed-user-block text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-700 hover:bg-red-500/20" data-id="<%= u.id %>" data-active="0">Bloquear</button>
+                  <button type="button" class="managed-user-block admin-action admin-action-danger" data-id="<%= u.id %>" data-active="0">Bloquear</button>
                 <% } else { %>
-                  <button type="button" class="managed-user-block text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20" data-id="<%= u.id %>" data-active="1">Desbloquear</button>
+                  <button type="button" class="managed-user-block admin-action admin-action-accent" data-id="<%= u.id %>" data-active="1">Desbloquear</button>
                 <% } %>
                 <% if (!u.emailVerified) { %>
-                  <button type="button" class="managed-user-verify text-xs px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-700" data-email="<%= u.email %>">Verificar email</button>
+                  <button type="button" class="managed-user-verify admin-action admin-action-accent" data-email="<%= u.email %>">Verificar email</button>
                 <% } %>
               <% } %>
             </div>
@@ -1543,24 +1598,24 @@ function hasPerm(key) {
         <% } %>
       </div>
 
-      <div id="managedUserDiagModal" class="fixed inset-0 z-[85] hidden items-center justify-center p-3 sm:p-4" aria-hidden="true">
-        <div class="absolute inset-0 bg-black/45" data-close-managed-diag></div>
-        <div class="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white border border-gray-200 shadow-xl p-4 sm:p-5" role="dialog" aria-labelledby="managedUserDiagTitle">
-          <div class="flex items-start justify-between gap-3 mb-3 sticky top-0 bg-white pb-2 z-10">
+      <div id="managedUserDiagModal" class="admin-modal fixed inset-0 z-[200] hidden items-end sm:items-center justify-center p-0 sm:p-4" aria-hidden="true">
+        <div class="absolute inset-0 bg-black/50" data-close-managed-diag></div>
+        <div class="admin-modal-sheet relative w-full max-w-3xl flex flex-col rounded-t-2xl sm:rounded-2xl bg-[#FFFCF8] border border-[rgba(26,23,20,0.1)] shadow-xl" role="dialog" aria-labelledby="managedUserDiagTitle">
+          <div class="admin-modal-head flex items-start justify-between gap-3 px-4 sm:px-5 pt-4 sm:pt-5 pb-3 shrink-0 border-b border-[rgba(26,23,20,0.08)]">
             <div class="min-w-0">
               <h4 id="managedUserDiagTitle" class="text-base font-semibold">Diagnóstico de soporte</h4>
               <p id="managedUserDiagSub" class="text-xs text-gray-500 mt-0.5 truncate"></p>
             </div>
-            <button type="button" class="text-gray-400 hover:text-gray-700 text-lg leading-none shrink-0" data-close-managed-diag aria-label="Cerrar">&times;</button>
+            <button type="button" class="text-gray-400 hover:text-gray-700 text-lg leading-none shrink-0 w-8 h-8 rounded-lg hover:bg-black/5" data-close-managed-diag aria-label="Cerrar">&times;</button>
           </div>
-          <div id="managedUserDiagBody" class="space-y-4 text-sm">
+          <div id="managedUserDiagBody" class="admin-modal-body flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5 py-4 space-y-4 text-sm">
             <p class="text-gray-500">Cargando…</p>
           </div>
           <% if (hasPerm('usuarios.manage')) { %>
-          <form id="managedUserDiagNoteForm" class="mt-4 pt-4 border-t border-gray-100 space-y-2">
+          <form id="managedUserDiagNoteForm" class="admin-modal-foot shrink-0 mt-0 px-4 sm:px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-[rgba(26,23,20,0.08)] bg-[#FFFCF8] space-y-2">
             <input type="hidden" id="managedUserDiagId">
             <label class="text-[11px] font-medium text-gray-600 block" for="managedUserDiagNote">Nota interna de soporte</label>
-            <textarea id="managedUserDiagNote" class="zilo-input !py-2 text-sm min-h-[72px]" maxlength="1000" placeholder="Ej: Cliente no ve el pago; se verificó email y se desbloqueó."></textarea>
+            <textarea id="managedUserDiagNote" class="zilo-input !py-2 text-sm min-h-[64px]" maxlength="1000" placeholder="Ej: Cliente no ve el pago; se verificó email y se desbloqueó."></textarea>
             <button type="submit" class="zilo-btn-primary !py-2 !px-4 !text-sm">Guardar nota</button>
           </form>
           <% } %>
@@ -1608,9 +1663,8 @@ function hasPerm(key) {
     <% } %>
 
     <!-- BACKUPS -->
-    <section class="<%= panelClass('backups') %>" data-panel="backups">
-      <h3 class="text-lg font-semibold mb-1"><%= t('admin.backups.title') %></h3>
-      <p class="text-xs text-gray-500 mb-4"><%= t('admin.backups.subtitle') %></p>
+    <section class="<%= panelClass('backups') %>" data-panel="backups" data-subtitle="<%= t('admin.backups.subtitle') %>">
+      <p class="text-xs text-gray-500 mb-4 sm:hidden"><%= t('admin.backups.subtitle') %></p>
 
       <div class="grid grid-cols-2 gap-2 mb-4">
         <div class="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 text-center col-span-2">
@@ -1631,19 +1685,19 @@ function hasPerm(key) {
         </div>
       </div>
 
-      <% const gh = typeof githubBackupStatus !== 'undefined' ? githubBackupStatus : { enabled: false, configured: {} }; %>
-      <div class="mb-4 p-4 rounded-2xl border <%= gh.enabled ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200' %>">
-        <h4 class="text-sm font-semibold <%= gh.enabled ? 'text-emerald-800' : 'text-amber-900' %>">Copia offsite en GitHub (cifrada)</h4>
-        <% if (gh.enabled) { %>
-          <p class="text-xs text-emerald-800/90 mt-1">Activo → repo <code class="bg-white/70 px-1 rounded"><%= gh.repo %></code> · rama <code class="bg-white/70 px-1 rounded"><%= gh.branch %></code> · retención <%= gh.retentionDays %> días</p>
-          <p class="text-[11px] text-emerald-700/80 mt-1">Cada backup automático/manual también se sube cifrado. GitHub Actions lo dispara a las 03:00 Chile.</p>
+      <% const gh = typeof githubBackupStatus !== 'undefined' ? githubBackupStatus : { enabled: false, exportReady: false, configured: {} }; %>
+      <div class="mb-4 p-4 rounded-2xl border <%= (gh.exportReady || gh.enabled) ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200' %>">
+        <h4 class="text-sm font-semibold <%= (gh.exportReady || gh.enabled) ? 'text-emerald-800' : 'text-amber-900' %>">Copia offsite en GitHub (cifrada, automática)</h4>
+        <% if (gh.exportReady) { %>
+          <p class="text-xs text-emerald-800/90 mt-1">Listo para Actions: el workflow diario pide el <code class="bg-white/70 px-1 rounded">.enc</code> y lo guarda en la rama <code class="bg-white/70 px-1 rounded">backups</code> (sin humano).</p>
+        <% } else if (gh.enabled) { %>
+          <p class="text-xs text-emerald-800/90 mt-1">Push desde servidor → <code class="bg-white/70 px-1 rounded"><%= gh.repo %></code> · retención <%= gh.retentionDays %> días</p>
         <% } else { %>
-          <p class="text-xs text-amber-900/90 mt-1">Aún no configurado. En Hostinger define <code>BACKUP_GITHUB_ENABLED</code>, <code>BACKUP_GITHUB_TOKEN</code>, <code>BACKUP_GITHUB_REPO</code>, <code>BACKUP_GITHUB_ENCRYPT_KEY</code> y <code>BACKUP_SYNC_TOKEN</code>. Detalle en <code>HOSTINGER.md</code>.</p>
+          <p class="text-xs text-amber-900/90 mt-1">En Hostinger define solo <code>BACKUP_SYNC_TOKEN</code> + <code>BACKUP_GITHUB_ENCRYPT_KEY</code>. En GitHub Actions: secrets <code>FANDEZ_BACKUP_EXPORT_URL</code> y <code>FANDEZ_BACKUP_SYNC_TOKEN</code>. Detalle en <code>docs/BACKUP-GITHUB.md</code>.</p>
           <p class="text-[11px] text-amber-800/80 mt-1">Falta: <%= [
-            !gh.configured?.token ? 'TOKEN' : null,
-            !gh.configured?.repo ? 'REPO' : null,
-            !gh.configured?.encryptKey ? 'ENCRYPT_KEY' : null
-          ].filter(Boolean).join(', ') || 'activar ENABLED=true' %></p>
+            !gh.configured?.encryptKey ? 'ENCRYPT_KEY' : null,
+            !gh.configured?.syncToken ? 'SYNC_TOKEN' : null
+          ].filter(Boolean).join(', ') || 'revisar secrets de Actions' %></p>
         <% } %>
       </div>
 
@@ -1794,9 +1848,8 @@ function hasPerm(key) {
     </section>
 
     <!-- ALAND IA -->
-    <section class="<%= panelClass('aland') %>" data-panel="aland">
-      <h3 class="text-lg font-semibold mb-1"><%= t('admin.aland.title') %></h3>
-      <p class="text-xs text-gray-500 mb-4">Configura el agente de inteligencia artificial. Lee información de la empresa, servicios, precios y conocimiento adicional.</p>
+    <section class="<%= panelClass('aland') %>" data-panel="aland" data-subtitle="Configura el agente de inteligencia artificial. Lee información de la empresa, servicios, precios y conocimiento adicional.">
+      <p class="text-xs text-gray-500 mb-4 sm:hidden">Configura el agente de inteligencia artificial. Lee información de la empresa, servicios, precios y conocimiento adicional.</p>
 
       <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-900 mb-4">
         <strong>Seguridad fija del servidor:</strong> Aland no usa garabatos, bloquea prompt injection, no revela BD/secretos y avisa al admin (auditoría + Mensajes) si detecta un intento de vulnerar. Esas reglas no se pueden desactivar desde este panel.
@@ -1928,14 +1981,10 @@ function hasPerm(key) {
     </section>
 
     <!-- FLORENCIA IA -->
-    <section class="<%= panelClass('florencia') %>" data-panel="florencia">
+    <section class="<%= panelClass('florencia') %>" data-panel="florencia" data-subtitle="Diseño, marketing y UX. Nada se publica sin tu aprobación.">
       <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
-        <div>
-          <p class="zilo-label text-fuchsia-700 mb-1">Gerente de marketing · Diseño + UX</p>
-          <h3 class="text-xl font-semibold">Florencia IA</h3>
-          <p class="text-xs text-gray-500 mt-1">Diseñadora gráfica senior (20+ años), marketing digital y UX/UI. Usa el logo oficial Fandez (isotipo contorno ámbar). Nada se publica sin tu aprobación.</p>
-        </div>
-        <span class="px-3 py-1.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/25 text-xs font-semibold text-fuchsia-700">Aprobación humana obligatoria</span>
+        <p class="text-xs text-gray-500 sm:hidden">Diseñadora gráfica senior, marketing digital y UX/UI. Usa el logo oficial Fandez. Nada se publica sin tu aprobación.</p>
+        <span class="px-3 py-1.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/25 text-xs font-semibold text-fuchsia-700 ml-auto">Aprobación humana obligatoria</span>
       </div>
 
       <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4">
@@ -2114,14 +2163,10 @@ function hasPerm(key) {
     </section>
 
     <!-- CONSUMO OPENAI -->
-    <section class="<%= panelClass('consumo-ia') %>" data-panel="consumo-ia">
+    <section class="<%= panelClass('consumo-ia') %>" data-panel="consumo-ia" data-subtitle="Aland, Florencia y otras llamadas. El costo USD es estimación de referencia.">
       <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
-        <div>
-          <p class="zilo-label text-sky-700 mb-1">OpenAI</p>
-          <h3 class="text-xl font-semibold">Consumo de tokens por agente</h3>
-          <p class="text-xs text-gray-500 mt-1">Aland, Florencia y otras llamadas registradas. El costo USD es una estimación de referencia, no la factura de OpenAI.</p>
-        </div>
-        <div class="flex gap-2 items-center">
+        <p class="text-xs text-gray-500 sm:hidden">Aland, Florencia y otras llamadas registradas. El costo USD es una estimación de referencia, no la factura de OpenAI.</p>
+        <div class="flex gap-2 items-center ml-auto">
           <select id="openaiUsageDays" class="px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
             <option value="7">Últimos 7 días</option>
             <option value="30" selected>Últimos 30 días</option>
@@ -2188,14 +2233,11 @@ function hasPerm(key) {
     </section>
 
     <!-- MENSAJES ALERTA -->
-    <section class="<%= panelClass('alertas') %>" data-panel="alertas">
+    <section class="<%= panelClass('alertas') %>" data-panel="alertas" data-subtitle="<%= t('admin.alertas.subtitle') %>">
       <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-        <div>
-          <h3 class="text-lg font-semibold"><%= t('admin.alertas.title') %></h3>
-          <p class="text-xs text-gray-500 mt-1"><%= t('admin.alertas.subtitle') %></p>
-        </div>
+        <p class="text-xs text-gray-500 sm:hidden"><%= t('admin.alertas.subtitle') %></p>
         <% if (hasPerm('alertas.manage')) { %>
-        <button type="button" id="alertasNewBtn" class="admin-primary-btn !py-2 !px-3 text-sm"><%= t('admin.alertas.new') %></button>
+        <button type="button" id="alertasNewBtn" class="admin-primary-btn !py-2 !px-3 text-sm ml-auto"><%= t('admin.alertas.new') %></button>
         <% } %>
       </div>
 
@@ -2265,13 +2307,10 @@ function hasPerm(key) {
     </section>
 
     <!-- INFORMES AGENTES -->
-    <section class="<%= panelClass('informes') %>" data-panel="informes">
+    <section class="<%= panelClass('informes') %>" data-panel="informes" data-subtitle="<%= t('admin.informes.subtitle') %>">
       <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-        <div>
-          <h3 class="text-lg font-semibold"><%= t('admin.informes.title') %></h3>
-          <p class="text-xs text-gray-500 mt-1"><%= t('admin.informes.subtitle') %></p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
+        <p class="text-xs text-gray-500 sm:hidden"><%= t('admin.informes.subtitle') %></p>
+        <div class="flex flex-wrap items-center gap-2 ml-auto">
           <input type="date" id="informesDate" class="px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
           <button type="button" id="informesRefresh" class="admin-primary-btn !py-2 !px-3 text-sm"><%= t('admin.informes.refresh') %></button>
         </div>
@@ -2306,6 +2345,11 @@ function hasPerm(key) {
         <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200">
           <h4 class="text-sm font-semibold mb-2"><%= t('admin.informes.finance_checklist') %></h4>
           <div id="informesFinanceChecklist" class="space-y-2 text-xs mb-4"></div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <h4 class="text-sm font-semibold"><%= t('admin.informes.decisions') %></h4>
+            <button type="button" id="informesNotifyFounder" class="admin-secondary-btn !py-1.5 !px-3 text-xs"><%= t('admin.informes.notify_founder') %></button>
+          </div>
+          <div id="informesFinanceDecisions" class="space-y-2 text-xs mb-4 max-h-56 overflow-y-auto"></div>
           <h4 class="text-sm font-semibold mb-2"><%= t('admin.informes.payroll') %></h4>
           <div id="informesPayroll" class="space-y-1 text-xs max-h-40 overflow-y-auto"></div>
           <h4 class="text-sm font-semibold mt-4 mb-2"><%= t('admin.informes.payment_issues') %></h4>
@@ -2331,9 +2375,8 @@ function hasPerm(key) {
     </section>
 
     <!-- MENSAJES -->
-    <section class="<%= panelClass('mensajes') %>" data-panel="mensajes">
-      <h3 class="text-lg font-semibold mb-1"><%= t('admin.mensajes.title') %></h3>
-      <p class="text-xs text-gray-500 mb-4">Consultas derivadas por Aland IA. Si el socio no responde en 5 minutos, llegan aquí automáticamente.</p>
+    <section class="<%= panelClass('mensajes') %>" data-panel="mensajes" data-subtitle="Consultas derivadas por Aland IA. Si el socio no responde en 5 minutos, llegan aquí automáticamente.">
+      <p class="text-xs text-gray-500 mb-4 sm:hidden">Consultas derivadas por Aland IA. Si el socio no responde en 5 minutos, llegan aquí automáticamente.</p>
       <div class="grid lg:grid-cols-2 gap-4">
         <div id="mensajesList" class="space-y-2 max-h-[32rem] overflow-y-auto"></div>
         <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 min-h-[20rem] flex flex-col">
@@ -2352,14 +2395,11 @@ function hasPerm(key) {
 
     <% if (canAccessPanelFn('equipo')) { %>
     <!-- EQUIPO -->
-    <section class="<%= panelClass('equipo') %>" data-panel="equipo">
+    <section class="<%= panelClass('equipo') %>" data-panel="equipo" data-subtitle="Crea administradores, perfiles de permisos y asigna superadmin o admin.mod con acceso total.">
       <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
-        <div>
-          <h3 class="text-lg font-semibold"><%= t('admin.equipo.title') %></h3>
-          <p class="text-xs text-gray-500 mt-1">Crea administradores, perfiles de permisos y asigna superadmin o admin.mod con acceso total.</p>
-        </div>
+        <p class="text-xs text-gray-500 sm:hidden">Crea administradores, perfiles de permisos y asigna superadmin o admin.mod con acceso total.</p>
         <% if (canManageTeam) { %>
-          <div class="flex flex-wrap gap-2 shrink-0">
+          <div class="flex flex-wrap gap-2 shrink-0 ml-auto">
             <% if (canManageProfiles) { %>
               <button type="button" id="btnNewProfile" class="admin-secondary-btn">+ Nuevo perfil</button>
             <% } %>
@@ -2548,8 +2588,6 @@ function hasPerm(key) {
 
     <!-- SEGURIDAD -->
     <section class="<%= panelClass('seguridad') %>" data-panel="seguridad">
-      <h3 class="text-lg font-semibold mb-3"><%= t('admin.seguridad.title') %></h3>
-
       <% const modePanel = typeof appModeStatus !== 'undefined' ? appModeStatus : { mode: 'demo', label: 'Modo demo', isDemo: true, canToggle: true, adminBasePath: '/admin' }; %>
       <div class="p-4 rounded-2xl border mb-4 <%= modePanel.isProduction ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-amber-500/10 border-amber-500/30' %>">
         <div class="flex flex-wrap items-start justify-between gap-3">

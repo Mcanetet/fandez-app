@@ -549,6 +549,15 @@
           <button type="button" id="btnRejectBudget" class="flex-1 py-2 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.service.reject') %></button>
         </div>
       </div>
+      <div id="materialsPurchaseBanner" class="hidden p-4 rounded-2xl border border-amber-300 bg-amber-50">
+        <p class="text-sm font-semibold text-amber-900 mb-1">Material adicional — debes aprobar</p>
+        <p id="materialsPurchaseText" class="text-xs text-amber-900/80 mb-2"></p>
+        <p class="text-[11px] text-amber-800/80 mb-3">Si el material es de $10.000 o más se cobra a costo. Menos de $10.000 va incluido en el servicio.</p>
+        <div class="flex gap-2">
+          <button type="button" id="btnApproveMaterialsPurchase" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm">OK, puede comprar</button>
+          <button type="button" id="btnRejectMaterialsPurchase" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm">Rechazar</button>
+        </div>
+      </div>
       <div id="activityChangeBanner" class="hidden p-4 rounded-2xl border border-amber-300 bg-amber-50">
         <p class="text-sm font-semibold text-amber-900 mb-1"><%= t('client.js.activity_change_title') %></p>
         <p id="activityChangeText" class="text-xs text-amber-900/80 mb-2"></p>
@@ -620,6 +629,9 @@
           <button type="button" id="tripHeroChat" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-xs">Mensajes</button>
           <a id="tripHeroCall" href="#" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-center hidden">Llamar</a>
         </div>
+        <button type="button" id="btnSafetyAlert" class="w-full mt-3 py-2.5 rounded-xl border border-red-300 bg-red-50 text-red-800 text-xs font-semibold">
+          Me siento inseguro
+        </button>
       </div>
       <div id="arrivalCodeCard" class="hidden p-4 rounded-2xl border border-zilo-accent/25 bg-zilo-accent/5 mb-4">
         <p class="zilo-label mb-1 text-zilo-accent"><%= t('client.service.security_code_label') %></p>
@@ -694,6 +706,7 @@
         <a id="providerPhone" href="#" class="hidden zilo-btn-ghost w-full mb-2"><%= t('client.service.call_tech') %></a>
         <button type="button" id="btnChangeProvider" class="hidden w-full mb-2 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-semibold">Cambiar de socio (seguir buscando)</button>
         <button type="button" id="btnCancelService" class="w-full mb-2 py-2.5 rounded-xl border border-red-200 bg-white text-red-700 text-xs font-semibold"><%= t('client.service.cancel_track') %></button>
+        <button type="button" id="btnSafetyReport" class="w-full mb-2 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-zilo-muted">Reportar problema de seguridad</button>
         <a id="whatsappSupport" href="#aland-support" data-open-aland class="zilo-btn-ghost w-full text-aland-strong border-aland/25"><%= t('client.service.concierge') %></a>
       </div>
 
@@ -837,6 +850,31 @@
         <button type="button" id="cancelModalConfirm" class="cancel-confirm-btn w-full py-2.5 rounded-xl text-sm font-semibold" disabled>
           <%= t('client.service.cancel_confirm_btn') %>
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="safetyModal" class="hidden fixed inset-0 z-[430]" aria-hidden="true" role="dialog" aria-labelledby="safetyModalTitle">
+  <div id="safetyModalBackdrop" class="absolute inset-0 bg-black/55 backdrop-blur-sm"></div>
+  <div class="relative z-10 max-w-lg mx-auto h-full flex flex-col justify-end sm:justify-center px-0 sm:px-5">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl border border-zilo-border shadow-xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 pt-5 pb-3 border-b border-zilo-border">
+        <p class="zilo-label text-red-700 mb-1">Seguridad</p>
+        <h2 id="safetyModalTitle" class="text-lg font-semibold leading-snug">¿Qué está pasando?</h2>
+        <p class="text-xs text-zilo-muted mt-1 leading-relaxed">Si hay riesgo inmediato, llama al <strong>133</strong>. También registramos la alerta en Fandez.</p>
+      </div>
+      <div class="px-5 py-4 overflow-y-auto space-y-3 flex-1">
+        <div id="safetyCategoryList" class="space-y-2"></div>
+        <div>
+          <label class="text-xs text-zilo-muted" for="safetyNotes">Detalle opcional</label>
+          <textarea id="safetyNotes" rows="2" maxlength="800" class="zilo-input w-full mt-1 text-sm" placeholder="Solo lo esencial. No hace falta probar nada aquí."></textarea>
+        </div>
+        <a href="tel:133" class="block w-full py-3 rounded-xl border border-red-300 bg-red-50 text-red-800 text-sm font-semibold text-center">Llamar 133 · Carabineros</a>
+      </div>
+      <div class="px-5 py-4 border-t border-zilo-border space-y-2 safe-bottom bg-white">
+        <button type="button" id="safetyModalSubmit" class="w-full py-3.5 rounded-xl bg-red-700 text-white text-sm font-semibold" disabled>Enviar alerta</button>
+        <button type="button" id="safetyModalClose" class="w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm">Cerrar</button>
       </div>
     </div>
   </div>

@@ -9,13 +9,13 @@
   <main class="flex-1 px-5 py-5 space-y-5">
     <div class="p-4 rounded-2xl border <%= summary.canOperate ? 'border-emerald-500/30 bg-emerald-500/10' : summary.status === 'pending_review' ? 'border-amber-500/30 bg-amber-500/10' : 'border-blue-500/30 bg-blue-500/10' %>">
       <p class="text-sm font-semibold mb-1"><%= summary.label %></p>
-      <p class="text-xs text-zilo-muted mt-1">Sube los papeles esenciales y firma. El carnet también va en Perfil.</p>
-      <p class="text-xs text-zilo-muted mt-2">Versión contrato v<%= templateVersion %> · <%= company.name %></p>
+      <p class="text-xs text-zilo-muted mt-1">Lo esencial: carnet, escritura y e-RUT (si eres empresa), cuenta para liquidaciones y firma.</p>
+      <p class="text-xs text-zilo-muted mt-2">Contrato v<%= templateVersion %> · <%= company.name %></p>
       <% if (contract.review?.rejectionReason) { %>
         <p class="text-xs text-red-600 mt-2"><strong>Observación:</strong> <%= contract.review.rejectionReason %></p>
       <% } %>
       <% if (contract.review?.reviewNotes && summary.status === 'needs_info') { %>
-        <p class="text-xs text-amber-700 mt-2"><strong>Solicitud del equipo legal:</strong> <%= contract.review.reviewNotes %></p>
+        <p class="text-xs text-amber-700 mt-2"><strong>Solicitud del equipo:</strong> <%= contract.review.reviewNotes %></p>
       <% } %>
     </div>
 
@@ -26,16 +26,15 @@
       </div>
     <% } else if (summary.status === 'pending_review') { %>
       <div class="p-5 rounded-2xl zilo-card-premium">
-        <p class="text-sm font-semibold text-amber-600 text-center">Tu expediente está en revisión legal</p>
-        <p class="text-xs text-zilo-muted mt-2 text-center">La IA ya prechequeó cada antecedente. El equipo Fandez confirma o pide correcciones por documento.</p>
+        <p class="text-sm font-semibold text-amber-600 text-center">Expediente en revisión</p>
+        <p class="text-xs text-zilo-muted mt-2 text-center">Te avisamos cuando esté listo o si falta algo.</p>
         <div id="documentsList" class="space-y-3 mt-4"></div>
       </div>
     <% } else { %>
 
     <form id="contractForm" class="space-y-5">
-      <!-- Tipo de entidad -->
       <section class="p-5 rounded-2xl zilo-card-premium space-y-3">
-        <p class="zilo-label">1. Tipo de prestador</p>
+        <p class="zilo-label">1. ¿Cómo operas?</p>
         <% Object.values(entityTypes).forEach(function(et) { %>
           <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border cursor-pointer hover:border-blue-500/40">
             <input type="radio" name="entityType" value="<%= et.id %>" <%= contract.entityType === et.id ? 'checked' : '' %> class="mt-1">
@@ -47,43 +46,92 @@
         <% }); %>
       </section>
 
-      <!-- Datos legales -->
       <section class="p-5 rounded-2xl zilo-card-premium space-y-3">
-        <p class="zilo-label">2. Datos de la entidad prestadora</p>
+        <p class="zilo-label">2. Datos mínimos</p>
         <div class="grid sm:grid-cols-2 gap-3">
-          <div><label class="text-[10px] text-zilo-muted uppercase">RUT entidad</label><input name="legalEntity.rut" value="<%= contract.legalEntity.rut %>" class="zilo-input mt-1" placeholder="12.345.678-9"></div>
-          <div><label class="text-[10px] text-zilo-muted uppercase">Razón social / nombre legal</label><input name="legalEntity.legalName" value="<%= contract.legalEntity.legalName %>" class="zilo-input mt-1"></div>
-          <div><label class="text-[10px] text-zilo-muted uppercase">Nombre comercial</label><input name="legalEntity.tradeName" value="<%= contract.legalEntity.tradeName %>" class="zilo-input mt-1"></div>
-          <div><label class="text-[10px] text-zilo-muted uppercase">Giro</label><input name="legalEntity.giro" value="<%= contract.legalEntity.giro %>" class="zilo-input mt-1"></div>
-          <div class="sm:col-span-2"><label class="text-[10px] text-zilo-muted uppercase">Domicilio fiscal</label><input name="legalEntity.fiscalAddress" value="<%= contract.legalEntity.fiscalAddress %>" class="zilo-input mt-1"></div>
-          <div><label class="text-[10px] text-zilo-muted uppercase">Comuna</label><input name="legalEntity.commune" value="<%= contract.legalEntity.commune %>" class="zilo-input mt-1"></div>
-          <div><label class="text-[10px] text-zilo-muted uppercase">Región</label><input name="legalEntity.region" value="<%= contract.legalEntity.region %>" class="zilo-input mt-1"></div>
-          <div><label class="text-[10px] text-zilo-muted uppercase">Email comercial</label><input type="email" name="legalEntity.email" value="<%= contract.legalEntity.email || provider.email %>" class="zilo-input mt-1"></div>
-          <div><label class="text-[10px] text-zilo-muted uppercase">Teléfono</label><input name="legalEntity.phone" value="<%= contract.legalEntity.phone || provider.phone %>" class="zilo-input mt-1"></div>
+          <div>
+            <label class="text-[10px] text-zilo-muted uppercase">RUT (empresa o persona)</label>
+            <input name="legalEntity.rut" value="<%= contract.legalEntity.rut %>" class="zilo-input mt-1" placeholder="12.345.678-9" autocomplete="off">
+          </div>
+          <div>
+            <label class="text-[10px] text-zilo-muted uppercase">Razón social / nombre</label>
+            <input name="legalEntity.legalName" value="<%= contract.legalEntity.legalName || provider.name %>" class="zilo-input mt-1">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="text-[10px] text-zilo-muted uppercase">Nombre del titular / representante</label>
+            <input name="legalRepresentative.fullName" value="<%= contract.legalRepresentative.fullName || provider.name %>" class="zilo-input mt-1">
+          </div>
+          <div>
+            <label class="text-[10px] text-zilo-muted uppercase">RUT del titular / representante</label>
+            <input name="legalRepresentative.rut" value="<%= contract.legalRepresentative.rut %>" class="zilo-input mt-1" placeholder="12.345.678-9">
+          </div>
+          <input type="hidden" name="legalRepresentative.role" value="<%= contract.legalRepresentative.role || 'Representante legal' %>">
+          <input type="hidden" name="legalEntity.email" value="<%= contract.legalEntity.email || provider.email %>">
+          <input type="hidden" name="legalEntity.phone" value="<%= contract.legalEntity.phone || provider.phone %>">
         </div>
       </section>
 
-      <!-- Representante legal -->
-      <section class="p-5 rounded-2xl zilo-card-premium space-y-3">
-        <p class="zilo-label">3. Representante legal (cédula de identidad)</p>
-        <div class="grid sm:grid-cols-2 gap-3">
-          <div class="sm:col-span-2"><label class="text-[10px] text-zilo-muted uppercase">Nombre completo</label><input name="legalRepresentative.fullName" value="<%= contract.legalRepresentative.fullName || provider.name %>" class="zilo-input mt-1"></div>
-          <div><label class="text-[10px] text-zilo-muted uppercase">RUT representante</label><input name="legalRepresentative.rut" value="<%= contract.legalRepresentative.rut %>" class="zilo-input mt-1"></div>
-          <div><label class="text-[10px] text-zilo-muted uppercase">Cargo</label><input name="legalRepresentative.role" value="<%= contract.legalRepresentative.role %>" class="zilo-input mt-1"></div>
-        </div>
-      </section>
-
-      <!-- Documentos -->
       <section class="p-5 rounded-2xl zilo-card-premium space-y-3" id="documentsSection">
-        <p class="zilo-label">4. Antecedentes documentales</p>
-        <p class="text-xs text-zilo-muted">Solo pedimos lo esencial. Toma la foto con el celular o elige un archivo; se comprime sola (JPEG/PNG/PDF, máx. 5 MB). El resto es opcional.</p>
+        <p class="zilo-label">3. Documentos</p>
+        <p class="text-xs text-zilo-muted">Persona natural: carnet. Empresa: carnet + escritura + e-RUT. Foto o PDF, máx. 5 MB.</p>
+        <% const rmUi = contract.representativeMatch || {}; %>
+        <% if (contract.entityType === 'empresa') { %>
+          <div class="p-3 rounded-xl border <%= (rmUi.status === 'validated' || rmUi.validated) ? 'border-emerald-500/30 bg-emerald-500/10' : rmUi.status === 'mismatch' ? 'border-red-500/30 bg-red-500/10' : 'border-zilo-border bg-zilo-bg/40' %>">
+            <p class="text-xs font-semibold <%= (rmUi.status === 'validated' || rmUi.validated) ? 'text-emerald-700' : rmUi.status === 'mismatch' ? 'text-red-700' : 'text-zilo-muted' %>">
+              <%= (rmUi.status === 'validated' || rmUi.validated) ? 'Representante validado' : rmUi.status === 'mismatch' ? 'Representante no coincide' : 'Validación de representante' %>
+            </p>
+            <p class="text-[11px] text-zilo-muted mt-1">
+              <%= rmUi.reason || 'Al subir carnet y escritura, Sofía cruza que sea la misma persona.' %>
+            </p>
+          </div>
+          <% const erutUi = contract.erutValidation || {}; %>
+          <div class="p-3 rounded-xl border <%= (erutUi.status === 'validated' || erutUi.validated) ? 'border-emerald-500/30 bg-emerald-500/10' : (erutUi.status === 'fake' || erutUi.status === 'mismatch') ? 'border-red-500/30 bg-red-500/10' : erutUi.status === 'suspicious' ? 'border-amber-500/30 bg-amber-500/10' : 'border-zilo-border bg-zilo-bg/40' %>">
+            <p class="text-xs font-semibold <%= (erutUi.status === 'validated' || erutUi.validated) ? 'text-emerald-700' : (erutUi.status === 'fake' || erutUi.status === 'mismatch') ? 'text-red-700' : erutUi.status === 'suspicious' ? 'text-amber-800' : 'text-zilo-muted' %>">
+              <%= erutUi.label || 'Validación e-RUT' %>
+            </p>
+            <p class="text-[11px] text-zilo-muted mt-1">
+              <%= erutUi.reason || 'Al subir el e-RUT, revisamos RUT/razón social y que el QR o código de barras se vea auténtico.' %>
+            </p>
+          </div>
+        <% } %>
         <div id="documentsList" class="space-y-3"></div>
       </section>
 
-      <!-- Contrato -->
+      <% const bank = contract.bankAccount || {}; %>
       <section class="p-5 rounded-2xl zilo-card-premium space-y-3">
-        <p class="zilo-label">5. Contrato de prestación de servicios</p>
-        <div class="max-h-64 overflow-y-auto text-xs text-zilo-muted space-y-3 pr-2 border border-zilo-border rounded-xl p-3 bg-zilo-bg/50">
+        <p class="zilo-label">4. Cuenta para liquidaciones</p>
+        <p class="text-xs text-zilo-muted">Donde te depositamos. Debe coincidir con el titular del carnet o la empresa.</p>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] text-zilo-muted uppercase">Banco</label>
+            <input name="bankAccount.bankName" value="<%= bank.bankName || '' %>" class="zilo-input mt-1" placeholder="Ej. Banco de Chile" autocomplete="off">
+          </div>
+          <div>
+            <label class="text-[10px] text-zilo-muted uppercase">Tipo de cuenta</label>
+            <select name="bankAccount.accountType" class="zilo-input mt-1">
+              <% (typeof bankAccountTypes !== 'undefined' ? bankAccountTypes : [{ id: 'cuenta corriente', label: 'Cuenta corriente' }, { id: 'cuenta vista', label: 'Cuenta vista / RUT' }, { id: 'cuenta ahorro', label: 'Cuenta de ahorro' }]).forEach(function(t) { %>
+                <option value="<%= t.id %>" <%= (bank.accountType || 'cuenta corriente') === t.id ? 'selected' : '' %>><%= t.label %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="text-[10px] text-zilo-muted uppercase">Número de cuenta</label>
+            <input name="bankAccount.accountNumber" value="<%= bank.accountNumber || '' %>" class="zilo-input mt-1" inputmode="numeric" autocomplete="off">
+          </div>
+          <div>
+            <label class="text-[10px] text-zilo-muted uppercase">Titular</label>
+            <input name="bankAccount.holderName" value="<%= bank.holderName || contract.legalRepresentative.fullName || provider.name %>" class="zilo-input mt-1">
+          </div>
+          <div>
+            <label class="text-[10px] text-zilo-muted uppercase">RUT titular</label>
+            <input name="bankAccount.holderRut" value="<%= bank.holderRut || contract.legalRepresentative.rut || '' %>" class="zilo-input mt-1" placeholder="12.345.678-9">
+          </div>
+        </div>
+      </section>
+
+      <section class="p-5 rounded-2xl zilo-card-premium space-y-3">
+        <p class="zilo-label">5. Contrato y firma</p>
+        <div class="max-h-40 overflow-y-auto text-xs text-zilo-muted space-y-3 pr-2 border border-zilo-border rounded-xl p-3 bg-zilo-bg/50">
           <% contractClauses.forEach(function(clause) { %>
             <div>
               <strong class="text-zilo-text block mb-1"><%= clause.title %></strong>
@@ -91,34 +139,23 @@
             </div>
           <% }); %>
         </div>
-      </section>
-
-      <!-- Declaraciones -->
-      <section class="p-5 rounded-2xl zilo-card-premium space-y-2">
-        <p class="zilo-label">6. Declaraciones</p>
-        <p class="text-[11px] text-zilo-muted mb-2">Tres puntos. El detalle está en el contrato de arriba.</p>
         <% legalDeclarations.forEach(function(decl) { %>
           <label class="flex items-start gap-2 text-xs cursor-pointer">
             <input type="checkbox" name="declarations" value="<%= decl.id %>" <%= contract.declarations[decl.id] ? 'checked' : '' %> class="mt-0.5">
             <span><%= decl.text %></span>
           </label>
         <% }); %>
-      </section>
-
-      <!-- Firma -->
-      <section class="p-5 rounded-2xl zilo-card-premium space-y-3">
-        <p class="zilo-label">7. Firma electrónica</p>
-        <div class="grid sm:grid-cols-2 gap-3">
-          <div><label class="text-[10px] text-zilo-muted uppercase">Nombre del firmante</label><input name="signature.signerName" value="<%= contract.signature?.signerName || provider.name %>" class="zilo-input mt-1"></div>
-          <div><label class="text-[10px] text-zilo-muted uppercase">RUT del firmante</label><input name="signature.signerRut" value="<%= contract.signature?.signerRut %>" class="zilo-input mt-1"></div>
+        <div class="grid sm:grid-cols-2 gap-3 pt-2">
+          <div><label class="text-[10px] text-zilo-muted uppercase">Nombre firmante</label><input name="signature.signerName" value="<%= contract.signature?.signerName || provider.name %>" class="zilo-input mt-1"></div>
+          <div><label class="text-[10px] text-zilo-muted uppercase">RUT firmante</label><input name="signature.signerRut" value="<%= contract.signature?.signerRut || contract.legalRepresentative.rut %>" class="zilo-input mt-1"></div>
         </div>
         <label class="flex items-start gap-2 text-xs cursor-pointer">
           <input type="checkbox" id="acceptContract" <%= contract.signature?.accepted ? 'checked' : '' %>>
-          <span>Acepto el contrato v<%= templateVersion %> y envío mi expediente a revisión.</span>
+          <span>Acepto el contrato v<%= templateVersion %> y envío a revisión.</span>
         </label>
       </section>
 
-      <button type="submit" id="btnSubmitContract" class="zilo-btn-primary w-full !py-3.5">Enviar a revisión legal</button>
+      <button type="submit" id="btnSubmitContract" class="zilo-btn-primary w-full !py-3.5">Enviar a revisión</button>
     </form>
     <% } %>
   </main>

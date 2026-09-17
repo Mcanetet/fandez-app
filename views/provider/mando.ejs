@@ -115,7 +115,7 @@
                     <% } %>
                     <button type="button" class="flex-1 zilo-btn-ghost !py-2 !text-xs" data-role="open-chat" data-id="<%= r.id %>" data-client="<%= r.clientName || 'Cliente' %>"><%= t('provider.mando_page.chat_client') %></button>
                   </div>
-                  <% if (!['en_sitio','diagnostico','reparando','comprando','presupuesto_pendiente','presupuesto_aprobado','completado'].includes(r.techStatus)) { %>
+                  <% if (!['en_sitio','diagnostico','reparando','comprando','materiales_pendiente','presupuesto_pendiente','presupuesto_aprobado','completado'].includes(r.techStatus)) { %>
                     <details class="mt-1">
                       <summary class="text-[11px] text-zilo-muted cursor-pointer py-1">Más opciones</summary>
                       <button type="button" class="w-full mt-2 py-2 text-xs text-red-700 underline" data-role="desert-btn" data-id="<%= r.id %>"><%= t('provider.mando_page.release_short') %></button>

@@ -116,7 +116,7 @@
     showWizardPanel('materiales');
   });
 
-  const WIZARD_PANELS = ['confirmar', 'trayecto', 'llegada', 'diagnostico', 'accion', 'presupuesto', 'espera', 'materiales', 'cierre', 'cambio'];
+  const WIZARD_PANELS = ['confirmar', 'trayecto', 'llegada', 'diagnostico', 'accion', 'presupuesto', 'espera', 'mat-propuesta', 'mat-espera', 'materiales', 'cierre', 'cambio'];
 
   function resolveWizardStep() {
     const nav = document.getElementById('fieldWizard');
@@ -133,6 +133,9 @@
     if (ts === 'en_sitio') return 'diagnostico';
     if (ts === 'diagnostico') return 'accion';
     if (ts === 'presupuesto_pendiente') return 'presupuesto';
+    if (ts === 'materiales_pendiente') {
+      return nav?.dataset.matPurchase === 'pending' ? 'mat-espera' : 'mat-propuesta';
+    }
     if (ts === 'comprando') return 'materiales';
     if (ts === 'reparando' || ts === 'presupuesto_aprobado') return 'cierre';
     return 'trayecto';
@@ -245,6 +248,50 @@
         notify(err.message || 'Error', 'error');
       }
     });
+  });
+
+  document.getElementById('btnMaterialesCompra')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btnMaterialesCompra');
+    const estimatedAmount = document.getElementById('matPurchaseAmount')?.value;
+    const description = document.getElementById('matPurchaseDesc')?.value.trim();
+    if (!estimatedAmount) return notify('Indica el monto estimado del material', 'warning');
+    if (!description || description.length < 4) return notify('Describe el material necesario', 'warning');
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/tecnico/trabajo/${requestId}/materiales-compra`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ estimatedAmount, description })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Error');
+      notify(
+        data.included
+          ? 'Material bajo $10.000: incluido en el servicio. Puedes registrar lo usado.'
+          : 'Solicitud enviada al cliente. Espera su OK para ir a comprar.',
+        'success'
+      );
+      location.reload();
+    } catch (err) {
+      btn.disabled = false;
+      notify(err.message || 'No se pudo enviar', 'error');
+    }
+  });
+
+  document.getElementById('btnRequestMaterialsOk')?.addEventListener('click', () => {
+    const amount = document.getElementById('matAmount')?.value;
+    const desc = document.getElementById('matDesc')?.value.trim()
+      || document.getElementById('matCatalog')?.selectedOptions?.[0]?.dataset?.name
+      || '';
+    if (amount) {
+      const wrap = document.getElementById('matPurchaseAmount');
+      if (wrap) wrap.value = amount;
+    }
+    if (desc) {
+      const d = document.getElementById('matPurchaseDesc');
+      if (d) d.value = desc;
+    }
+    showWizardPanel('mat-propuesta');
   });
 
   function toggleOtherFields() {
@@ -487,9 +534,11 @@
       if (!res.ok || !data.success) throw new Error(data.error || 'Error');
       const reviewMsg = data.review?.status === 'approved'
         ? 'Material agregado'
-        : (data.review?.status === 'pending_manual'
-          ? 'Material agregado · boleta pendiente de revisión'
-          : 'Material agregado');
+        : (data.review?.status === 'pending_founder'
+          ? 'Material agregado · boleta pendiente del founder'
+          : (data.review?.status === 'pending_manual'
+            ? 'Material agregado · boleta pendiente de revisión'
+            : 'Material agregado'));
       notify(reviewMsg, 'success');
       location.reload();
     } catch (err) {
@@ -688,6 +737,90 @@
   document.getElementById('btnOpenFieldChat')?.addEventListener('click', openChat);
   document.getElementById('btnOpenFieldChatFab')?.addEventListener('click', openChat);
   document.getElementById('btnOpenFieldChatFromTips')?.addEventListener('click', openChat);
+
+  const SAFETY_CATS = [
+    { id: 'unsafe_feeling', label: 'Me siento inseguro/a' },
+    { id: 'harassment', label: 'Acoso o conducta indebida' },
+    { id: 'theft', label: 'Robo o hurto' },
+    { id: 'assault_threat', label: 'Amenaza o agresión' },
+    { id: 'fraud', label: 'Fraude o cobro indebido' },
+    { id: 'other_safety', label: 'Otro problema de seguridad' }
+  ];
+  let techSafetyCat = null;
+
+  function closeTechSafetyModal() {
+    const modal = document.getElementById('safetyModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    techSafetyCat = null;
+    const notes = document.getElementById('safetyNotes');
+    if (notes) notes.value = '';
+    const end = document.getElementById('safetyEndVisit');
+    if (end) end.checked = false;
+    const submit = document.getElementById('safetyModalSubmit');
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = 'Enviar alerta';
+    }
+  }
+
+  function openTechSafetyModal() {
+    const modal = document.getElementById('safetyModal');
+    const list = document.getElementById('safetyCategoryList');
+    const submit = document.getElementById('safetyModalSubmit');
+    if (!modal || !list || page.dataset.observer === '1') return;
+    list.innerHTML = SAFETY_CATS.map((c) => (
+      `<button type="button" data-safety-cat="${c.id}" class="w-full text-left px-3 py-3 rounded-xl border border-zilo-border text-sm hover:border-red-300 hover:bg-red-50">${c.label}</button>`
+    )).join('');
+    list.querySelectorAll('[data-safety-cat]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        techSafetyCat = btn.getAttribute('data-safety-cat');
+        list.querySelectorAll('[data-safety-cat]').forEach((b) => {
+          b.classList.toggle('border-red-400', b === btn);
+          b.classList.toggle('bg-red-50', b === btn);
+        });
+        if (submit) submit.disabled = false;
+      });
+    });
+    if (submit) submit.disabled = true;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  async function submitTechSafety() {
+    if (!requestId || !techSafetyCat) return;
+    const submit = document.getElementById('safetyModalSubmit');
+    const notes = document.getElementById('safetyNotes')?.value || '';
+    const endVisit = Boolean(document.getElementById('safetyEndVisit')?.checked);
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = 'Enviando…';
+    }
+    try {
+      const res = await fetch(`/tecnico/trabajo/${encodeURIComponent(requestId)}/seguridad`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ categoryId: techSafetyCat, channel: 'sos', notes, endVisit })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo enviar');
+      closeTechSafetyModal();
+      notify(data.message || 'Alerta registrada. Si hay riesgo llama al 133.', 'success');
+    } catch (err) {
+      notify(err.message || 'Error', 'error');
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = 'Enviar alerta';
+      }
+    }
+  }
+
+  document.getElementById('btnTechSafety')?.addEventListener('click', openTechSafetyModal);
+  document.getElementById('safetyModalClose')?.addEventListener('click', closeTechSafetyModal);
+  document.getElementById('safetyModalBackdrop')?.addEventListener('click', closeTechSafetyModal);
+  document.getElementById('safetyModalSubmit')?.addEventListener('click', submitTechSafety);
   chatModal?.querySelector('[data-role="chat-close"]')?.addEventListener('click', closeChat);
   chatModal?.querySelector('[data-role="chat-backdrop"]')?.addEventListener('click', closeChat);
   socket.on(`request_chat_${requestId}`, (payload) => {

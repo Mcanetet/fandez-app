@@ -25,17 +25,28 @@ describe('uploads — URLs y persistencia de fotos de pedidos', () => {
     expect(stableTechnicianPhotoUrl('')).toBe(null);
   });
 
-  test('guarda, mueve y resuelve una foto de pedido', () => {
-    const dataUrl = 'data:image/jpeg;base64,' + Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9]).toString('base64');
-    const tmpId = 'tmp-testuploads';
-    const url = saveRequestFile(tmpId, 'cliente', dataUrl);
-    expect(url).toMatch(/^\/uploads\/requests\/tmp-testuploads\/cliente-\d+\.jpg$/);
-    expect(resolveRequestPhotoPath(url)).toBeTruthy();
-    expect(fs.existsSync(resolveRequestPhotoPath(url))).toBe(true);
+  test('toServingUrl convierte docs de socio a /media/provider', () => {
+    expect(toServingUrl('/uploads/providers/p1/idFront-1.jpg')).toBe('/media/provider/p1/idFront-1.jpg');
+    expect(toServingUrl('/media/provider/p1/idFront-1.jpg')).toBe('/media/provider/p1/idFront-1.jpg');
+    expect(toServingUrl('demo')).toBe(null);
+  });
 
-    const finalId = 'req-final-test';
-    const moved = moveRequestPhoto(url, finalId, 'cliente');
-    expect(moved).toMatch(/^\/uploads\/requests\/req-final-test\/cliente-\d+\.jpg$/);
-    expect(fs.existsSync(resolveRequestPhotoPath(moved))).toBe(true);
+  test('guarda y resuelve documento de socio (dual public + data)', () => {
+    const { saveProviderFile, resolveProviderDocPath, DATA_PROVIDER_ROOT, UPLOAD_ROOT } = require('../lib/uploads');
+    const path = require('path');
+    const dataUrl = 'data:image/jpeg;base64,' + Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9]).toString('base64');
+    const pid = 'prov-testuploads';
+    const url = saveProviderFile(pid, 'idFront', dataUrl);
+    expect(url).toMatch(/^\/uploads\/providers\/prov-testuploads\/idFront-\d+\.jpg$/);
+    const abs = resolveProviderDocPath(url);
+    expect(abs).toBeTruthy();
+    expect(fs.existsSync(abs)).toBe(true);
+    const dataCopy = path.join(DATA_PROVIDER_ROOT, pid, path.basename(url));
+    const publicCopy = path.join(UPLOAD_ROOT, pid, path.basename(url));
+    expect(fs.existsSync(dataCopy)).toBe(true);
+    expect(fs.existsSync(publicCopy)).toBe(true);
+    // Si se borra public, data sigue sirviendo
+    fs.unlinkSync(publicCopy);
+    expect(fs.existsSync(resolveProviderDocPath(url))).toBe(true);
   });
 });

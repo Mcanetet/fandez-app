@@ -1544,7 +1544,18 @@ function cancelClientSearch(requestId, clientId, { reasonCode = null, reasonText
   });
   repository.persist(() => repository.saveRequest(request), `cancelar búsqueda ${requestId}`);
   afterEvent((ev) => ev.onRefundRequested?.(request));
-  return { success: true, request, ...money };
+  let safetyIncident = null;
+  if (reasonCode === 'safety_concern') {
+    safetyIncident = createSafetyIncident({
+      requestId,
+      reporterId: clientId,
+      reporterRole: 'client',
+      categoryId: 'unsafe_feeling',
+      channel: 'cancel_safety',
+      notes: reasonText || 'Cancelación con motivo de seguridad / comodidad'
+    });
+  }
+  return { success: true, request, ...money, safetyIncident: safetyIncident?.complaint || null };
 }
 
 /** Cancelación con escalera de fee cuando ya hay socio/técnico. */
@@ -1577,7 +1588,18 @@ function cancelClientRequest(requestId, clientId, { reasonCode = null, reasonTex
   request.techStatus = request.techStatus || null;
   repository.persist(() => repository.saveRequest(request), `cancelar servicio ${requestId}`);
   afterEvent((ev) => ev.onRefundRequested?.(request));
-  return { success: true, request, ...money };
+  let safetyIncident = null;
+  if (reasonCode === 'safety_concern') {
+    safetyIncident = createSafetyIncident({
+      requestId,
+      reporterId: clientId,
+      reporterRole: 'client',
+      categoryId: 'unsafe_feeling',
+      channel: 'cancel_safety',
+      notes: reasonText || 'Cancelación con motivo de seguridad / comodidad'
+    });
+  }
+  return { success: true, request, ...money, safetyIncident: safetyIncident?.complaint || null };
 }
 
 function previewCancellationFee(requestId, clientId) {
@@ -1640,6 +1662,19 @@ function getClientAttentionItems(clientId, now = Date.now()) {
         urgency: 'high',
         title: 'Cambio de precio — debes aprobar',
         body: `Nuevo total ${formatCLP(next)}${prev ? ` (antes ${formatCLP(prev)})` : ''}. Entra y pon OK.`,
+        url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
+      });
+      continue;
+    }
+
+    const materialsPurchase = request.siteReport?.materialsPurchase;
+    if (materialsPurchase && materialsPurchase.status === 'pending') {
+      items.push({
+        requestId: request.id,
+        type: 'materials_purchase',
+        urgency: 'high',
+        title: 'Material adicional — debes aprobar',
+        body: `Estimado ${formatCLP(materialsPurchase.estimatedAmount || 0)}${materialsPurchase.description ? `: ${materialsPurchase.description}` : ''}. Entra y pon OK.`,
         url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
       });
       continue;
@@ -2393,6 +2428,7 @@ function updateProviderContractDraft(providerId, payload) {
   if (payload.entityType) c.entityType = payload.entityType;
   if (payload.legalEntity) c.legalEntity = { ...c.legalEntity, ...payload.legalEntity };
   if (payload.legalRepresentative) c.legalRepresentative = { ...c.legalRepresentative, ...payload.legalRepresentative };
+  if (payload.bankAccount) c.bankAccount = { ...(c.bankAccount || {}), ...payload.bankAccount };
   if (payload.declarations) c.declarations = { ...c.declarations, ...payload.declarations };
   if (payload.signature) c.signature = { ...(c.signature || {}), ...payload.signature };
 
@@ -2424,6 +2460,14 @@ function saveContractDocument(providerId, docKey, url, label) {
     c.technicalCerts.push(rec);
   } else {
     c.documents[docKey] = rec;
+    // Sincroniza carnet del contrato → verificación KYC (un solo lugar)
+    if (docKey === 'rep_id_front') {
+      provider.verification.idCardFront = url;
+      provider.verification.status = computeVerificationStatus(provider);
+    } else if (docKey === 'rep_id_back') {
+      provider.verification.idCardBack = url;
+      provider.verification.status = computeVerificationStatus(provider);
+    }
   }
   c.status = 'incomplete';
   provider.providerContract = normalizeProviderContract(c);
@@ -2452,6 +2496,102 @@ function setContractDocumentAiReview(providerId, docKey, ai) {
   provider.providerContract = normalizeProviderContract(provider.providerContract);
   repository.persist(() => repository.saveUser(provider), `contrato ai ${providerId}`);
   return { success: true, contract: provider.providerContract };
+}
+
+function setRepresentativeMatch(providerId, match) {
+  const provider = getUserById(providerId);
+  if (!provider) return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+  provider.providerContract.representativeMatch = {
+    ...(provider.providerContract.representativeMatch || {}),
+    ...(match || {}),
+    reviewedAt: (match && match.reviewedAt) || new Date().toISOString()
+  };
+  provider.providerContract = normalizeProviderContract(provider.providerContract);
+  repository.persist(() => repository.saveUser(provider), `rep match ${providerId}`);
+  return { success: true, match: provider.providerContract.representativeMatch, contract: provider.providerContract };
+}
+
+/**
+ * Resuelve URLs de carnet + escritura y corre validación de representante.
+ */
+async function runRepresentativeMatchValidation(providerId) {
+  const { validateLegalRepresentative } = require('../lib/documentReview');
+  const provider = getUserById(providerId);
+  if (!provider) return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+  const c = provider.providerContract;
+  const v = provider.verification || {};
+  const carnetUrl = c.documents?.rep_id_front?.url || v.idCardFront || null;
+  const deedUrl = c.documents?.incorporation_deed?.url || null;
+  if (!deedUrl) {
+    return { skipped: true, reason: 'sin_escritura' };
+  }
+  if (!carnetUrl || carnetUrl === 'demo') {
+    return { skipped: true, reason: 'sin_carnet' };
+  }
+  const carnetAi = c.documents?.rep_id_front?.ai || v.reviews?.idFront?.ai || {};
+  const deedAi = c.documents?.incorporation_deed?.ai || {};
+  const match = await validateLegalRepresentative({
+    carnetUrl,
+    deedUrl,
+    declaredName: c.legalRepresentative?.fullName || provider.name || '',
+    declaredRut: c.legalRepresentative?.rut || '',
+    carnetHints: { extractedName: carnetAi.extractedName, extractedRut: carnetAi.extractedRut },
+    deedHints: { extractedName: deedAi.extractedName, extractedRut: deedAi.extractedRut }
+  });
+  return setRepresentativeMatch(providerId, match);
+}
+
+function setErutValidation(providerId, validation) {
+  const provider = getUserById(providerId);
+  if (!provider) return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+  provider.providerContract.erutValidation = {
+    ...(provider.providerContract.erutValidation || {}),
+    ...(validation || {}),
+    reviewedAt: (validation && validation.reviewedAt) || new Date().toISOString()
+  };
+  provider.providerContract = normalizeProviderContract(provider.providerContract);
+  repository.persist(() => repository.saveUser(provider), `erut validation ${providerId}`);
+  return {
+    success: true,
+    validation: provider.providerContract.erutValidation,
+    contract: provider.providerContract
+  };
+}
+
+async function runErutValidation(providerId) {
+  const { validateCompanyErut } = require('../lib/documentReview');
+  const provider = getUserById(providerId);
+  if (!provider) return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+  const c = provider.providerContract;
+  const url = c.documents?.company_rut?.url || null;
+  if (!url || url === 'demo') return { skipped: true, reason: 'sin_erut' };
+  const ai = c.documents?.company_rut?.ai || {};
+  const validation = await validateCompanyErut({
+    url,
+    declaredRut: c.legalEntity?.rut || '',
+    declaredLegalName: c.legalEntity?.legalName || '',
+    aiHints: ai
+  });
+  // Refresca AI del documento con campos de QR si vinieron de la validación
+  if (ai && (validation.hasQrOrBarcode != null || validation.extractedRut)) {
+    setContractDocumentAiReview(providerId, 'company_rut', {
+      ...ai,
+      extractedRut: validation.extractedRut || ai.extractedRut,
+      extractedLegalName: validation.extractedLegalName || ai.extractedLegalName,
+      hasQrOrBarcode: validation.hasQrOrBarcode,
+      qrLooksAuthentic: validation.qrLooksAuthentic,
+      reason: validation.reason || ai.reason,
+      status: validation.status === 'validated'
+        ? 'verified'
+        : (validation.status === 'fake' ? 'fake'
+          : (validation.status === 'mismatch' || validation.status === 'suspicious' ? 'suspicious' : ai.status))
+    });
+  }
+  return setErutValidation(providerId, validation);
 }
 
 function reviewContractDocument(providerId, docKey, { status, notes }, adminEmail) {
@@ -2518,12 +2658,16 @@ function listProviderReviewDocuments(providerId) {
       kind: 'kyc',
       source: 'kyc',
       def: { label: item.label },
-      url: item.url,
+      url: toServingUrl(item.url) || item.url,
+      storedUrl: item.url,
       ai: item.review?.ai || defaultDocumentMeta().ai,
       human: item.review?.human || defaultDocumentMeta().human
     });
   });
-  return items;
+  return items.map((doc) => ({
+    ...doc,
+    url: doc.url && doc.url !== 'demo' ? (toServingUrl(doc.url) || doc.url) : doc.url
+  }));
 }
 
 function submitProviderContract(providerId, { signature, ip, userAgent }) {
@@ -5077,6 +5221,7 @@ function updateTechStatus(requestId, technicianId, techStatus, { lat, lng } = {}
     diagnostico: 'in_progress',
     reparando: 'in_progress',
     comprando: 'in_progress',
+    materiales_pendiente: 'in_progress',
     presupuesto_pendiente: 'in_progress',
     presupuesto_aprobado: 'in_progress',
     completado: 'completed'
@@ -5243,6 +5388,16 @@ function recordSiteArrival(requestId, technicianId, { diagnosis, photoStart, arr
   return { success: true, request };
 }
 
+function getMaterialsIncludedThreshold() {
+  const cfg = getPricingConfig();
+  const n = parseInt(cfg.materialsIncludedThresholdClp, 10);
+  return Number.isFinite(n) && n >= 0 ? n : 10000;
+}
+
+function isMaterialBillableAmount(amount) {
+  return (parseInt(amount, 10) || 0) >= getMaterialsIncludedThreshold();
+}
+
 function setSiteAction(requestId, technicianId, action) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
@@ -5254,11 +5409,128 @@ function setSiteAction(requestId, technicianId, action) {
   const sr = ensureSiteReport(request);
   sr.action = action;
   if (action === 'reparar') request.techStatus = 'reparando';
-  else if (action === 'comprar') request.techStatus = 'comprando';
-  else request.techStatus = 'presupuesto_pendiente';
+  else if (action === 'comprar') {
+    // Formulario de estimación: < $10.000 incluido; ≥ $10.000 espera OK del cliente.
+    request.techStatus = 'materiales_pendiente';
+    if (sr.materialsPurchase && ['pending'].includes(sr.materialsPurchase.status)) {
+      return { error: 'Ya hay una compra de materiales pendiente del cliente.' };
+    }
+    // Limpia propuesta previa rechazada/incluida para permitir una nueva.
+    if (sr.materialsPurchase && sr.materialsPurchase.status !== 'pending') {
+      sr.materialsPurchase = null;
+    }
+  } else request.techStatus = 'presupuesto_pendiente';
 
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   return { success: true, request };
+}
+
+/**
+ * Técnico declara materiales necesarios.
+ * < umbral → incluidos en el servicio (pasa a comprando/uso sin cobro).
+ * ≥ umbral → avisa al cliente; tras OK → ir a comprar + subir factura.
+ */
+function submitMaterialsPurchase(requestId, technicianId, { estimatedAmount, description } = {}) {
+  const request = getRequestForTechnician(requestId, technicianId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (!['materiales_pendiente', 'diagnostico', 'reparando', 'comprando'].includes(request.techStatus)) {
+    return { error: 'No puedes solicitar materiales en este estado.' };
+  }
+
+  const parsed = parseInt(estimatedAmount, 10);
+  if (!parsed || parsed < 100) return { error: 'Indica el monto estimado del material (mín. $100).' };
+  description = String(description || '').trim();
+  if (description.length < 4) return { error: 'Describe qué material necesitas.' };
+
+  const threshold = getMaterialsIncludedThreshold();
+  const billable = parsed >= threshold;
+  const sr = ensureSiteReport(request);
+  if (sr.materialsPurchase?.status === 'pending') {
+    return { error: 'Ya hay una solicitud de materiales esperando al cliente.' };
+  }
+
+  if (!billable) {
+    sr.materialsPurchase = {
+      status: 'included',
+      estimatedAmount: parsed,
+      description,
+      billable: false,
+      includedInService: true,
+      threshold,
+      createdAt: new Date().toISOString(),
+      respondedAt: new Date().toISOString()
+    };
+    sr.action = 'comprar';
+    request.techStatus = 'comprando';
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `Material estimado ${formatCLP(parsed)} (menos de ${formatCLP(threshold)}): va incluido en el servicio. No se cobra aparte al cliente.`
+    });
+    repository.persist(() => repository.saveRequest(request), `materiales incluidos ${requestId}`);
+    return { success: true, request, included: true, materialsPurchase: sr.materialsPurchase };
+  }
+
+  sr.materialsPurchase = {
+    status: 'pending',
+    estimatedAmount: parsed,
+    description,
+    billable: true,
+    includedInService: false,
+    threshold,
+    createdAt: new Date().toISOString(),
+    respondedAt: null
+  };
+  sr.action = 'comprar';
+  request.techStatus = 'materiales_pendiente';
+  appendChatMessage(request, {
+    senderType: 'system',
+    senderId: null,
+    senderName: 'Fandez',
+    body: `El técnico solicita OK para comprar material adicional (~${formatCLP(parsed)}): ${description}`
+  });
+  repository.persist(() => repository.saveRequest(request), `materiales propuesta ${requestId}`);
+  afterEvent((ev) => ev.onMaterialsPurchaseProposed?.(request, sr.materialsPurchase));
+  return { success: true, request, included: false, materialsPurchase: sr.materialsPurchase };
+}
+
+function respondMaterialsPurchase(requestId, clientId, approved) {
+  const request = requests.find((r) => r.id === requestId && r.clientId === clientId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  const sr = ensureSiteReport(request);
+  const purchase = sr.materialsPurchase;
+  if (!purchase || purchase.status !== 'pending') {
+    return { error: 'No hay una compra de materiales pendiente.' };
+  }
+
+  purchase.status = approved ? 'approved' : 'rejected';
+  purchase.respondedAt = new Date().toISOString();
+
+  if (approved) {
+    request.techStatus = 'comprando';
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `Cliente aprobó la compra de material adicional (~${formatCLP(purchase.estimatedAmount)}). El técnico puede ir a comprar y debe subir la factura al pedido.`
+    });
+  } else {
+    request.techStatus = 'diagnostico';
+    sr.action = null;
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: 'Cliente rechazó la compra de material adicional. El técnico debe continuar sin ese material o proponer otra opción.'
+    });
+  }
+
+  repository.persist(() => repository.saveRequest(request), `respuesta materiales ${requestId}`);
+  afterEvent((ev) => {
+    ev.onMaterialsPurchaseResolved?.(request, purchase, { approved: Boolean(approved) });
+  });
+  return { success: true, request, approved: Boolean(approved), materialsPurchase: purchase };
 }
 
 function submitSiteBudget(requestId, technicianId, { amount, description }) {
@@ -5355,7 +5627,7 @@ function proposeActivityChange(requestId, technicianId, {
 }) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
-  if (!['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(request.techStatus)) {
+  if (!['en_sitio', 'diagnostico', 'reparando', 'comprando', 'materiales_pendiente', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(request.techStatus)) {
     return { error: 'El cambio de servicio se hace después de llegar al domicilio.' };
   }
   if (!request.arrivalCodeVerifiedAt) {
@@ -5542,13 +5814,41 @@ function addSiteMaterial(requestId, technicianId, {
   if (!parsed || parsed < 100) return { error: 'Monto de material inválido.' };
   if (!desc) return { error: 'Describe el material o elige uno del catálogo.' };
 
-  // Compra en tienda: boleta obligatoria. Stock/catálogo: no requiere boleta.
-  if (src === 'purchased' && !receiptUrl) {
-    return { error: 'Sube la boleta o factura del material comprado.' };
+  const threshold = getMaterialsIncludedThreshold();
+  const billable = parsed >= threshold;
+  const sr = ensureSiteReport(request);
+  const purchase = sr.materialsPurchase;
+
+  if (billable) {
+    if (!purchase || !['approved', 'purchasing'].includes(purchase.status)) {
+      return {
+        error: `Materiales de ${formatCLP(threshold)} o más requieren OK previo del cliente. Usa «Necesito materiales» y espera su aprobación.`
+      };
+    }
+    if (request.techStatus !== 'comprando' && request.techStatus !== 'presupuesto_aprobado') {
+      return { error: 'Tras el OK del cliente, registra la compra en el paso «Ir a comprar».' };
+    }
+    // Compra adicional: boleta/factura obligatoria.
+    if (!receiptUrl) {
+      return { error: 'Sube la boleta o factura del material adicional al pedido.' };
+    }
+  } else if (src === 'purchased' && !receiptUrl) {
+    // Compra chica (< umbral): boleta opcional pero recomendada; si marca purchased sin boleta, pedirla igual por trazabilidad mínima
+    return { error: 'Si saliste a comprar, sube la boleta (aunque el monto vaya incluido en el servicio).' };
   }
 
   let reviewResult = review || null;
-  if (src === 'stock' || (catalogItem && !receiptUrl)) {
+  if (!billable && (src === 'stock' || (catalogItem && !receiptUrl))) {
+    reviewResult = {
+      status: 'approved',
+      approved: true,
+      confidence: 1,
+      reason: catalogItem
+        ? `Incluido en servicio (< ${formatCLP(threshold)}). Precio lista.`
+        : `Incluido en servicio (< ${formatCLP(threshold)}). Stock del técnico.`,
+      reviewedAt: new Date().toISOString()
+    };
+  } else if (src === 'stock' || (catalogItem && !receiptUrl && !billable)) {
     reviewResult = {
       status: 'approved',
       approved: true,
@@ -5575,7 +5875,6 @@ function addSiteMaterial(requestId, technicianId, {
     };
   }
 
-  const sr = ensureSiteReport(request);
   const material = {
     id: `mat-${Date.now()}`,
     description: qty > 1 ? `${desc} × ${qty}` : desc,
@@ -5585,6 +5884,8 @@ function addSiteMaterial(requestId, technicianId, {
     unit: catalogItem?.unit || 'unidad',
     catalogId: catalogItem?.id || null,
     source: src,
+    billable,
+    includedInService: !billable,
     receiptUrl: receiptUrl || null,
     reviewStatus: reviewResult.status,
     reviewApproved: reviewResult.approved,
@@ -5594,8 +5895,40 @@ function addSiteMaterial(requestId, technicianId, {
     addedAt: new Date().toISOString()
   };
   sr.materials.push(material);
+  if (billable && purchase) {
+    purchase.status = 'purchasing';
+    purchase.lastMaterialId = material.id;
+  }
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   afterEvent((ev) => ev.onMaterialAdded?.(request, material));
+  return { success: true, request, material };
+}
+
+/**
+ * Founder/admin resuelve boleta pendiente (pending_founder | pending_manual).
+ * @param {'approved'|'rejected'} decision
+ */
+function resolveSiteMaterialReview(requestId, materialId, { decision, reason, actorEmail } = {}) {
+  const request = getRequestById(requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  const sr = ensureSiteReport(request);
+  const material = (sr.materials || []).find((m) => m.id === materialId);
+  if (!material) return { error: 'Material no encontrado.' };
+  const pending = material.reviewStatus === 'pending_founder' || material.reviewStatus === 'pending_manual';
+  if (!pending) {
+    return { error: `La boleta ya está en estado «${material.reviewStatus || 'sin revisión'}».` };
+  }
+  const dec = String(decision || '').toLowerCase();
+  if (dec !== 'approved' && dec !== 'rejected') {
+    return { error: 'Decisión inválida (approved | rejected).' };
+  }
+  const now = new Date().toISOString();
+  material.reviewStatus = dec;
+  material.reviewApproved = dec === 'approved';
+  material.reviewReason = String(reason || (dec === 'approved' ? 'Aprobada por founder/admin' : 'Rechazada por founder/admin')).slice(0, 280);
+  material.reviewedAt = now;
+  material.reviewResolvedBy = actorEmail || null;
+  repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   return { success: true, request, material };
 }
 
@@ -5617,6 +5950,15 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
   }
 
   const sr = ensureSiteReport(request);
+  if (sr.materialsPurchase?.status === 'pending') {
+    return { error: 'Hay una compra de materiales esperando el OK del cliente.' };
+  }
+  const pendingReview = (sr.materials || []).some((m) =>
+    m.reviewStatus === 'pending_founder' || m.reviewStatus === 'pending_manual'
+  );
+  if (pendingReview) {
+    return { error: 'Hay boletas de materiales pendientes de revisión (founder/admin). Espera la aprobación antes de cerrar.' };
+  }
   sr.workNotes = workNotes;
   sr.photoEnd = photoEnd;
   if (attentionChecklist && typeof attentionChecklist === 'object') {
@@ -5627,11 +5969,19 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
     };
   }
 
-  // Cobrar materiales al cliente a costo (no van en additionalPaymentsTotal / mano de obra).
-  const materialsTotal = (sr.materials || []).reduce((sum, m) => {
-    if (m.reviewStatus === 'rejected') return sum;
-    return sum + (parseInt(m.amount, 10) || 0);
-  }, 0);
+  // Solo materiales facturables (≥ umbral) y con revisión aprobada.
+  const billableMaterials = (sr.materials || []).filter((m) => {
+    if (m.reviewStatus === 'rejected') return false;
+    if (m.reviewStatus === 'pending_founder' || m.reviewStatus === 'pending_manual') return false;
+    if (m.reviewApproved === false) return false;
+    if (m.includedInService === true || m.billable === false) return false;
+    // Legacy sin flag: cobrar si alcanza el umbral actual
+    if (m.billable == null && m.includedInService == null) {
+      return isMaterialBillableAmount(m.amount);
+    }
+    return m.billable === true;
+  });
+  const materialsTotal = billableMaterials.reduce((sum, m) => sum + (parseInt(m.amount, 10) || 0), 0);
   const alreadyPaid = Math.max(0, parseInt(request.materialsPaidTotal, 10) || 0);
   const materialsDue = Math.max(0, materialsTotal - alreadyPaid);
   let additionalCharge = null;
@@ -5639,7 +5989,7 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
     const chargeResult = openAdditionalCharge(request, {
       reason: 'materials',
       baseAmount: materialsDue,
-      description: `Materiales de la visita (${(sr.materials || []).filter((m) => m.reviewStatus !== 'rejected').length} ítem(s))`
+      description: `Materiales adicionales (${billableMaterials.length} ítem(s), factura al pedido)`
     });
     if (chargeResult.error) return chargeResult;
     additionalCharge = chargeResult.additionalCharge;
@@ -6946,6 +7296,110 @@ function updateComplaintStatus(id, status) {
   return c;
 }
 
+/**
+ * Crea reclamo/incidente de seguridad y registra alerta.
+ * Canales: sos | report | cancel_safety
+ */
+function createSafetyIncident({
+  requestId,
+  reporterId,
+  reporterRole,
+  categoryId = 'other_safety',
+  channel = 'report',
+  notes = '',
+  endVisit = false
+} = {}) {
+  ensureReady();
+  const safety = require('../lib/safety');
+  const cat = safety.getCategory(categoryId);
+  const reporter = getUserById(reporterId);
+  if (!reporter) return { error: 'Usuario no encontrado.' };
+
+  const request = requestId ? requests.find((r) => r.id === requestId) : null;
+  if (requestId && !request) return { error: 'Solicitud no encontrada.' };
+
+  if (request) {
+    const isClient = reporterRole === 'client' && request.clientId === reporterId;
+    const isTech = reporterRole === 'tecnico' && request.technicianId === reporterId;
+    const isProvider = reporterRole === 'provider' && request.providerId === reporterId;
+    if (!isClient && !isTech && !isProvider) {
+      return { error: 'No autorizado para esta visita.' };
+    }
+  }
+
+  const now = new Date().toISOString();
+  const channelLabel = channel === 'sos' ? 'SOS' : (channel === 'cancel_safety' ? 'Cancelación por seguridad' : 'Reporte');
+  const subject = `[${channelLabel}] ${cat.label}${request ? ` · ${request.serviceName || request.id}` : ''}`;
+  const description = [
+    `Categoría: ${cat.label} (${cat.id})`,
+    `Severidad: ${cat.severity}`,
+    `Canal: ${channel}`,
+    `Rol reportante: ${reporterRole}`,
+    `Reportante: ${reporter.name || '—'} <${reporter.email || '—'}>`,
+    request ? `Pedido: ${request.id}` : 'Sin pedido vinculado',
+    request ? `Estado visita: ${request.status} / ${request.techStatus || '—'}` : '',
+    request?.providerId ? `Socio: ${request.providerId} (${request.providerName || '—'})` : '',
+    request?.technicianId ? `Técnico: ${request.technicianId} (${request.technicianName || '—'})` : '',
+    notes ? `Notas: ${String(notes).slice(0, 1500)}` : 'Sin notas adicionales',
+    `Creado: ${now}`
+  ].filter(Boolean).join('\n');
+
+  const complaint = {
+    id: `sec-${uuidv4().slice(0, 12)}`,
+    requestId: request ? request.id : null,
+    clientName: reporter.name || reporter.email || 'Usuario',
+    clientEmail: reporter.email || null,
+    type: 'seguridad',
+    subject: subject.slice(0, 255),
+    description,
+    status: 'abierto',
+    priority: cat.priority,
+    createdAt: now,
+    categoryId: cat.id,
+    severity: cat.severity,
+    channel,
+    reporterId,
+    reporterRole
+  };
+  COMPLAINTS.unshift(complaint);
+  repository.persist(() => repository.saveComplaint(complaint), `incidente ${complaint.id}`);
+
+  if (request) {
+    request.safetyAlert = {
+      at: now,
+      complaintId: complaint.id,
+      categoryId: cat.id,
+      severity: cat.severity,
+      channel,
+      reporterId,
+      reporterRole,
+      endVisit: Boolean(endVisit)
+    };
+    if (endVisit && ['searching', 'scheduled', 'assigned', 'in_progress'].includes(request.status)) {
+      request.techStatus = request.techStatus || null;
+      if (reporterRole === 'client') {
+        // No cancela automáticamente desde SOS (el cliente elige); solo marca alerta.
+      } else if (reporterRole === 'tecnico' || reporterRole === 'provider') {
+        request.safetyTechLeftAt = now;
+        request.safetyTechLeftReason = cat.id;
+      }
+    }
+    repository.persist(() => repository.saveRequest(request), `alerta seguridad ${request.id}`);
+  }
+
+  logSecurityEvent(
+    'safety_incident',
+    `${complaint.id} · ${channel} · ${cat.id} · req=${request?.id || '—'} · by=${reporter.email || reporterId}`,
+    { session: { user: { email: reporter.email, id: reporterId } } }
+  );
+
+  return { success: true, complaint, request, category: cat };
+}
+
+function listSafetyCategories() {
+  return require('../lib/safety').SAFETY_CATEGORIES;
+}
+
 function markPayoutPaid(requestId) {
   const req = requests.find(r => r.id === requestId);
   if (!req) return null;
@@ -7502,7 +7956,11 @@ module.exports = {
   setSiteAction,
   submitSiteBudget,
   respondSiteBudget,
+  submitMaterialsPurchase,
+  respondMaterialsPurchase,
+  getMaterialsIncludedThreshold,
   addSiteMaterial,
+  resolveSiteMaterialReview,
   completeSiteWork,
   getRequestsByTechnician,
   updateTechnicianLocation,
@@ -7572,6 +8030,8 @@ module.exports = {
   buildUserDsarPackage,
   anonymizeUserAccount,
   updateComplaintStatus,
+  createSafetyIncident,
+  listSafetyCategories,
   markPayoutPaid,
   getAdminRefundQueue,
   updateRefundStatus,
@@ -7611,6 +8071,10 @@ module.exports = {
   updateProviderContractDraft,
   saveContractDocument,
   setContractDocumentAiReview,
+  setRepresentativeMatch,
+  runRepresentativeMatchValidation,
+  setErutValidation,
+  runErutValidation,
   reviewContractDocument,
   listProviderReviewDocuments,
   submitProviderContract,

@@ -15,10 +15,6 @@ html {
 body,
 .zilo-body,
 .fandez-landing,
-.admin-page,
-.admin-shell,
-.admin-main,
-.admin-content,
 .min-h-screen,
 .min-h-full,
 #fandezSplash {
@@ -29,6 +25,32 @@ body,
   forced-color-adjust: none !important;
   -webkit-filter: none !important;
   filter: none !important;
+}
+
+.admin-page,
+.admin-shell,
+.admin-main {
+  color-scheme: only light !important;
+  background-color: #F4F0EA !important;
+  background-image: none !important;
+  color: #1a1714 !important;
+  forced-color-adjust: none !important;
+  -webkit-filter: none !important;
+  filter: none !important;
+}
+
+.admin-content {
+  color-scheme: only light !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #1a1714 !important;
+  forced-color-adjust: none !important;
+}
+
+.admin-sidebar {
+  background-color: #171411 !important;
+  background-image: none !important;
+  color: #E8E0D6 !important;
 }
 
 #fandezSplash {
@@ -68,6 +90,22 @@ body,
   color: #6b635a !important;
 }
 
+.admin-sidebar .zilo-label,
+.admin-sidebar .text-zilo-muted,
+.admin-sidebar .admin-version,
+.admin-sidebar .admin-nav-group-label {
+  color: #9A9186 !important;
+}
+
+.admin-sidebar h1 {
+  color: #FFF8F0 !important;
+}
+
+.admin-topbar {
+  background-color: rgba(244, 240, 234, 0.86) !important;
+  background-image: none !important;
+}
+
 img,
 svg,
 video,
@@ -102,11 +140,6 @@ picture {
   body,
   .zilo-body,
   .fandez-landing,
-  .admin-page,
-  .admin-shell,
-  .admin-main,
-  .admin-content,
-  .admin-sidebar,
   .min-h-screen,
   .min-h-full,
   .max-w-lg.mx-auto.min-h-screen,
@@ -131,6 +164,46 @@ picture {
     forced-color-adjust: none !important;
     -webkit-filter: none !important;
     filter: none !important;
+  }
+
+  .admin-page,
+  .admin-shell,
+  .admin-main {
+    color-scheme: only light !important;
+    background-color: #F4F0EA !important;
+    background-image: none !important;
+    color: #1a1714 !important;
+    forced-color-adjust: none !important;
+    -webkit-filter: none !important;
+    filter: none !important;
+  }
+
+  .admin-content {
+    background-color: transparent !important;
+    background-image: none !important;
+    color: #1a1714 !important;
+  }
+
+  .admin-sidebar {
+    background-color: #171411 !important;
+    background-image: none !important;
+    color: #E8E0D6 !important;
+    forced-color-adjust: none !important;
+    -webkit-filter: none !important;
+    filter: none !important;
+  }
+
+  .admin-sidebar h1,
+  .admin-sidebar .admin-nav-item,
+  .admin-sidebar .admin-user-chip p {
+    color: inherit !important;
+  }
+
+  .admin-sidebar .zilo-label,
+  .admin-sidebar .text-zilo-muted,
+  .admin-sidebar .admin-version,
+  .admin-sidebar .admin-nav-group-label {
+    color: #9A9186 !important;
   }
 
   header.sticky,

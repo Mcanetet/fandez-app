@@ -19,17 +19,21 @@ Además (ya existentes): empresa, precios, catálogo por servicio, procedimiento
 
 ## Agentes
 
-| Agente | Cómo usa el conocimiento |
-|--------|---------------------------|
-| **Sofía** | KB MySQL + `sofiaPrompts.js` v4 |
-| **Florencia** | `productBrief` en plan y chat (`lib/florencia/index.js`) |
-| **Clara** | Informes financieros; no chat (usa datos vivos de store) |
+| Agente | Cómo usa el conocimiento | Autonomía |
+|--------|---------------------------|-----------|
+| **Sofía** | KB MySQL + `sofiaPrompts.js` v5 + datos en vivo (`sofiaTools`) | DO FAQ/estado; ASK pagos/urgencia → DERIVAR_* |
+| **Florencia** | `productBrief` en plan y chat (`lib/florencia/index.js`) | DRAFT contenido; approve/publish solo founder |
+| **Clara** | Informes + decision pack (`lib/agents/clara.js`) | DO métricas; ASK payouts/reembolsos/boletas; NEVER mover plata |
+
+Gates: `lib/founderGates.js` · env `FOUNDER_EMAILS` / `FOUNDER_*`.
 
 ## Tras deploy
 
 1. Redeploy Hostinger  
-2. Admin → Sofía IA → **Sincronizar empresa y servicios**  
-3. Probar chat Sofía: “¿cómo pido un servicio?” / “quiero ser socio”
+2. Configurar `FOUNDER_EMAILS` (+ Telegram/ntfy founder si aplica)  
+3. Admin → Sofía IA → **Sincronizar empresa y servicios**  
+4. Probar chat Sofía: “¿cómo pido un servicio?” / “quiero ser socio”  
+5. Informes → Clara: ver decision pack y **Notificar founder**
 
 ## Editar
 

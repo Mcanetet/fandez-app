@@ -498,6 +498,8 @@
   "admin.informes.refresh": "Actualizar",
   "admin.informes.ops_lists": "Detalle operativo",
   "admin.informes.finance_checklist": "Checklist finanzas",
+  "admin.informes.decisions": "Decision pack (ASK founder)",
+  "admin.informes.notify_founder": "Notificar founder",
   "admin.informes.payroll": "Nómina a transferir",
   "admin.informes.payment_issues": "Problemas de pago / devoluciones",
   "admin.informes.today_content": "Contenido de hoy (copiar y publicar)",

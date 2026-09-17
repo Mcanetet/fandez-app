@@ -499,6 +499,8 @@
   "admin.informes.refresh": "Refresh",
   "admin.informes.ops_lists": "Ops detail",
   "admin.informes.finance_checklist": "Finance checklist",
+  "admin.informes.decisions": "Decision pack (ASK founder)",
+  "admin.informes.notify_founder": "Notify founder",
   "admin.informes.payroll": "Partner payouts due",
   "admin.informes.payment_issues": "Payment / refund issues",
   "admin.informes.today_content": "Today’s content (copy & post)",

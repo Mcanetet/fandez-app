@@ -168,26 +168,26 @@ Esto crea las tablas e inserta los usuarios demo:
 
 > En cada arranque la app sincroniza la cuenta admin por correo. Si no puedes entrar, define `ADMIN_PASSWORD` en Hostinger y reinicia, o ejecuta `npm run admin:reset`.
 
-> **Backups:** el historial se guarda en **MySQL** (`app_backups`), no en archivos del deploy. Al subir una nueva versión desde GitHub el historial se conserva. Los documentos KYC (carpeta uploads) siguen en disco del servidor.
+> **Backups:** el historial se guarda en **MySQL** (`app_backups`), no en archivos del deploy. Al subir una nueva versión desde GitHub el historial se conserva. Los documentos KYC se guardan en `public/uploads/providers` **y** en `data/uploads/providers` (copia persistente); se sirven por `/media/provider/...` (solo admin o el socio dueño). Si tras un deploy antiguo ves 404 al abrir un carnet, pide al socio que lo vuelva a subir.
 
-### Backup diario automático → GitHub (cifrado)
+### Backup diario automático → GitHub (cifrado, sin humano)
 
-1. Crea un repo **privado** (ej. `Mcanetet/fandez-backups`). No uses el repo de la app.
-2. Crea un PAT (fine-grained) con permiso **Contents: Read and write** solo a ese repo.
-3. En Hostinger (variables de entorno):
+GitHub Actions pide el backup cifrado a producción y lo guarda en la rama `backups` del repo. **No hace falta** que alguien descargue ni suba archivos a mano, ni un PAT en Hostinger.
+
+1. En Hostinger (solo 2 variables):
    ```bash
-   BACKUP_GITHUB_ENABLED=true
-   BACKUP_GITHUB_TOKEN=ghp_xxx
-   BACKUP_GITHUB_REPO=Mcanetet/fandez-backups
+   BACKUP_SYNC_TOKEN=un-secreto-largo-aleatorio
    BACKUP_GITHUB_ENCRYPT_KEY=una-frase-larga-que-solo-tu-sepas
-   BACKUP_SYNC_TOKEN=otro-secreto-para-github-actions
    ```
-4. En el repo `fandez-app` → Settings → Secrets → Actions:
-   - `FANDEZ_BACKUP_SYNC_URL` = `https://www.fandez.cl/<ADMIN_PATH>/backups/github-sync`
+2. En `fandez-app` → Settings → Secrets → Actions:
+   - `FANDEZ_BACKUP_EXPORT_URL` = `https://www.fandez.cl/<ADMIN_PATH>/backups/export-encrypted`
    - `FANDEZ_BACKUP_SYNC_TOKEN` = el mismo `BACKUP_SYNC_TOKEN`
-5. El workflow `.github/workflows/daily-backup.yml` corre a las **03:00 Chile** y también se puede lanzar a mano (Actions → Daily backup → Run).
+3. Actions → **Daily backup offsite** → Run (o espera el cron **03:00 Chile**).
+4. Los `.enc` quedan en la rama [`backups`](https://github.com/Mcanetet/fandez-app/tree/backups).
 
-Descifrar un `.enc` descargado del repo de backups:
+Detalle: `docs/BACKUP-GITHUB.md`.
+
+Descifrar en tu máquina:
 ```bash
 BACKUP_GITHUB_ENCRYPT_KEY='...' node scripts/decrypt-github-backup.js ./archivo.enc ./snapshot.json
 ```
@@ -243,6 +243,24 @@ npm run admin:reset
 # o con clave personalizada:
 npm run admin:reset -- MiClaveSegura2026
 ```
+
+### Founder ASK (agentes autónomos)
+
+Decisiones de dinero / marketing van al founder. En Hostinger agrega:
+
+```env
+FOUNDER_EMAILS=miguel@tudominio.cl
+# Opcional: canal dedicado (si no, usa TELEGRAM_CHAT_ID / NTFY_TOPIC)
+FOUNDER_TELEGRAM_CHAT_ID=
+FOUNDER_NTFY_TOPIC=
+```
+
+- Boletas de materiales ≥ umbral (default $15.000) → `pending_founder` (Informes → Clara o API admin).
+- Florencia: aprobar/publicar solo founder o superadmin (`founder.decisions`).
+- Clara: botón **Notificar founder** en Informes.
+- Sofía: prompts v5 + datos en vivo del pedido/pago.
+
+Umbrales editables en **Admin → Precios → Materiales · autonomía boletas**.
 
 ### 3. Desarrollo local
 

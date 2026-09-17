@@ -28,6 +28,7 @@ const langRoutes = require('./routes/lang');
 const alandRoutes = require('./routes/aland');
 const aland = require('./lib/aland');
 const unassignedRequestWatcher = require('./lib/unassignedRequestWatcher');
+const sofiaIncompleteNudge = require('./lib/sofia/incompleteProviderNudge');
 const { getRequestTimeouts } = require('./lib/requestTimeouts');
 const { localizeServices } = require('./lib/i18n-admin');
 const { buildPageMeta, getSiteUrl } = require('./lib/seo');
@@ -734,6 +735,7 @@ async function initDatabase() {
       unassignedRequestWatcher.start(store, io, {
         timeoutMinutes: getRequestTimeouts().unassignedNoticeMinutes
       });
+      sofiaIncompleteNudge.start(store);
       backup.startBackupScheduler(store, (event, detail) => {
         store.logSecurityEvent(event, detail, null);
       });

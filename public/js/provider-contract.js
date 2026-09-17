@@ -48,10 +48,12 @@
     if (!docsList) return;
     const entityType = getEntityType();
     if (!entityType) {
-      docsList.innerHTML = '<p class="text-xs text-zilo-muted">Selecciona persona natural o empresa para ver los documentos requeridos.</p>';
+      docsList.innerHTML = '<p class="text-xs text-zilo-muted">Elige persona natural o empresa para ver qué subir.</p>';
       return;
     }
-    const docs = Object.values(catalog).filter((d) => d.entities.includes(entityType));
+    const docs = Object.values(catalog).filter((d) =>
+      d.entities.includes(entityType) && d.required && d.showInWizard !== false
+    );
     docsList.innerHTML = docs.map((doc) => {
       const rec = existingRecord(doc);
       const hasFile = doc.key === 'technical_certs'
@@ -59,10 +61,12 @@
         : rec?.url;
       const ai = aiMeta(rec);
       const human = humanMeta(rec);
-      const notes = rec?.human?.notes || rec?.ai?.reason || '';
+      const rawNotes = rec?.human?.notes || '';
+      const aiNotes = (rec?.ai?.reason || '').replace(/sk-[a-zA-Z0-9_-]+/g, 'sk-…').slice(0, 120);
+      const notes = rawNotes || (aiNotes && !/api key|incorrect/i.test(aiNotes) ? aiNotes : '');
       const status = hasFile
         ? `<span class="text-emerald-600 text-[10px] font-bold">✓ Subido</span>`
-        : (doc.required ? '<span class="text-red-500 text-[10px]">Esencial</span>' : '<span class="text-zilo-muted text-[10px]">Opcional</span>');
+        : '<span class="text-red-500 text-[10px]">Obligatorio</span>';
       const review = hasFile ? `
         <div class="flex flex-wrap gap-2 mt-2 text-[10px] font-semibold">
           <span class="${ai.cls}">${ai.label}</span>
@@ -111,9 +115,12 @@
       } else {
         uploaded.documents = payload.contract.documents || uploaded.documents || {};
       }
-      FandezNotify.show(payload.ai?.status === 'fake'
-        ? 'Guardado, pero la IA marcó el documento como posible falso'
-        : 'Documento guardado y prechequeado', payload.ai?.status === 'fake' ? 'warning' : 'success');
+      FandezNotify.show(
+        payload.ai?.status === 'fake' ? 'Guardado, pero la IA marcó el documento como posible falso'
+          : payload.ai?.status === 'pending' ? 'Documento guardado'
+          : 'Documento guardado',
+        payload.ai?.status === 'fake' ? 'warning' : 'success'
+      );
       renderDocuments();
     } catch (err) {
       FandezNotify.show(err.message || 'Error al subir', 'error');
@@ -135,18 +142,25 @@
       legalEntity: {
         rut: fd.get('legalEntity.rut'),
         legalName: fd.get('legalEntity.legalName'),
-        tradeName: fd.get('legalEntity.tradeName'),
-        giro: fd.get('legalEntity.giro'),
-        fiscalAddress: fd.get('legalEntity.fiscalAddress'),
-        commune: fd.get('legalEntity.commune'),
-        region: fd.get('legalEntity.region'),
-        email: fd.get('legalEntity.email'),
-        phone: fd.get('legalEntity.phone')
+        tradeName: fd.get('legalEntity.tradeName') || fd.get('legalEntity.legalName'),
+        giro: fd.get('legalEntity.giro') || '',
+        fiscalAddress: fd.get('legalEntity.fiscalAddress') || '',
+        commune: fd.get('legalEntity.commune') || '',
+        region: fd.get('legalEntity.region') || '',
+        email: fd.get('legalEntity.email') || '',
+        phone: fd.get('legalEntity.phone') || ''
       },
       legalRepresentative: {
         fullName: fd.get('legalRepresentative.fullName'),
         rut: fd.get('legalRepresentative.rut'),
-        role: fd.get('legalRepresentative.role')
+        role: fd.get('legalRepresentative.role') || 'Representante legal'
+      },
+      bankAccount: {
+        bankName: fd.get('bankAccount.bankName'),
+        accountType: fd.get('bankAccount.accountType'),
+        accountNumber: fd.get('bankAccount.accountNumber'),
+        holderName: fd.get('bankAccount.holderName'),
+        holderRut: fd.get('bankAccount.holderRut')
       },
       declarations,
       signature: {

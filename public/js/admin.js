@@ -10,6 +10,7 @@
     contratos: 'Contratos socios',
     notificaciones: 'Notificaciones',
     modulos: 'Módulos',
+    promos: 'Promociones',
     cobertura: 'Cobertura',
     servicios: 'Servicios',
     demo: 'Cuentas demo',
@@ -73,6 +74,8 @@
   const tabs = document.querySelectorAll('.admin-nav-item');
   const panels = document.querySelectorAll('.admin-panel');
   const panelTitle = document.getElementById('adminPanelTitle');
+  const panelSubtitle = document.getElementById('adminPanelSubtitle');
+  const defaultPanelSubtitle = panelSubtitle?.textContent || '';
   const sidebar = document.getElementById('adminSidebar');
   const backdrop = document.getElementById('adminSidebarBackdrop');
   const menuBtn = document.getElementById('adminMenuBtn');
@@ -99,6 +102,11 @@
     });
     panels.forEach(p => p.classList.toggle('hidden', p.dataset.panel !== id));
     if (panelTitle && PANEL_TITLES[id]) panelTitle.textContent = PANEL_TITLES[id];
+    if (panelSubtitle) {
+      const activePanel = document.querySelector(`.admin-panel[data-panel="${id}"]`);
+      const customSub = activePanel?.getAttribute('data-subtitle');
+      panelSubtitle.textContent = customSub || defaultPanelSubtitle;
+    }
     closeSidebar();
     const url = new URL(window.location.href);
     url.searchParams.set('tab', id);
@@ -290,20 +298,23 @@
   }
 
   function roleLabel(role) {
-    return ({ client: 'cliente', provider: 'socio', tecnico: 'técnico', technician: 'técnico' })[role] || role;
+    return ({ client: 'Cliente', provider: 'Socio', tecnico: 'Técnico', technician: 'Técnico' })[role] || role;
   }
 
   function renderManagedUserCard(u) {
     const manage = canManageUsers();
-    const blockedBadge = u.active ? '' : '<span class="text-[10px] uppercase ml-1 px-1.5 py-0.5 rounded bg-red-100 text-red-700">Bloqueado</span>';
+    const blockedBadge = u.active ? '' : '<span class="admin-row-role" style="background:rgba(184,58,46,0.12);color:#9A3228">Bloqueado</span>';
     const onlineLine = (u.role === 'provider' || u.role === 'tecnico')
       ? ` · ${u.online ? 'En línea' : 'Fuera de línea'}`
       : '';
-    const servicesHtml = (u.services && u.services.length)
-      ? `<div class="flex flex-wrap gap-1 mt-2">${u.services.map((s) => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-800">${escapeHtml(s.name || s.id || '')}</span>`).join('')}</div>`
-      : (u.role === 'provider' ? '<p class="text-[10px] text-amber-700 mt-1">Sin servicios activados</p>' : '');
+    const services = Array.isArray(u.services) ? u.services : [];
+    const shown = services.slice(0, 4);
+    const rest = services.length - shown.length;
+    const servicesHtml = shown.length
+      ? `<div class="flex flex-wrap gap-1 mt-2">${shown.map((s) => `<span class="admin-chip">${escapeHtml(s.name || s.id || '')}</span>`).join('')}${rest > 0 ? `<span class="admin-chip admin-chip-more">+${rest} más</span>` : ''}</div>`
+      : (u.role === 'provider' ? '<p class="admin-row-meta" style="color:#9A6B20">Sin servicios activados</p>' : '');
     const manageActions = manage ? `
-        <button type="button" class="managed-user-edit text-xs px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200"
+        <button type="button" class="managed-user-edit admin-action"
           data-id="${escapeHtml(u.id)}"
           data-name="${escapeHtml(u.name || '')}"
           data-email="${escapeHtml(u.email || '')}"
@@ -313,22 +324,22 @@
           data-online="${u.online ? '1' : '0'}"
           data-client-enabled="${u.clientEnabled !== false ? '1' : '0'}">Editar</button>
         ${u.active
-          ? `<button type="button" class="managed-user-block text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-700 hover:bg-red-500/20" data-id="${escapeHtml(u.id)}" data-active="0">Bloquear</button>`
-          : `<button type="button" class="managed-user-block text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20" data-id="${escapeHtml(u.id)}" data-active="1">Desbloquear</button>`}
-        ${!u.emailVerified ? `<button type="button" class="managed-user-verify text-xs px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-700" data-email="${escapeHtml(u.email || '')}">Verificar email</button>` : ''}
+          ? `<button type="button" class="managed-user-block admin-action admin-action-danger" data-id="${escapeHtml(u.id)}" data-active="0">Bloquear</button>`
+          : `<button type="button" class="managed-user-block admin-action admin-action-accent" data-id="${escapeHtml(u.id)}" data-active="1">Desbloquear</button>`}
+        ${!u.emailVerified ? `<button type="button" class="managed-user-verify admin-action admin-action-accent" data-email="${escapeHtml(u.email || '')}">Verificar email</button>` : ''}
     ` : '';
     return `
-      <div class="p-4 rounded-2xl bg-zilo-card border ${u.active ? 'border-gray-200' : 'border-red-200 bg-red-50/40'} flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-user-id="${escapeHtml(u.id)}">
+      <div class="admin-row ${u.active ? '' : 'is-blocked'}" data-user-id="${escapeHtml(u.id)}">
         <div class="min-w-0">
           <strong class="text-sm">${escapeHtml(u.name || '')}</strong>
-          <span class="text-[10px] uppercase ml-2 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">${escapeHtml(u.role || '')}</span>
+          <span class="admin-row-role">${escapeHtml(roleLabel(u.role))}</span>
           ${blockedBadge}
-          <p class="text-xs text-gray-500 truncate">${escapeHtml(u.email || '')}${u.phone ? ' · ' + escapeHtml(u.phone) : ''}</p>
-          <p class="text-[10px] text-gray-400 mt-1">${u.active ? 'Activo' : 'Bloqueado'} · ${u.emailVerified ? 'Email OK' : 'Email pendiente'}${onlineLine}</p>
+          <p class="text-xs text-gray-500 truncate mt-0.5">${escapeHtml(u.email || '')}${u.phone ? ' · ' + escapeHtml(u.phone) : ''}</p>
+          <p class="admin-row-meta">${u.active ? 'Activo' : 'Bloqueado'} · ${u.emailVerified ? 'Email OK' : 'Email pendiente'}${onlineLine}</p>
           ${servicesHtml}
         </div>
-        <div class="flex flex-wrap gap-2 shrink-0">
-          <button type="button" class="managed-user-diag text-xs px-2.5 py-1.5 rounded-lg bg-violet-500/10 text-violet-800 hover:bg-violet-500/20" data-id="${escapeHtml(u.id)}">Diagnóstico</button>
+        <div class="admin-actions">
+          <button type="button" class="managed-user-diag admin-action" data-id="${escapeHtml(u.id)}">Diagnóstico</button>
           ${manageActions}
         </div>
       </div>`;
@@ -533,6 +544,8 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('admin-modal-open');
+    body.scrollTop = 0;
     try {
       const res = await adminFetch(`/usuarios/${encodeURIComponent(userId)}/diagnostico`);
       const data = await res.json().catch(() => ({}));
@@ -543,6 +556,7 @@
       const a = data.dossier.account || {};
       sub.textContent = `${a.email || ''} · ${roleLabel(a.role)}`;
       body.innerHTML = renderSupportDossier(data.dossier);
+      body.scrollTop = 0;
     } catch (_) {
       body.innerHTML = '<p class="text-red-600">Error de red al cargar el diagnóstico.</p>';
     }
@@ -554,6 +568,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('admin-modal-open');
   }
 
   document.getElementById('btnManagedUserSearch')?.addEventListener('click', refreshManagedUsers);
@@ -2572,6 +2587,52 @@
             </div>`).join('') || '<p class="text-gray-500">Sin checklist</p>';
         }
 
+        const decEl = document.getElementById('informesFinanceDecisions');
+        if (decEl) {
+          const decisions = fin.decisions || [];
+          decEl.innerHTML = decisions.length
+            ? decisions.map((d) => {
+                const amt = d.amount != null ? ` · ${money(d.amount)}` : '';
+                const matMeta = d.meta?.materialId && d.meta?.requestId
+                  ? ` data-request-id="${d.meta.requestId}" data-material-id="${d.meta.materialId}"`
+                  : '';
+                const matBtns = matMeta
+                  ? `<div class="flex gap-1.5 mt-2">
+                      <button type="button" class="informes-mat-approve admin-primary-btn !py-1 !px-2 text-[10px]"${matMeta}>Aprobar boleta</button>
+                      <button type="button" class="informes-mat-reject admin-secondary-btn !py-1 !px-2 text-[10px]"${matMeta}>Rechazar</button>
+                    </div>`
+                  : '';
+                return `<div class="p-2.5 rounded-xl border border-amber-200 bg-amber-50/60">
+                  <p class="font-semibold text-amber-900">[${d.band || 'ASK'}] ${d.title}${amt}</p>
+                  <p class="mt-0.5 text-gray-700">${d.recommendation || ''}</p>
+                  <p class="mt-0.5 text-gray-500">${d.needFromYou || ''}</p>
+                  ${matBtns}
+                </div>`;
+              }).join('')
+            : '<p class="text-gray-500">Sin decisiones ASK esta semana</p>';
+
+          decEl.querySelectorAll('.informes-mat-approve, .informes-mat-reject').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+              const requestId = btn.getAttribute('data-request-id');
+              const materialId = btn.getAttribute('data-material-id');
+              const decision = btn.classList.contains('informes-mat-approve') ? 'approved' : 'rejected';
+              try {
+                const res = await fetch(`${ADMIN_BASE}/solicitudes/${encodeURIComponent(requestId)}/materials/${encodeURIComponent(materialId)}/review`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                  body: JSON.stringify({ decision })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo resolver');
+                if (window.FandezNotify) FandezNotify.show(decision === 'approved' ? 'Boleta aprobada' : 'Boleta rechazada', 'success');
+                loadInformes();
+              } catch (err) {
+                if (window.FandezNotify) FandezNotify.show(err.message || 'Error', 'error');
+              }
+            });
+          });
+        }
+
         const payEl = document.getElementById('informesPayroll');
         if (payEl) {
           payEl.innerHTML = (fin.payroll || []).length
@@ -2640,6 +2701,25 @@
     });
 
     refreshBtn?.addEventListener('click', loadInformes);
+    document.getElementById('informesNotifyFounder')?.addEventListener('click', async () => {
+      try {
+        const body = dateInput?.value ? { date: dateInput.value } : {};
+        const res = await fetch(`${ADMIN_BASE}/informes/finance/notify-founder`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo notificar');
+        if (data.result?.skipped) {
+          if (window.FandezNotify) FandezNotify.show('No hay decisiones ASK para notificar', 'info');
+        } else if (window.FandezNotify) {
+          FandezNotify.show(`ASK enviado (${data.decisionCount || 0} ítems)`, 'success');
+        }
+      } catch (err) {
+        if (window.FandezNotify) FandezNotify.show(err.message || 'Error al notificar', 'error');
+      }
+    });
     if (dateInput && !dateInput.value) {
       dateInput.value = new Date().toISOString().slice(0, 10);
     }

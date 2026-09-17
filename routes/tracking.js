@@ -42,7 +42,7 @@ router.get('/:token/estado', (req, res) => {
   let provider = null;
   if (request.providerId) {
     const p = store.getUserById(request.providerId);
-    provider = { name: p.name, rating: p.rating, phone: p.phone };
+    provider = { name: p.name, rating: p.rating };
   }
 
   res.json({
@@ -62,7 +62,10 @@ router.get('/:token/estado', (req, res) => {
       siteReport: request.siteReport ? {
         budgetStatus: request.siteReport.budgetStatus,
         budgetAmount: request.siteReport.budgetAmount
-      } : null
+      } : null,
+      safetyAlert: request.safetyAlert
+        ? { at: request.safetyAlert.at, severity: request.safetyAlert.severity }
+        : null
     },
     provider,
     location: store.getLiveTrackingLocation(request)

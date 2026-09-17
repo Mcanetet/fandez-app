@@ -265,6 +265,7 @@
           diagnostico: 'Diagnóstico',
           reparando: 'Reparando',
           comprando: 'Comprando materiales',
+          materiales_pendiente: 'OK materiales pendiente',
           presupuesto_pendiente: 'Presupuesto pendiente',
           presupuesto_aprobado: 'Presupuesto aprobado',
           completado: 'Completado'

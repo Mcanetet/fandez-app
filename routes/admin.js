@@ -11,6 +11,7 @@ const { requireRole } = require('../middleware/auth');
 const {
   attachAdminAccess,
   requireAdminPermission,
+  requireFounderDecision,
   refreshSessionAdminAccess,
   canAccessPanel,
   getFirstAccessiblePanel
@@ -137,7 +138,7 @@ router.use(attachCsrf);
 router.use((req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   const p = req.path || '';
-  if (p === '/backups/github-sync') return next();
+  if (p === '/backups/github-sync' || p === '/backups/export-encrypted') return next();
   if (
     p === '/login'
     || p === '/mfa'
@@ -542,12 +543,48 @@ router.get('/informes/ops', requireRole('admin'), requireAdminPermission('inform
 router.get('/informes/finance', requireRole('admin'), requireAdminPermission('informes.view'), (req, res) => {
   try {
     const date = req.query.date ? new Date(`${req.query.date}T12:00:00`) : new Date();
-    const finance = informes.buildWeeklyFinanceReport(store, { date });
+    const finance = informes.buildWeeklyFinanceReportWithDecisions(store, { date });
     res.json({ success: true, finance });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+router.post('/informes/finance/notify-founder', requireRole('admin'), requireAdminPermission('informes.view'), requireFounderDecision, async (req, res) => {
+  try {
+    const date = req.body?.date ? new Date(`${req.body.date}T12:00:00`) : new Date();
+    const finance = informes.buildWeeklyFinanceReportWithDecisions(store, { date });
+    const clara = require('../lib/agents/clara');
+    const result = await clara.notifyFounderDecisionPack(finance);
+    store.logSecurityEvent('clara_decision_pack_notified', `${finance.decisionCount || 0} items`, req);
+    res.json({ success: true, result, decisionCount: finance.decisionCount || 0 });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post(
+  '/solicitudes/:requestId/materials/:materialId/review',
+  requireRole('admin'),
+  requireAdminPermission('solicitudes.manage', 'finanzas.manage', 'pagos.manage'),
+  requireFounderDecision,
+  (req, res) => {
+    const decision = req.body?.decision || req.body?.status;
+    const reason = req.body?.reason || '';
+    const result = store.resolveSiteMaterialReview(req.params.requestId, req.params.materialId, {
+      decision,
+      reason,
+      actorEmail: req.session.user?.email
+    });
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
+    store.logSecurityEvent(
+      'material_review_resolved',
+      `${req.params.requestId}:${req.params.materialId}:${decision}`,
+      req
+    );
+    res.json({ success: true, material: result.material, requestId: req.params.requestId });
+  }
+);
 
 router.get('/informes/marketing', requireRole('admin'), requireAdminPermission('informes.view'), (req, res) => {
   try {
@@ -764,19 +801,20 @@ router.put('/florencia/items/:id', requireRole('admin'), requireAdminPermission(
   }
 });
 
-router.post('/florencia/items/:id/approve', requireRole('admin'), requireAdminPermission('florencia.approve'), async (req, res) => {
+router.post('/florencia/items/:id/approve', requireRole('admin'), requireAdminPermission('florencia.approve'), requireFounderDecision, async (req, res) => {
   try {
     const item = await florencia.setStatus(req.params.id, 'approved', {
       approvedBy: req.session.user.id,
       approvedAt: new Date()
     });
+    store.logSecurityEvent('florencia_item_approved', item.id, req);
     res.json({ success: true, item });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }
 });
 
-router.post('/florencia/items/:id/reject', requireRole('admin'), requireAdminPermission('florencia.approve'), async (req, res) => {
+router.post('/florencia/items/:id/reject', requireRole('admin'), requireAdminPermission('florencia.approve'), requireFounderDecision, async (req, res) => {
   try {
     const item = await florencia.setStatus(req.params.id, 'rejected', {
       error: String(req.body.reason || 'Rechazada por administración').slice(0, 1000)
@@ -787,7 +825,7 @@ router.post('/florencia/items/:id/reject', requireRole('admin'), requireAdminPer
   }
 });
 
-router.post('/florencia/items/:id/publish', requireRole('admin'), requireAdminPermission('florencia.publish'), async (req, res) => {
+router.post('/florencia/items/:id/publish', requireRole('admin'), requireAdminPermission('florencia.publish'), requireFounderDecision, async (req, res) => {
   try {
     const item = await florencia.publishItem(req.params.id, store);
     store.logSecurityEvent('florencia_item_published', `${item.channel}:${item.id}`, req);
@@ -1120,10 +1158,25 @@ router.post('/contratos/:providerId/ai-review', requireRole('admin'), requireAdm
     }
   });
   await Promise.all(tasks);
+  let representativeMatch = null;
+  let erutValidation = null;
+  try {
+    representativeMatch = await store.runRepresentativeMatchValidation(req.params.providerId);
+  } catch (err) {
+    console.error('Rep match admin:', err.message);
+  }
+  try {
+    erutValidation = await store.runErutValidation(req.params.providerId);
+  } catch (err) {
+    console.error('e-RUT admin:', err.message);
+  }
   store.logSecurityEvent('contrato_ai_review', req.params.providerId, req);
+  const fresh = store.getUserById(req.params.providerId);
   res.json({
     success: true,
-    documents: store.listProviderReviewDocuments(req.params.providerId)
+    documents: store.listProviderReviewDocuments(req.params.providerId),
+    representativeMatch: representativeMatch?.match || fresh?.providerContract?.representativeMatch || null,
+    erutValidation: erutValidation?.validation || fresh?.providerContract?.erutValidation || null
   });
 });
 
@@ -1497,6 +1550,49 @@ router.post('/backups/github-sync', async (req, res) => {
   }
 });
 
+/**
+ * Modo 100% automático recomendado:
+ * Actions pide el .enc y lo guarda en el repo privado (sin PAT en Hostinger).
+ */
+router.post('/backups/export-encrypted', async (req, res) => {
+  const expected = String(process.env.BACKUP_SYNC_TOKEN || process.env.BACKUP_GITHUB_SYNC_TOKEN || '').trim();
+  const provided = String(req.get('X-Backup-Token') || req.body?.token || '').trim();
+  if (!expected || !provided || provided !== expected) {
+    return res.status(401).json({ success: false, error: 'Token de sync inválido.' });
+  }
+  if (!store.isReady()) {
+    return res.status(503).json({ success: false, error: 'Store no listo' });
+  }
+  try {
+    const result = await backup.exportEncryptedBackup(store, {
+      type: req.body?.type || 'daily',
+      triggeredBy: 'github-action'
+    });
+    if (result.error) {
+      return res.status(500).json({ success: false, error: result.error });
+    }
+    store.logSecurityEvent(
+      'backup_export_encrypted',
+      `${result.package.encPath} by github-action`,
+      req
+    );
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    return res.json({
+      success: true,
+      backup: result.backup,
+      path: result.package.encPath,
+      manifestPath: result.package.manifestPath,
+      bytes: result.package.bytes,
+      encBase64: result.package.encBuffer.toString('base64'),
+      manifestBase64: result.package.manifestBuffer.toString('base64'),
+      manifest: result.package.safeManifest
+    });
+  } catch (err) {
+    await backup.saveConfig({ lastBackupStatus: 'error', lastBackupError: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.get('/backups/github-status', requireRole('admin'), requireAdminPermission('backups.view', 'backups.manage'), (req, res) => {
   res.json({ success: true, github: backup.githubStatus() });
 });
@@ -1770,7 +1866,10 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
     },
     urgencyTiers: tiers.length ? tiers : undefined,
     catalogPrices,
-    materialsCatalog: materialsCatalog.length ? materialsCatalog : undefined
+    materialsCatalog: materialsCatalog.length ? materialsCatalog : undefined,
+    materialsAutoApproveMaxClp: parseInt(body.materialsAutoApproveMaxClp, 10),
+    materialsFounderReviewMinClp: parseInt(body.materialsFounderReviewMinClp, 10),
+    materialsAutoApproveMinConfidence: parseFloat(body.materialsAutoApproveMinConfidence)
   });
 
   store.logSecurityEvent('pricing_update', 'config', req);

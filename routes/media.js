@@ -4,6 +4,7 @@ const path = require('path');
 const store = require('../models/store');
 const {
   resolveRequestPhotoPath,
+  resolveProviderDocPath,
   mimeFromPath,
   toServingUrl,
   stableRequestPhotoUrl,
@@ -210,6 +211,44 @@ function sendTechnicianPhoto(req, res) {
 
 router.get('/media/technician/:technicianId/photo', sendTechnicianPhoto);
 
+function canViewProviderDoc(user, providerId) {
+  if (!user || !providerId) return false;
+  if (user.role === 'admin') return true;
+  if (user.id === providerId) return true;
+  return false;
+}
+
+function sendProviderDoc(req, res) {
+  const user = req.session && req.session.user;
+  if (!user) return res.status(401).end();
+
+  const providerId = String(req.params.providerId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const file = String(req.params.file || '').replace(/[^a-zA-Z0-9._-]/g, '');
+  if (!providerId || !file) return res.status(400).end();
+  if (!canViewProviderDoc(user, providerId)) return res.status(404).end();
+
+  const provider = store.getUserById?.(providerId);
+  if (!provider || provider.role !== 'provider') return res.status(404).end();
+
+  let abs = resolveProviderDocPath(`/uploads/providers/${providerId}/${file}`);
+  if (!abs) {
+    // Fallback: mapear kind (idFront / idBack / selfie) a URL guardada
+    const kind = file.replace(/\.[^.]+$/, '');
+    const v = provider.verification || {};
+    const byKind = {
+      idFront: v.idCardFront,
+      idBack: v.idCardBack,
+      selfie: v.selfie
+    };
+    const stored = byKind[kind] || byKind[file];
+    if (stored) abs = resolveProviderDocPath(stored);
+  }
+  return sendResolvedPhoto(res, abs);
+}
+
+router.get('/uploads/providers/:providerId/:file', sendProviderDoc);
+router.get('/media/provider/:providerId/:file', sendProviderDoc);
+
 function stablePhotoUrl(requestId, kind) {
   return stableRequestPhotoUrl(requestId, kind);
 }
@@ -233,9 +272,11 @@ module.exports = {
   router,
   canViewRequestPhoto,
   canViewTechnicianPhoto,
+  canViewProviderDoc,
   sendPhoto,
   sendPhotoByKind,
   sendTechnicianPhoto,
+  sendProviderDoc,
   normalizeRequestPhotos,
   stablePhotoUrl,
   stableTechnicianPhotoUrl

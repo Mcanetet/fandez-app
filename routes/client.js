@@ -662,6 +662,28 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
       }
     }).catch(() => {});
 
+    if (reasonCode === 'safety_concern' && result.safetyIncident) {
+      const ioAlert = req.app.get('io');
+      if (ioAlert) {
+        ioAlert.to('aland_admin').emit('aland_security_alert', {
+          type: 'safety_incident',
+          complaintId: result.safetyIncident.id,
+          requestId: updated.id,
+          channel: 'cancel_safety',
+          subject: result.safetyIncident.subject,
+          at: result.safetyIncident.createdAt
+        });
+      }
+      notifications.notify({
+        event: 'safety.incident',
+        to: company.supportEmail,
+        subject: `Cancelación por seguridad — ${updated.id}`,
+        text: result.safetyIncident.description,
+        requestId: updated.id,
+        userId: updated.clientId
+      }).catch(() => {});
+    }
+
     const io = req.app.get('io');
     const payload = { request: store.enrichRequestForClient(updated, req.locale || 'es'), cancelled: true };
     if (io) {
@@ -727,6 +749,28 @@ router.post('/solicitud/:id/cancelar', requireRole('client'), async (req, res) =
         tier: updated.cancellationTier
       }
     }).catch(() => {});
+
+    if (reasonCode === 'safety_concern' && result.safetyIncident) {
+      const ioAlert = req.app.get('io');
+      if (ioAlert) {
+        ioAlert.to('aland_admin').emit('aland_security_alert', {
+          type: 'safety_incident',
+          complaintId: result.safetyIncident.id,
+          requestId: updated.id,
+          channel: 'cancel_safety',
+          subject: result.safetyIncident.subject,
+          at: result.safetyIncident.createdAt
+        });
+      }
+      notifications.notify({
+        event: 'safety.incident',
+        to: company.supportEmail,
+        subject: `Cancelación por seguridad — ${updated.id}`,
+        text: result.safetyIncident.description,
+        requestId: updated.id,
+        userId: updated.clientId
+      }).catch(() => {});
+    }
 
     const io = req.app.get('io');
     const payload = { request: store.enrichRequestForClient(updated, req.locale || 'es'), cancelled: true };
@@ -842,6 +886,26 @@ router.post('/presupuesto/:id/responder', requireRole('client'), (req, res) => {
   });
 });
 
+router.post('/materiales-compra/:id/responder', requireRole('client'), (req, res) => {
+  const approved = req.body.approved === true || req.body.approved === 'true';
+  const result = store.respondMaterialsPurchase(req.params.id, req.session.user.id, approved);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+
+  const io = req.app.get('io');
+  emitRequestUpdateToParties(io, store, result.request, { request: result.request });
+
+  res.json({
+    success: true,
+    approved: result.approved,
+    request: {
+      id: result.request.id,
+      techStatus: result.request.techStatus,
+      status: result.request.status,
+      siteReport: result.request.siteReport
+    }
+  });
+});
+
 router.post('/cambio-servicio/:id/responder', requireRole('client'), (req, res) => {
   const approved = req.body.approved === true || req.body.approved === 'true';
   const result = store.respondActivityChange(req.params.id, req.session.user.id, approved);
@@ -891,6 +955,73 @@ router.post('/chat/:requestId', requireRole('client'), (req, res) => {
     chatMessage: result.message
   });
   res.json(result);
+});
+
+function emitSafetyOpsAlert(req, result) {
+  if (!result?.complaint) return;
+  const io = req.app.get('io');
+  const c = result.complaint;
+  const payload = {
+    type: 'safety_incident',
+    complaintId: c.id,
+    requestId: c.requestId,
+    categoryId: c.categoryId,
+    severity: c.severity,
+    channel: c.channel,
+    subject: c.subject,
+    reporterRole: c.reporterRole,
+    preview: String(c.description || '').slice(0, 180),
+    at: c.createdAt
+  };
+  if (io) io.to('aland_admin').emit('aland_security_alert', payload);
+  notifications.notify({
+    event: 'safety.incident',
+    to: company.supportEmail,
+    subject: `Alerta seguridad — ${c.subject}`,
+    text: c.description,
+    requestId: c.requestId,
+    userId: c.reporterId,
+    meta: payload
+  }).catch(() => {});
+}
+
+router.get('/seguridad/categorias', requireRole('client'), (_req, res) => {
+  res.json({ success: true, categories: store.listSafetyCategories() });
+});
+
+router.post('/solicitud/:id/seguridad', requireRole('client'), (req, res) => {
+  try {
+    const categoryId = req.body?.categoryId || 'unsafe_feeling';
+    const channel = req.body?.channel === 'sos' ? 'sos' : 'report';
+    const notes = req.body?.notes || '';
+    const result = store.createSafetyIncident({
+      requestId: req.params.id,
+      reporterId: req.session.user.id,
+      reporterRole: 'client',
+      categoryId,
+      channel,
+      notes
+    });
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
+    emitSafetyOpsAlert(req, result);
+    const io = req.app.get('io');
+    if (io && result.request) {
+      emitRequestUpdateToParties(io, store, result.request, {
+        request: store.enrichRequestForClient(result.request, req.locale || 'es'),
+        safetyAlert: true
+      });
+    }
+    return res.json({
+      success: true,
+      complaintId: result.complaint.id,
+      severity: result.category.severity,
+      emergency: { carabineros: '133', bomberos: '132', samu: '131' },
+      message: 'Alerta registrada. Si hay riesgo inmediato llama al 133.'
+    });
+  } catch (err) {
+    console.error('[seguridad cliente]', err.message);
+    return res.status(500).json({ success: false, error: 'No se pudo registrar la alerta.' });
+  }
 });
 
 module.exports = router;

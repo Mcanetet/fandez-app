@@ -1,9 +1,15 @@
-name: Daily backup → GitHub
+name: Daily backup offsite
 
-# Dispara en producción un backup diario y lo guarda cifrado en el repo de backups.
-# Secrets requeridos en este repo (Settings → Secrets → Actions):
-#   FANDEZ_BACKUP_SYNC_URL   = https://www.fandez.cl/<ADMIN_PATH>/backups/github-sync
-#   FANDEZ_BACKUP_SYNC_TOKEN = mismo valor que BACKUP_SYNC_TOKEN en Hostinger
+# 100% automático — sin humano ni PAT en Hostinger:
+#   Actions pide .enc a producción y lo guarda en la rama `backups` de este repo.
+#
+# Hostinger (solo 2 vars):
+#   BACKUP_SYNC_TOKEN=...
+#   BACKUP_GITHUB_ENCRYPT_KEY=...
+#
+# Secrets (Settings → Secrets → Actions):
+#   FANDEZ_BACKUP_EXPORT_URL  = https://www.fandez.cl/<ADMIN_PATH>/backups/export-encrypted
+#   FANDEZ_BACKUP_SYNC_TOKEN  = mismo valor que BACKUP_SYNC_TOKEN
 
 on:
   schedule:
@@ -16,34 +22,119 @@ on:
         required: false
         default: 'daily'
 
+permissions:
+  contents: write
+
 jobs:
-  sync:
+  export-and-store:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Trigger production backup + GitHub push
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar rama backups
+        run: |
+          set -euo pipefail
+          git config user.name "fandez-backup[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin backups >/dev/null 2>&1; then
+            git fetch origin backups
+            git checkout -B backups origin/backups
+          else
+            git checkout --orphan backups
+            git rm -rf . >/dev/null 2>&1 || true
+            mkdir -p backups
+            printf '%s\n' '# Backups cifrados Fandez' 'Solo archivos .enc + .manifest.json. No editar a mano.' > README.md
+            echo '# Placeholder' > backups/.gitkeep
+            git add README.md backups/.gitkeep
+            git commit -m "chore: init rama backups"
+            git push -u origin backups
+          fi
+
+      - name: Pedir backup cifrado a producción
         env:
-          URL: ${{ secrets.FANDEZ_BACKUP_SYNC_URL }}
+          URL: ${{ secrets.FANDEZ_BACKUP_EXPORT_URL }}
           TOKEN: ${{ secrets.FANDEZ_BACKUP_SYNC_TOKEN }}
           TYPE: ${{ github.event.inputs.type || 'daily' }}
         run: |
           set -euo pipefail
           if [ -z "${URL:-}" ] || [ -z "${TOKEN:-}" ]; then
-            echo "Faltan secrets FANDEZ_BACKUP_SYNC_URL / FANDEZ_BACKUP_SYNC_TOKEN"
+            echo "Faltan secrets FANDEZ_BACKUP_EXPORT_URL / FANDEZ_BACKUP_SYNC_TOKEN"
             exit 1
           fi
           echo "POST $URL (type=$TYPE)"
-          curl -fsS -X POST "$URL" \
+          HTTP=$(curl -sS -X POST "$URL" \
             -H "X-Backup-Token: $TOKEN" \
             -H "Content-Type: application/json" \
             -H "Accept: application/json" \
             --data "{\"type\":\"$TYPE\"}" \
-            -o /tmp/backup-sync.json \
-            -w "\nHTTP %{http_code}\n"
+            -o /tmp/backup-export.json \
+            -w "%{http_code}")
+          echo "HTTP $HTTP"
+          if [ "$HTTP" != "200" ]; then
+            head -c 2000 /tmp/backup-export.json || true
+            exit 1
+          fi
           python3 - <<'PY'
-          import json
-          data = json.load(open('/tmp/backup-sync.json'))
-          print(json.dumps(data, indent=2)[:4000])
-          if data.get('success') is False:
-            raise SystemExit(1)
+          import json, base64, pathlib
+          data = json.load(open('/tmp/backup-export.json'))
+          if not data.get('success'):
+              raise SystemExit(data.get('error') or 'export failed')
+          enc_path = data['path']
+          man_path = data['manifestPath']
+          enc_file = pathlib.Path(enc_path)
+          man_file = pathlib.Path(man_path)
+          enc_file.parent.mkdir(parents=True, exist_ok=True)
+          enc_file.write_bytes(base64.b64decode(data['encBase64']))
+          man_file.write_bytes(base64.b64decode(data['manifestBase64']))
+          meta = {
+              'path': enc_path,
+              'manifestPath': man_path,
+              'bytes': data.get('bytes'),
+              'backup_id': (data.get('backup') or {}).get('id'),
+          }
+          open('/tmp/backup-meta.json', 'w').write(json.dumps(meta, indent=2))
+          print(json.dumps(meta, indent=2)[:2000])
+          print(f"Wrote {enc_file} ({enc_file.stat().st_size} bytes)")
           PY
+
+      - name: Retención 14 días + push
+        env:
+          RETENTION_DAYS: '14'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re, pathlib
+          from datetime import datetime, timezone
+          days = int(os.environ.get('RETENTION_DAYS', '14'))
+          cutoff = datetime.now(timezone.utc).timestamp() - days * 86400
+          root = pathlib.Path('backups')
+          removed = 0
+          if root.exists():
+              for p in root.rglob('*'):
+                  if not p.is_file():
+                      continue
+                  name = p.name
+                  if not (name.endswith('.enc') or name.endswith('.manifest.json')):
+                      continue
+                  m = re.match(r'^(\d{4}-\d{2}-\d{2})', name)
+                  if not m:
+                      continue
+                  ts = datetime.strptime(m.group(1), '%Y-%m-%d').replace(tzinfo=timezone.utc).timestamp()
+                  if ts < cutoff:
+                      p.unlink()
+                      removed += 1
+          print(f'retention removed={removed}')
+          PY
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Sin cambios que commitear"
+            exit 0
+          fi
+          META=$(python3 -c "import json; print(json.load(open('/tmp/backup-meta.json'))['path'])")
+          git commit -m "backup: ${META}"
+          git push origin HEAD:backups
+          echo "OK → rama backups:${META}"

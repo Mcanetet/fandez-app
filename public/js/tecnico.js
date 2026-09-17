@@ -21,6 +21,7 @@
       diagnostico: 'status.tech.diagnostico_label',
       reparando: 'status.tech.reparando',
       comprando: 'status.tech.comprando',
+      materiales_pendiente: 'status.tech.materiales_pendiente',
       presupuesto_pendiente: 'status.tech.presupuesto_pendiente',
       presupuesto_aprobado: 'status.tech.presupuesto_aprobado',
       completado: 'status.tech.completado'
@@ -43,7 +44,7 @@
   let alertInterval = null;
   let audioCtx = null;
 
-  const WORK_STATUSES = ['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'];
+  const WORK_STATUSES = ['en_sitio', 'diagnostico', 'reparando', 'comprando', 'materiales_pendiente', 'presupuesto_pendiente', 'presupuesto_aprobado'];
 
   /** Preferir dirección escrita del cliente + comuna; coords solo como respaldo (Nominatim suele fallar el número). */
   function mapsDirectionsUrl(card) {

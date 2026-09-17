@@ -1288,6 +1288,100 @@
   document.getElementById('cancelModalBackdrop')?.addEventListener('click', closeCancelModal);
   document.getElementById('cancelModalConfirm')?.addEventListener('click', submitCancelModal);
 
+  // ——— Alerta de seguridad (SOS / reporte) ———
+  const SAFETY_FALLBACK = [
+    { id: 'unsafe_feeling', label: 'Me siento inseguro/a' },
+    { id: 'harassment', label: 'Acoso o conducta indebida' },
+    { id: 'theft', label: 'Robo o hurto' },
+    { id: 'assault_threat', label: 'Amenaza o agresión' },
+    { id: 'fraud', label: 'Fraude o cobro indebido' },
+    { id: 'other_safety', label: 'Otro problema de seguridad' }
+  ];
+  let safetySelected = null;
+  let safetyChannel = 'sos';
+
+  function closeSafetyModal() {
+    const modal = document.getElementById('safetyModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    safetySelected = null;
+    const notes = document.getElementById('safetyNotes');
+    if (notes) notes.value = '';
+    const submit = document.getElementById('safetyModalSubmit');
+    if (submit) submit.disabled = true;
+  }
+
+  async function openSafetyModal(channel) {
+    safetyChannel = channel === 'report' ? 'report' : 'sos';
+    const modal = document.getElementById('safetyModal');
+    const list = document.getElementById('safetyCategoryList');
+    const submit = document.getElementById('safetyModalSubmit');
+    if (!modal || !list) return;
+    let cats = SAFETY_FALLBACK;
+    try {
+      const res = await fetch('/cliente/seguridad/categorias', { credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (Array.isArray(data.categories) && data.categories.length) cats = data.categories;
+    } catch (_) { /* fallback */ }
+    list.innerHTML = cats.map((c) => (
+      `<button type="button" data-safety-cat="${c.id}" class="w-full text-left px-3 py-3 rounded-xl border border-zilo-border text-sm hover:border-red-300 hover:bg-red-50">${c.label}</button>`
+    )).join('');
+    list.querySelectorAll('[data-safety-cat]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        safetySelected = btn.getAttribute('data-safety-cat');
+        list.querySelectorAll('[data-safety-cat]').forEach((b) => {
+          b.classList.toggle('border-red-400', b === btn);
+          b.classList.toggle('bg-red-50', b === btn);
+        });
+        if (submit) submit.disabled = false;
+      });
+    });
+    if (submit) submit.disabled = true;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  async function submitSafetyModal() {
+    const requestId = currentRequestId || page.dataset.tracking;
+    if (!requestId || !safetySelected) return;
+    const submit = document.getElementById('safetyModalSubmit');
+    const notes = document.getElementById('safetyNotes')?.value || '';
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = 'Enviando…';
+    }
+    try {
+      const res = await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/seguridad`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ categoryId: safetySelected, channel: safetyChannel, notes })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo enviar');
+      closeSafetyModal();
+      if (window.FandezNotify) {
+        window.FandezNotify.show(data.message || 'Alerta registrada. Si hay riesgo llama al 133.', 'success');
+      } else {
+        alert(data.message || 'Alerta registrada.');
+      }
+    } catch (err) {
+      if (window.FandezNotify) window.FandezNotify.show(err.message || 'Error', 'error');
+      else alert(err.message || 'Error');
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = 'Enviar alerta';
+      }
+    }
+  }
+
+  document.getElementById('btnSafetyAlert')?.addEventListener('click', () => openSafetyModal('sos'));
+  document.getElementById('btnSafetyReport')?.addEventListener('click', () => openSafetyModal('report'));
+  document.getElementById('safetyModalClose')?.addEventListener('click', closeSafetyModal);
+  document.getElementById('safetyModalBackdrop')?.addEventListener('click', closeSafetyModal);
+  document.getElementById('safetyModalSubmit')?.addEventListener('click', submitSafetyModal);
+
   async function submitNoProviderChoice(choice, requestId) {
     const panel = document.getElementById('noProviderChoicePanel');
     const buttons = panel?.querySelectorAll('button') || [];
@@ -1419,6 +1513,9 @@
     const sr = request.siteReport;
     if (request.techStatus === 'presupuesto_pendiente' && sr?.budgetStatus === 'pending') {
       return { key: 'budget', label: 'Acción requerida', status: 'Aprueba o rechaza el presupuesto', target: 'budgetBanner', cta: 'Revisar' };
+    }
+    if (sr?.materialsPurchase?.status === 'pending') {
+      return { key: 'materials', label: 'Acción requerida', status: 'Aprueba la compra de material', target: 'materialsPurchaseBanner', cta: 'Revisar' };
     }
     if (sr?.activityChange?.status === 'pending') {
       return { key: 'change', label: 'Acción requerida', status: 'Confirma el cambio de servicio', target: 'activityChangeBanner', cta: 'Revisar' };
@@ -1883,6 +1980,33 @@
     syncStickyTrackAction(request, 'working');
   }
 
+  function showMaterialsPurchaseBanner(request) {
+    const banner = document.getElementById('materialsPurchaseBanner');
+    if (!banner) return;
+    const purchase = request?.siteReport?.materialsPurchase;
+    if (!purchase || purchase.status !== 'pending') {
+      banner.classList.add('hidden');
+      return;
+    }
+    const wasHidden = banner.classList.contains('hidden');
+    const textEl = document.getElementById('materialsPurchaseText');
+    if (textEl) {
+      textEl.textContent = `${purchase.description || 'Material adicional'} · estimado ${fmtCLP(purchase.estimatedAmount || 0)}`;
+    }
+    banner.classList.remove('hidden');
+    if (wasHidden && window.FandezAlerts) {
+      FandezAlerts.notify({
+        type: 'alert',
+        title: 'Material adicional',
+        body: `El técnico pide OK para comprar (~${fmtCLP(purchase.estimatedAmount || 0)}). Entra y aprueba o rechaza.`,
+        tag: 'fandez-materials-' + (request.id || currentRequestId),
+        requireInteraction: true,
+        url: `/cliente/servicio/${request.serviceId || ''}?tracking=${request.id || currentRequestId}`
+      });
+    }
+    syncStickyTrackAction(request, 'working');
+  }
+
   function showActivityChangeBanner(request) {
     const banner = document.getElementById('activityChangeBanner');
     if (!banner) return;
@@ -1978,6 +2102,25 @@
     if (data.redirect) window.location.href = data.redirect;
   }
 
+  async function respondMaterialsPurchase(approved) {
+    if (!currentRequestId) return;
+    const res = await fetch(`/cliente/materiales-compra/${currentRequestId}/responder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ approved })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      FandezNotify.show(data.error || t('client.js.respond_error'), 'error');
+      return;
+    }
+    FandezNotify.show(
+      approved ? 'Compra de material aprobada. El técnico puede ir a comprar.' : 'Compra de material rechazada.',
+      approved ? 'success' : 'info'
+    );
+    document.getElementById('materialsPurchaseBanner')?.classList.add('hidden');
+  }
+
   async function respondActivityChange(approved) {
     if (!currentRequestId) return;
     const res = await fetch(`/cliente/cambio-servicio/${currentRequestId}/responder`, {
@@ -2000,6 +2143,8 @@
 
   document.getElementById('btnApproveBudget')?.addEventListener('click', () => respondBudget(true));
   document.getElementById('btnRejectBudget')?.addEventListener('click', () => respondBudget(false));
+  document.getElementById('btnApproveMaterialsPurchase')?.addEventListener('click', () => respondMaterialsPurchase(true));
+  document.getElementById('btnRejectMaterialsPurchase')?.addEventListener('click', () => respondMaterialsPurchase(false));
   document.getElementById('btnApproveActivityChange')?.addEventListener('click', () => respondActivityChange(true));
   document.getElementById('btnRejectActivityChange')?.addEventListener('click', () => respondActivityChange(false));
 
@@ -2220,6 +2365,7 @@
     }
     if (request) {
       showBudgetBanner(request);
+      showMaterialsPurchaseBanner(request);
       showActivityChangeBanner(request);
       showAdditionalPaymentBanner(request);
       renderCompletionSummary(request.clientTotals, request.vouchers, request);
@@ -2441,6 +2587,7 @@
           return;
         }
         showBudgetBanner(payload.request);
+        showMaterialsPurchaseBanner(payload.request);
         showActivityChangeBanner(payload.request);
         showAdditionalPaymentBanner(payload.request);
         syncTripFromRequest(payload.request);
