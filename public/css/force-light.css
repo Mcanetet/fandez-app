@@ -68,6 +68,19 @@ body,
   background-image: none !important;
 }
 
+.admin-filter-q,
+.admin-users-search {
+  background-color: #FFFEFB !important;
+  background-image: none !important;
+  color: #1A1714 !important;
+}
+
+.admin-filter-select,
+.admin-users-role {
+  background-color: #FFFEFB !important;
+  color: #1A1714 !important;
+}
+
 #fandezSplash {
   background: #ffffff !important;
 }

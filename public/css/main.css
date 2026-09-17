@@ -2321,98 +2321,80 @@ body.session-role--tecnico::before {
   width: 100%;
   margin: 0 auto;
 }
-.admin-toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  padding: 0.65rem;
-  background: var(--admin-panel);
-  border: 1px solid var(--admin-line);
-  border-radius: 0.85rem;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset;
-}
-.admin-toolbar .admin-toolbar-grow,
-.admin-toolbar .admin-toolbar-select,
-.admin-toolbar .admin-toolbar-action {
-  width: 100%;
-}
-.admin-toolbar .zilo-input {
-  background: #FFFEFB;
-  border-color: rgba(26, 23, 20, 0.12);
-  border-radius: 0.6rem;
-}
-.admin-toolbar .zilo-btn-primary,
-.admin-toolbar .admin-toolbar-action {
-  border-radius: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-@media (min-width: 640px) {
-  .admin-toolbar {
-    flex-direction: row;
-    align-items: stretch;
-  }
-  .admin-toolbar .admin-toolbar-grow {
-    width: auto !important;
-    flex: 1 1 0;
-    min-width: 14rem;
-  }
-  .admin-toolbar .admin-toolbar-select {
-    width: 11rem !important;
-    flex: 0 0 11rem;
-  }
-  .admin-toolbar .admin-toolbar-action {
-    width: auto !important;
-    flex: 0 0 auto;
-  }
-}
-
-/* Filtro Clientes y socios — compacto, sin cuadro fantasma */
+.admin-toolbar,
+.admin-filters,
 .admin-users-filters {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   max-width: 36rem;
+  width: 100%;
 }
-.admin-users-search,
-.admin-users-role {
+.admin-filters-wide {
+  max-width: 48rem;
+}
+.admin-filters-flush {
+  max-width: none;
+}
+.admin-filters > .admin-filter-q,
+.admin-filters > .admin-filter-select,
+.admin-filters > .admin-filter-btn,
+.admin-users-filters > .admin-users-search,
+.admin-users-filters > .admin-users-role,
+.admin-users-filters > .admin-users-go,
+.admin-toolbar > .admin-toolbar-grow,
+.admin-toolbar > .admin-toolbar-select,
+.admin-toolbar > .admin-toolbar-action {
   box-sizing: border-box;
   width: 100% !important;
   max-width: 100%;
   min-width: 0;
   margin: 0;
+}
+.admin-filter-q,
+.admin-filter-select,
+.admin-users-search,
+.admin-users-role,
+.admin-toolbar .admin-toolbar-grow,
+.admin-toolbar .admin-toolbar-select {
   padding: 0.6rem 0.85rem;
   border-radius: 0.6rem;
   border: 1px solid rgba(26, 23, 20, 0.12);
-  background: #FFFEFB;
+  background: #FFFEFB !important;
+  background-image: none;
   color: var(--admin-ink, #1A1714);
   font-size: 0.875rem;
   line-height: 1.25;
   appearance: none;
   -webkit-appearance: none;
 }
+.admin-filter-q::placeholder,
 .admin-users-search::placeholder {
   color: #9A9288;
 }
+.admin-filter-q:focus,
+.admin-filter-select:focus,
 .admin-users-search:focus,
 .admin-users-role:focus {
   outline: none;
   border-color: rgba(196, 92, 20, 0.55);
   box-shadow: 0 0 0 3px rgba(196, 92, 20, 0.12);
 }
-.admin-users-role {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B635A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.85rem center;
+.admin-filter-select,
+.admin-users-role,
+.admin-toolbar .admin-toolbar-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B635A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.85rem center !important;
   padding-right: 2rem;
   cursor: pointer;
 }
-.admin-users-go {
-  box-sizing: border-box;
+.admin-filter-btn,
+.admin-users-go,
+.admin-toolbar .admin-toolbar-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
   padding: 0.6rem 1.1rem;
   border-radius: 0.6rem;
   border: 1px solid var(--zilo-accent-strong);
@@ -2422,31 +2404,116 @@ body.session-role--tecnico::before {
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
+  text-decoration: none;
 }
+.admin-filter-btn:hover,
 .admin-users-go:hover {
   background: var(--zilo-accent-strong);
+  color: #fff;
+}
+.admin-filter-btn-ghost {
+  background: #FFFEFB;
+  color: #3F3A34;
+  border-color: rgba(26, 23, 20, 0.14);
+}
+.admin-filter-btn-ghost:hover {
+  background: #FFF8F1;
+  border-color: rgba(196, 92, 20, 0.35);
+  color: var(--zilo-accent-strong);
 }
 @media (min-width: 640px) {
+  .admin-toolbar,
+  .admin-filters,
   .admin-users-filters {
     flex-direction: row;
     align-items: stretch;
-    max-width: 34rem;
+    flex-wrap: nowrap;
   }
-  .admin-users-search {
+  .admin-filters > .admin-filter-q,
+  .admin-users-filters > .admin-users-search,
+  .admin-toolbar > .admin-toolbar-grow {
     flex: 1 1 auto;
     width: auto !important;
     min-width: 11rem;
   }
-  .admin-users-role {
-    flex: 0 0 8.5rem;
-    width: 8.5rem !important;
+  .admin-filters > .admin-filter-select,
+  .admin-users-filters > .admin-users-role,
+  .admin-toolbar > .admin-toolbar-select {
+    flex: 0 0 8.75rem;
+    width: 8.75rem !important;
   }
-  .admin-users-go {
+  .admin-filters > .admin-filter-select-lg {
+    flex: 0 0 11rem;
+    width: 11rem !important;
+  }
+  .admin-filters > .admin-filter-event {
+    flex: 0 0 9.5rem;
+    width: 9.5rem !important;
+    min-width: 9.5rem;
+  }
+  .admin-filters > .admin-filter-btn,
+  .admin-filters > .admin-filter-btn-ghost,
+  .admin-users-filters > .admin-users-go,
+  .admin-toolbar > .admin-toolbar-action {
     flex: 0 0 auto;
-    width: auto;
-    min-width: 5.5rem;
+    width: auto !important;
+    min-width: 5.25rem;
   }
 }
+
+/* Controles en fila (asignar pedido, etc.): nunca aplastar selects */
+.admin-inline-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.admin-inline-controls > .zilo-input,
+.admin-inline-controls > select,
+.admin-inline-controls > input {
+  width: 100% !important;
+  min-width: 0;
+}
+@media (min-width: 640px) {
+  .admin-inline-controls {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .admin-inline-controls > .zilo-input,
+  .admin-inline-controls > select,
+  .admin-inline-controls > input {
+    flex: 1 1 0;
+    width: auto !important;
+  }
+  .admin-inline-controls > button,
+  .admin-inline-controls > .zilo-btn-primary,
+  .admin-inline-controls > .zilo-btn-ghost {
+    flex: 0 0 auto;
+    width: auto !important;
+    white-space: nowrap;
+  }
+}
+
+/* Safety net: cualquier flex-row admin con zilo-input + flex-1 */
+.admin-page .flex.flex-col.sm\:flex-row > .zilo-input.flex-1,
+.admin-page .sm\:flex-row > .zilo-input.flex-1 {
+  width: auto !important;
+  min-width: 0;
+  flex: 1 1 0%;
+}
+.admin-page .flex.flex-col.sm\:flex-row > .zilo-input.sm\:w-40,
+.admin-page .sm\:flex-row > .zilo-input.sm\:w-40 {
+  width: 10rem !important;
+  flex: 0 0 10rem;
+}
+.admin-page .flex.flex-col.sm\:flex-row > .zilo-btn-primary,
+.admin-page .flex.flex-col.sm\:flex-row > .zilo-btn-ghost,
+.admin-page .flex.flex-col.sm\:flex-row > a.zilo-btn-ghost,
+.admin-page .flex.flex-col.sm\:flex-row > a.zilo-btn-primary {
+  width: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .admin-card {
   background: var(--admin-panel);
   border: 1px solid var(--admin-line);

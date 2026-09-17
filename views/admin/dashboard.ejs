@@ -1242,8 +1242,8 @@ function hasPerm(key) {
               <% if (!(r.eligibleProviders || []).length) { %>
                 <p class="text-xs text-amber-600 mb-2"><%= t('admin.solicitudes.no_eligible') %></p>
               <% } else if (hasPerm('solicitudes.manage')) { %>
-                <div class="flex flex-col sm:flex-row gap-2">
-                  <select class="zilo-input !py-2 flex-1 text-sm" data-role="provider-select">
+                <div class="admin-inline-controls">
+                  <select class="zilo-input !py-2 text-sm" data-role="provider-select">
                     <option value=""><%= t('admin.solicitudes.pick_provider') %></option>
                     <% r.eligibleProviders.forEach(p => { %>
                       <option
@@ -1252,10 +1252,10 @@ function hasPerm(key) {
                       ><%= p.name %><%= p.online ? ' · ' + t('admin.solicitudes.online') : '' %> (<%= (p.readyTechs || []).length %> téc.)</option>
                     <% }); %>
                   </select>
-                  <select class="zilo-input !py-2 flex-1 text-sm" data-role="tech-select" disabled>
+                  <select class="zilo-input !py-2 text-sm" data-role="tech-select" disabled>
                     <option value=""><%= t('admin.solicitudes.pick_tech') %></option>
                   </select>
-                  <button type="button" class="btn-admin-dispatch zilo-btn-primary !py-2 !px-4 !text-sm shrink-0" data-id="<%= r.id %>"><%= t('admin.solicitudes.assign') %></button>
+                  <button type="button" class="btn-admin-dispatch zilo-btn-primary !py-2 !px-4 !text-sm" data-id="<%= r.id %>"><%= t('admin.solicitudes.assign') %></button>
                 </div>
               <% } else { %>
                 <p class="text-xs text-gray-500"><%= (r.eligibleProviders || []).length %> socio(s) elegible(s)</p>
@@ -1277,9 +1277,9 @@ function hasPerm(key) {
             <h4 class="text-sm font-semibold"><%= t('admin.proveedores.directory_title') %></h4>
             <p class="text-[11px] text-gray-500 mt-0.5"><%= t('admin.proveedores.directory_subtitle') %></p>
           </div>
-          <div class="admin-toolbar">
-            <input type="search" id="providersDirSearch" class="zilo-input admin-toolbar-grow !py-2 text-sm" placeholder="<%= t('admin.proveedores.search_placeholder') %>" autocomplete="off">
-            <select id="providersDirFilter" class="zilo-input admin-toolbar-select !py-2 text-sm" aria-label="Filtrar socios">
+          <div class="admin-filters">
+            <input type="search" id="providersDirSearch" class="admin-filter-q" placeholder="<%= t('admin.proveedores.search_placeholder') %>" autocomplete="off">
+            <select id="providersDirFilter" class="admin-filter-select admin-filter-select-lg" aria-label="Filtrar socios">
               <option value=""><%= t('admin.proveedores.filter_all') %></option>
               <option value="with"><%= t('admin.proveedores.filter_with_services') %></option>
               <option value="without"><%= t('admin.proveedores.filter_without_services') %></option>
@@ -1464,9 +1464,9 @@ function hasPerm(key) {
       <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4">
         <h4 class="text-sm font-semibold mb-1">DSAR — derechos del titular (Ley 21.719)</h4>
         <p class="text-xs text-gray-500 mb-3">Busca una cuenta, exporta su paquete de datos o anonimízala. Los pedidos contables se conservan sin PII.</p>
-        <div class="admin-toolbar mb-3">
-          <input type="search" id="dsarSearch" class="zilo-input admin-toolbar-grow !py-2 text-sm" placeholder="Email, nombre o teléfono" autocomplete="off">
-          <button type="button" id="btnDsarSearch" class="zilo-btn-primary admin-toolbar-action !py-2 !px-4 !text-sm">Buscar</button>
+        <div class="admin-filters mb-3">
+          <input type="search" id="dsarSearch" class="admin-filter-q" placeholder="Email, nombre o teléfono" autocomplete="off">
+          <button type="button" id="btnDsarSearch" class="admin-filter-btn">Buscar</button>
         </div>
         <div id="dsarResults" class="space-y-2"></div>
       </div>
@@ -1475,10 +1475,10 @@ function hasPerm(key) {
       <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4">
         <h4 class="text-sm font-semibold mb-1">Verificación de correo</h4>
         <p class="text-xs text-gray-500 mb-3">Si un usuario no recibe el código (p. ej. Gmail), reenvía o verifica manualmente con su correo.</p>
-        <div class="flex flex-col sm:flex-row gap-2">
-          <input type="email" id="adminVerifyEmail" class="zilo-input !py-2 flex-1 text-sm" placeholder="usuario@gmail.com" autocomplete="off">
-          <button type="button" id="btnAdminResendVerify" class="zilo-btn-ghost !py-2 !px-4 !text-sm">Reenviar código</button>
-          <button type="button" id="btnAdminForceVerify" class="zilo-btn-primary !py-2 !px-4 !text-sm">Verificar manualmente</button>
+        <div class="admin-filters admin-filters-wide">
+          <input type="email" id="adminVerifyEmail" class="admin-filter-q" placeholder="usuario@gmail.com" autocomplete="off">
+          <button type="button" id="btnAdminResendVerify" class="admin-filter-btn admin-filter-btn-ghost">Reenviar código</button>
+          <button type="button" id="btnAdminForceVerify" class="admin-filter-btn">Verificar manualmente</button>
         </div>
         <p id="adminVerifyFeedback" class="text-xs text-gray-500 mt-2 hidden"></p>
       </div>
@@ -1523,15 +1523,15 @@ function hasPerm(key) {
     <% if (canAccessPanelFn('usuarios')) { %>
     <section class="<%= panelClass('usuarios') %>" data-panel="usuarios" data-can-manage="<%= hasPerm('usuarios.manage') ? '1' : '0' %>" data-subtitle="<%= t('admin.usuarios.subtitle') %>">
       <p class="text-xs text-gray-500 mb-4 sm:hidden"><%= t('admin.usuarios.subtitle') %></p>
-      <div class="admin-users-filters mb-4">
-        <input type="search" id="managedUserSearch" class="admin-users-search" placeholder="Buscar por nombre, email o teléfono" autocomplete="off">
-        <select id="managedUserRole" class="admin-users-role" aria-label="Filtrar por rol">
+      <div class="admin-filters mb-4">
+        <input type="search" id="managedUserSearch" class="admin-filter-q" placeholder="Buscar por nombre, email o teléfono" autocomplete="off">
+        <select id="managedUserRole" class="admin-filter-select" aria-label="Filtrar por rol">
           <option value="">Todos</option>
           <option value="client">Clientes</option>
           <option value="provider">Socios</option>
           <option value="tecnico">Técnicos</option>
         </select>
-        <button type="button" id="btnManagedUserSearch" class="admin-users-go">Buscar</button>
+        <button type="button" id="btnManagedUserSearch" class="admin-filter-btn">Buscar</button>
       </div>
       <div id="managedUsersList" class="space-y-2">
         <% (typeof managedUsers !== 'undefined' ? managedUsers : []).forEach(function(u) {
@@ -1623,9 +1623,9 @@ function hasPerm(key) {
       </div>
 
       <% if (hasPerm('usuarios.manage')) { %>
-      <div id="managedUserEditModal" class="fixed inset-0 z-[80] hidden items-center justify-center p-4" aria-hidden="true">
-        <div class="absolute inset-0 bg-black/40" data-close-managed-edit></div>
-        <div class="relative w-full max-w-md rounded-2xl bg-white border border-gray-200 shadow-xl p-5" role="dialog" aria-labelledby="managedUserEditTitle">
+      <div id="managedUserEditModal" class="admin-modal fixed inset-0 z-[200] hidden items-center justify-center p-4" aria-hidden="true">
+        <div class="admin-modal-backdrop absolute inset-0" data-close-managed-edit></div>
+        <div class="admin-modal-sheet relative w-full max-w-md flex flex-col rounded-2xl p-5" role="dialog" aria-labelledby="managedUserEditTitle">
           <div class="flex items-start justify-between gap-3 mb-4">
             <div>
               <h4 id="managedUserEditTitle" class="text-base font-semibold">Editar cuenta</h4>
@@ -2759,11 +2759,11 @@ function hasPerm(key) {
 
       <h4 class="text-sm font-semibold mb-2"><%= t('admin.seguridad.audit') %></h4>
       <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-3">
-        <div class="flex flex-col sm:flex-row gap-2 mb-3">
-          <input type="search" id="auditSearch" class="zilo-input !py-2 flex-1 text-sm" placeholder="Buscar evento, usuario, IP o detalle" value="">
-          <input type="text" id="auditEvent" class="zilo-input !py-2 text-sm sm:w-40" placeholder="evento (opcional)">
-          <button type="button" id="btnAuditSearch" class="zilo-btn-primary !py-2 !px-4 !text-sm">Filtrar</button>
-          <a id="btnAuditExport" href="<%= adminBase %>/auditoria/export.csv" class="zilo-btn-ghost !py-2 !px-4 !text-sm text-center">Exportar CSV</a>
+        <div class="admin-filters admin-filters-wide mb-3">
+          <input type="search" id="auditSearch" class="admin-filter-q" placeholder="Buscar evento, usuario, IP o detalle" value="" autocomplete="off">
+          <input type="text" id="auditEvent" class="admin-filter-q admin-filter-event" placeholder="evento (opcional)" autocomplete="off">
+          <button type="button" id="btnAuditSearch" class="admin-filter-btn">Filtrar</button>
+          <a id="btnAuditExport" href="<%= adminBase %>/auditoria/export.csv" class="admin-filter-btn admin-filter-btn-ghost">Exportar CSV</a>
         </div>
         <p id="auditMeta" class="text-[11px] text-gray-500 mb-2">Cargando auditoría…</p>
         <div id="auditLogList" class="space-y-1 max-h-96 overflow-y-auto">
@@ -2783,17 +2783,17 @@ function hasPerm(key) {
   </div>
 </div>
 
-<div id="adminRequestCaseModal" class="fixed inset-0 z-[90] hidden items-center justify-center p-3 sm:p-4" aria-hidden="true">
-  <div class="absolute inset-0 bg-black/45" data-close-request-case></div>
-  <div class="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white border border-gray-200 shadow-xl p-4 sm:p-5" role="dialog" aria-labelledby="adminRequestCaseTitle">
-    <div class="flex items-start justify-between gap-3 mb-3 sticky top-0 bg-white pb-2 z-10">
+<div id="adminRequestCaseModal" class="admin-modal fixed inset-0 z-[200] hidden items-center justify-center p-3 sm:p-4" aria-hidden="true">
+  <div class="admin-modal-backdrop absolute inset-0" data-close-request-case></div>
+  <div class="admin-modal-sheet relative w-full max-w-2xl flex flex-col rounded-2xl" role="dialog" aria-labelledby="adminRequestCaseTitle">
+    <div class="admin-modal-head flex items-start justify-between gap-3 px-4 sm:px-5 pt-4 sm:pt-5 pb-3 shrink-0 border-b border-black/10">
       <div class="min-w-0">
         <h4 id="adminRequestCaseTitle" class="text-base font-semibold">Caso 360°</h4>
         <p id="adminRequestCaseSub" class="text-xs text-gray-500 mt-0.5 truncate"></p>
       </div>
       <button type="button" class="text-gray-400 hover:text-gray-700 text-lg leading-none" data-close-request-case aria-label="Cerrar">&times;</button>
     </div>
-    <div id="adminRequestCaseBody" class="space-y-3 text-sm">
+    <div id="adminRequestCaseBody" class="admin-modal-body flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5 py-4 space-y-3 text-sm">
       <p class="text-gray-500">Cargando…</p>
     </div>
   </div>

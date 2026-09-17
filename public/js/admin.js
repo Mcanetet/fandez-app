@@ -386,6 +386,7 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('admin-modal-open');
   }
 
   function closeManagedUserEdit() {
@@ -394,6 +395,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('admin-modal-open');
   }
 
   function bindManagedUserActions() {
@@ -1463,6 +1465,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('admin-modal-open');
   }
 
   function renderRequestCase(payload) {
@@ -1527,6 +1530,7 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('admin-modal-open');
     try {
       const res = await adminFetch(`/solicitudes/${encodeURIComponent(requestId)}/caso`);
       const data = await res.json().catch(() => ({}));
