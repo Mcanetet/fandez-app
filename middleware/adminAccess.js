@@ -33,7 +33,7 @@ function attachAdminAccess(req, res, next) {
 function requireAdminPermission(...permissions) {
   return (req, res, next) => {
     if (!req.session?.user || req.session.user.role !== 'admin') {
-      return res.redirect(adminUrl('/login'));
+      return res.redirect(absoluteAdminUrl('/login'));
     }
     const access = getSessionAccess(req);
     if (access.isSuperAdmin || access.isFullAccess || hasAnyPermission(access, permissions)) {
@@ -54,7 +54,7 @@ function requireAdminPermission(...permissions) {
 function requireFullAdminAccess() {
   return (req, res, next) => {
     if (!req.session?.user || req.session.user.role !== 'admin') {
-      return res.redirect(adminUrl('/login'));
+      return res.redirect(absoluteAdminUrl('/login'));
     }
     const { hasFullSystemAccess } = require('../lib/adminPermissions');
     const access = getSessionAccess(req);
