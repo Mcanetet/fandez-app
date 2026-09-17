@@ -221,6 +221,21 @@ picture {
     color: #9A9186 !important;
   }
 
+  .admin-modal-sheet,
+  .admin-modal-head,
+  .admin-modal-body,
+  .admin-modal-foot {
+    background-color: #FFFCF8 !important;
+    background-image: none !important;
+    color: #1A1714 !important;
+    opacity: 1 !important;
+  }
+
+  .admin-modal-backdrop {
+    background-color: rgba(23, 20, 17, 0.58) !important;
+    background-image: none !important;
+  }
+
   header.sticky,
   .sticky.top-0 {
     background-color: rgba(255, 255, 255, 0.97) !important;
