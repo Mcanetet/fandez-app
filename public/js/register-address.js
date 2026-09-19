@@ -19,9 +19,17 @@
   const useGpsBtn = document.getElementById('addressUseGps');
   const confirmBtn = document.getElementById('addressConfirmManual');
   const coverageAlert = document.getElementById('addressCoverageAlert');
+  const coverageInterestOpen = document.getElementById('coverageInterestOpen');
+  const coverageInterestBlock = document.getElementById('coverageInterestBlock');
+  const coverageInterestCommune = document.getElementById('coverage_interest_commune');
+  const coverageInterestEmail = document.getElementById('coverage_interest_email');
+  const coverageInterestSubmit = document.getElementById('coverageInterestSubmit');
+  const coverageInterestStatus = document.getElementById('coverageInterestStatus');
   const addressLabel = document.getElementById('addressLabel');
   const addressHint = document.getElementById('addressHint');
   const roleInputs = document.querySelectorAll('input[name="role"]');
+  const emailInput = document.getElementById('email');
+  const phoneInput = document.getElementById('phone');
 
   const SANTIAGO = { lat: -33.4489, lng: -70.6693 };
   let suggestTimer = null;
@@ -50,6 +58,30 @@
   }
 
   let lastCoverage = null;
+  let interestSent = false;
+
+  function setInterestOpen(open, { prefills = true } = {}) {
+    if (!coverageInterestBlock) return;
+    coverageInterestBlock.classList.toggle('hidden', !open);
+    coverageInterestBlock.dataset.open = open ? '1' : '0';
+    if (coverageInterestOpen) {
+      coverageInterestOpen.classList.toggle('hidden', open);
+    }
+    if (open && prefills) {
+      if (coverageInterestEmail && emailInput && emailInput.value && !coverageInterestEmail.value) {
+        coverageInterestEmail.value = emailInput.value.trim();
+      }
+      if (coverageInterestCommune && !coverageInterestCommune.value) {
+        const fromCoverage = lastCoverage && !lastCoverage.covered
+          ? (lastCoverage.communeName || '')
+          : '';
+        const fromSelect = communeSelect && communeSelect.selectedOptions[0]
+          ? communeSelect.selectedOptions[0].textContent.trim()
+          : '';
+        coverageInterestCommune.value = fromCoverage || fromSelect || '';
+      }
+    }
+  }
 
   function coverageMessageKey(messageKey, forProvider) {
     const key = messageKey || 'coverage.not_available';
@@ -72,6 +104,69 @@
       ? (t(key) || 'Revisa las comunas habilitadas para servicio.')
       : (coverage.message || t(key) || t('coverage.not_available'));
     coverageAlert.classList.remove('hidden');
+    if (!interestSent) setInterestOpen(true);
+  }
+
+  async function submitCoverageInterest() {
+    if (!coverageInterestSubmit || interestSent) return;
+    const commune = coverageInterestCommune ? coverageInterestCommune.value.trim() : '';
+    const email = (coverageInterestEmail && coverageInterestEmail.value.trim())
+      || (emailInput && emailInput.value.trim())
+      || '';
+    if (coverageInterestStatus) {
+      coverageInterestStatus.textContent = '';
+      coverageInterestStatus.classList.remove('text-red-600', 'text-emerald-700');
+    }
+    coverageInterestSubmit.disabled = true;
+    try {
+      const res = await fetch('/registro/interes-zona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          commune,
+          email,
+          phone: phoneInput ? phoneInput.value.trim() : '',
+          role: currentRole(),
+          source: 'registro'
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        const msg = data.error
+          || t(data.errorKey || 'coverage.interest_error')
+          || t('coverage.interest_error');
+        if (coverageInterestStatus) {
+          coverageInterestStatus.textContent = msg;
+          coverageInterestStatus.classList.add('text-red-600');
+        }
+        return;
+      }
+      interestSent = true;
+      if (coverageInterestStatus) {
+        coverageInterestStatus.textContent = data.message || t('coverage.interest_thanks');
+        coverageInterestStatus.classList.add('text-emerald-700');
+      }
+      if (coverageInterestSubmit) coverageInterestSubmit.disabled = true;
+    } catch (_) {
+      if (coverageInterestStatus) {
+        coverageInterestStatus.textContent = t('coverage.interest_error');
+        coverageInterestStatus.classList.add('text-red-600');
+      }
+    } finally {
+      if (coverageInterestSubmit && !interestSent) coverageInterestSubmit.disabled = false;
+    }
+  }
+
+  if (coverageInterestOpen) {
+    coverageInterestOpen.addEventListener('click', () => setInterestOpen(true));
+  }
+  if (coverageInterestSubmit) {
+    coverageInterestSubmit.addEventListener('click', submitCoverageInterest);
+  }
+  if (emailInput && coverageInterestEmail) {
+    emailInput.addEventListener('change', () => {
+      if (!coverageInterestEmail.value) coverageInterestEmail.value = emailInput.value.trim();
+    });
   }
 
   function syncAddressCopy() {

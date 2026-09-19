@@ -10,8 +10,18 @@
     <svg class="w-10 h-10 text-zilo-success" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
   </div>
   <% const isAdditionalPayment = typeof additionalPayment !== 'undefined' && additionalPayment; %>
+  <% const isApproxPay = isAdditionalPayment && (additionalPayment.approximate === true || additionalPayment.reason === 'materials_approx' || ((additionalPayment.materialsApproxBase || 0) > 0 && additionalPayment.reason !== 'materials')); %>
+  <% const isTrueUpPay = isAdditionalPayment && additionalPayment.reason === 'materials' && !isApproxPay; %>
   <h1 class="zilo-display text-3xl mb-2"><%= t('payments.success.title') %></h1>
-  <p class="text-zilo-muted text-sm mb-1" id="successSubtext"><%= isAdditionalPayment ? ((additionalPayment.reason === 'materials') ? 'Materiales pagados. Gracias por completar el pago.' : 'El ajuste fue pagado y el trabajo puede continuar') : t('payments.success.searching') %></p>
+  <p class="text-zilo-muted text-sm mb-1" id="successSubtext"><%= isAdditionalPayment
+    ? (isTrueUpPay
+      ? 'Diferencia por boleta o factura pagada. El precio del producto quedó validado.'
+      : isApproxPay
+        ? 'Cobro aproximado confirmado. Al subir la boleta o factura se validará el precio final (pueden haber modificaciones).'
+        : (additionalPayment.reason === 'materials'
+          ? 'Materiales pagados. Gracias por completar el pago.'
+          : 'El ajuste fue pagado y el trabajo puede continuar'))
+    : t('payments.success.searching') %></p>
   <% if (!isAdditionalPayment && (typeof autoRedirect !== 'undefined' && autoRedirect)) { %>
   <p class="text-xs text-zilo-accent font-medium mb-4" id="successRedirectHint"><%= t('payments.success.redirecting') %></p>
   <% } %>

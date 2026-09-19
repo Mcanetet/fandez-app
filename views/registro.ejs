@@ -182,6 +182,27 @@
           <input type="text" id="address_unit" name="address_unit" <%= form.role === 'client' ? 'required' : '' %> autocomplete="address-line2" placeholder="<%= t('register.address_unit_placeholder') %>" class="zilo-input" value="<%= form.addressUnit || '' %>">
         </div>
         <div id="addressCoverageAlert" class="hidden p-2.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs"></div>
+        <div class="space-y-2">
+          <button type="button" id="coverageInterestOpen" class="text-[12px] font-semibold text-zilo-accent hover:underline">
+            <%= t('coverage.interest_open') %>
+          </button>
+          <div id="coverageInterestBlock" class="hidden space-y-3 p-3 rounded-xl border border-zilo-border bg-zilo-bg/60" data-open="0">
+            <div>
+              <p class="text-sm font-semibold text-zilo-text"><%= t('coverage.interest_title') %></p>
+              <p class="text-[11px] text-zilo-muted mt-0.5"><%= t('coverage.interest_hint') %></p>
+            </div>
+            <div>
+              <label for="coverage_interest_commune" class="zilo-label block mb-1.5"><%= t('coverage.interest_label') %></label>
+              <input type="text" id="coverage_interest_commune" maxlength="160" autocomplete="address-level2" class="zilo-input" placeholder="<%= t('coverage.interest_placeholder') %>">
+            </div>
+            <div>
+              <label for="coverage_interest_email" class="zilo-label block mb-1.5"><%= t('coverage.interest_email_label') %></label>
+              <input type="email" id="coverage_interest_email" maxlength="190" autocomplete="email" class="zilo-input" placeholder="<%= t('coverage.interest_email_placeholder') %>">
+            </div>
+            <button type="button" id="coverageInterestSubmit" class="zilo-btn-primary !py-2.5 text-sm"><%= t('coverage.interest_submit') %></button>
+            <p id="coverageInterestStatus" class="text-[11px] text-zilo-muted min-h-[1rem]" role="status"></p>
+          </div>
+        </div>
         <div id="registerAddressMap" class="fandez-map-panel h-44 sm:h-52 rounded-2xl border border-zilo-border overflow-hidden bg-zilo-bg shadow-zilo"></div>
         <div id="addressMapActions" class="hidden flex flex-wrap gap-2">
           <button type="button" id="addressUseGps" class="zilo-btn-ghost !py-2 !px-3 text-xs"><%= t('register.address_use_gps') %></button>
@@ -373,5 +394,9 @@
   'coverage.unknown_commune': t('coverage.unknown_commune'),
   'coverage.provider_not_available': t('coverage.provider_not_available'),
   'coverage.provider_region_disabled': t('coverage.provider_region_disabled'),
-  'coverage.provider_unknown_commune': t('coverage.provider_unknown_commune')
+  'coverage.provider_unknown_commune': t('coverage.provider_unknown_commune'),
+  'coverage.interest_thanks': t('coverage.interest_thanks'),
+  'coverage.interest_commune_required': t('coverage.interest_commune_required'),
+  'coverage.interest_email_required': t('coverage.interest_email_required'),
+  'coverage.interest_error': t('coverage.interest_error')
 } }) %>

@@ -454,6 +454,8 @@ router.get('/', requireRole('admin'), async (req, res) => {
     providerModules: localizeModules(store.getModulesByAudience('provider'), req.t),
     coverageRegions: store.getCoverageForAdmin(),
     coverageStats: store.getCoverageStats(),
+    coverageInterest: store.getCoverageInterest(40),
+    coverageInterestStats: store.getCoverageInterestStats(),
     requests: allRequests.slice(0, 30),
     payments: store.getPayments(),
     payouts: store.getProviderPayouts(),

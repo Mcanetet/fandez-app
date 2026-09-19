@@ -340,10 +340,11 @@
       </section>
 
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
-        <h2 class="text-sm font-semibold mb-1">Materiales recurrentes</h2>
+        <h2 class="text-sm font-semibold mb-1">Materiales y productos (base de datos)</h2>
         <p class="text-xs text-gray-500 mb-4">
-          Lista con precios de mercado. El técnico elige stock (sin boleta) o compra (con boleta).
-          Se cobran al cliente a costo (0% comisión Fandez). Deja especialidades vacío = todos los servicios.
+          Catálogo con precios de mercado por servicio. El técnico <strong>solo puede elegir de esta lista</strong>
+          al proponer adicionales. Se cobran a costo (0% comisión Fandez). Especialidades vacío = todos los servicios.
+          Al guardar o reiniciar la app se fusionan productos nuevos del catálogo oficial.
         </p>
         <% const matCatalog = Array.isArray(pricing.materialsCatalog) ? pricing.materialsCatalog : []; %>
         <% const appServices = [

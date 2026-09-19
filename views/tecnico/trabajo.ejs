@@ -59,10 +59,14 @@
       const budgetWaiting = request.techStatus === 'presupuesto_pendiente'
         && request.siteReport && ['pending','payment_pending'].includes(request.siteReport.budgetStatus);
       const budgetForm = request.techStatus === 'presupuesto_pendiente' && !budgetWaiting;
-      const materialsWaiting = request.techStatus === 'materiales_pendiente'
+      const materialsWaiting = (request.techStatus === 'materiales_pendiente'
         && request.siteReport && request.siteReport.materialsPurchase
-        && request.siteReport.materialsPurchase.status === 'pending';
-      const materialsForm = request.techStatus === 'materiales_pendiente' && !materialsWaiting;
+        && ['pending', 'payment_pending'].includes(request.siteReport.materialsPurchase.status))
+        || (request.siteReport && request.siteReport.materialsPurchase
+          && request.siteReport.materialsPurchase.status === 'payment_pending');
+      const materialsClarify = request.siteReport && request.siteReport.materialsPurchase
+        && request.siteReport.materialsPurchase.status === 'clarification_pending';
+      const materialsForm = (request.techStatus === 'materiales_pendiente' && !materialsWaiting) || materialsClarify;
       const codeOk = Boolean(request.arrivalCodeVerified);
       const materialsThreshold = (typeof materialsIncludedThreshold !== 'undefined' && materialsIncludedThreshold != null)
         ? materialsIncludedThreshold
@@ -71,15 +75,16 @@
       if (request.serviceConfirmStatus === 'change_pending'
         || (request.siteReport && request.siteReport.activityChange && ['pending','payment_pending'].includes(request.siteReport.activityChange.status)
           && ['en_sitio','diagnostico'].includes(request.techStatus))) wizardStep = 'cambio';
+      else if (request.siteReport && request.siteReport.activityChange && request.siteReport.activityChange.status === 'clarification_pending') wizardStep = 'cambio';
       else if (['aceptado','en_camino'].includes(request.techStatus)) wizardStep = 'trayecto';
       else if (request.techStatus === 'en_sitio' && !codeOk) wizardStep = 'llegada';
       else if (request.techStatus === 'en_sitio' && codeOk && request.serviceConfirmStatus === 'pending') wizardStep = 'confirmar';
       else if (request.techStatus === 'en_sitio' && codeOk) wizardStep = 'diagnostico';
+      else if (materialsForm) wizardStep = 'mat-propuesta';
+      else if (materialsWaiting) wizardStep = 'mat-espera';
       else if (request.techStatus === 'diagnostico') wizardStep = 'accion';
       else if (budgetForm) wizardStep = 'presupuesto';
       else if (budgetWaiting) wizardStep = 'espera';
-      else if (materialsForm) wizardStep = 'mat-propuesta';
-      else if (materialsWaiting) wizardStep = 'mat-espera';
       else if (request.techStatus === 'comprando') wizardStep = 'materiales';
       else if (['reparando','presupuesto_aprobado'].includes(request.techStatus)) wizardStep = 'cierre';
       else if (request.techStatus === 'completado') wizardStep = 'done';
@@ -311,8 +316,11 @@
         Sube foto, describe, ajusta la lista de tareas (m², unidades u obra adicional) y el nuevo precio. El cliente recibe una alerta y debe poner OK.
       </p>
       <% if (request.siteReport && request.siteReport.activityChange && ['pending','payment_pending'].includes(request.siteReport.activityChange.status)) { %>
-        <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3"><%= request.siteReport.activityChange.status === 'payment_pending' ? 'Cambio aprobado; esperando el pago del cliente' : 'Cambio de precio pendiente de OK del cliente' %>: <%= request.siteReport.activityChange.toActivityName %> · <%= formatCLP(request.siteReport.activityChange.proposedTotal) %></p>
+        <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3"><%= request.siteReport.activityChange.status === 'payment_pending' ? 'Cambio aprobado; esperando cobro aproximado del cliente' : 'Cambio de precio pendiente de decisión del cliente' %>: <%= request.siteReport.activityChange.toActivityName %> · <%= formatCLP(request.siteReport.activityChange.proposedTotal) %></p>
       <% } else { %>
+        <% if (request.siteReport && request.siteReport.activityChange && request.siteReport.activityChange.status === 'clarification_pending') { %>
+          <p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">El cliente pidió más detalles. Aclara el alcance o el producto y vuelve a enviar.</p>
+        <% } %>
         <div class="space-y-3">
           <div>
             <label class="text-xs text-zilo-muted">Nuevo subservicio *</label>
@@ -334,7 +342,26 @@
             </div>
             <p class="text-[11px] text-zilo-muted">Usa m², ml o unidad para obra civil u adicionales no considerados en el pedido.</p>
             <div id="changeLineItems" class="space-y-2"></div>
-            <p class="text-sm font-semibold text-right">Nuevo total: <span id="changeLineTotal" class="text-zilo-accent">$0</span></p>
+            <p class="text-sm font-semibold text-right">Mano de obra: <span id="changeLineTotal" class="text-zilo-accent">$0</span></p>
+          </div>
+          <div class="p-3 rounded-xl border border-amber-200 bg-amber-50/60 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <label class="text-xs font-semibold text-amber-950">Producto / material (precio aprox.)</label>
+              <button type="button" id="btnAddChangeProduct" class="text-[11px] font-semibold text-amber-900">+ Agregar producto</button>
+            </div>
+            <p class="text-[11px] text-amber-900/80">Solo productos del catálogo (precios en base de datos). Ej: cambiar WC → elige el sanitario. Se suma al servicio; el cliente aprueba y se cobra aprox.</p>
+            <div>
+              <select id="changeProductCatalog" class="zilo-input w-full !py-2 text-sm">
+                <option value="">Elegir del catálogo…</option>
+                <% (typeof materialsCatalog !== 'undefined' ? materialsCatalog : []).forEach(function(m) { %>
+                  <option value="<%= m.id %>" data-price="<%= m.marketPrice %>" data-unit="<%= m.unit %>" data-name="<%= m.name %>">
+                    <%= m.name %> — <%= formatCLP(m.marketPrice) %>/<%= m.unit %>
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+            <div id="changeProductItems" class="space-y-2"></div>
+            <p class="text-sm font-semibold text-right text-amber-950">Productos aprox.: <span id="changeProductTotal">$0</span></p>
           </div>
           <div id="changeManualPriceWrap" class="hidden">
             <label class="text-xs text-zilo-muted">Precio total (CLP) si no usas ítems *</label>
@@ -343,7 +370,7 @@
           </div>
           <div>
             <label class="text-xs text-zilo-muted">Descripción / justificación *</label>
-            <textarea id="changeNotes" rows="2" class="zilo-input w-full mt-1 resize-none" placeholder="Ej: Había que demoler 8 m² de radier no incluidos en el pedido"></textarea>
+            <textarea id="changeNotes" rows="2" class="zilo-input w-full mt-1 resize-none" placeholder="Ej: Fuga en WC; hay que cambiar el sanitario completo"></textarea>
           </div>
           <div>
             <label class="text-xs text-zilo-muted">Foto que respalda la reevaluación *</label>
@@ -403,36 +430,56 @@
     <!-- Propuesta materiales (política socios $10.000) -->
     <section id="stepMaterialesPropuesta" data-wizard-panel="mat-propuesta" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'mat-propuesta' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Materiales · Política Fandez</p>
-      <h2 class="text-sm font-semibold mb-1">¿Cuánto estimas el material?</h2>
+      <h2 class="text-sm font-semibold mb-1">Producto o material adicional</h2>
+      <% if (request.siteReport && request.siteReport.materialsPurchase && request.siteReport.materialsPurchase.status === 'clarification_pending') { %>
+        <p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">El cliente pidió más detalles. Aclara el producto o el precio y vuelve a enviar.</p>
+      <% } %>
       <div class="mb-3 p-3 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-950 space-y-1.5">
-        <p><strong>Mensaje a socios:</strong></p>
-        <p>· Si el material usado es <strong>menor a <%= formatCLP(materialsThreshold) %></strong>, va <strong>incluido en el servicio</strong> (no se cobra aparte).</p>
-        <p>· Si es <strong><%= formatCLP(materialsThreshold) %> o más</strong>, se cobra al cliente a costo: se le avisa, da el OK, luego vas a comprar y <strong>subes la factura/boleta al pedido</strong>.</p>
+        <p>· Elige del <strong>catálogo en base de datos</strong> el producto (ej. WC, sifón) con precio referencial.</p>
+        <p>· No inventes precios: solo se usan los del listado. &lt; <%= formatCLP(materialsThreshold) %>: incluido. ≥ <%= formatCLP(materialsThreshold) %>: el cliente aprueba y se cobra aprox.</p>
       </div>
       <div class="space-y-3">
-        <div>
-          <label class="text-xs text-zilo-muted">Monto estimado (CLP) *</label>
-          <input type="number" id="matPurchaseAmount" min="100" step="100" class="zilo-input w-full mt-1" placeholder="Ej: 8500 o 25000">
+        <div class="p-3 rounded-xl border border-zilo-border bg-zilo-bg/60 space-y-2">
+          <label class="text-xs font-semibold text-zilo-text">Catálogo de productos *</label>
+          <select id="matPurchaseCatalog" class="zilo-input w-full !py-2 text-sm">
+            <option value="">Elegir producto…</option>
+            <% (typeof materialsCatalog !== 'undefined' ? materialsCatalog : []).forEach(function(m) { %>
+              <option value="<%= m.id %>" data-price="<%= m.marketPrice %>" data-unit="<%= m.unit %>" data-name="<%= m.name %>">
+                <%= m.name %> — <%= formatCLP(m.marketPrice) %>/<%= m.unit %>
+              </option>
+            <% }); %>
+          </select>
+          <button type="button" id="btnAddMatPurchaseItem" class="text-[11px] font-semibold text-zilo-accent">+ Agregar a la propuesta</button>
+          <div id="matPurchaseItems" class="space-y-2"></div>
+          <p class="text-sm font-semibold text-right">Total aprox.: <span id="matPurchaseCatalogTotal" class="text-zilo-accent">$0</span></p>
         </div>
         <div>
-          <label class="text-xs text-zilo-muted">Qué material / para qué *</label>
-          <textarea id="matPurchaseDesc" rows="2" class="zilo-input w-full mt-1 resize-none" placeholder="Ej: Flexible de gas + abrazaderas"></textarea>
+          <label class="text-xs text-zilo-muted">Monto estimado (desde catálogo)</label>
+          <input type="number" id="matPurchaseAmount" min="100" step="100" class="zilo-input w-full mt-1 bg-zilo-bg/50" placeholder="Se completa al elegir productos" readonly>
         </div>
-        <button type="button" id="btnMaterialesCompra" class="w-full py-3 rounded-xl zilo-btn-primary">Continuar</button>
+        <div>
+          <label class="text-xs text-zilo-muted">Descripción del adicional *</label>
+          <textarea id="matPurchaseDesc" rows="2" class="zilo-input w-full mt-1 resize-none" placeholder="Ej: Cambio de WC por fuga irreparable — modelo estándar"></textarea>
+        </div>
+        <button type="button" id="btnMaterialesCompra" class="w-full py-3 rounded-xl zilo-btn-primary">Guardar y enviar al cliente</button>
       </div>
     </section>
 
     <section id="stepEsperaMateriales" data-wizard-panel="mat-espera" class="zilo-card-premium rounded-2xl p-5 text-center field-step <%= wizardStep === 'mat-espera' ? '' : 'hidden' %>">
-      <p class="zilo-display text-lg mb-2">Esperando OK del cliente</p>
-      <p class="text-sm text-zilo-muted">
-        Compra de material adicional
-        <% if (request.siteReport && request.siteReport.materialsPurchase) { %>
-          (~<strong class="text-zilo-accent"><%= formatCLP(request.siteReport.materialsPurchase.estimatedAmount) %></strong>)
-        <% } %>
-        enviada. Cuando apruebe, podrás ir a comprar y subir la factura al pedido.
+      <p class="zilo-display text-lg mb-2">
+        <% const mpWait = request.siteReport && request.siteReport.materialsPurchase; %>
+        <%= mpWait && mpWait.status === 'payment_pending' ? 'Esperando cobro aproximado' : 'Esperando decisión del cliente' %>
       </p>
-      <% if (request.siteReport && request.siteReport.materialsPurchase && request.siteReport.materialsPurchase.description) { %>
-        <p class="text-xs text-zilo-muted mt-3 p-3 rounded-lg bg-zilo-bg/80 border border-zilo-border text-left"><%= request.siteReport.materialsPurchase.description %></p>
+      <p class="text-sm text-zilo-muted">
+        <%= mpWait && mpWait.status === 'payment_pending'
+          ? 'El cliente aprobó. Cuando pague el monto aproximado podrás comprar y subir la boleta o factura.'
+          : 'Propuesta enviada. El cliente puede aprobar, pedir más detalles o no aprobar.' %>
+        <% if (mpWait) { %>
+          (~<strong class="text-zilo-accent"><%= formatCLP(mpWait.estimatedAmount) %></strong>)
+        <% } %>
+      </p>
+      <% if (mpWait && mpWait.description) { %>
+        <p class="text-xs text-zilo-muted mt-3 p-3 rounded-lg bg-zilo-bg/80 border border-zilo-border text-left"><%= mpWait.description %></p>
       <% } %>
     </section>
 
@@ -446,11 +493,11 @@
           <% const mp = request.siteReport.materialsPurchase; %>
           <p class="text-zilo-text">
             <% if (mp.status === 'included') { %>Estimado incluido: <%= formatCLP(mp.estimatedAmount) %> — no se cobra aparte.<% } %>
-            <% if (mp.status === 'approved' || mp.status === 'purchasing') { %>OK del cliente (~<%= formatCLP(mp.estimatedAmount) %>): registra la compra y sube la boleta/factura.<% } %>
+            <% if (mp.status === 'approved' || mp.status === 'purchasing') { %>OK del cliente (~<%= formatCLP(mp.estimatedAmount) %>): registra la compra y sube la boleta o factura.<% } %>
           </p>
         <% } %>
       </div>
-      <p class="text-xs text-zilo-muted mb-3">Elige del catálogo o escribe uno. Si saliste a comprar material adicional, sube la boleta al pedido.</p>
+      <p class="text-xs text-zilo-muted mb-3">Elige del catálogo o escribe uno. Si saliste a comprar material adicional, sube la boleta o factura al pedido.</p>
       <div id="materialsList" class="space-y-2 mb-3">
         <% if (request.siteReport && request.siteReport.materials && request.siteReport.materials.length) { %>
           <% request.siteReport.materials.forEach(m => { %>
@@ -487,7 +534,7 @@
           <label class="zilo-choice-card zilo-choice-card--compact !min-h-0 !py-2.5 cursor-pointer">
             <input type="radio" name="matSource" value="purchased" class="sr-only">
             <span class="zilo-choice-title">Salí a comprar</span>
-            <span class="zilo-choice-desc">Con boleta</span>
+            <span class="zilo-choice-desc">Con boleta o factura</span>
           </label>
         </div>
         <div>
@@ -513,11 +560,11 @@
           </div>
         </div>
         <div id="matReceiptWrap" class="hidden">
-          <label class="text-xs text-zilo-muted block">Boleta / factura *</label>
+          <label class="text-xs text-zilo-muted block">Boleta o factura *</label>
           <input type="file" id="matReceipt" accept="image/*,application/pdf" class="block w-full text-xs text-zilo-muted file:mr-2 file:py-1.5 file:px-2 file:rounded file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent">
           <p class="text-[11px] text-zilo-muted mt-1">Obligatorio si compraste el material. La IA verifica monto y legibilidad.</p>
         </div>
-        <p id="matStockHint" class="text-[11px] text-zilo-muted">Sin boleta (stock): si el total es menor a $10.000 va incluido en el servicio; si es ≥ $10.000 requiere OK previo del cliente.</p>
+        <p id="matStockHint" class="text-[11px] text-zilo-muted">Sin boleta o factura (stock): si el total es menor a $10.000 va incluido en el servicio; si es ≥ $10.000 requiere OK previo del cliente.</p>
         <button type="button" id="btnAddMaterial" class="w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm">+ Agregar material</button>
         <% const mpNow = request.siteReport && request.siteReport.materialsPurchase; %>
         <% if (!mpNow || !['approved','purchasing','pending'].includes(mpNow.status)) { %>

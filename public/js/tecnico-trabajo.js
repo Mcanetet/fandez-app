@@ -133,8 +133,10 @@
     if (ts === 'en_sitio') return 'diagnostico';
     if (ts === 'diagnostico') return 'accion';
     if (ts === 'presupuesto_pendiente') return 'presupuesto';
+    if (nav?.dataset.matPurchase === 'clarification_pending') return 'mat-propuesta';
     if (ts === 'materiales_pendiente') {
-      return nav?.dataset.matPurchase === 'pending' ? 'mat-espera' : 'mat-propuesta';
+      const matSt = nav?.dataset.matPurchase || '';
+      return ['pending', 'payment_pending'].includes(matSt) ? 'mat-espera' : 'mat-propuesta';
     }
     if (ts === 'comprando') return 'materiales';
     if (ts === 'reparando' || ts === 'presupuesto_aprobado') return 'cierre';
@@ -252,23 +254,26 @@
 
   document.getElementById('btnMaterialesCompra')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnMaterialesCompra');
-    const estimatedAmount = document.getElementById('matPurchaseAmount')?.value;
-    const description = document.getElementById('matPurchaseDesc')?.value.trim();
-    if (!estimatedAmount) return notify('Indica el monto estimado del material', 'warning');
-    if (!description || description.length < 4) return notify('Describe el material necesario', 'warning');
+    const catalogItems = collectCatalogPickerItems('matPurchaseItems');
+    if (!catalogItems.length) return notify('Selecciona al menos un producto del catálogo', 'warning');
+    const estimatedAmount = catalogItems.reduce((s, i) => s + (i.unitPrice * i.qty), 0);
+    let description = document.getElementById('matPurchaseDesc')?.value.trim() || '';
+    if (!description) {
+      description = catalogItems.map((i) => `${i.name} ×${i.qty}`).join(', ');
+    }
     btn.disabled = true;
     try {
       const res = await fetch(`/tecnico/trabajo/${requestId}/materiales-compra`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ estimatedAmount, description })
+        body: JSON.stringify({ estimatedAmount, description, catalogItems })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Error');
       notify(
         data.included
           ? 'Material bajo $10.000: incluido en el servicio. Puedes registrar lo usado.'
-          : 'Solicitud enviada al cliente. Espera su OK para ir a comprar.',
+          : 'Propuesta enviada al cliente. Esperando su decisión.',
         'success'
       );
       location.reload();
@@ -276,6 +281,98 @@
       btn.disabled = false;
       notify(err.message || 'No se pudo enviar', 'error');
     }
+  });
+
+  function collectCatalogPickerItems(containerId) {
+    return [...document.querySelectorAll(`#${containerId} [data-catalog-row]`)].map((row) => ({
+      catalogId: row.dataset.catalogId || null,
+      name: row.dataset.name || '',
+      unit: row.dataset.unit || 'unidad',
+      qty: Math.max(1, parseInt(row.querySelector('[data-catalog-qty]')?.value, 10) || 1),
+      unitPrice: Math.max(0, parseInt(row.dataset.unitPrice, 10) || 0)
+    })).filter((i) => i.name && i.unitPrice >= 100);
+  }
+
+  function fmtCLP(n) {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(n) || 0);
+  }
+
+  function refreshCatalogPickerTotal(containerId, totalElId, amountInputId) {
+    const items = collectCatalogPickerItems(containerId);
+    const total = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
+    const el = document.getElementById(totalElId);
+    if (el) el.textContent = fmtCLP(total);
+    if (amountInputId) {
+      const amount = document.getElementById(amountInputId);
+      if (amount && total > 0) amount.value = String(total);
+    }
+    return total;
+  }
+
+  function addCatalogPickerRow(containerId, totalElId, amountInputId, preset) {
+    const wrap = document.getElementById(containerId);
+    if (!wrap || !preset?.name) return;
+    const existing = wrap.querySelector(`[data-catalog-row][data-catalog-id="${preset.catalogId}"]`);
+    if (existing && preset.catalogId) {
+      const qtyEl = existing.querySelector('[data-catalog-qty]');
+      if (qtyEl) qtyEl.value = String((parseInt(qtyEl.value, 10) || 1) + 1);
+      refreshCatalogPickerTotal(containerId, totalElId, amountInputId);
+      return;
+    }
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between gap-2 p-2 rounded-lg border border-zilo-border bg-white text-sm';
+    row.dataset.catalogRow = '1';
+    row.dataset.catalogId = preset.catalogId || '';
+    row.dataset.name = preset.name;
+    row.dataset.unit = preset.unit || 'unidad';
+    row.dataset.unitPrice = String(preset.unitPrice || 0);
+    row.innerHTML = `
+      <div class="min-w-0 flex-1">
+        <p class="font-medium truncate">${preset.name}</p>
+        <p class="text-[11px] text-zilo-muted">${fmtCLP(preset.unitPrice || 0)} / ${preset.unit || 'unidad'}</p>
+      </div>
+      <input type="number" data-catalog-qty class="zilo-input !py-1.5 !w-16 text-sm" min="1" max="20" value="${preset.qty || 1}">
+      <button type="button" data-catalog-remove class="text-[11px] text-red-600 font-semibold shrink-0">Quitar</button>
+    `;
+    row.querySelector('[data-catalog-remove]')?.addEventListener('click', () => {
+      row.remove();
+      refreshCatalogPickerTotal(containerId, totalElId, amountInputId);
+    });
+    row.querySelector('[data-catalog-qty]')?.addEventListener('input', () => {
+      refreshCatalogPickerTotal(containerId, totalElId, amountInputId);
+    });
+    wrap.appendChild(row);
+    refreshCatalogPickerTotal(containerId, totalElId, amountInputId);
+  }
+
+  document.getElementById('btnAddMatPurchaseItem')?.addEventListener('click', () => {
+    const sel = document.getElementById('matPurchaseCatalog');
+    const opt = sel?.selectedOptions?.[0];
+    if (!opt?.value) return notify('Elige un producto del catálogo', 'warning');
+    addCatalogPickerRow('matPurchaseItems', 'matPurchaseCatalogTotal', 'matPurchaseAmount', {
+      catalogId: opt.value,
+      name: opt.dataset.name || opt.textContent,
+      unit: opt.dataset.unit || 'unidad',
+      unitPrice: parseInt(opt.dataset.price, 10) || 0,
+      qty: 1
+    });
+    const desc = document.getElementById('matPurchaseDesc');
+    if (desc && !desc.value.trim()) desc.value = opt.dataset.name || '';
+    sel.value = '';
+  });
+
+  document.getElementById('btnAddChangeProduct')?.addEventListener('click', () => {
+    const sel = document.getElementById('changeProductCatalog');
+    const opt = sel?.selectedOptions?.[0];
+    if (!opt?.value) return notify('Elige un producto del catálogo', 'warning');
+    addCatalogPickerRow('changeProductItems', 'changeProductTotal', null, {
+      catalogId: opt.value,
+      name: opt.dataset.name || opt.textContent,
+      unit: opt.dataset.unit || 'unidad',
+      unitPrice: parseInt(opt.dataset.price, 10) || 0,
+      qty: 1
+    });
+    sel.value = '';
   });
 
   document.getElementById('btnRequestMaterialsOk')?.addEventListener('click', () => {
@@ -291,6 +388,16 @@
       const d = document.getElementById('matPurchaseDesc');
       if (d) d.value = desc;
     }
+    const cat = document.getElementById('matCatalog')?.selectedOptions?.[0];
+    if (cat?.value) {
+      addCatalogPickerRow('matPurchaseItems', 'matPurchaseCatalogTotal', 'matPurchaseAmount', {
+        catalogId: cat.value,
+        name: cat.dataset.name || cat.textContent,
+        unit: cat.dataset.unit || 'unidad',
+        unitPrice: parseInt(cat.dataset.price, 10) || 0,
+        qty: Math.max(1, parseInt(document.getElementById('matQty')?.value, 10) || 1)
+      });
+    }
     showWizardPanel('mat-propuesta');
   });
 
@@ -305,10 +412,6 @@
       const lines = collectChangeLineItems();
       manual.classList.toggle('hidden', !(isOther && lines.length === 0));
     }
-  }
-
-  function fmtCLP(n) {
-    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(n) || 0);
   }
 
   function collectChangeLineItems() {
@@ -381,10 +484,12 @@
       if (!data.success) throw new Error(data.error || 'Error');
       select.innerHTML = '<option value="">Elige el subservicio correcto…</option>';
       (data.activities || []).forEach((a) => {
-        if (a.id === data.currentActivityId) return;
         const opt = document.createElement('option');
         opt.value = a.id;
-        opt.textContent = `${a.name} — ${a.basePriceLabel}`;
+        const same = a.id === data.currentActivityId;
+        opt.textContent = same
+          ? `${a.name} — mismo servicio + producto/adicional`
+          : `${a.name} — ${a.basePriceLabel}`;
         select.appendChild(opt);
       });
       const other = document.createElement('option');
@@ -406,6 +511,7 @@
     const customName = document.getElementById('changeCustomName')?.value.trim();
     const lineItems = collectChangeLineItems();
     const lineTotal = lineItems.reduce((sum, item) => sum + Math.round(item.qty * item.unitPrice), 0);
+    const materialsPreview = collectCatalogPickerItems('changeProductItems');
     const customBasePrice = lineTotal > 0
       ? lineTotal
       : document.getElementById('changeCustomBasePrice')?.value;
@@ -415,8 +521,8 @@
       if (!customName || customName.length < 4) {
         return notify('En Otro, escribe el nombre del servicio', 'warning');
       }
-      if (!customBasePrice || Number(customBasePrice) < 100000) {
-        return notify('Indica el nuevo precio (mín. $100.000) o agrega ítems en la lista', 'warning');
+      if ((!customBasePrice || Number(customBasePrice) < 100000) && !materialsPreview.length) {
+        return notify('Indica el nuevo precio (mín. $100.000), agrega ítems o un producto', 'warning');
       }
     }
     btn.disabled = true;
@@ -431,12 +537,14 @@
           photo,
           customName,
           customBasePrice,
-          lineItems
+          lineItems,
+          materialsPreview,
+          catalogItems: materialsPreview
         })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Error');
-      notify('Cambio de precio enviado al cliente para OK', 'success');
+      notify('Cambio de precio enviado al cliente para su decisión', 'success');
       location.reload();
     } catch (err) {
       btn.disabled = false;

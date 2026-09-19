@@ -617,7 +617,7 @@
   }, 15000);
 
   function tickTechAcceptCountdowns() {
-    document.querySelectorAll('#jobList [data-job-id]').forEach((card) => {
+    document.querySelectorAll('#sectionActive [data-job-id]').forEach((card) => {
       if (card.dataset.techStatus !== 'asignado') return;
       const el = card.querySelector('[data-role="accept-countdown"]');
       if (!el) return;
@@ -637,7 +637,7 @@
   tickTechAcceptCountdowns();
   setInterval(tickTechAcceptCountdowns, 1000);
 
-  document.querySelectorAll('#jobList [data-job-id]').forEach(render);
+  document.querySelectorAll('#sectionActive [data-job-id]').forEach(render);
 
   function resumeTecnicoSession() {
     socket.emit('register_technico', tecnicoId);

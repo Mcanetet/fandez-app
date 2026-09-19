@@ -48,6 +48,8 @@ const {
   getCancellationReasonLabel,
   getEnabledMaterialsCatalog,
   findMaterialInCatalog,
+  normalizeMaterialsPreview,
+  sumMaterialsPreview,
   isPerM2Service,
   isPerM2Activity,
   isLandscapeActivity,
@@ -120,6 +122,7 @@ let PROMOS = [];
 let CRM_LEADS = [];
 let COVERAGE_COMMUNES = [];
 let COVERAGE_REGIONS = [];
+let COVERAGE_INTEREST = [];
 let coverageMap = new Map();
 let initialized = false;
 
@@ -259,6 +262,7 @@ async function init() {
   CRM_LEADS = data.crmLeads || [];
   COVERAGE_COMMUNES = data.coverageCommunes || [];
   COVERAGE_REGIONS = data.coverageRegions || [];
+  COVERAGE_INTEREST = data.coverageInterest || [];
   rebuildCoverageMap();
   try {
     await ensureDemoPartnerWallReady();
@@ -1206,7 +1210,7 @@ function markPaymentApproved(requestId, paymentId, extras = {}) {
   return request;
 }
 
-function openAdditionalCharge(request, { reason, baseAmount, description }) {
+function openAdditionalCharge(request, { reason, baseAmount, description, materialsApproxBase = 0, laborDeltaBase = null, approximate = null }) {
   if (!request || request.paymentStatus !== 'approved') {
     return { error: 'La visita inicial aún no está pagada.' };
   }
@@ -1216,6 +1220,15 @@ function openAdditionalCharge(request, { reason, baseAmount, description }) {
   const base = Math.max(0, Math.round(Number(baseAmount) || 0));
   if (base <= 0) return { success: true, additionalCharge: null };
 
+  const matApprox = Math.max(0, Math.round(Number(materialsApproxBase) || 0));
+  const laborDelta = laborDeltaBase == null
+    ? Math.max(0, base - matApprox)
+    : Math.max(0, Math.round(Number(laborDeltaBase) || 0));
+
+  const isApprox = approximate != null
+    ? Boolean(approximate)
+    : (reason === 'materials_approx' || (matApprox > 0 && (reason === 'activity_change' || reason === 'change_order')));
+
   const surcharge = calculatePaymentSurcharge(getPricingConfig(), base, 'card');
   request.additionalCharge = {
     id: `ajuste-${uuidv4()}`,
@@ -1223,7 +1236,10 @@ function openAdditionalCharge(request, { reason, baseAmount, description }) {
     description: String(description || 'Ajuste de servicio'),
     status: 'pending',
     paymentMethod: 'card',
+    approximate: isApprox,
     baseAmount: base,
+    materialsApproxBase: matApprox,
+    laborDeltaBase: laborDelta,
     paymentSurchargePercent: surcharge.percent,
     paymentSurchargeAmount: surcharge.amount,
     amountDue: surcharge.subtotal,
@@ -1281,9 +1297,19 @@ function markAdditionalPaymentApproved(requestId, paymentId, extras = {}) {
     request.cardInstallments = Math.max(request.cardInstallments || 1, installments);
   }
 
-  if (charge.reason === 'materials') {
-    // Materiales: passthrough al socio; no inflar serviceAmount / mano de obra.
-    request.materialsPaidTotal = (request.materialsPaidTotal || 0) + (charge.amountDue || 0);
+  if (charge.reason === 'materials' || charge.reason === 'materials_approx') {
+    // Materiales: passthrough al socio; se usa base (sin surcharge) para regularizar vs boleta.
+    const matBase = charge.materialsApproxBase > 0
+      ? charge.materialsApproxBase
+      : (charge.baseAmount || 0);
+    request.materialsPaidTotal = (request.materialsPaidTotal || 0) + matBase;
+  } else if (charge.reason === 'activity_change' || charge.reason === 'change_order') {
+    const matBase = Math.max(0, charge.materialsApproxBase || 0);
+    if (matBase > 0) {
+      request.materialsPaidTotal = (request.materialsPaidTotal || 0) + matBase;
+    }
+    request.additionalPaymentsTotal = (request.additionalPaymentsTotal || 0) + (charge.amountDue || 0);
+    request.approvedServicePrice = request.additionalPaymentsTotal;
   } else {
     request.additionalPaymentsTotal = (request.additionalPaymentsTotal || 0) + charge.amountDue;
     request.approvedServicePrice = request.additionalPaymentsTotal;
@@ -1294,14 +1320,59 @@ function markAdditionalPaymentApproved(requestId, paymentId, extras = {}) {
     sr.budgetStatus = 'approved';
     sr.budgetRespondedAt = charge.paidAt;
     request.techStatus = 'presupuesto_aprobado';
-  } else if (charge.reason === 'activity_change' && sr.activityChange) {
+  } else if ((charge.reason === 'activity_change' || charge.reason === 'change_order') && sr.activityChange) {
     sr.activityChange.respondedAt = charge.paidAt;
     applyApprovedActivityChange(request, sr.activityChange);
     request.serviceConfirmStatus = 'confirmed';
     request.serviceConfirmedAt = charge.paidAt;
     request.serviceConfirmMode = 'change';
-  } else if (charge.reason === 'materials') {
+    if ((charge.materialsApproxBase || 0) > 0) {
+      const preview = Array.isArray(sr.activityChange.materialsPreview)
+        ? sr.activityChange.materialsPreview
+        : [];
+      sr.materialsPurchase = {
+        status: 'approved',
+        estimatedAmount: charge.materialsApproxBase,
+        description: preview.map((m) => m.name).filter(Boolean).join(', ')
+          || sr.activityChange.toActivityName
+          || 'Producto adicional',
+        materialsPreview: preview,
+        billable: true,
+        includedInService: false,
+        threshold: getMaterialsIncludedThreshold(),
+        approxPaidAt: charge.paidAt,
+        approxPaidBase: charge.materialsApproxBase,
+        createdAt: sr.activityChange.createdAt || charge.paidAt,
+        respondedAt: charge.paidAt,
+        fromActivityChange: true
+      };
+      if (['diagnostico', 'materiales_pendiente', 'reparando'].includes(request.techStatus)) {
+        request.techStatus = 'comprando';
+      }
+    }
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: 'Cambio gestionado: el cliente pagó el ajuste. Continúa el trabajo' +
+        ((charge.materialsApproxBase || 0) > 0 ? ' y sube la boleta o factura del producto para regularizar el monto aproximado.' : '.')
+    });
+  } else if (charge.reason === 'materials' || charge.reason === 'materials_approx') {
     sr.materialsPaidAt = charge.paidAt;
+    if (sr.materialsPurchase) {
+      sr.materialsPurchase.approxPaidAt = charge.paidAt;
+      sr.materialsPurchase.approxPaidBase = charge.materialsApproxBase || charge.baseAmount || 0;
+      if (['approved', 'pending', 'payment_pending'].includes(sr.materialsPurchase.status)) {
+        sr.materialsPurchase.status = 'approved';
+      }
+    }
+    request.techStatus = 'comprando';
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: 'Cambio gestionado: el cliente autorizó y pagó el monto aproximado del material. Compra, sube la boleta o factura y al cerrar se regulariza el saldo.'
+    });
   }
 
   repository.persist(() => repository.saveRequest(request), `pago ajuste ${requestId}`);
@@ -1660,8 +1731,8 @@ function getClientAttentionItems(clientId, now = Date.now()) {
         requestId: request.id,
         type: 'activity_change',
         urgency: 'high',
-        title: 'Cambio de precio — debes aprobar',
-        body: `Nuevo total ${formatCLP(next)}${prev ? ` (antes ${formatCLP(prev)})` : ''}. Entra y pon OK.`,
+        title: 'Cambio de precio — debes decidir',
+        body: `Total aprox. ${formatCLP(next)}${prev ? ` (antes ${formatCLP(prev)})` : ''}. Productos referenciales; la boleta o factura puede modificar el monto. Aprueba, pide detalles o no apruebes.`,
         url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
       });
       continue;
@@ -1673,8 +1744,8 @@ function getClientAttentionItems(clientId, now = Date.now()) {
         requestId: request.id,
         type: 'materials_purchase',
         urgency: 'high',
-        title: 'Material adicional — debes aprobar',
-        body: `Estimado ${formatCLP(materialsPurchase.estimatedAmount || 0)}${materialsPurchase.description ? `: ${materialsPurchase.description}` : ''}. Entra y pon OK.`,
+        title: 'Producto adicional — precio aprox.',
+        body: `Estimado ~${formatCLP(materialsPurchase.estimatedAmount || 0)}${materialsPurchase.description ? `: ${materialsPurchase.description}` : ''}. Se valida con boleta o factura (puede haber ajustes). Aprueba, pide detalles o no apruebes.`,
         url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
       });
       continue;
@@ -2018,6 +2089,80 @@ function toggleCoverageRegion(regionCode, enabled) {
   rebuildCoverageMap();
   repository.persist(() => repository.saveCoverageRegion(row), `cobertura región ${regionCode}`);
   return row;
+}
+
+function normalizeInterestCommune(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function submitCoverageInterest(input = {}) {
+  const communeText = String(input.communeText || input.commune || '').trim().slice(0, 160);
+  const email = String(input.email || '').trim().toLowerCase().slice(0, 190);
+  const phone = String(input.phone || '').trim().slice(0, 40);
+  const role = input.role === 'provider' ? 'provider' : 'client';
+  const source = String(input.source || 'registro').trim().slice(0, 64) || 'registro';
+
+  if (communeText.length < 2) {
+    return { errorKey: 'coverage.interest_commune_required' };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { errorKey: 'coverage.interest_email_required' };
+  }
+
+  const keyCommune = normalizeInterestCommune(communeText);
+  const existing = COVERAGE_INTEREST.find(
+    (row) => row.email === email && normalizeInterestCommune(row.communeText) === keyCommune
+  );
+  if (existing) {
+    existing.phone = phone || existing.phone;
+    existing.role = role;
+    existing.source = source;
+    repository.persist(() => repository.saveCoverageInterest(existing), `cobertura interés ${existing.id}`);
+    return { success: true, updated: true, entry: existing };
+  }
+
+  const entry = {
+    id: `covint-${uuidv4().slice(0, 10)}`,
+    communeText,
+    email,
+    phone,
+    role,
+    source,
+    createdAt: new Date().toISOString()
+  };
+  COVERAGE_INTEREST.unshift(entry);
+  if (COVERAGE_INTEREST.length > 500) COVERAGE_INTEREST.length = 500;
+  repository.persist(() => repository.saveCoverageInterest(entry), `cobertura interés ${entry.id}`);
+  return { success: true, updated: false, entry };
+}
+
+function getCoverageInterest(limit = 100) {
+  const max = Math.min(500, Math.max(1, Number(limit) || 100));
+  return COVERAGE_INTEREST.slice(0, max);
+}
+
+function getCoverageInterestStats() {
+  const byCommune = new Map();
+  COVERAGE_INTEREST.forEach((row) => {
+    const label = String(row.communeText || '').trim() || 'Sin comuna';
+    const key = normalizeInterestCommune(label) || 'sin-comuna';
+    const current = byCommune.get(key) || { commune: label, count: 0 };
+    current.count += 1;
+    if (label.length > current.commune.length) current.commune = label;
+    byCommune.set(key, current);
+  });
+  const topCommunes = [...byCommune.values()]
+    .sort((a, b) => b.count - a.count || a.commune.localeCompare(b.commune, 'es'))
+    .slice(0, 20);
+  return {
+    total: COVERAGE_INTEREST.length,
+    topCommunes
+  };
 }
 
 function validateAddressCoverage({ address, displayName, nominatimAddress }) {
@@ -5430,17 +5575,25 @@ function setSiteAction(requestId, technicianId, action) {
  * < umbral → incluidos en el servicio (pasa a comprando/uso sin cobro).
  * ≥ umbral → avisa al cliente; tras OK → ir a comprar + subir factura.
  */
-function submitMaterialsPurchase(requestId, technicianId, { estimatedAmount, description } = {}) {
+function submitMaterialsPurchase(requestId, technicianId, { estimatedAmount, description, catalogItems } = {}) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (!['materiales_pendiente', 'diagnostico', 'reparando', 'comprando'].includes(request.techStatus)) {
     return { error: 'No puedes solicitar materiales en este estado.' };
   }
 
-  const parsed = parseInt(estimatedAmount, 10);
-  if (!parsed || parsed < 100) return { error: 'Indica el monto estimado del material (mín. $100).' };
+  const pricing = getPricingConfig();
+  const materialsPreview = normalizeMaterialsPreview(catalogItems, pricing.materialsCatalog);
+  const previewTotal = sumMaterialsPreview(materialsPreview);
+  if (!materialsPreview.length) {
+    return { error: 'Selecciona al menos un producto del catálogo (precios de la base de datos).' };
+  }
+  let parsed = previewTotal;
+  if (!parsed || parsed < 100) return { error: 'El total del catálogo es inválido.' };
   description = String(description || '').trim();
-  if (description.length < 4) return { error: 'Describe qué material necesitas.' };
+  if (description.length < 4) {
+    description = materialsPreview.map((m) => `${m.name} ×${m.qty}`).join(', ');
+  }
 
   const threshold = getMaterialsIncludedThreshold();
   const billable = parsed >= threshold;
@@ -5448,12 +5601,14 @@ function submitMaterialsPurchase(requestId, technicianId, { estimatedAmount, des
   if (sr.materialsPurchase?.status === 'pending') {
     return { error: 'Ya hay una solicitud de materiales esperando al cliente.' };
   }
+  // clarification_pending: se permite reenviar con más detalle / nuevos productos.
 
   if (!billable) {
     sr.materialsPurchase = {
       status: 'included',
       estimatedAmount: parsed,
       description,
+      materialsPreview,
       billable: false,
       includedInService: true,
       threshold,
@@ -5476,6 +5631,7 @@ function submitMaterialsPurchase(requestId, technicianId, { estimatedAmount, des
     status: 'pending',
     estimatedAmount: parsed,
     description,
+    materialsPreview,
     billable: true,
     includedInService: false,
     threshold,
@@ -5488,14 +5644,14 @@ function submitMaterialsPurchase(requestId, technicianId, { estimatedAmount, des
     senderType: 'system',
     senderId: null,
     senderName: 'Fandez',
-    body: `El técnico solicita OK para comprar material adicional (~${formatCLP(parsed)}): ${description}`
+    body: `El técnico solicita OK para producto/material adicional (~${formatCLP(parsed)} aprox.): ${description}. Si apruebas se cobra el aproximado; al subir la boleta o factura se valida el precio real y pueden haber modificaciones.`
   });
   repository.persist(() => repository.saveRequest(request), `materiales propuesta ${requestId}`);
   afterEvent((ev) => ev.onMaterialsPurchaseProposed?.(request, sr.materialsPurchase));
   return { success: true, request, included: false, materialsPurchase: sr.materialsPurchase };
 }
 
-function respondMaterialsPurchase(requestId, clientId, approved) {
+function respondMaterialsPurchase(requestId, clientId, approvedOrDecision) {
   const request = requests.find((r) => r.id === requestId && r.clientId === clientId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   const sr = ensureSiteReport(request);
@@ -5504,33 +5660,86 @@ function respondMaterialsPurchase(requestId, clientId, approved) {
     return { error: 'No hay una compra de materiales pendiente.' };
   }
 
-  purchase.status = approved ? 'approved' : 'rejected';
-  purchase.respondedAt = new Date().toISOString();
+  const decision = approvedOrDecision === true || approvedOrDecision === 'approved'
+    ? 'approved'
+    : approvedOrDecision === false || approvedOrDecision === 'rejected'
+      ? 'rejected'
+      : String(approvedOrDecision || '').toLowerCase() === 'need_details'
+        ? 'need_details'
+        : null;
+  if (!decision) return { error: 'Respuesta inválida.' };
 
-  if (approved) {
-    request.techStatus = 'comprando';
+  purchase.respondedAt = new Date().toISOString();
+  let additionalCharge = null;
+
+  if (decision === 'need_details') {
+    purchase.status = 'clarification_pending';
+    purchase.clientNote = 'Cliente pidió más detalles';
+    request.techStatus = 'diagnostico';
     appendChatMessage(request, {
       senderType: 'system',
       senderId: null,
       senderName: 'Fandez',
-      body: `Cliente aprobó la compra de material adicional (~${formatCLP(purchase.estimatedAmount)}). El técnico puede ir a comprar y debe subir la factura al pedido.`
+      body: 'El cliente pidió más detalles del material/producto. Aclara descripción, modelo o precio y vuelve a enviar la propuesta.'
+    });
+    repository.persist(() => repository.saveRequest(request), `materiales más detalle ${requestId}`);
+    afterEvent((ev) => {
+      ev.onMaterialsPurchaseResolved?.(request, purchase, { approved: false, needDetails: true });
+    });
+    return { success: true, request, decision, needDetails: true, materialsPurchase: purchase };
+  }
+
+  if (decision === 'approved') {
+    const approx = Math.max(0, parseInt(purchase.estimatedAmount, 10) || 0);
+    if (approx > 0 && request.paymentStatus === 'approved') {
+      const chargeResult = openAdditionalCharge(request, {
+        reason: 'materials_approx',
+        baseAmount: approx,
+        materialsApproxBase: approx,
+        laborDeltaBase: 0,
+        description: `Materiales aprox.: ${purchase.description || 'Producto adicional'}`
+      });
+      if (chargeResult.error) return chargeResult;
+      additionalCharge = chargeResult.additionalCharge;
+    }
+    purchase.status = additionalCharge ? 'payment_pending' : 'approved';
+    request.techStatus = additionalCharge ? 'materiales_pendiente' : 'comprando';
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: additionalCharge
+        ? `Cliente aprobó el material (~${formatCLP(approx)}). Pendiente cobro aproximado en tarjeta; luego compra y sube la boleta o factura para regularizar.`
+        : `Cambio gestionado: cliente aprobó la compra (~${formatCLP(approx)}). Ve a comprar y sube la boleta o factura al pedido.`
     });
   } else {
+    purchase.status = 'rejected';
     request.techStatus = 'diagnostico';
     sr.action = null;
     appendChatMessage(request, {
       senderType: 'system',
       senderId: null,
       senderName: 'Fandez',
-      body: 'Cliente rechazó la compra de material adicional. El técnico debe continuar sin ese material o proponer otra opción.'
+      body: 'Cliente no aprobó la compra de material adicional. Continúa sin ese material o propone otra opción.'
     });
   }
 
   repository.persist(() => repository.saveRequest(request), `respuesta materiales ${requestId}`);
   afterEvent((ev) => {
-    ev.onMaterialsPurchaseResolved?.(request, purchase, { approved: Boolean(approved) });
+    ev.onMaterialsPurchaseResolved?.(request, purchase, {
+      approved: decision === 'approved',
+      needDetails: false,
+      pendingPayment: Boolean(additionalCharge)
+    });
   });
-  return { success: true, request, approved: Boolean(approved), materialsPurchase: purchase };
+  return {
+    success: true,
+    request,
+    approved: decision === 'approved',
+    decision,
+    materialsPurchase: purchase,
+    additionalCharge
+  };
 }
 
 function submitSiteBudget(requestId, technicianId, { amount, description }) {
@@ -5623,7 +5832,8 @@ function proposeActivityChange(requestId, technicianId, {
   notes,
   customName,
   customBasePrice,
-  lineItems: rawLineItems
+  lineItems: rawLineItems,
+  materialsPreview: rawMaterialsPreview
 }) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
@@ -5641,6 +5851,8 @@ function proposeActivityChange(requestId, technicianId, {
   const isManualOther = activityId === 'otro' || activityId === '__other__';
   const lineItems = normalizeChangeLineItems(rawLineItems);
   const lineItemsTotal = lineItems.reduce((sum, item) => sum + item.lineTotal, 0);
+  const materialsPreview = normalizeMaterialsPreview(rawMaterialsPreview, pricing.materialsCatalog);
+  const materialsApproxTotal = sumMaterialsPreview(materialsPreview);
 
   let toActivityId;
   let toActivityName;
@@ -5669,8 +5881,8 @@ function proposeActivityChange(requestId, technicianId, {
     const activities = getActivitiesForAppService(pricing, request.serviceId);
     const next = activities.find((a) => a.id === activityId);
     if (!next) return { error: 'Subservicio no válido para esta especialidad.' };
-    if (next.id === request.activityId && lineItemsTotal <= 0) {
-      return { error: 'Elige un subservicio distinto o agrega tareas adicionales con precio.' };
+    if (next.id === request.activityId && lineItemsTotal <= 0 && materialsApproxTotal <= 0) {
+      return { error: 'Elige un subservicio distinto, agrega tareas o selecciona un producto del catálogo.' };
     }
     toActivityId = next.id;
     toActivityName = next.name;
@@ -5681,7 +5893,6 @@ function proposeActivityChange(requestId, technicianId, {
       tierId: request.urgencyTier,
       timeZone: request.tariffTimeZone
     });
-    // Ítems adicionales (obra civil / m²) se suman al total propuesto
     if (quote && lineItemsTotal > 0) {
       quote = {
         ...quote,
@@ -5697,9 +5908,16 @@ function proposeActivityChange(requestId, technicianId, {
 
   if (!quote) return { error: 'No se pudo recalcular el precio.' };
 
+  const laborTotal = quote.visitTotal || 0;
+  const proposedTotal = laborTotal + materialsApproxTotal;
+
   const sr = ensureSiteReport(request);
   if (['pending', 'payment_pending'].includes(sr.activityChange?.status)) {
     return { error: 'Ya hay un cambio de servicio pendiente de aprobación del cliente.' };
+  }
+  // Permitir reenvío si el cliente pidió más detalles
+  if (sr.activityChange?.status === 'clarification_pending') {
+    /* ok */
   }
 
   sr.activityChange = {
@@ -5711,7 +5929,10 @@ function proposeActivityChange(requestId, technicianId, {
     toActivityName,
     toActivityKind,
     toBasePrice,
-    proposedTotal: quote.visitTotal,
+    laborTotal,
+    materialsApproxTotal,
+    materialsPreview,
+    proposedTotal,
     previousTotal: request.visitPricePaid || request.visitTotal || request.amountDue || 0,
     lineItems,
     photoUrl,
@@ -5727,7 +5948,7 @@ function proposeActivityChange(requestId, technicianId, {
   return { success: true, request, activityChange: sr.activityChange };
 }
 
-function respondActivityChange(requestId, clientId, approved) {
+function respondActivityChange(requestId, clientId, approvedOrDecision) {
   const request = requests.find((r) => r.id === requestId && r.clientId === clientId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   const sr = ensureSiteReport(request);
@@ -5736,41 +5957,105 @@ function respondActivityChange(requestId, clientId, approved) {
     return { error: 'No hay un cambio de servicio pendiente.' };
   }
 
-  change.status = approved ? 'payment_pending' : 'rejected';
+  const decision = approvedOrDecision === true || approvedOrDecision === 'approved'
+    ? 'approved'
+    : approvedOrDecision === false || approvedOrDecision === 'rejected'
+      ? 'rejected'
+      : String(approvedOrDecision || '').toLowerCase() === 'need_details'
+        ? 'need_details'
+        : null;
+  if (!decision) return { error: 'Respuesta inválida.' };
+
   change.respondedAt = new Date().toISOString();
   let additionalCharge = null;
 
-  if (approved) {
+  if (decision === 'need_details') {
+    change.status = 'clarification_pending';
+    request.serviceConfirmStatus = 'pending';
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: 'El cliente pidió más detalles del cambio de precio. Aclara el alcance, producto o monto y vuelve a enviar la propuesta.'
+    });
+    repository.persist(() => repository.saveRequest(request), `cambio más detalle ${requestId}`);
+    afterEvent((ev) => {
+      ev.onActivityChangeResolved?.(request, change, { approved: false, needDetails: true });
+    });
+    return { success: true, request, decision, needDetails: true, activityChange: change };
+  }
+
+  if (decision === 'approved') {
+    change.status = 'payment_pending';
     const previousTotal = request.visitTotal || request.visitPricePaid || 0;
-    const delta = Math.max(0, change.proposedTotal - previousTotal);
-    if (request.paymentStatus === 'approved' && delta > 0) {
+    const laborTotal = change.laborTotal != null ? change.laborTotal : change.proposedTotal;
+    const materialsApprox = Math.max(0, change.materialsApproxTotal || 0);
+    const laborDelta = Math.max(0, laborTotal - previousTotal);
+    const chargeBase = laborDelta + materialsApprox;
+
+    if (request.paymentStatus === 'approved' && chargeBase > 0) {
+      const parts = [];
+      if (laborDelta > 0) parts.push(`mano de obra ${change.toActivityName}`);
+      if (materialsApprox > 0) {
+        const matNames = (change.materialsPreview || []).map((m) => m.name).filter(Boolean).slice(0, 3).join(', ');
+        parts.push(`producto aprox.${matNames ? ` (${matNames})` : ''}`);
+      }
       const chargeResult = openAdditionalCharge(request, {
         reason: 'activity_change',
-        baseAmount: delta,
-        description: `Cambio de servicio a: ${change.toActivityName}`
+        baseAmount: chargeBase,
+        laborDeltaBase: laborDelta,
+        materialsApproxBase: materialsApprox,
+        description: `Cambio de servicio: ${parts.join(' + ') || change.toActivityName}`
       });
       if (chargeResult.error) return chargeResult;
       additionalCharge = chargeResult.additionalCharge;
       request.serviceConfirmStatus = 'change_pending';
+      appendChatMessage(request, {
+        senderType: 'system',
+        senderId: null,
+        senderName: 'Fandez',
+        body: `Cliente aprobó el cambio (~${formatCLP(chargeBase)}). Pendiente cobro aproximado en tarjeta; al pagar continúa el trabajo y se regulariza con la boleta o factura del producto si aplica.`
+      });
     } else {
       applyApprovedActivityChange(request, change);
       request.serviceConfirmStatus = 'confirmed';
       request.serviceConfirmedAt = new Date().toISOString();
       request.serviceConfirmMode = 'change';
+      appendChatMessage(request, {
+        senderType: 'system',
+        senderId: null,
+        senderName: 'Fandez',
+        body: 'Cambio gestionado: el cliente aprobó el nuevo alcance.'
+      });
     }
   } else {
+    change.status = 'rejected';
     request.serviceConfirmStatus = 'pending';
     request.serviceConfirmMode = null;
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: 'El cliente no aprobó el cambio de precio. Continúa con el alcance original o propone otra opción.'
+    });
   }
 
   repository.persist(() => repository.saveRequest(request), `respuesta cambio ${requestId}`);
   afterEvent((ev) => {
     ev.onActivityChangeResolved?.(request, change, {
-      approved: Boolean(approved),
-      pendingPayment: Boolean(additionalCharge)
+      approved: decision === 'approved',
+      pendingPayment: Boolean(additionalCharge),
+      needDetails: false
     });
   });
-  return { success: true, request, approved, activityChange: change, additionalCharge };
+  return {
+    success: true,
+    request,
+    approved: decision === 'approved',
+    decision,
+    activityChange: change,
+    additionalCharge
+  };
 }
 
 function getMaterialsCatalogForService(serviceId = null) {
@@ -5834,7 +6119,7 @@ function addSiteMaterial(requestId, technicianId, {
     }
   } else if (src === 'purchased' && !receiptUrl) {
     // Compra chica (< umbral): boleta opcional pero recomendada; si marca purchased sin boleta, pedirla igual por trazabilidad mínima
-    return { error: 'Si saliste a comprar, sube la boleta (aunque el monto vaya incluido en el servicio).' };
+    return { error: 'Si saliste a comprar, sube la boleta o factura (aunque el monto vaya incluido en el servicio).' };
   }
 
   let reviewResult = review || null;
@@ -5950,8 +6235,8 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
   }
 
   const sr = ensureSiteReport(request);
-  if (sr.materialsPurchase?.status === 'pending') {
-    return { error: 'Hay una compra de materiales esperando el OK del cliente.' };
+  if (sr.materialsPurchase && ['pending', 'payment_pending', 'clarification_pending'].includes(sr.materialsPurchase.status)) {
+    return { error: 'Hay una compra de materiales pendiente de OK, pago o aclaración del cliente.' };
   }
   const pendingReview = (sr.materials || []).some((m) =>
     m.reviewStatus === 'pending_founder' || m.reviewStatus === 'pending_manual'
@@ -5984,15 +6269,38 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
   const materialsTotal = billableMaterials.reduce((sum, m) => sum + (parseInt(m.amount, 10) || 0), 0);
   const alreadyPaid = Math.max(0, parseInt(request.materialsPaidTotal, 10) || 0);
   const materialsDue = Math.max(0, materialsTotal - alreadyPaid);
+  const materialsCredit = Math.max(0, alreadyPaid - materialsTotal);
   let additionalCharge = null;
   if (materialsDue > 0) {
     const chargeResult = openAdditionalCharge(request, {
       reason: 'materials',
       baseAmount: materialsDue,
-      description: `Materiales adicionales (${billableMaterials.length} ítem(s), factura al pedido)`
+      approximate: false,
+      description: `Regularización por boleta o factura: diferencia sobre el monto aproximado (documento ${formatCLP(materialsTotal)} − aprox. pagado ${formatCLP(alreadyPaid)})`
     });
     if (chargeResult.error) return chargeResult;
     additionalCharge = chargeResult.additionalCharge;
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `Precio validado con boleta o factura: el producto costó ${formatCLP(materialsTotal)} (habías pagado aprox. ${formatCLP(alreadyPaid)}). Queda un ajuste de ${formatCLP(materialsDue)} a tu tarjeta.`
+    });
+  } else if (materialsCredit > 0) {
+    request.materialsRefundDue = (request.materialsRefundDue || 0) + materialsCredit;
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `Precio validado con boleta o factura: el producto costó ${formatCLP(materialsTotal)} (menos que el aprox. ${formatCLP(alreadyPaid)}). Queda un saldo a tu favor de ${formatCLP(materialsCredit)} para devolución.`
+    });
+  } else if (alreadyPaid > 0 && materialsTotal > 0) {
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `Precio validado con boleta o factura: ${formatCLP(materialsTotal)} coincide con el cobro aproximado. Sin ajustes adicionales.`
+    });
   }
 
   request.techStatus = 'completado';
@@ -6007,6 +6315,20 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
     ev.onServiceCompleted(request);
     if (additionalCharge) {
       ev.onMaterialsChargeOpened?.(request, additionalCharge);
+    } else if (materialsCredit > 0) {
+      ev.onMaterialsTrueUp?.(request, {
+        materialsTotal,
+        alreadyPaid,
+        credit: materialsCredit,
+        due: 0
+      });
+    } else if (alreadyPaid > 0 && materialsTotal > 0) {
+      ev.onMaterialsTrueUp?.(request, {
+        materialsTotal,
+        alreadyPaid,
+        credit: 0,
+        due: 0
+      });
     }
   });
   return { success: true, request, additionalCharge };
@@ -6496,8 +6818,21 @@ function enrichRequestForProvider(request, locale = 'es') {
   const pricing = getPricingConfig();
   const visible = getProviderVisibleFinancials(request, pricing);
   const safe = sanitizeRequestForWorker(request, pricing);
-  return {
+  const { withAgendaDay } = require('../lib/jobAgenda');
+  return withAgendaDay({
     ...safe,
+    // Pedidos ya tomados: el socio ve dirección y datos operativos completos.
+    address: request.address || '',
+    coords: request.coords || null,
+    clientName: request.clientName || null,
+    guardianToken: request.guardianToken || null,
+    technicianId: request.technicianId || null,
+    technicianName: request.technicianName || null,
+    technicianAssignedAt: request.technicianAssignedAt || null,
+    techAcceptTimedOutAt: request.techAcceptTimedOutAt || null,
+    awaitingProviderReassign: Boolean(request.awaitingProviderReassign),
+    assignedAt: request.assignedAt || null,
+    scheduledSearchAt: request.scheduledSearchAt || null,
     clientPhotoUrl: request.clientPhotoUrl
       ? (stableRequestPhotoUrl(request.id, 'problem') || toServingUrl(safe.clientPhotoUrl) || null)
       : null,
@@ -6513,14 +6848,15 @@ function enrichRequestForProvider(request, locale = 'es') {
     financials: request.status === 'completed' ? computeRequestFinancials(request, pricing) : undefined,
     financialsVisible: visible,
     providerPayout: visible.providerPayout
-  };
+  });
 }
 
 function getActiveRequestsForProvider(providerId, locale = 'es') {
+  const { compareAgendaRequests } = require('../lib/jobAgenda');
   return requests
     .filter(r => r.providerId === providerId && ['assigned', 'in_progress'].includes(r.status))
-    .sort((a, b) => new Date(b.assignedAt || b.createdAt) - new Date(a.assignedAt || a.createdAt))
-    .map(r => enrichRequestForProvider(r, locale));
+    .map(r => enrichRequestForProvider(r, locale))
+    .sort(compareAgendaRequests);
 }
 
 function getProviderPayoutSummary(providerId) {
@@ -7801,6 +8137,10 @@ async function reloadFromDatabase() {
   notifications = data.notifications || [];
   PROMOS = data.promos || [];
   CRM_LEADS = data.crmLeads || [];
+  COVERAGE_COMMUNES = data.coverageCommunes || [];
+  COVERAGE_REGIONS = data.coverageRegions || [];
+  COVERAGE_INTEREST = data.coverageInterest || [];
+  rebuildCoverageMap();
   require('../lib/notifications').bindStore(module.exports);
   return data;
 }
@@ -7850,6 +8190,9 @@ module.exports = {
   getCoverageStats,
   toggleCoverageCommune,
   toggleCoverageRegion,
+  submitCoverageInterest,
+  getCoverageInterest,
+  getCoverageInterestStats,
   validateAddressCoverage,
   getPricingConfig,
   updatePricingConfig,

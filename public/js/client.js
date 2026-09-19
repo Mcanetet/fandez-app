@@ -1515,10 +1515,10 @@
       return { key: 'budget', label: 'Acción requerida', status: 'Aprueba o rechaza el presupuesto', target: 'budgetBanner', cta: 'Revisar' };
     }
     if (sr?.materialsPurchase?.status === 'pending') {
-      return { key: 'materials', label: 'Acción requerida', status: 'Aprueba la compra de material', target: 'materialsPurchaseBanner', cta: 'Revisar' };
+      return { key: 'materials', label: 'Acción requerida', status: 'Aprueba, pide detalle o rechaza el producto', target: 'materialsPurchaseBanner', cta: 'Revisar' };
     }
     if (sr?.activityChange?.status === 'pending') {
-      return { key: 'change', label: 'Acción requerida', status: 'Confirma el cambio de servicio', target: 'activityChangeBanner', cta: 'Revisar' };
+      return { key: 'change', label: 'Acción requerida', status: 'Confirma el cambio de precio', target: 'activityChangeBanner', cta: 'Revisar' };
     }
     if (sr?.additionalPayment?.status === 'pending' || request.additionalPaymentPending) {
       return { key: 'payment', label: 'Acción requerida', status: 'Completa el pago adicional', target: 'additionalPaymentBanner', cta: 'Pagar' };
@@ -1991,14 +1991,27 @@
     const wasHidden = banner.classList.contains('hidden');
     const textEl = document.getElementById('materialsPurchaseText');
     if (textEl) {
-      textEl.textContent = `${purchase.description || 'Material adicional'} · estimado ${fmtCLP(purchase.estimatedAmount || 0)}`;
+      textEl.textContent = `${purchase.description || 'Producto / material adicional'} · ~${fmtCLP(purchase.estimatedAmount || 0)} (aprox.)`;
+    }
+    const linesEl = document.getElementById('materialsPurchaseLines');
+    if (linesEl) {
+      const items = Array.isArray(purchase.materialsPreview) ? purchase.materialsPreview : [];
+      if (items.length) {
+        linesEl.innerHTML = items.map((m) =>
+          `<li>${m.name} · ${m.qty || 1} ${m.unit || 'und'} × ${fmtCLP(m.unitPrice || 0)} = ${fmtCLP(m.lineTotal || 0)} <span class="opacity-70">(aprox.)</span></li>`
+        ).join('');
+        linesEl.classList.remove('hidden');
+      } else {
+        linesEl.innerHTML = '';
+        linesEl.classList.add('hidden');
+      }
     }
     banner.classList.remove('hidden');
     if (wasHidden && window.FandezAlerts) {
       FandezAlerts.notify({
         type: 'alert',
-        title: 'Material adicional',
-        body: `El técnico pide OK para comprar (~${fmtCLP(purchase.estimatedAmount || 0)}). Entra y aprueba o rechaza.`,
+        title: 'Producto / material adicional',
+        body: `Precio aproximado ~${fmtCLP(purchase.estimatedAmount || 0)}. Puede variar al validar la boleta o factura. Aprueba, pide detalles o rechaza.`,
         tag: 'fandez-materials-' + (request.id || currentRequestId),
         requireInteraction: true,
         url: `/cliente/servicio/${request.serviceId || ''}?tracking=${request.id || currentRequestId}`
@@ -2018,8 +2031,12 @@
     const wasHidden = banner.classList.contains('hidden');
     const prev = change.previousTotal || 0;
     const next = change.proposedTotal || 0;
+    const labor = change.laborTotal != null ? change.laborTotal : next;
+    const mats = change.materialsApproxTotal || 0;
     document.getElementById('activityChangeText').textContent =
-      `${change.toActivityName || 'Nuevo alcance'} · ${fmtCLP(next)}${prev ? ` (antes ${fmtCLP(prev)})` : ''}\n${change.notes || ''}`;
+      `${change.toActivityName || 'Nuevo alcance'} · ~${fmtCLP(next)}${prev ? ` (antes ${fmtCLP(prev)})` : ''}` +
+      (mats > 0 ? ` · servicio ${fmtCLP(labor)} + producto aprox. ${fmtCLP(mats)}` : '') +
+      `\n${change.notes || ''}`;
     const linesEl = document.getElementById('activityChangeLines');
     if (linesEl) {
       const items = Array.isArray(change.lineItems) ? change.lineItems : [];
@@ -2033,6 +2050,19 @@
       } else {
         linesEl.innerHTML = '';
         linesEl.classList.add('hidden');
+      }
+    }
+    const matEl = document.getElementById('activityChangeMaterials');
+    if (matEl) {
+      const matsPreview = Array.isArray(change.materialsPreview) ? change.materialsPreview : [];
+      if (matsPreview.length) {
+        matEl.innerHTML = matsPreview.map((m) =>
+          `<li>Producto: ${m.name} · ${m.qty || 1} ${m.unit || 'und'} × ${fmtCLP(m.unitPrice || 0)} = ${fmtCLP(m.lineTotal || 0)} <span class="opacity-70">(aprox.)</span></li>`
+        ).join('');
+        matEl.classList.remove('hidden');
+      } else {
+        matEl.innerHTML = '';
+        matEl.classList.add('hidden');
       }
     }
     const photo = document.getElementById('activityChangePhoto');
@@ -2067,14 +2097,42 @@
       return;
     }
     const wasHidden = banner.classList.contains('hidden');
+    const isApprox = charge.approximate === true
+      || charge.reason === 'materials_approx'
+      || ((charge.materialsApproxBase || 0) > 0 && (charge.reason === 'activity_change' || charge.reason === 'change_order'));
+    const isTrueUp = charge.reason === 'materials' && !isApprox;
+    const titleEl = document.getElementById('additionalPaymentTitle');
+    if (titleEl) {
+      titleEl.textContent = isTrueUp
+        ? 'Ajuste por boleta o factura (precio validado)'
+        : isApprox
+          ? 'Cobro aproximado pendiente'
+          : 'Pago adicional pendiente';
+    }
     document.getElementById('additionalPaymentText').textContent =
-      `${charge.description || 'Ajuste de servicio'} · ${fmtCLP(charge.amountDue || 0)}`;
-    document.getElementById('additionalPaymentLink').href = `/pagos/ajuste?ref=${request.id}`;
+      `${charge.description || 'Ajuste de servicio'} · ${isApprox ? '~' : ''}${fmtCLP(charge.amountDue || 0)}`;
+    const hint = document.getElementById('additionalPaymentHint');
+    if (hint) {
+      if (isApprox) {
+        hint.textContent = 'Es un monto aproximado. Al validar la boleta o factura del producto pueden haber modificaciones (cobro o devolución de la diferencia).';
+        hint.classList.remove('hidden');
+      } else if (isTrueUp) {
+        hint.textContent = 'Diferencia confirmada con la boleta o factura respecto al aproximado que ya pagaste.';
+        hint.classList.remove('hidden');
+      } else {
+        hint.classList.add('hidden');
+      }
+    }
+    const link = document.getElementById('additionalPaymentLink');
+    if (link) {
+      link.href = `/pagos/ajuste?ref=${request.id}`;
+      link.textContent = isApprox ? 'Pagar monto aproximado' : 'Continuar al pago';
+    }
     banner.classList.remove('hidden');
     if (wasHidden && window.FandezAlerts) {
       FandezAlerts.notify({
         type: 'payment',
-        title: t('client.js.additional_payment_alert_title'),
+        title: isTrueUp ? 'Ajuste por boleta o factura' : (isApprox ? 'Cobro aproximado' : t('client.js.additional_payment_alert_title')),
         body: `${charge.description || 'Ajuste de servicio'} · ${fmtCLP(charge.amountDue || 0)}`,
         tag: 'fandez-addpay-' + (request.id || currentRequestId),
         requireInteraction: true
@@ -2102,51 +2160,58 @@
     if (data.redirect) window.location.href = data.redirect;
   }
 
-  async function respondMaterialsPurchase(approved) {
+  async function respondMaterialsPurchase(decision) {
     if (!currentRequestId) return;
     const res = await fetch(`/cliente/materiales-compra/${currentRequestId}/responder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ approved })
+      body: JSON.stringify({ decision })
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
       FandezNotify.show(data.error || t('client.js.respond_error'), 'error');
       return;
     }
-    FandezNotify.show(
-      approved ? 'Compra de material aprobada. El técnico puede ir a comprar.' : 'Compra de material rechazada.',
-      approved ? 'success' : 'info'
-    );
+    const msg = decision === 'approved'
+      ? t('client.js.materials_ok')
+      : decision === 'need_details'
+        ? t('client.js.materials_details')
+        : t('client.js.materials_no');
+    FandezNotify.show(msg, decision === 'approved' ? 'success' : 'info');
     document.getElementById('materialsPurchaseBanner')?.classList.add('hidden');
+    if (data.redirect) window.location.href = data.redirect;
   }
 
-  async function respondActivityChange(approved) {
+  async function respondActivityChange(decision) {
     if (!currentRequestId) return;
     const res = await fetch(`/cliente/cambio-servicio/${currentRequestId}/responder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ approved })
+      body: JSON.stringify({ decision })
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
       FandezNotify.show(data.error || t('client.js.respond_error'), 'error');
       return;
     }
-    FandezNotify.show(
-      approved ? t('client.js.activity_change_ok') : t('client.js.activity_change_no'),
-      approved ? 'success' : 'info'
-    );
+    const msg = decision === 'approved'
+      ? t('client.js.activity_change_ok')
+      : decision === 'need_details'
+        ? t('client.js.activity_change_details')
+        : t('client.js.activity_change_no');
+    FandezNotify.show(msg, decision === 'approved' ? 'success' : 'info');
     document.getElementById('activityChangeBanner')?.classList.add('hidden');
     if (data.redirect) window.location.href = data.redirect;
   }
 
   document.getElementById('btnApproveBudget')?.addEventListener('click', () => respondBudget(true));
   document.getElementById('btnRejectBudget')?.addEventListener('click', () => respondBudget(false));
-  document.getElementById('btnApproveMaterialsPurchase')?.addEventListener('click', () => respondMaterialsPurchase(true));
-  document.getElementById('btnRejectMaterialsPurchase')?.addEventListener('click', () => respondMaterialsPurchase(false));
-  document.getElementById('btnApproveActivityChange')?.addEventListener('click', () => respondActivityChange(true));
-  document.getElementById('btnRejectActivityChange')?.addEventListener('click', () => respondActivityChange(false));
+  document.getElementById('btnApproveMaterialsPurchase')?.addEventListener('click', () => respondMaterialsPurchase('approved'));
+  document.getElementById('btnNeedDetailsMaterialsPurchase')?.addEventListener('click', () => respondMaterialsPurchase('need_details'));
+  document.getElementById('btnRejectMaterialsPurchase')?.addEventListener('click', () => respondMaterialsPurchase('rejected'));
+  document.getElementById('btnApproveActivityChange')?.addEventListener('click', () => respondActivityChange('approved'));
+  document.getElementById('btnNeedDetailsActivityChange')?.addEventListener('click', () => respondActivityChange('need_details'));
+  document.getElementById('btnRejectActivityChange')?.addEventListener('click', () => respondActivityChange('rejected'));
 
   function escapeChatHtml(str) {
     return String(str || '')

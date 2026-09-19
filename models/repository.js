@@ -544,6 +544,18 @@ function rowToCoverageRegion(row) {
   };
 }
 
+function rowToCoverageInterest(row) {
+  return {
+    id: row.id,
+    communeText: row.commune_text || '',
+    email: row.email || '',
+    phone: row.phone || '',
+    role: row.role === 'provider' ? 'provider' : 'client',
+    source: row.source || 'registro',
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null
+  };
+}
+
 function normalizePaymentStatus(status) {
   const raw = String(status || '').trim().toLowerCase();
   if (raw === 'paid') return 'approved';
@@ -620,6 +632,24 @@ async function migrate() {
   await ensureAlandMonitorColumns();
   await ensurePasswordResetColumns();
   await ensureWallDismissedColumn();
+  await ensureCoverageInterestTable();
+}
+
+async function ensureCoverageInterestTable() {
+  await db.raw(`
+    CREATE TABLE IF NOT EXISTS coverage_interest (
+      id VARCHAR(64) PRIMARY KEY,
+      commune_text VARCHAR(160) NOT NULL,
+      email VARCHAR(190) NOT NULL,
+      phone VARCHAR(40) NULL,
+      role VARCHAR(20) NOT NULL DEFAULT 'client',
+      source VARCHAR(64) NOT NULL DEFAULT 'registro',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_coverage_interest_created (created_at),
+      INDEX idx_coverage_interest_commune (commune_text),
+      INDEX idx_coverage_interest_email (email)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
 }
 
 async function ensureWallDismissedColumn() {
@@ -763,9 +793,21 @@ async function ensureDemoPromos() {
 }
 
 async function ensureDemoPricing() {
-  const existing = await db.query('SELECT id FROM pricing_config WHERE id = ?', ['default']);
+  const existing = await db.query('SELECT config FROM pricing_config WHERE id = ?', ['default']);
   if (!existing.rows.length) {
     await savePricingConfig(DEFAULT_PRICING);
+    return;
+  }
+  // Persistir catálogo de productos fusionado (defaults + overrides DB) para que
+  // todos los servicios tengan precios de materiales en MySQL.
+  const raw = existing.rows[0].config;
+  const parsed = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
+  const normalized = normalizePricing(parsed);
+  const beforeCount = Array.isArray(parsed.materialsCatalog) ? parsed.materialsCatalog.length : 0;
+  const afterCount = Array.isArray(normalized.materialsCatalog) ? normalized.materialsCatalog.length : 0;
+  if (afterCount > beforeCount || beforeCount === 0) {
+    await savePricingConfig(normalized);
+    console.log(`[pricing] Catálogo materiales sincronizado en DB: ${beforeCount} → ${afterCount} productos`);
   }
 }
 
@@ -1025,7 +1067,8 @@ function mapLoadedRows({
   logsRes,
   notifRes,
   coverageRes,
-  coverageRegionsRes
+  coverageRegionsRes,
+  coverageInterestRes
 }) {
   let pricing = DEFAULT_PRICING;
   if (pricingRes.rows?.[0]?.config) {
@@ -1040,6 +1083,7 @@ function mapLoadedRows({
     crmLeads: (crmLeadsRes?.rows || []).map(rowToCrmLead),
     coverageCommunes: (coverageRes?.rows || []).map(rowToCoverageCommune),
     coverageRegions: (coverageRegionsRes?.rows || []).map(rowToCoverageRegion),
+    coverageInterest: (coverageInterestRes?.rows || []).map(rowToCoverageInterest),
     pricing,
     requests: requestsRes.rows.map(rowToRequest),
     homeLogbook: logbookRes.rows.map((row) => ({
@@ -1127,7 +1171,7 @@ async function fetchDataRows({ logsLimit = 200, notifLimit = 300, includeSecurit
     ? db.query('SELECT * FROM notifications ORDER BY created_at DESC').catch(() => ({ rows: [] }))
     : db.query(`SELECT * FROM notifications ORDER BY created_at DESC LIMIT ${Math.max(1, notifLimit)}`).catch(() => ({ rows: [] }));
 
-  const [usersRes, servicesRes, modulesRes, promosRes, crmLeadsRes, pricingRes, requestsRes, logbookRes, complaintsRes, chatsRes, consentsRes, logsRes, notifRes, coverageRes, coverageRegionsRes] = await Promise.all([
+  const [usersRes, servicesRes, modulesRes, promosRes, crmLeadsRes, pricingRes, requestsRes, logbookRes, complaintsRes, chatsRes, consentsRes, logsRes, notifRes, coverageRes, coverageRegionsRes, coverageInterestRes] = await Promise.all([
     db.query('SELECT * FROM users ORDER BY created_at ASC'),
     db.query('SELECT * FROM services ORDER BY name ASC'),
     db.query('SELECT * FROM modules ORDER BY audience ASC, sort_order ASC'),
@@ -1142,7 +1186,8 @@ async function fetchDataRows({ logsLimit = 200, notifLimit = 300, includeSecurit
     logsQuery,
     notifQuery,
     db.query('SELECT * FROM coverage_communes ORDER BY region_name ASC, commune_name ASC').catch(() => ({ rows: [] })),
-    db.query('SELECT * FROM coverage_regions ORDER BY region_name ASC').catch(() => ({ rows: [] }))
+    db.query('SELECT * FROM coverage_regions ORDER BY region_name ASC').catch(() => ({ rows: [] })),
+    db.query('SELECT * FROM coverage_interest ORDER BY created_at DESC LIMIT 500').catch(() => ({ rows: [] }))
   ]);
 
   return {
@@ -1160,7 +1205,8 @@ async function fetchDataRows({ logsLimit = 200, notifLimit = 300, includeSecurit
     logsRes,
     notifRes,
     coverageRes,
-    coverageRegionsRes
+    coverageRegionsRes,
+    coverageInterestRes
   };
 }
 
@@ -1287,6 +1333,28 @@ async function saveCoverageRegion(row) {
        region_name = VALUES(region_name),
        enabled = VALUES(enabled)`,
     [row.regionCode, row.regionName, row.enabled ? 1 : 0]
+  );
+}
+
+async function saveCoverageInterest(row) {
+  await db.query(
+    `INSERT INTO coverage_interest (id, commune_text, email, phone, role, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       commune_text = VALUES(commune_text),
+       email = VALUES(email),
+       phone = VALUES(phone),
+       role = VALUES(role),
+       source = VALUES(source)`,
+    [
+      row.id,
+      row.communeText,
+      row.email,
+      row.phone || null,
+      row.role === 'provider' ? 'provider' : 'client',
+      row.source || 'registro',
+      row.createdAt ? new Date(row.createdAt) : new Date()
+    ]
   );
 }
 
@@ -1692,6 +1760,7 @@ module.exports = {
   saveModule,
   saveCoverageCommune,
   saveCoverageRegion,
+  saveCoverageInterest,
   savePromo,
   deletePromo,
   saveCrmLead,

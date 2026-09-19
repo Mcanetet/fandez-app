@@ -96,6 +96,8 @@ router.get('/', requireRole('tecnico'), (req, res) => {
   const jobs = allJobs
     .filter(r => r.techStatus !== 'completado' && r.status !== 'completed' && r.status !== 'cancelled')
     .map(serializeJob);
+  const { groupRequestsByAgendaDay } = require('../lib/jobAgenda');
+  const agenda = groupRequestsByAgendaDay(jobs);
   const completedJobs = allJobs
     .filter(r => r.techStatus === 'completado' || r.status === 'completed')
     .sort((a, b) => new Date(b.completedAt || b.updatedAt || 0) - new Date(a.completedAt || a.updatedAt || 0))
@@ -133,6 +135,7 @@ router.get('/', requireRole('tecnico'), (req, res) => {
     tecnico,
     socio,
     jobs,
+    agenda,
     completedJobs,
     canClaimWall: store.technicianCanClaimAnyWall(tecnico),
     linkedProvider: req.session.linkedProvider || null,
@@ -356,7 +359,8 @@ router.post('/trabajo/:requestId/accion', requireRole('tecnico'), (req, res) => 
 router.post('/trabajo/:requestId/materiales-compra', requireRole('tecnico'), (req, res) => {
   const result = store.submitMaterialsPurchase(req.params.requestId, req.session.user.id, {
     estimatedAmount: req.body.estimatedAmount,
-    description: req.body.description
+    description: req.body.description,
+    catalogItems: req.body.catalogItems || req.body.materialsPreview
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
@@ -407,7 +411,8 @@ router.post('/trabajo/:requestId/cambio-servicio', requireRole('tecnico'), (req,
     notes: req.body.notes,
     customName: req.body.customName,
     customBasePrice: req.body.customBasePrice,
-    lineItems: req.body.lineItems
+    lineItems: req.body.lineItems,
+    materialsPreview: req.body.materialsPreview || req.body.catalogItems
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });

@@ -550,27 +550,44 @@
         </div>
       </div>
       <div id="materialsPurchaseBanner" class="hidden p-4 rounded-2xl border border-amber-300 bg-amber-50">
-        <p class="text-sm font-semibold text-amber-900 mb-1">Material adicional — debes aprobar</p>
+        <p class="text-sm font-semibold text-amber-900 mb-1">Producto / material adicional</p>
+        <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-700 mb-2">Precio aproximado · se valida con boleta o factura</p>
         <p id="materialsPurchaseText" class="text-xs text-amber-900/80 mb-2"></p>
-        <p class="text-[11px] text-amber-800/80 mb-3">Si el material es de $10.000 o más se cobra a costo. Menos de $10.000 va incluido en el servicio.</p>
-        <div class="flex gap-2">
-          <button type="button" id="btnApproveMaterialsPurchase" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm">OK, puede comprar</button>
-          <button type="button" id="btnRejectMaterialsPurchase" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm">Rechazar</button>
+        <ul id="materialsPurchaseLines" class="hidden text-xs text-amber-900/80 mb-2 space-y-1 list-disc pl-4"></ul>
+        <div class="text-[11px] text-amber-900/90 mb-3 p-2.5 rounded-lg bg-white/70 border border-amber-200/80 space-y-1 leading-relaxed">
+          <p>· Los montos son <strong>referenciales</strong> (catálogo de mercado).</p>
+          <p>· Si apruebas, se cobra el aproximado a tu tarjeta.</p>
+          <p>· Al subir la boleta o factura se confirma el precio real: <strong>pueden haber modificaciones</strong> (cobro o devolución de la diferencia).</p>
+          <p>· Bajo $10.000 va incluido en el servicio.</p>
+        </div>
+        <div class="grid gap-2 sm:grid-cols-3">
+          <button type="button" id="btnApproveMaterialsPurchase" class="py-2.5 rounded-xl zilo-btn-primary !text-sm">Apruebo el cambio</button>
+          <button type="button" id="btnNeedDetailsMaterialsPurchase" class="py-2.5 rounded-xl border border-amber-400 bg-white text-amber-950 !text-sm font-semibold">Necesito más detalles</button>
+          <button type="button" id="btnRejectMaterialsPurchase" class="py-2.5 rounded-xl zilo-btn-ghost !text-sm">No aprobar</button>
         </div>
       </div>
       <div id="activityChangeBanner" class="hidden p-4 rounded-2xl border border-amber-300 bg-amber-50">
         <p class="text-sm font-semibold text-amber-900 mb-1"><%= t('client.js.activity_change_title') %></p>
+        <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-700 mb-2">Productos a precio aproximado · se validan con boleta o factura</p>
         <p id="activityChangeText" class="text-xs text-amber-900/80 mb-2"></p>
         <ul id="activityChangeLines" class="hidden text-xs text-amber-900/80 mb-2 space-y-1 list-disc pl-4"></ul>
+        <ul id="activityChangeMaterials" class="hidden text-xs text-amber-900/80 mb-2 space-y-1 list-disc pl-4"></ul>
         <img id="activityChangePhoto" src="" alt="" class="hidden w-full max-h-36 object-cover rounded-xl border border-amber-200 mb-3">
-        <div class="flex gap-2">
-          <button type="button" id="btnApproveActivityChange" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm"><%= t('client.js.activity_change_approve') %></button>
-          <button type="button" id="btnRejectActivityChange" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.js.activity_change_reject') %></button>
+        <div class="text-[11px] text-amber-900/90 mb-3 p-2.5 rounded-lg bg-white/70 border border-amber-200/80 space-y-1 leading-relaxed">
+          <p>· Servicio + producto: el producto es <strong>aproximado</strong>.</p>
+          <p>· Al aprobar se cobra el ajuste aproximado.</p>
+          <p>· La boleta o factura del producto confirma el monto final; <strong>pueden haber modificaciones</strong>.</p>
+        </div>
+        <div class="grid gap-2 sm:grid-cols-3">
+          <button type="button" id="btnApproveActivityChange" class="py-2.5 rounded-xl zilo-btn-primary !text-sm"><%= t('client.js.activity_change_approve') %></button>
+          <button type="button" id="btnNeedDetailsActivityChange" class="py-2.5 rounded-xl border border-amber-400 bg-white text-amber-950 !text-sm font-semibold"><%= t('client.js.activity_change_need_details') %></button>
+          <button type="button" id="btnRejectActivityChange" class="py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.js.activity_change_reject') %></button>
         </div>
       </div>
       <div id="additionalPaymentBanner" class="hidden p-4 rounded-2xl border border-amber-300 bg-amber-50">
-        <p class="text-sm font-semibold text-amber-900 mb-1">Pago adicional pendiente</p>
-        <p id="additionalPaymentText" class="text-xs text-amber-800 mb-3"></p>
+        <p class="text-sm font-semibold text-amber-900 mb-1" id="additionalPaymentTitle">Pago adicional pendiente</p>
+        <p id="additionalPaymentText" class="text-xs text-amber-800 mb-2"></p>
+        <p id="additionalPaymentHint" class="hidden text-[11px] text-amber-900/80 mb-3"></p>
         <a id="additionalPaymentLink" href="#" class="block text-center py-2.5 rounded-xl zilo-btn-primary !text-sm">Continuar al pago</a>
       </div>
       <section id="completionSummary" class="hidden p-5 rounded-2xl border border-zilo-success/30 bg-zilo-success/5">

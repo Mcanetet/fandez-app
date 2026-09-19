@@ -1051,6 +1051,49 @@ function hasPerm(key) {
           </details>
         <% }); %>
       </div>
+
+      <% const interestStats = coverageInterestStats || { total: 0, topCommunes: [] }; %>
+      <% const interestRows = coverageInterest || []; %>
+      <div class="mt-6 rounded-2xl border border-gray-200 bg-zilo-card p-4 space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <h4 class="text-sm font-semibold text-zilo-text"><%= as.cobertura.interestTitle %></h4>
+          <span class="text-xs text-gray-500"><%= t('admin.cobertura.interest_total', { count: interestStats.total || 0 }) %></span>
+        </div>
+        <% if (!interestRows.length) { %>
+          <p class="text-xs text-gray-500"><%= as.cobertura.interestEmpty %></p>
+        <% } else { %>
+          <% if ((interestStats.topCommunes || []).length) { %>
+            <div>
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-2"><%= as.cobertura.interestTop %></p>
+              <div class="flex flex-wrap gap-2">
+                <% interestStats.topCommunes.slice(0, 8).forEach(function(row) { %>
+                  <span class="inline-flex items-center gap-1.5 rounded-full bg-zilo-bg px-2.5 py-1 text-xs text-zilo-text border border-gray-200">
+                    <strong><%= row.commune %></strong>
+                    <span class="text-gray-500"><%= row.count %></span>
+                  </span>
+                <% }); %>
+              </div>
+            </div>
+          <% } %>
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-2"><%= as.cobertura.interestRecent %></p>
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+              <% interestRows.slice(0, 20).forEach(function(row) { %>
+                <div class="flex items-start justify-between gap-3 rounded-xl bg-zilo-bg/70 px-3 py-2.5">
+                  <div class="min-w-0">
+                    <strong class="text-sm block truncate"><%= row.communeText %></strong>
+                    <span class="text-[11px] text-gray-500 block truncate"><%= row.email %><%= row.phone ? ' · ' + row.phone : '' %></span>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <span class="text-[10px] font-bold uppercase <%= row.role === 'provider' ? 'text-zilo-accent' : 'text-gray-500' %>"><%= row.role === 'provider' ? as.cobertura.interestRoleProvider : as.cobertura.interestRoleClient %></span>
+                    <span class="block text-[10px] text-gray-400"><%= row.createdAt ? String(row.createdAt).slice(0, 10) : '' %></span>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
+      </div>
     </section>
 
     <!-- SERVICIOS -->

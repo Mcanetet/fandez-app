@@ -719,6 +719,8 @@ router.get('/mando', requireRole('provider'), requireModule('provider_mando'), (
   const technicians = store.getTechniciansByProvider(provider.id)
     .filter((t) => t.active !== false && store.canTechnicianOperate(t).ok);
   const active = store.getActiveRequestsForProvider(provider.id, req.locale);
+  const { groupRequestsByAgendaDay } = require('../lib/jobAgenda');
+  const agenda = groupRequestsByAgendaDay(active);
 
   const technicianMarkers = technicians.map((t) => ({
     id: t.id,
@@ -734,6 +736,7 @@ router.get('/mando', requireRole('provider'), requireModule('provider_mando'), (
     provider,
     technicians,
     requests: active,
+    agenda,
     technicianMarkers,
     providerStats: store.getProviderDashboardStats(provider.id),
     workflowStep: 3,

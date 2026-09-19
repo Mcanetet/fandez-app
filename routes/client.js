@@ -887,8 +887,13 @@ router.post('/presupuesto/:id/responder', requireRole('client'), (req, res) => {
 });
 
 router.post('/materiales-compra/:id/responder', requireRole('client'), (req, res) => {
-  const approved = req.body.approved === true || req.body.approved === 'true';
-  const result = store.respondMaterialsPurchase(req.params.id, req.session.user.id, approved);
+  const decision = req.body.decision
+    || (req.body.approved === true || req.body.approved === 'true'
+      ? 'approved'
+      : req.body.approved === false || req.body.approved === 'false'
+        ? 'rejected'
+        : null);
+  const result = store.respondMaterialsPurchase(req.params.id, req.session.user.id, decision);
   if (result.error) return res.status(400).json({ success: false, error: result.error });
 
   const io = req.app.get('io');
@@ -897,18 +902,27 @@ router.post('/materiales-compra/:id/responder', requireRole('client'), (req, res
   res.json({
     success: true,
     approved: result.approved,
+    decision: result.decision,
+    needDetails: Boolean(result.needDetails),
+    redirect: result.additionalCharge ? `/pagos/ajuste?ref=${result.request.id}` : null,
     request: {
       id: result.request.id,
       techStatus: result.request.techStatus,
       status: result.request.status,
-      siteReport: result.request.siteReport
+      siteReport: result.request.siteReport,
+      additionalCharge: result.request.additionalCharge || null
     }
   });
 });
 
 router.post('/cambio-servicio/:id/responder', requireRole('client'), (req, res) => {
-  const approved = req.body.approved === true || req.body.approved === 'true';
-  const result = store.respondActivityChange(req.params.id, req.session.user.id, approved);
+  const decision = req.body.decision
+    || (req.body.approved === true || req.body.approved === 'true'
+      ? 'approved'
+      : req.body.approved === false || req.body.approved === 'false'
+        ? 'rejected'
+        : null);
+  const result = store.respondActivityChange(req.params.id, req.session.user.id, decision);
   if (result.error) return res.status(400).json({ success: false, error: result.error });
 
   const io = req.app.get('io');
@@ -917,15 +931,15 @@ router.post('/cambio-servicio/:id/responder', requireRole('client'), (req, res) 
   res.json({
     success: true,
     approved: result.approved,
+    decision: result.decision,
+    needDetails: Boolean(result.needDetails),
     redirect: result.additionalCharge ? `/pagos/ajuste?ref=${result.request.id}` : null,
     request: {
       id: result.request.id,
-      activityId: result.request.activityId,
-      activityName: result.request.activityName,
-      visitTotal: result.request.visitTotal,
-      amountDue: result.request.amountDue,
-      approvedServicePrice: result.request.approvedServicePrice,
-      siteReport: result.request.siteReport
+      techStatus: result.request.techStatus,
+      status: result.request.status,
+      siteReport: result.request.siteReport,
+      additionalCharge: result.request.additionalCharge || null
     }
   });
 });

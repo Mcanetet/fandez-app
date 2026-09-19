@@ -233,17 +233,36 @@ function wantsJson(req) {
   return req.is('application/json') || (req.get('Accept') || '').includes('application/json');
 }
 
+function getEnabledRegistrationRegions() {
+  const enabledCodes = new Set(
+    (store.getCoverageRegions() || [])
+      .filter((r) => r.enabled)
+      .map((r) => r.regionCode)
+  );
+  // Si aún no hay cobertura cargada, caer al default RM.
+  if (!enabledCodes.size) enabledCodes.add('region-metropolitana');
+  return getRegionsCatalog()
+    .filter((r) => enabledCodes.has(r.code))
+    .map((r) => ({ code: r.code, name: r.name }));
+}
+
+function isRegistrationRegionEnabled(regionCode) {
+  return getEnabledRegistrationRegions().some((r) => r.code === regionCode);
+}
+
 function registerRenderOptions(req, extra = {}) {
   const form = extra.form || {};
   const pageId = form.role === 'provider' || req.query.role === 'provider' ? 'register_provider' : 'register';
+  const registrationRegions = getEnabledRegistrationRegions();
   const selectedRegion = form.addressRegion || '';
+  const regionAllowed = selectedRegion && isRegistrationRegionEnabled(selectedRegion);
   return {
     services: localizeServices(store.getActiveServices(), req.t),
     referralCode: req.session.pendingReferral || null,
     useMap: true,
     pageScript: '/js/register-address.js',
-    registrationRegions: getRegionsCatalog().map((r) => ({ code: r.code, name: r.name })),
-    registrationCommunes: selectedRegion ? getRegionCommunes(selectedRegion) : [],
+    registrationRegions,
+    registrationCommunes: regionAllowed ? getRegionCommunes(selectedRegion) : [],
     seo: buildPageMeta(pageId, req),
     ...extra
   };
@@ -289,6 +308,9 @@ function resolveRegistrationCommune(regionCode, communeCode) {
 }
 
 router.get('/registro/regiones/:regionCode/comunas', (req, res) => {
+  if (!isRegistrationRegionEnabled(req.params.regionCode)) {
+    return res.status(404).json({ error: 'region_disabled', communes: [] });
+  }
   const communes = getRegionCommunes(req.params.regionCode);
   if (!communes.length) return res.status(404).json({ error: 'region_not_found', communes: [] });
   res.json({
@@ -298,6 +320,9 @@ router.get('/registro/regiones/:regionCode/comunas', (req, res) => {
 });
 
 router.get('/registro/comunas/:regionCode/:communeCode', async (req, res) => {
+  if (!isRegistrationRegionEnabled(req.params.regionCode)) {
+    return res.status(404).json({ error: 'region_disabled' });
+  }
   const commune = resolveRegistrationCommune(req.params.regionCode, req.params.communeCode);
   if (!commune) return res.status(404).json({ error: 'commune_not_found' });
 
@@ -328,6 +353,8 @@ router.get('/registro/direcciones', async (req, res) => {
   const regionCode = (req.query.region || '').trim();
   if (q.length < 3 || !communeCode || !regionCode) return res.json({ suggestions: [] });
 
+  if (!isRegistrationRegionEnabled(regionCode)) return res.json({ suggestions: [] });
+
   const commune = resolveRegistrationCommune(regionCode, communeCode);
   if (!commune) return res.json({ suggestions: [] });
 
@@ -342,6 +369,13 @@ router.post('/registro/direcciones/validar', async (req, res) => {
   const { address, lat, lng, communeCode, regionCode } = req.body || {};
   const addr = (address || '').trim();
   if (!addr) return res.status(400).json({ error: 'address_required' });
+
+  if (!isRegistrationRegionEnabled(regionCode)) {
+    return res.status(400).json({
+      success: false,
+      error: req.t('coverage.region_disabled')
+    });
+  }
 
   const commune = resolveRegistrationCommune(regionCode, communeCode);
   if (!commune) {
@@ -406,6 +440,29 @@ router.post('/registro/direcciones/validar', async (req, res) => {
       messageKey: coverage.messageKey || 'coverage.not_available',
       message: coverage.covered ? null : req.t(coverage.messageKey || 'coverage.not_available')
     }
+  });
+});
+
+router.post('/registro/interes-zona', rateLimitLogin(8), (req, res) => {
+  const body = req.body || {};
+  const result = store.submitCoverageInterest({
+    communeText: body.commune || body.communeText,
+    email: body.email,
+    phone: body.phone,
+    role: body.role,
+    source: body.source || 'registro'
+  });
+  if (result.errorKey) {
+    return res.status(400).json({
+      success: false,
+      errorKey: result.errorKey,
+      error: req.t(result.errorKey)
+    });
+  }
+  return res.json({
+    success: true,
+    updated: Boolean(result.updated),
+    message: req.t('coverage.interest_thanks')
   });
 });
 
