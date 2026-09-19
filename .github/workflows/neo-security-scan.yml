@@ -1,0 +1,113 @@
+name: NEO security scan
+
+# Escaneo periódico de dependencias (aviso, sin auto-parche).
+# Si hay vulnerabilidades de producción, abre o actualiza un Issue etiquetado neo-security.
+
+on:
+  schedule:
+    # 12:00 UTC ≈ 09:00 Chile (UTC-3)
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/neo-security-scan.yml'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  neo-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install (CI)
+        run: npm ci --omit=dev
+
+      - name: NEO · npm audit (producción)
+        id: audit
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "NEO · escaneo de dependencias de producción"
+          if npm audit --omit=dev --json > /tmp/neo-audit.json 2>/tmp/neo-audit.err; then
+            echo "clean=true" >> "$GITHUB_OUTPUT"
+            echo "NEO · sin vulnerabilidades en producción"
+          else
+            echo "clean=false" >> "$GITHUB_OUTPUT"
+            VULN_COUNT="$(node -e "const a=require('/tmp/neo-audit.json'); const m=a.metadata&&a.metadata.vulnerabilities||{}; console.log((m.critical||0)+(m.high||0)+(m.moderate||0)+(m.low||0)+(m.info||0))" 2>/dev/null || echo '?')"
+            echo "count=$VULN_COUNT" >> "$GITHUB_OUTPUT"
+            npm audit --omit=dev > /tmp/neo-audit.txt 2>&1 || true
+            echo "NEO · vulnerabilidades detectadas ($VULN_COUNT)"
+            cat /tmp/neo-audit.txt | head -n 80
+          fi
+
+      - name: NEO · abrir o actualizar Issue
+        if: steps.audit.outputs.clean == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_COUNT: ${{ steps.audit.outputs.count }}
+        run: |
+          set -euo pipefail
+          TITLE="NEO · vulnerabilidades npm en producción"
+          BODY_FILE=$(mktemp)
+          {
+            echo "## NEO · alerta de seguridad"
+            echo
+            echo "**Repo:** \`${{ github.repository }}\`"
+            echo "**Commit:** \`${{ github.sha }}\`"
+            echo "**Hallazgos (aprox.):** ${AUDIT_COUNT}"
+            echo
+            echo "NEO **no aplicó ningún parche**. Revisar y aprobar fix manualmente."
+            echo
+            echo "### Resumen \`npm audit --omit=dev\`"
+            echo
+            echo '```'
+            head -n 120 /tmp/neo-audit.txt || echo "(sin detalle)"
+            echo '```'
+            echo
+            echo "### Acción recomendada"
+            echo "1. Correr \`npm audit --omit=dev\` en local"
+            echo "2. Actualizar dependencias con el menor cambio posible"
+            echo "3. Verificar \`npm audit --omit=dev\` = 0"
+            echo "4. Commit + push + Redeploy Hostinger"
+            echo
+            echo "_Generado por el workflow NEO security scan._"
+          } > "$BODY_FILE"
+
+          EXISTING="$(gh issue list --label neo-security --state open --json number,title --jq '.[] | select(.title=="'"$TITLE"'") | .number' | head -n1 || true)"
+          if [ -n "${EXISTING:-}" ]; then
+            gh issue comment "$EXISTING" --body-file "$BODY_FILE"
+            echo "NEO · actualizó issue #$EXISTING"
+          else
+            gh label create neo-security --description "Alertas de NEO (seguridad)" --color B60205 2>/dev/null || true
+            gh issue create --title "$TITLE" --label neo-security --body-file "$BODY_FILE"
+            echo "NEO · abrió issue nuevo"
+          fi
+
+      - name: NEO · cerrar Issue si quedó limpio
+        if: steps.audit.outputs.clean == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TITLE="NEO · vulnerabilidades npm en producción"
+          EXISTING="$(gh issue list --label neo-security --state open --json number,title --jq '.[] | select(.title=="'"$TITLE"'") | .number' | head -n1 || true)"
+          if [ -n "${EXISTING:-}" ]; then
+            gh issue close "$EXISTING" --comment "NEO · escaneo limpio en \`${{ github.sha }}\`. Cierro la alerta."
+            echo "NEO · cerró issue #$EXISTING"
+          else
+            echo "NEO · sin alertas abiertas"
+          fi
