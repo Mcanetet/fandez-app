@@ -1,14 +1,89 @@
+const helmet = require('helmet');
+
+/**
+ * Cabeceras HTTP alineadas a OWASP (A05 Security Misconfiguration).
+ * CSP permite inline scripts/styles actuales de EJS; se endurece el resto.
+ */
 function securityHeaders(req, res, next) {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'geolocation=(self), microphone=(self), camera=(self)');
-  res.setHeader('X-Powered-By', 'Fandez');
-  if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  }
-  next();
+  return helmet({
+    // No forzar COEP/COOP (rompe mapas / widgets embebidos)
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'self'"],
+        formAction: ["'self'", 'https:'],
+        // EJS + Tailwind CDN / inline handlers legacy
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          'https://cdn.tailwindcss.com',
+          'https://unpkg.com',
+          'https://cdn.jsdelivr.net',
+          'https://www.mercadopago.com',
+          'https://sdk.mercadopago.com',
+          'https://www.google.com',
+          'https://maps.googleapis.com'
+        ],
+        scriptSrcAttr: ["'unsafe-inline'"],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          'https://fonts.googleapis.com',
+          'https://cdn.jsdelivr.net',
+          'https://unpkg.com'
+        ],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        connectSrc: [
+          "'self'",
+          'https:',
+          'wss:',
+          'ws:',
+          'https://api.mercadopago.com',
+          'https://www.mercadopago.com',
+          'https://maps.googleapis.com',
+          'https://nominatim.openstreetmap.org'
+        ],
+        frameSrc: [
+          "'self'",
+          'https://www.mercadopago.com',
+          'https://www.mercadopago.cl',
+          'https://sdk.mercadopago.com',
+          'https://webpay3g.transbank.cl',
+          'https://webpay3gint.transbank.cl',
+          'https://www.google.com'
+        ],
+        workerSrc: ["'self'", 'blob:'],
+        mediaSrc: ["'self'", 'blob:', 'data:'],
+        ...(process.env.NODE_ENV === 'production'
+          ? { upgradeInsecureRequests: [] }
+          : {})
+      }
+    },
+    // HSTS solo en producción (Hostinger ya añade uno; reforzamos includeSubDomains)
+    hsts: process.env.NODE_ENV === 'production'
+      ? { maxAge: 31536000, includeSubDomains: true, preload: false }
+      : false,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    // Reemplaza X-XSS-Protection obsoleto; Helmet lo desactiva por defecto (correcto)
+    xXssProtection: false,
+    // No filtrar Referer de mismo sitio en demasía
+    permittedCrossDomainPolicies: { permittedPolicies: 'none' }
+  })(req, res, (err) => {
+    if (err) return next(err);
+    // Permissions-Policy (geolocalización / cámara para visita en terreno)
+    res.setHeader(
+      'Permissions-Policy',
+      'geolocation=(self), microphone=(self), camera=(self), payment=(self), usb=()'
+    );
+    next();
+  });
 }
 
 function rateLimitSimple(maxPerMinute = 120) {

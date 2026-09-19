@@ -39,6 +39,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// OWASP A05: no revelar stack (X-Powered-By: Express)
+app.disable('x-powered-by');
+
 const PORT = process.env.PORT || 3000;
 const ADMIN_BASE = appMode.getAdminBasePath();
 
@@ -261,7 +264,9 @@ const sessionMiddleware = session({
     httpOnly: true,
     sameSite: 'lax',
     maxAge: PUBLIC_SESSION_MS,
-    path: '/'
+    path: '/',
+    // Reduce riesgo de filtración de cookie de sesión (OWASP A07)
+    ...(process.env.NODE_ENV === 'production' ? { domain: undefined } : {})
   }
 });
 app.use(sessionMiddleware);
