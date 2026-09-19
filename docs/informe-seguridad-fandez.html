@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Informe de Seguridad Fandez — Controles y Plan de Respuesta</title>
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --muted: #5a5a5a;
+      --line: #e5e2dc;
+      --amber: #c45c14;
+      --amber-soft: #f7efe8;
+      --ok: #1b7a4a;
+      --warn: #9a6700;
+      --crit: #b42318;
+      --bg: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      font-size: 10.5pt;
+      line-height: 1.45;
+    }
+    .page {
+      padding: 18mm 16mm 16mm;
+      max-width: 210mm;
+      margin: 0 auto;
+    }
+    h1 { font-size: 22pt; margin: 0 0 6pt; letter-spacing: -0.02em; }
+    h2 {
+      font-size: 13pt;
+      margin: 22pt 0 8pt;
+      padding-bottom: 4pt;
+      border-bottom: 2px solid var(--amber);
+      color: var(--ink);
+      page-break-after: avoid;
+    }
+    h3 { font-size: 11pt; margin: 14pt 0 6pt; color: var(--amber); page-break-after: avoid; }
+    p { margin: 0 0 8pt; }
+    .muted { color: var(--muted); }
+    .cover {
+      min-height: 240mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 28mm 18mm;
+    }
+    .brand {
+      font-size: 28pt;
+      font-weight: 800;
+      color: var(--amber);
+      letter-spacing: -0.03em;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--amber-soft);
+      color: var(--amber);
+      font-size: 8.5pt;
+      font-weight: 700;
+      padding: 3pt 8pt;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .meta { font-size: 9.5pt; color: var(--muted); margin-top: 10pt; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8pt 0 12pt;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 6pt 7pt;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #faf8f5; font-weight: 700; }
+    ul, ol { margin: 0 0 10pt; padding-left: 16pt; }
+    li { margin-bottom: 3pt; }
+    .box {
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--amber);
+      background: #fbfaf8;
+      padding: 10pt 12pt;
+      margin: 10pt 0;
+      page-break-inside: avoid;
+    }
+    .box.crit { border-left-color: var(--crit); background: #fdf6f5; }
+    .box.warn { border-left-color: var(--warn); background: #fffbeb; }
+    .box.ok { border-left-color: var(--ok); background: #f3faf6; }
+    .sev {
+      display: inline-block;
+      font-size: 8pt;
+      font-weight: 800;
+      padding: 1pt 6pt;
+      border-radius: 4pt;
+      text-transform: uppercase;
+    }
+    .sev-s1 { background: #fee4e2; color: var(--crit); }
+    .sev-s2 { background: #fef0c7; color: var(--warn); }
+    .sev-s3 { background: #e3f5ea; color: var(--ok); }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc td { border: none; border-bottom: 1px dotted var(--line); padding: 4pt 0; }
+    .footer-note {
+      margin-top: 18pt;
+      font-size: 8.5pt;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      padding-top: 8pt;
+    }
+    .step { font-weight: 700; color: var(--amber); }
+    @media print {
+      .page { padding: 0; max-width: none; }
+      .cover { min-height: auto; page-break-after: always; }
+      h2 { page-break-before: auto; }
+      .break { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+
+<section class="cover page">
+  <div>
+    <div class="brand">Fandez</div>
+    <p class="badge">Confidencial · Uso interno</p>
+    <h1 style="margin-top:28pt">Informe de Seguridad del Sitio</h1>
+    <p style="font-size:13pt;max-width:420px">Controles técnicos activos, cumplimiento OWASP y plan de respuesta ante virus, malware, vulnerabilidades e intrusiones.</p>
+    <p class="meta">
+      Dominio: <strong>www.fandez.cl</strong><br>
+      Versión del documento: 1.0 · 19 septiembre 2026<br>
+      Alcance: aplicación Node.js / Express en Hostinger + MySQL + pagos
+    </p>
+  </div>
+  <div class="box ok">
+    <strong>Estado al cierre de este informe</strong>
+    <p style="margin:6pt 0 0">Auditoría de dependencias de producción: <strong>0 vulnerabilidades</strong> (<code>npm audit --omit=dev</code>). Cabeceras de seguridad con Helmet/CSP activas. Escáner Hostinger/Patchstack debe reflejar cero alertas tras Redeploy.</p>
+  </div>
+</section>
+
+<section class="page">
+  <h2>1. Índice</h2>
+  <table class="toc">
+    <tr><td>2. Resumen ejecutivo</td><td style="text-align:right">3</td></tr>
+    <tr><td>3. Controles de seguridad activos</td><td style="text-align:right">3</td></tr>
+    <tr><td>4. Mapa OWASP Top 10</td><td style="text-align:right">5</td></tr>
+    <tr><td>5. Plan de respuesta ante incidentes (qué hacer)</td><td style="text-align:right">6</td></tr>
+    <tr><td>6. Contactos y canales</td><td style="text-align:right">11</td></tr>
+    <tr><td>7. Checklist mensual de mantenimiento</td><td style="text-align:right">11</td></tr>
+    <tr><td>8. Anexos técnicos</td><td style="text-align:right">12</td></tr>
+  </table>
+
+  <h2>2. Resumen ejecutivo</h2>
+  <p>Fandez es una plataforma de servicios del hogar con pagos reales, datos personales, documentos KYC y chat en vivo. La seguridad se organiza en tres capas:</p>
+  <ol>
+    <li><strong>Prevención</strong> — contraseñas con bcrypt, HTTPS, Helmet/CSP, roles, CSRF en admin, rate limit, panel admin en path secreto, MFA, validación de archivos.</li>
+    <li><strong>Detección</strong> — logs de seguridad, Hostinger Vulnerabilities (Patchstack npm), backups cifrados, alertas SOS / Sofía, correo de soporte.</li>
+    <li><strong>Respuesta</strong> — este playbook: pasos concretos según el tipo de amenaza (malware, cuenta comprometida, defacement, ransomware, DDoS, etc.).</li>
+  </ol>
+  <div class="box warn">
+    <strong>Importante</strong>
+    <p style="margin:6pt 0 0">Ningún sitio es 100 % invulnerable. Este documento te prepara para <em>actuar rápido</em>, contener el daño y recuperar el servicio con evidencia. Si hay peligro físico a personas, prioriza <strong>133</strong> (Carabineros) — eso está en el protocolo de seguridad en terreno, no sustituye a este informe técnico.</p>
+  </div>
+
+  <h2>3. Controles de seguridad activos</h2>
+
+  <h3>3.1 Acceso y autenticación</h3>
+  <table>
+    <tr><th>Control</th><th>Qué hace</th></tr>
+    <tr><td>Roles (<code>client</code>, <code>provider</code>, <code>tecnico</code>, <code>admin</code>)</td><td>Cada ruta exige el rol correcto; cuentas desactivadas pierden sesión.</td></tr>
+    <tr><td>Contraseñas bcrypt</td><td>No se guardan en texto plano; comparación segura en login.</td></tr>
+    <tr><td>Rate limit login</td><td>Limita intentos de acceso / recuperación (mitiga fuerza bruta).</td></tr>
+    <tr><td>Rate limit global</td><td>~150 req/min por IP en rutas dinámicas.</td></tr>
+    <tr><td>Sesión HttpOnly + Secure + SameSite</td><td>Cookie <code>fandez.sid</code> no legible por JS; solo HTTPS en producción.</td></tr>
+    <tr><td><code>SESSION_SECRET</code> obligatorio</td><td>La app no arranca en producción sin secreto fuerte (≥24 caracteres).</td></tr>
+    <tr><td>Panel admin oculto</td><td>Path tipo <code>/ops-…</code> (no <code>/admin</code>); opcional allowlist IP.</td></tr>
+    <tr><td>CSRF en admin</td><td>Tokens por sesión en acciones POST del panel.</td></tr>
+    <tr><td>MFA admin</td><td>Segundo factor TOTP disponible para administradores.</td></tr>
+  </table>
+
+  <h3>3.2 Red, cabeceras y configuración</h3>
+  <table>
+    <tr><th>Control</th><th>Qué hace</th></tr>
+    <tr><td>HTTPS + HSTS</td><td>Tráfico cifrado; fuerza HTTPS en navegadores.</td></tr>
+    <tr><td>Helmet + CSP</td><td>Reduce XSS, clickjacking y carga de scripts no autorizados.</td></tr>
+    <tr><td>Sin <code>X-Powered-By</code></td><td>No revela Express a atacantes.</td></tr>
+    <tr><td>Canonical www</td><td>Redirección a <code>www.fandez.cl</code> (una sola instancia con BD).</td></tr>
+    <tr><td>Boot seguro</td><td>Valida <code>APP_URL</code>, <code>ADMIN_PASSWORD</code>, webhook MP, etc. al iniciar.</td></tr>
+    <tr><td>Modo producción</td><td><code>APP_MODE=production</code> — pagos reales, sin atajos demo.</td></tr>
+  </table>
+
+  <h3>3.3 Datos, archivos y pagos</h3>
+  <table>
+    <tr><th>Control</th><th>Qué hace</th></tr>
+    <tr><td>MySQL parametrizado</td><td>Reduce inyección SQL.</td></tr>
+    <tr><td>Uploads tipados</td><td>Solo JPG/PNG/WEBP/PDF; validación por magic bytes; límites de tamaño.</td></tr>
+    <tr><td>Media autenticada</td><td>Fotos de pedidos / KYC no son públicas a ciegas.</td></tr>
+    <tr><td>Mercado Pago / Transbank</td><td>Cobros en pasarela externa; webhook con secreto.</td></tr>
+    <tr><td>Backups cifrados</td><td>Export diario a GitHub (rama <code>backups</code>) con token + clave.</td></tr>
+    <tr><td>Logs de seguridad</td><td>Eventos de acceso / bloqueos en <code>security_logs</code>.</td></tr>
+  </table>
+
+  <h3>3.4 Producto (seguridad humana en visitas)</h3>
+  <p class="muted">Complemento operativo (ver también <em>docs/SEGURIDAD-ALERTAS.md</em>):</p>
+  <ul>
+    <li>KYC de socios, código de llegada, GPS en visita, chat sin exponer teléfono al Guardián.</li>
+    <li>Botón SOS cliente/técnico → incidente + alerta admin + opción llamar 133.</li>
+    <li>Sofía detecta lenguaje de amenaza/acoso y escala a soporte.</li>
+  </ul>
+</section>
+
+<section class="page break">
+  <h2>4. Mapa OWASP Top 10 (cómo cumple Fandez)</h2>
+  <table>
+    <tr><th>OWASP</th><th>Riesgo</th><th>Mitigación en Fandez</th></tr>
+    <tr><td>A01 Control de acceso</td><td>Ver datos de otro usuario</td><td>Roles, ownership en pedidos, admin path secreto, IP allowlist</td></tr>
+    <tr><td>A02 Fallos criptográficos</td><td>Robo de secretos/contraseñas</td><td>HTTPS, bcrypt, cookies Secure, secretos en env Hostinger (no en Git)</td></tr>
+    <tr><td>A03 Inyección</td><td>SQL / XSS</td><td>Queries parametrizadas, CSP, escape EJS, validación inputs</td></tr>
+    <tr><td>A04 Diseño inseguro</td><td>Flujos de pago abusables</td><td>Estados de pedido, cobros adicionales con aprobación, webhooks firmados</td></tr>
+    <tr><td>A05 Mala configuración</td><td>Headers / debug</td><td>Helmet, sin X-Powered-By, boot seguro, NODE_ENV=production</td></tr>
+    <tr><td>A06 Componentes vulnerables</td><td>CVE en npm</td><td>Auditoría 0 en prod; escáner Hostinger; actualizar deps</td></tr>
+    <tr><td>A07 Auth fallida</td><td>Fuerza bruta / sesión</td><td>Rate limit, MFA admin, sesiones fuertes</td></tr>
+    <tr><td>A08 Integridad</td><td>Código alterado</td><td>Deploy desde GitHub; no subir ZIP a mano salvo emergencia</td></tr>
+    <tr><td>A09 Logging</td><td>No detectar intrusión</td><td>security_logs, correo Hostinger, backups</td></tr>
+    <tr><td>A10 SSRF</td><td>Servidor pide URLs malas</td><td>Sin fetch genérico a URLs de usuarios</td></tr>
+  </table>
+  <p class="muted">Nota: “cumplir OWASP” aquí significa <strong>aplicar las prácticas del Top 10</strong>. No es una certificación formal (esa la emite un auditor externo).</p>
+
+  <h2>5. Plan de respuesta — qué hacer en cada caso</h2>
+  <p>Usa siempre este orden: <span class="step">1 Contener</span> → <span class="step">2 Evidencia</span> → <span class="step">3 Erradicar</span> → <span class="step">4 Recuperar</span> → <span class="step">5 Aprender</span>.</p>
+
+  <h3>5.1 Severidad</h3>
+  <p>
+    <span class="sev sev-s1">S1 Crítico</span> datos robados, ransomware, defacement, pagos manipulados, admin comprometido<br>
+    <span class="sev sev-s2">S2 Alto</span> malware en upload, cuenta de socio/cliente hackeada, CVE explotable<br>
+    <span class="sev sev-s3">S3 Medio</span> escaneo, spam, DDoS leve, falso positivo Hostinger
+  </p>
+
+  <div class="box crit">
+    <strong>Primera hora (cualquier S1)</strong>
+    <ol style="margin-bottom:0">
+      <li>No borrar logs ni “arreglar a ciegas” sin capturas.</li>
+      <li>Anotar hora (Chile), qué viste, IP si aparece, usuario afectado.</li>
+      <li>Si hay filtración de datos personales: preparar aviso a afectados (Ley 19.628 / buenas prácticas) — contactar abogado si el volumen es alto.</li>
+      <li>Cambiar <code>SESSION_SECRET</code> y contraseñas admin solo <em>después</em> de contener (ver casos abajo).</li>
+    </ol>
+  </div>
+</section>
+
+<section class="page break">
+  <h3>Caso A — Hostinger avisa vulnerabilidades npm <span class="sev sev-s2">S2</span></h3>
+  <ol>
+    <li>Abre hPanel → Security → Vulnerabilities y anota paquetes/CVE.</li>
+    <li>En el Mac: <code>npm audit --omit=dev</code> en el repo.</li>
+    <li>Actualiza versiones seguras (sin <code>--force</code> a ciegas).</li>
+    <li>Commit + push a <code>main</code> + <strong>Redeploy</strong>.</li>
+    <li>Verifica que el panel Hostinger quede en cero.</li>
+  </ol>
+
+  <h3>Caso B — Intento de fuerza bruta / login masivo <span class="sev sev-s3">S3–S2</span></h3>
+  <ol>
+    <li>Revisa <code>security_logs</code> en admin y Runtime logs Hostinger.</li>
+    <li>Confirma que rate limit sigue activo (429 en demasiados intentos).</li>
+    <li>Si persiste: activa/ajusta <code>ADMIN_IP_ALLOWLIST</code>; cambia contraseña admin; activa MFA.</li>
+    <li>No abras enlaces de “reset” que lleguen por correo sospechoso.</li>
+  </ol>
+
+  <h3>Caso C — Cuenta de cliente/socio/técnico comprometida <span class="sev sev-s2">S2</span></h3>
+  <ol>
+    <li>En admin: desactiva la cuenta (<code>active=false</code>) — corta sesión.</li>
+    <li>Revisa pedidos recientes, chats y pagos de esa cuenta.</li>
+    <li>Contacta al dueño legítimo por un canal verificado (no solo el email de la cuenta).</li>
+    <li>Tras limpiar: reset de contraseña + reactivación controlada.</li>
+    <li>Si hubo cobros indebidos: abrir disputa en Mercado Pago / banco y documentar.</li>
+  </ol>
+
+  <h3>Caso D — Sospecha de admin hackeado <span class="sev sev-s1">S1</span></h3>
+  <ol>
+    <li>Desde Hostinger: reinicia la app o pon mantenimiento si es posible.</li>
+    <li>Rota de inmediato: <code>SESSION_SECRET</code>, <code>ADMIN_PASSWORD</code>, <code>ADMIN_PATH</code> (nuevo path), tokens MP/SMTP, <code>BACKUP_SYNC_TOKEN</code>.</li>
+    <li>Redeploy desde GitHub <code>main</code> limpio (no uses archivos raros del servidor).</li>
+    <li>Revisa usuarios admin, MFA, allowlist IP.</li>
+    <li>Audita cambios recientes en BD (precios, promos, usuarios).</li>
+  </ol>
+
+  <h3>Caso E — Virus / malware en archivo subido (foto, boleta, PDF) <span class="sev sev-s2">S2</span></h3>
+  <ol>
+    <li>No abras el archivo en tu PC personal sin sandbox.</li>
+    <li>En admin: identifica el pedido/usuario y elimina o aisla el archivo en <code>uploads</code>.</li>
+    <li>Desactiva temporalmente al usuario que lo subió si hay mala fe.</li>
+    <li>Verifica que el tipo MIME/extensión siga restringido (JPG/PNG/WEBP/PDF).</li>
+    <li>Si el archivo se ejecutó en algún lado (poco probable en Node sirviendo static): trata como Caso G.</li>
+  </ol>
+
+  <h3>Caso F — Página defaceada / HTML raro / redirects a phishing <span class="sev sev-s1">S1</span></h3>
+  <ol>
+    <li>Redeploy limpio desde GitHub (sobrescribe archivos infectados del deploy).</li>
+    <li>Cambia todos los secretos de entorno (ver Caso D).</li>
+    <li>Revisa DNS del dominio en Hostinger (que no apunte a otro lado).</li>
+    <li>Escanea el correo corporativo (SMTP) por reglas de reenvío desconocidas.</li>
+    <li>Avisa a usuarios solo si hubo phishing activo con datos.</li>
+  </ol>
+
+  <h3>Caso G — Código malicioso en el servidor (shell, crypto-miner) <span class="sev sev-s1">S1</span></h3>
+  <ol>
+    <li>Redeploy desde GitHub + rotación total de secretos.</li>
+    <li>Revisa procesos / CPU en Hostinger; contacta soporte Hostinger si la carga es anormal.</li>
+    <li>Compara el árbol de archivos del deploy con el repo (no debe haber PHP/shell sueltos).</li>
+    <li>Rota claves MySQL si hay duda de acceso a BD.</li>
+    <li>Restaura desde backup cifrado solo si el código limpio + BD sospechosa.</li>
+  </ol>
+</section>
+
+<section class="page break">
+  <h3>Caso H — Ransomware / BD cifrada o borrada <span class="sev sev-s1">S1</span></h3>
+  <ol>
+    <li>No pagues rescate sin asesoría legal.</li>
+    <li>Detén escrituras si puedes; exporta lo que quede.</li>
+    <li>Recupera el último backup bueno: rama GitHub <code>backups</code> + <code>decrypt-github-backup.js</code>.</li>
+    <li>Redeploy app limpia + restore BD en entorno controlado.</li>
+    <li>Rota todas las claves; investiga vector de entrada.</li>
+  </ol>
+
+  <h3>Caso I — Filtración de datos personales (PII) <span class="sev sev-s1">S1</span></h3>
+  <ol>
+    <li>Contén el acceso (Casos C/D/G según origen).</li>
+    <li>Documenta qué datos salieron (emails, RUT, direcciones, documentos KYC).</li>
+    <li>Avisa a afectados con hechos claros (qué, cuándo, qué hacer ellos: cambiar clave).</li>
+    <li>Conserva evidencia  (logs, backups) — no la borres.</li>
+    <li>Consulta abogado/compliance si el impacto es masivo.</li>
+  </ol>
+
+  <h3>Caso J — Pagos manipulados / cobros fantasma <span class="sev sev-s1">S1</span></h3>
+  <ol>
+    <li>Congela el pedido en admin; no reembolses a ciegas sin ver MP.</li>
+    <li>Revisa panel Mercado Pago / Transbank vs. pedido en Fandez.</li>
+    <li>Verifica <code>MP_WEBHOOK_SECRET</code> y que los webhooks no se estén reenviando a otro lado.</li>
+    <li>Si hay fraude de tarjeta: sigue el proceso del adquirente (contracargo).</li>
+  </ol>
+
+  <h3>Caso K — DDoS / sitio caído por tráfico <span class="sev sev-s2">S2</span></h3>
+  <ol>
+    <li>Confirma en Hostinger (CDN hcdn) y <code>/health</code>.</li>
+    <li>Activa/valida rate limit; pide a Hostinger mitigación CDN si aplica.</li>
+    <li>No abras puertos ni desactives HTTPS “para probar”.</li>
+    <li>Cuando vuelva: revisa logs de IPs top y bloquea si es repetitivo.</li>
+  </ol>
+
+  <h3>Caso L — Phishing / virus en el correo del equipo <span class="sev sev-s2">S2</span></h3>
+  <ol>
+    <li>No descargues adjuntos ni des permisos OAuth a sitios raros.</li>
+    <li>Cambia contraseña del buzón Hostinger; revisa reenvíos y filtros.</li>
+    <li>Si se filtró <code>SMTP_PASS</code>: rota la clave SMTP en la app y reinicia.</li>
+    <li>Avisa al equipo: el admin real nunca pide la contraseña por WhatsApp.</li>
+  </ol>
+
+  <h3>Caso M — Bug explotado (XSS, IDOR, lógica de negocio) <span class="sev sev-s2">S2–S1</span></h3>
+  <ol>
+    <li>Reproduce en staging o local; no ignores reportes de usuarios.</li>
+    <li>Parchea en el repo; tests mínimos; deploy.</li>
+    <li>Revisa si alguien abusó el bug (pedidos/pagos) y revierte efectos.</li>
+    <li>Agradece reportes responsables; no publiques detalles hasta parchear.</li>
+  </ol>
+
+  <h3>Caso N — Compromiso de GitHub <span class="sev sev-s1">S1</span></h3>
+  <ol>
+    <li>Revoca tokens/PAT; activa 2FA en GitHub si no está.</li>
+    <li>Revisa commits recientes en <code>main</code>; revertir lo malicioso.</li>
+    <li>Rota secrets de Actions (<code>FANDEZ_BACKUP_*</code>).</li>
+    <li>Redeploy solo desde commit verificado por ti.</li>
+  </ol>
+
+  <div class="box">
+    <strong>Recuperación estándar post-incidente</strong>
+    <ol style="margin-bottom:0">
+      <li>Redeploy limpio desde <code>main</code>.</li>
+      <li><code>curl -s https://www.fandez.cl/health</code> → <code>ok: true</code>.</li>
+      <li>Login admin + prueba de un pedido demo/pago sandbox si aplica.</li>
+      <li>Anotar en un registro interno: fecha, caso, acciones, responsable.</li>
+      <li>Programar mejora (parche, monitoreo, MFA) en la semana siguiente.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="page break">
+  <h2>6. Contactos y canales</h2>
+  <table>
+    <tr><th>Canal</th><th>Uso</th></tr>
+    <tr><td>hPanel Hostinger</td><td>Redeploy, env vars, vulnerabilidades, DNS, correo, tickets soporte</td></tr>
+    <tr><td>GitHub <code>Mcanetet/fandez-app</code></td><td>Código fuente, Actions de backup, PRs de seguridad</td></tr>
+    <tr><td>Panel admin Fandez (<code>/ops-…</code>)</td><td>Usuarios, reclamos seguridad, logs, precios</td></tr>
+    <tr><td>Mercado Pago / Transbank</td><td>Pagos, contracargos, webhooks</td></tr>
+    <tr><td>133 Carabineros</td><td>Amenaza física en visitas (no es incidente TI)</td></tr>
+  </table>
+  <p class="muted">Guarda fuera de este PDF (gestor de contraseñas): <code>SESSION_SECRET</code>, <code>ADMIN_PASSWORD</code>, path admin, claves MP/SMTP/DB, <code>BACKUP_GITHUB_ENCRYPT_KEY</code>.</p>
+
+  <h2>7. Checklist mensual de mantenimiento</h2>
+  <table>
+    <tr><th>☐</th><th>Tarea</th></tr>
+    <tr><td>☐</td><td>Correr <code>npm audit --omit=dev</code> y dejar en 0</td></tr>
+    <tr><td>☐</td><td>Revisar Hostinger → Vulnerabilities</td></tr>
+    <tr><td>☐</td><td>Verificar backup diario en rama <code>backups</code></td></tr>
+    <tr><td>☐</td><td>Revisar <code>security_logs</code> / reclamos tipo seguridad</td></tr>
+    <tr><td>☐</td><td>Confirmar MFA admin activo y path admin no público</td></tr>
+    <tr><td>☐</td><td>Probar <code>/health</code> y un login</td></tr>
+    <tr><td>☐</td><td>Rotar secretos si hubo salida de alguien del equipo</td></tr>
+  </table>
+
+  <h2>8. Anexos técnicos</h2>
+  <h3>8.1 Comandos útiles</h3>
+  <pre style="background:#f5f5f5;padding:10pt;font-size:8.5pt;overflow:auto"># Salud
+curl -s https://www.fandez.cl/health | jq .
+
+# Auditoría dependencias producción
+npm audit --omit=dev
+
+# Descifrar backup (en tu Mac)
+BACKUP_GITHUB_ENCRYPT_KEY='…' node scripts/decrypt-github-backup.js ./archivo.enc ./snapshot.json</pre>
+
+  <h3>8.2 Documentos internos relacionados</h3>
+  <ul>
+    <li><code>docs/SEGURIDAD-OWASP.md</code> — mapa OWASP y npm audit</li>
+    <li><code>docs/SEGURIDAD-ALERTAS.md</code> — SOS / seguridad en terreno</li>
+    <li><code>docs/BACKUP-GITHUB.md</code> — backups cifrados</li>
+    <li><code>HOSTINGER.md</code> — deploy y variables de entorno</li>
+  </ul>
+
+  <h3>8.3 Archivos de código relevantes</h3>
+  <ul>
+    <li><code>middleware/security.js</code> — Helmet, CSP, rate limits</li>
+    <li><code>middleware/csrf.js</code> · <code>middleware/auth.js</code></li>
+    <li><code>lib/password.js</code> · <code>lib/mfa.js</code> · <code>lib/appMode.js</code></li>
+    <li><code>lib/uploads.js</code> · <code>routes/media.js</code></li>
+    <li><code>scripts/disaster-recovery.js</code></li>
+  </ul>
+
+  <div class="footer-note">
+    <p><strong>Fandez — Informe de Seguridad v1.0</strong> · Generado para uso interno del operador del sitio.<br>
+    Este documento no sustituye auditoría legal ni pentest externo. Actualizar tras cada incidente material o cambio mayor de infraestructura.<br>
+    Clasificación: Confidencial.</p>
+  </div>
+</section>
+
+</body>
+</html>
