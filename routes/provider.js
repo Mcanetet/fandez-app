@@ -909,8 +909,21 @@ router.post('/asignar/:requestId', requireRole('provider'), requireModule('provi
   const enriched = store.enrichRequestForProvider(result.request, req.locale);
   io.emit(`tecnico_assignment_${result.tecnico.id}`, {
     requestId: result.request.id,
-    request: enriched
+    request: enriched,
+    acceptMinutes: typeof store.getRequestTimeouts === 'function'
+      ? store.getRequestTimeouts().techAcceptMinutes
+      : 10
   });
+  const techSocket = store.technicianSockets.get(result.tecnico.id);
+  if (techSocket) {
+    io.to(techSocket).emit(`tecnico_assignment_${result.tecnico.id}`, {
+      requestId: result.request.id,
+      request: enriched,
+      acceptMinutes: typeof store.getRequestTimeouts === 'function'
+        ? store.getRequestTimeouts().techAcceptMinutes
+        : 10
+    });
+  }
   emitRequestUpdateToParties(io, store, result.request, { request: enriched });
   store.logSecurityEvent('tecnico_asignado', `${result.tecnico.email} -> ${result.request.id}`, req);
 

@@ -554,7 +554,10 @@
     });
 
     socket.on(`tecnico_assignment_${tecnicoId}`, (payload) => {
-      const mins = window.FANDEZ_TIMEOUTS?.techAcceptMinutes || 10;
+      const mins = payload?.acceptMinutes || window.FANDEZ_TIMEOUTS?.techAcceptMinutes || 10;
+      const pedidoUrl = payload?.requestId
+        ? `/tecnico?pedido=${encodeURIComponent(payload.requestId)}`
+        : '/tecnico';
       if (window.FandezAlerts) FandezAlerts.notify({
         type: 'order',
         title: 'Te asignaron un pedido',
@@ -562,7 +565,7 @@
           ? `${payload.request.serviceName} · Tienes ${mins} min para aceptar`
           : t('tecnico.js.assignment_body'),
         tag: 'fandez-tec-assignment',
-        url: '/tecnico',
+        url: pedidoUrl,
         system: true,
         requireInteraction: true
       });
@@ -571,7 +574,9 @@
       }
       playAlertSound();
       startRepeatingAlert();
-      setTimeout(() => location.reload(), 900);
+      setTimeout(() => {
+        window.location.href = pedidoUrl;
+      }, 700);
     });
   }
 
@@ -581,6 +586,24 @@
       if (p === 'granted') FandezAlerts.enablePush();
     }).catch(() => {});
   }
+
+  // Deep link desde correo/push: /tecnico?pedido=ID
+  try {
+    const pedidoId = new URLSearchParams(window.location.search).get('pedido');
+    if (pedidoId) {
+      const card = document.querySelector(`[data-job-id="${CSS.escape(pedidoId)}"]`);
+      if (card) {
+        const section = card.closest('details');
+        if (section && !section.open) section.open = true;
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('ring-2', 'ring-zilo-accent', 'ring-offset-2');
+        setTimeout(() => card.classList.remove('ring-2', 'ring-zilo-accent', 'ring-offset-2'), 6000);
+        if (card.dataset.techStatus === 'asignado') {
+          notify('Te asignaron este pedido. Acéptalo aquí.', 'info');
+        }
+      }
+    }
+  } catch (_) { /* ignore */ }
 
   onlineToggle?.addEventListener('change', async () => {
     const online = onlineToggle.checked;
