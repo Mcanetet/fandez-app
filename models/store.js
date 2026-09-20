@@ -674,12 +674,9 @@ function updateUserBilling(userId, data) {
   if (!canActAsClient(user)) return { error: 'Usuario no encontrado' };
   const result = validateBilling(data);
   if (!result.ok) return { error: result.errors[0] };
-  const rutGuard = assertRutAvailableForAccount(result.billing?.rut, {
-    users: USERS,
-    excludeUserId: userId,
-    purpose: 'client_billing'
-  });
-  if (!rutGuard.ok) return { error: rutGuard.error, errorKey: rutGuard.errorKey };
+  // No bloquear el pago por RUT duplicado: un socio puede facturar como cliente
+  // aunque el RUT exista en otra cuenta (legacy o su propia ficha de socio).
+  // La unicidad entre clientes puros se valida al registrar.
   user.billing = result.billing;
   repository.persist(() => repository.saveUser(user), `facturación ${user.id}`);
   return { success: true, billing: user.billing };
