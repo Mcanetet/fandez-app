@@ -48,6 +48,9 @@ function hasPerm(key) {
     <%- include('./partials/sidebar-nav') %>
 
     <div class="admin-sidebar-footer">
+      <a href="<%= adminBase %>/instalar-admin" class="block mb-2 px-3 py-2.5 rounded-xl bg-zinc-900 text-zinc-100 text-xs font-semibold border border-zinc-700 hover:border-amber-500/60">
+        ⬇ Instalar Fandez Admin
+      </a>
       <div class="admin-user-chip">
         <span class="admin-user-avatar"><%= (user.name || 'A').slice(0, 1).toUpperCase() %></span>
         <div class="min-w-0">
@@ -124,6 +127,19 @@ function hasPerm(key) {
         <p class="text-[11px] text-emerald-700/80 mt-0.5"><%= t('admin.resumen.attention_clear_sub') %></p>
       </div>
       <% } %>
+
+      <div class="mb-5 p-4 rounded-2xl border border-zinc-800 bg-zinc-950 text-zinc-100 flex flex-col sm:flex-row sm:items-center gap-4">
+        <img src="/icons/fandez-admin-192.png?v=1" alt="" width="56" height="56" class="rounded-2xl shrink-0 border border-zinc-700">
+        <div class="min-w-0 flex-1">
+          <p class="text-[10px] font-bold uppercase tracking-wide text-amber-400">App privada · no está en Play</p>
+          <h3 class="text-base font-semibold mt-0.5">Fandez Admin en tu celular</h3>
+          <p class="text-xs text-zinc-400 mt-1">Misma bandeja de alertas de Sofía/Clara, push y correo. Instálala solo desde aquí.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 shrink-0">
+          <a href="<%= adminBase %>/instalar-admin" class="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold">Instalar app</a>
+          <a href="<%= adminBase %>/app" class="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-100 text-sm font-semibold">Abrir bandeja</a>
+        </div>
+      </div>
 
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25">
