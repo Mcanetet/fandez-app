@@ -116,11 +116,18 @@
 
   // Ocultar hint si ya está en standalone
   if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-    if (hintEl) hintEl.style.display = 'none';
+    if (hintEl) {
+      hintEl.textContent = 'App instalada. Activa avisos para recibir alertas con el celular bloqueado.';
+      hintEl.style.background = '#052e16';
+      hintEl.style.borderColor = '#166534';
+      hintEl.style.color = '#86efac';
+    }
+  } else if (hintEl) {
+    hintEl.innerHTML = 'Para que quede como app: ve a <a href="' + BASE + '/instalar-admin" style="color:#fbbf8a;font-weight:700">Instalar en el celular</a> (ícono negro en la pantalla de inicio).';
   }
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=40', { scope: '/' }).catch(() => {});
+    navigator.serviceWorker.register('/sw.js?v=41', { scope: '/' }).catch(() => {});
   }
 
   load().catch((err) => toast(err.message || 'No se pudo cargar'));

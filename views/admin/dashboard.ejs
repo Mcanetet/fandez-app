@@ -75,6 +75,9 @@ function hasPerm(key) {
         <p class="text-xs text-zilo-muted hidden sm:block" id="adminPanelSubtitle"><%= t('admin.panel_subtitle') %></p>
       </div>
       <div class="admin-topbar-actions">
+        <a href="<%= adminBase %>/instalar-admin" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900 text-zinc-100 text-xs font-semibold border border-zinc-700 hover:border-amber-500/50" title="Instalar Fandez Admin en el celular">
+          Instalar Admin
+        </a>
         <%- include('../partials/lang-switcher') %>
         <% if (hasPerm('precios.view') || hasPerm('precios.manage')) { %>
           <a href="<%= adminBase %>/precios" class="zilo-icon-btn" title="<%= t('admin.prices') %>">
@@ -136,8 +139,8 @@ function hasPerm(key) {
           <p class="text-xs text-zinc-400 mt-1">Misma bandeja de alertas de Sofía/Clara, push y correo. Instálala solo desde aquí.</p>
         </div>
         <div class="flex flex-wrap gap-2 shrink-0">
-          <a href="<%= adminBase %>/instalar-admin" class="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold">Instalar app</a>
-          <a href="<%= adminBase %>/app" class="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-100 text-sm font-semibold">Abrir bandeja</a>
+          <a href="<%= adminBase %>/instalar-admin" class="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold">Poner ícono en el celular</a>
+          <a href="<%= adminBase %>/app" class="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-100 text-sm font-semibold">Abrir bandeja (web)</a>
         </div>
       </div>
 

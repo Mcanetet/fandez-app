@@ -438,7 +438,9 @@ router.post('/mfa/disable', requireRole('admin'), async (req, res) => {
   res.redirect(adminUrl('?tab=seguridad&mfa=disabled'));
 });
 
-router.get('/app.webmanifest', requireRole('admin'), (req, res) => {
+router.get('/app.webmanifest', (req, res) => {
+  // Debe ser público (sin sesión): Chrome descarga el manifest sin cookies.
+  // La URL sigue bajo ADMIN_PATH (no indexada / no enlazada en la landing).
   const base = adminUrl();
   res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
@@ -457,9 +459,9 @@ router.get('/app.webmanifest', requireRole('admin'), (req, res) => {
     theme_color: '#0a0a0c',
     launch_handler: { client_mode: ['navigate-existing', 'auto'] },
     icons: [
-      { src: '/icons/fandez-admin-192.png?v=1', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fandez-admin-512.png?v=1', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icons/fandez-admin-512.png?v=1', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      { src: '/icons/fandez-admin-192.png?v=2', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-admin-512.png?v=2', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-admin-512.png?v=2', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ],
     prefer_related_applications: false,
     related_applications: []

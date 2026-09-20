@@ -4,9 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0a0c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fandez Admin">
   <meta name="robots" content="noindex, nofollow">
   <link rel="manifest" href="<%= adminBase %>/app.webmanifest">
-  <link rel="apple-touch-icon" href="/icons/fandez-admin-180.png?v=1">
+  <link rel="apple-touch-icon" href="/icons/fandez-admin-180.png?v=2">
+  <link rel="icon" href="/icons/fandez-admin-192.png?v=2">
   <title>Instalar Fandez Admin</title>
   <style>
     body {
@@ -32,33 +36,150 @@
     img { width: 88px; height: 88px; border-radius: 20px; margin-bottom: 14px; }
     h1 { font-size: 22px; margin: 0 0 8px; }
     p { color: #a1a1aa; font-size: 14px; line-height: 1.45; margin: 0 0 12px; }
-    ol { text-align: left; color: #d4d4d8; font-size: 14px; line-height: 1.5; }
-    a.btn {
+    ol { text-align: left; color: #d4d4d8; font-size: 14px; line-height: 1.55; margin: 0 0 16px; padding-left: 1.2rem; }
+    .btn {
       display: inline-block;
-      margin-top: 8px;
+      margin: 6px 4px 0;
+      border: 0;
       background: #c45c14;
       color: #fff;
       text-decoration: none;
       font-weight: 700;
-      padding: 12px 18px;
+      font-size: 15px;
+      padding: 14px 20px;
       border-radius: 999px;
+      cursor: pointer;
     }
+    .btn.secondary { background: #27272a; color: #f4f4f5; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .note { font-size: 12px; color: #71717a; margin-top: 16px; }
+    .status {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #fbbf8a;
+      min-height: 1.2em;
+    }
+    .ok { color: #86efac; }
+    .ios-box {
+      display: none;
+      text-align: left;
+      background: #1a120c;
+      border: 1px solid #3f2a1a;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #fbbf8a;
+    }
+    .ios-box.show { display: block; }
   </style>
 </head>
 <body>
   <div class="card">
-    <img src="/icons/fandez-admin-512.png?v=1" alt="Fandez Admin">
+    <img src="/icons/fandez-admin-512.png?v=2" alt="Fandez Admin">
     <h1>Fandez Admin</h1>
-    <p>App privada para ti. Mismas alertas que el correo, para resolver desde el celular. <strong>No está en Google Play</strong>.</p>
-    <ol>
-      <li>Abre este enlace en Chrome (Android) o Safari (iPhone).</li>
-      <li>Inicia sesión admin si te lo pide.</li>
-      <li>Menú del navegador → <strong>Instalar app</strong> / Añadir a pantalla de inicio.</li>
-      <li>Dentro de la app toca <strong>Activar avisos</strong>.</li>
+    <p>Esto deja un <strong>ícono en tu celular</strong> (como una app). No es solo abrir un link. No está en Google Play.</p>
+
+    <button type="button" class="btn" id="btnInstall">Instalar en el celular</button>
+    <a class="btn secondary" href="<%= installUrl %>">Solo ver bandeja (web)</a>
+
+    <p class="status" id="status">Preparando instalación…</p>
+
+    <div class="ios-box" id="iosBox">
+      <strong>En iPhone (Safari):</strong>
+      <ol style="margin:8px 0 0;padding-left:1.1rem">
+        <li>Toca el botón <strong>Compartir</strong> (cuadrado con flecha).</li>
+        <li>Elige <strong>Añadir a pantalla de inicio</strong>.</li>
+        <li>Nombre: <strong>Fandez Admin</strong> → Añadir.</li>
+      </ol>
+    </div>
+
+    <ol id="androidSteps">
+      <li>Usa <strong>Chrome</strong> en Android (no Instagram/WhatsApp).</li>
+      <li>Toca <strong>Instalar en el celular</strong> arriba.</li>
+      <li>Confirma en el diálogo de Chrome.</li>
+      <li>Abre el ícono negro → <strong>Activar avisos</strong>.</li>
     </ol>
-    <a class="btn" href="<%= installUrl %>">Abrir Fandez Admin</a>
-    <p class="note">Guarda este link. No lo publiques ni lo pongas en la landing.</p>
+
+    <p class="note">Si el botón no aparece: menú ⋮ de Chrome → <strong>Instalar app</strong> / <strong>Añadir a la pantalla de inicio</strong>.</p>
   </div>
+
+  <script>
+  (function () {
+    const btn = document.getElementById('btnInstall');
+    const status = document.getElementById('status');
+    const iosBox = document.getElementById('iosBox');
+    const androidSteps = document.getElementById('androidSteps');
+    let deferred = null;
+
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.className = 'status' + (ok ? ' ok' : '');
+    }
+
+    if (standalone) {
+      setStatus('Ya está instalada. Ábrela desde el ícono del celular.', true);
+      btn.textContent = 'Ya instalada';
+      btn.disabled = true;
+      return;
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js?v=41', { scope: '/' }).catch(function () {});
+    }
+
+    if (isIos) {
+      iosBox.classList.add('show');
+      androidSteps.style.display = 'none';
+      btn.textContent = 'Ver pasos para iPhone';
+      setStatus('En iPhone no hay botón de instalar: usa Compartir → Añadir a inicio.');
+      btn.addEventListener('click', function () {
+        iosBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      return;
+    }
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferred = e;
+      setStatus('Listo. Toca el botón naranja para instalar el ícono.');
+      btn.disabled = false;
+    });
+
+    window.addEventListener('appinstalled', function () {
+      deferred = null;
+      setStatus('Instalada. Busca “Fandez Admin” en tu pantalla de inicio.', true);
+      btn.textContent = 'Instalada';
+      btn.disabled = true;
+    });
+
+    btn.addEventListener('click', async function () {
+      if (!deferred) {
+        setStatus('Chrome aún no ofrece instalar. Usa el menú ⋮ → Instalar app.');
+        return;
+      }
+      deferred.prompt();
+      const choice = await deferred.userChoice;
+      deferred = null;
+      if (choice && choice.outcome === 'accepted') {
+        setStatus('Instalada. Ábrela desde el ícono negro.', true);
+      } else {
+        setStatus('Cancelaste. Puedes intentar de nuevo.');
+      }
+    });
+
+    // Si el evento ya pasó o tarda, dar feedback
+    setTimeout(function () {
+      if (!deferred && !standalone) {
+        setStatus('Si no ves el diálogo: Chrome ⋮ → Instalar app / Añadir a la pantalla de inicio.');
+      }
+    }, 2500);
+  })();
+  </script>
 </body>
 </html>
