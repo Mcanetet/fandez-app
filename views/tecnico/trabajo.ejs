@@ -44,15 +44,35 @@
 
   <main class="flex-1 px-5 py-5 pb-28 space-y-4">
     <% if (isObserver) { %>
-      <div class="p-3 rounded-2xl border border-zilo-accent/25 bg-zilo-accent/5">
+      <div class="p-3 rounded-2xl border border-zilo-accent/25 bg-zilo-accent/5" data-role="observer-banner">
         <p class="text-sm font-semibold text-zilo-accent">Modo supervisión</p>
-        <p class="text-xs text-zilo-muted mt-0.5">Ves lo mismo que el técnico en terreno. Puedes chatear con el cliente como <strong>Socio Fandez</strong>. Las acciones de visita las ejecuta el técnico.</p>
+        <p class="text-xs text-zilo-muted mt-0.5">Ves lo mismo que el técnico en terreno. Puedes chatear con el cliente como <strong>Socio Fandez</strong> y reasignar el pedido cuando quieras.</p>
         <% if (request.technicianName) { %>
           <p class="text-[11px] text-zilo-muted mt-2">Técnico asignado: <strong><%= request.technicianName %></strong></p>
         <% } else { %>
           <p class="text-[11px] text-amber-700 mt-2">Aún sin técnico asignado.</p>
         <% } %>
       </div>
+
+      <% if (!['completado','cancelled'].includes(request.techStatus) && request.status !== 'completed' && request.status !== 'cancelled') { %>
+        <% const team = Array.isArray(typeof technicians !== 'undefined' ? technicians : []) ? technicians : []; %>
+        <section class="zilo-card-premium rounded-2xl p-4 border border-amber-200 bg-amber-50/60" data-role="provider-reassign" data-request-id="<%= request.id %>">
+          <p class="zilo-label mb-1">Reasignar técnico</p>
+          <p class="text-xs text-zilo-muted mb-3">Puedes cambiar quién va a la visita en cualquier momento. El nuevo técnico recibe correo y aviso en la app.</p>
+          <% if (team.length) { %>
+            <label class="zilo-label block !text-[10px]" for="fieldTechSelect">Elegir técnico</label>
+            <select id="fieldTechSelect" class="zilo-input text-sm mb-2" data-role="tech-select">
+              <option value="">Selecciona…</option>
+              <% team.forEach(function(tech) { %>
+                <option value="<%= tech.id %>" <%= request.technicianId === tech.id ? 'selected' : '' %>><%= tech.name %></option>
+              <% }); %>
+            </select>
+            <button type="button" id="btnFieldReassign" class="zilo-btn-primary w-full !py-3 !text-sm" data-role="assign-btn" data-id="<%= request.id %>">Reasignar ahora</button>
+          <% } else { %>
+            <a href="/proveedor/equipo" class="block text-center zilo-btn-ghost !py-3 !text-sm">Agregar o activar técnicos</a>
+          <% } %>
+        </section>
+      <% } %>
     <% } %>
 
     <%

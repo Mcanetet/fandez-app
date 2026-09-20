@@ -869,6 +869,26 @@ router.get('/trabajo/:requestId', requireRole('provider'), requireModule('provid
   const request = store.getRequestForProvider(req.params.requestId, req.session.user.id);
   if (!request) return res.redirect('/proveedor/mando');
 
+  // Mismo usuario socio+técnico (yo hago el servicio): entrar a terreno operativo.
+  const self = store.getSelfOperator(req.session.user.id);
+  if (self && request.technicianId === self.id && !['completed', 'cancelled'].includes(request.status)) {
+    const provider = store.getUserById(req.session.user.id);
+    req.session.linkedProvider = {
+      id: provider.id,
+      name: provider.name,
+      email: provider.email,
+      role: 'provider'
+    };
+    req.session.user = {
+      id: self.id,
+      name: self.name,
+      email: self.email,
+      role: 'tecnico',
+      avatar: self.avatar
+    };
+    return res.redirect(`/tecnico/trabajo/${encodeURIComponent(request.id)}`);
+  }
+
   const techLabels = {
     asignado: req.t('status.tech.asignado'),
     aceptado: req.t('status.tech.aceptado'),
@@ -883,6 +903,8 @@ router.get('/trabajo/:requestId', requireRole('provider'), requireModule('provid
     completado: req.t('status.tech.completado')
   };
 
+  const technicians = store.getEligibleTechniciansForProvider(req.session.user.id, request.serviceId);
+
   res.render('tecnico/trabajo', {
     title: 'Pedido en terreno — Fandez',
     user: req.session.user,
@@ -891,6 +913,7 @@ router.get('/trabajo/:requestId', requireRole('provider'), requireModule('provid
     returnUrl: '/proveedor/mando',
     observerMode: true,
     chatApiBase: '/proveedor',
+    technicians,
     techLabels,
     formatCLP: store.formatCLP,
     attentionChecklist: ATTENTION_CHECKLIST,

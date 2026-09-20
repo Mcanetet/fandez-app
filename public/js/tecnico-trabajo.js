@@ -957,10 +957,47 @@
   if (isObserver) {
     document.querySelectorAll('#trabajoPage button, #trabajoPage input, #trabajoPage textarea, #trabajoPage select')
       .forEach((el) => {
-        if (el.closest('#jobChatModal') || el.id === 'btnOpenFieldChat' || el.id === 'btnOpenFieldChatFab') return;
+        if (el.closest('#jobChatModal') || el.id === 'btnOpenFieldChat' || el.id === 'btnOpenFieldChatFab' || el.id === 'btnOpenFieldChatFromTips') return;
+        if (el.closest('[data-role="provider-reassign"]')) return;
         if (el.closest('a')) return;
         el.disabled = true;
       });
+
+    document.getElementById('btnFieldReassign')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btnFieldReassign');
+      const select = document.getElementById('fieldTechSelect');
+      const technicianId = select?.value;
+      if (!technicianId) {
+        notify('Selecciona un técnico', 'warning');
+        select?.focus();
+        return;
+      }
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/proveedor/asignar/${requestId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ technicianId })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo reasignar');
+        if (data.selfOperator) {
+          notify('Quedaste asignado tú. Abriendo terreno…', 'success');
+          setTimeout(() => { window.location.href = `/proveedor/trabajo/${encodeURIComponent(requestId)}`; }, 500);
+          return;
+        }
+        notify(
+          data.reassigned
+            ? `Reasignado a ${data.request.technicianName}. Le llega correo y aviso.`
+            : `Asignado a ${data.request.technicianName}.`,
+          'success'
+        );
+        setTimeout(() => location.reload(), 700);
+      } catch (err) {
+        btn.disabled = false;
+        notify(err.message || 'No se pudo reasignar', 'error');
+      }
+    });
   }
 
   // Mapa + GPS en vivo (técnico envía; socio solo observa)
