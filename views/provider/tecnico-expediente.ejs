@@ -47,14 +47,14 @@
 
     <% const dossier = tecnico.verification || {}; %>
     <% const docs = [
-      ['idCardFront','Carnet de identidad — frente (técnico o socio)',dossier.idCardFront,'image/jpeg,image/png,image/webp,image/heic,image/heif',''],
-      ['idCardBack','Carnet de identidad — reverso (técnico o socio)',dossier.idCardBack,'image/jpeg,image/png,image/webp,image/heic,image/heif',''],
-      ['criminalRecord','Certificado de antecedentes (lo sube el socio)',dossier.criminalRecord,'image/jpeg,image/png,image/webp,application/pdf',''],
-      ['photo','Foto personal (opcional)',dossier.photo,'image/jpeg,image/png,image/webp,image/heic,image/heif',''],
-      ['studyCertificate','Certificado de estudios (opcional)',dossier.studyCertificates && dossier.studyCertificates.length,'image/jpeg,image/png,image/webp,application/pdf',''],
-      ['otherCertificate','Otro certificado (opcional)',dossier.otherCertificates && dossier.otherCertificates.length,'image/jpeg,image/png,image/webp,application/pdf','']
+      ['idCardFront','Carnet de identidad — frente (técnico o socio)',dossier.idCardFront,'image/jpeg,image/png,image/webp,image/heic,image/heif'],
+      ['idCardBack','Carnet de identidad — reverso (técnico o socio)',dossier.idCardBack,'image/jpeg,image/png,image/webp,image/heic,image/heif'],
+      ['criminalRecord','Certificado de antecedentes (lo sube el socio)',dossier.criminalRecord,'image/jpeg,image/png,image/webp,application/pdf'],
+      ['photo','Foto personal (opcional)',dossier.photo,'image/jpeg,image/png,image/webp,image/heic,image/heif'],
+      ['studyCertificate','Certificado de estudios (opcional)',dossier.studyCertificates && dossier.studyCertificates.length,'image/jpeg,image/png,image/webp,application/pdf'],
+      ['otherCertificate','Otro certificado (opcional)',dossier.otherCertificates && dossier.otherCertificates.length,'image/jpeg,image/png,image/webp,application/pdf']
     ]; %>
-    <% docs.forEach(([type,label,done,accept,capture]) => { %>
+    <% docs.forEach(([type,label,done,accept]) => { %>
     <section class="zilo-card-premium rounded-2xl p-4">
       <div class="flex justify-between gap-2 mb-2">
         <label class="text-sm font-medium"><%= label %></label>
@@ -84,7 +84,7 @@
       <% if (['studyCertificate','otherCertificate'].includes(type)) { %>
         <input type="text" class="zilo-input !py-2 text-xs mb-2" data-label-for="<%= type %>" placeholder="Nombre del certificado">
       <% } %>
-      <input type="file" data-doc-type="<%= type %>" accept="<%= accept %>" <%= capture ? 'capture="' + capture + '"' : '' %> class="block w-full text-xs">
+      <input type="file" data-doc-type="<%= type %>" accept="<%= accept %>" data-pick="both" class="block w-full text-xs">
       <button type="button" data-upload="<%= type %>" class="mt-3 w-full zilo-btn-ghost !py-2 !text-xs"><%= done ? 'Reemplazar' : 'Subir archivo' %></button>
     </section>
     <% }); %>

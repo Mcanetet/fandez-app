@@ -132,11 +132,119 @@
     });
   }
 
+  function transferFileToInput(targetInput, file) {
+    if (!targetInput || !file) return false;
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      targetInput.files = dt.files;
+      targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function setPickStatus(forId, file, source) {
+    let wrap = null;
+    try {
+      wrap = document.querySelector(`[data-media-pick="${CSS.escape(forId)}"]`);
+    } catch (_) {
+      wrap = document.querySelector(`[data-media-pick="${forId}"]`);
+    }
+    const status = wrap?.querySelector('[data-role="pick-status"]');
+    if (!status || !file) return;
+    const via = source === 'camera' ? 'Cámara' : 'Archivos';
+    status.textContent = `${via}: ${file.name || 'archivo listo'}`;
+    status.classList.add('text-zilo-success');
+  }
+
+  function bindMediaPickDelegation(root) {
+    const scope = root || document;
+    if (scope.__fandezMediaPickBound) return;
+    scope.__fandezMediaPickBound = true;
+    scope.addEventListener('change', (ev) => {
+      const src = ev.target;
+      if (!src || !src.classList || !src.classList.contains('fandez-media-src')) return;
+      const forId = src.dataset.for;
+      const file = src.files && src.files[0];
+      if (!forId || !file) return;
+      const target = document.getElementById(forId);
+      if (!target) return;
+      if (transferFileToInput(target, file)) {
+        setPickStatus(forId, file, src.dataset.src || 'files');
+      }
+      // Permite volver a elegir el mismo archivo después
+      src.value = '';
+    });
+  }
+
+  /**
+   * Convierte inputs sueltos (legacy capture=environment o data-pick=both)
+   * en selector Cámara + Archivos, preservando id y accept.
+   */
+  function enhanceMediaPickers(root) {
+    const scope = root || document;
+    bindMediaPickDelegation(document);
+    const inputs = scope.querySelectorAll
+      ? scope.querySelectorAll('input[type="file"][data-pick="both"]:not(.js-media-master):not([data-enhanced="1"]), input[type="file"][capture]:not(.fandez-media-src):not([data-enhanced="1"])')
+      : [];
+    inputs.forEach((input) => {
+      if (input.closest('.fandez-media-pick')) {
+        input.dataset.enhanced = '1';
+        return;
+      }
+      const id = input.id || `media-${Math.random().toString(36).slice(2, 9)}`;
+      if (!input.id) input.id = id;
+      const accept = input.getAttribute('accept') || 'image/*,application/pdf';
+      const allowCamera = /image/i.test(accept);
+      input.classList.add('hidden', 'js-media-master');
+      input.dataset.pick = 'both';
+      input.dataset.enhanced = '1';
+      input.removeAttribute('capture');
+
+      const wrap = document.createElement('div');
+      wrap.className = 'fandez-media-pick space-y-1.5';
+      wrap.dataset.mediaPick = id;
+      wrap.innerHTML = `
+        <div class="grid ${allowCamera ? 'grid-cols-2' : 'grid-cols-1'} gap-2">
+          ${allowCamera ? `
+          <label class="inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] px-2 rounded-xl border border-zilo-border bg-white text-xs font-semibold text-zilo-text cursor-pointer">
+            <svg class="w-4 h-4 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Cámara
+            <input type="file" accept="image/*" capture="environment" class="sr-only fandez-media-src" data-for="${id}" data-src="camera" tabindex="-1">
+          </label>` : ''}
+          <label class="inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] px-2 rounded-xl border border-zilo-border bg-white text-xs font-semibold text-zilo-text cursor-pointer">
+            <svg class="w-4 h-4 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            Archivos
+            <input type="file" accept="${accept.replace(/"/g, '&quot;')}" class="sr-only fandez-media-src" data-for="${id}" data-src="files" tabindex="-1">
+          </label>
+        </div>
+        <p class="text-[10px] text-zilo-muted" data-role="pick-status">${allowCamera ? 'Elige Cámara o Archivos (galería / documentos).' : 'Elige un archivo desde tu dispositivo.'}</p>
+      `;
+      input.parentNode.insertBefore(wrap, input);
+      wrap.insertBefore(input, wrap.firstChild);
+    });
+  }
+
+  function bootMediaPickers() {
+    bindMediaPickDelegation(document);
+    enhanceMediaPickers(document);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootMediaPickers);
+  } else {
+    bootMediaPickers();
+  }
+
   global.FandezUpload = {
     MAX_BYTES,
     prepareUploadFile,
     fileToJpegDataUrl,
     captureVideoFrame,
-    waitForVideoFrame
+    waitForVideoFrame,
+    enhanceMediaPickers,
+    transferFileToInput
   };
 })(window);

@@ -335,7 +335,7 @@
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <span><%= t('client.service.photo_help_link') %></span>
           </button>
-          <input type="file" id="clientPhoto" accept="image/*" capture="environment" class="block w-full text-xs text-zilo-muted file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent file:text-xs file:font-medium">
+          <%- include('../partials/media-pick', { id: 'clientPhoto', accept: 'image/*', hint: 'Cámara o galería / archivos.' }) %>
           <div id="clientPhotoPreview" class="hidden mt-2">
             <img src="" alt="<%= t('client.service.preview_alt') %>" class="w-full max-h-40 object-cover rounded-xl border border-zilo-border">
           </div>
@@ -344,7 +344,7 @@
         <div id="brandPhotoBlock" class="<%= brandOptional ? 'hidden' : '' %>">
           <label class="zilo-label block mb-1.5"><%= t('client.service.photo_brand') %> <span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span></label>
           <p class="text-[11px] text-zilo-muted mb-2"><%= t('client.service.photo_brand_hint') %></p>
-          <input type="file" id="clientBrandPhoto" accept="image/*" capture="environment" class="block w-full text-xs text-zilo-muted file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent file:text-xs file:font-medium">
+          <%- include('../partials/media-pick', { id: 'clientBrandPhoto', accept: 'image/*', hint: 'Cámara o galería / archivos.' }) %>
           <div id="clientBrandPhotoPreview" class="hidden mt-2">
             <img src="" alt="<%= t('client.service.photo_brand') %>" class="w-full max-h-40 object-cover rounded-xl border border-zilo-border">
           </div>

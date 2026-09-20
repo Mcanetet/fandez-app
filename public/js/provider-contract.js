@@ -75,7 +75,7 @@
         ${notes ? `<p class="text-[11px] text-zilo-muted mt-1">${notes.replace(/</g, '&lt;')}</p>` : ''}
       ` : '';
       const upload = locked ? '' : `
-        <input type="file" accept="${FILE_ACCEPT}" class="contract-doc-input text-xs w-full mt-2" data-key="${doc.key}" data-multiple="${doc.multiple ? '1' : '0'}">
+        <input type="file" accept="${FILE_ACCEPT}" class="contract-doc-input text-xs w-full mt-2" data-key="${doc.key}" data-multiple="${doc.multiple ? '1' : '0'}" data-pick="both">
       `;
       return `
         <div class="p-3 rounded-xl border border-zilo-border" data-doc-key="${doc.key}">
@@ -92,6 +92,9 @@
     docsList.querySelectorAll('.contract-doc-input').forEach((input) => {
       input.addEventListener('change', () => uploadDocument(input));
     });
+    if (window.FandezUpload?.enhanceMediaPickers) {
+      window.FandezUpload.enhanceMediaPickers(docsList);
+    }
   }
 
   async function uploadDocument(input) {

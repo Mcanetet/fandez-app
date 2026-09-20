@@ -112,15 +112,15 @@
 
       <div>
         <p class="text-sm font-medium mb-2">Cédula de identidad</p>
-        <div class="grid grid-cols-2 gap-2">
-          <label class="zilo-btn-ghost !text-xs !py-3 cursor-pointer text-center">
-            Frente
-            <input type="file" id="input-idFront" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" class="hidden">
-          </label>
-          <label class="zilo-btn-ghost !text-xs !py-3 cursor-pointer text-center">
-            Reverso
-            <input type="file" id="input-idBack" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" class="hidden">
-          </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <p class="text-xs text-zilo-muted mb-1.5">Frente</p>
+            <%- include('../partials/media-pick', { id: 'input-idFront', accept: 'image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf' }) %>
+          </div>
+          <div>
+            <p class="text-xs text-zilo-muted mb-1.5">Reverso</p>
+            <%- include('../partials/media-pick', { id: 'input-idBack', accept: 'image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf' }) %>
+          </div>
         </div>
         <div id="preview-idFront" class="mt-1"></div>
         <div id="preview-idBack" class="mt-1"></div>
@@ -137,10 +137,7 @@
       <div>
         <p class="text-sm font-medium mb-2">Certificados de estudios (opcional)</p>
         <input type="text" id="certLabel" placeholder="Ej: SEC, técnico profesional..." class="zilo-input mb-2 text-sm">
-        <label class="zilo-btn-ghost !text-xs !py-3 cursor-pointer block text-center">
-          Subir certificado
-          <input type="file" id="input-certificate" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" class="hidden">
-        </label>
+        <%- include('../partials/media-pick', { id: 'input-certificate', accept: 'image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf' }) %>
         <% if (provider.verification?.certificates?.length) { %>
           <ul class="mt-2 text-xs text-zilo-muted space-y-1">
             <% provider.verification.certificates.forEach(c => { %>
@@ -156,10 +153,10 @@
         <button type="button" id="btnOpenFace" class="zilo-btn-primary !py-3 !text-sm w-full">
           <%= provider.verification?.faceVerified ? 'Repetir verificación facial' : 'Iniciar verificación facial' %>
         </button>
-        <label class="zilo-btn-ghost !text-xs !py-3 cursor-pointer block text-center mt-2">
-          O subir foto de rostro
-          <input type="file" id="input-selfieFile" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" class="hidden">
-        </label>
+        <div class="mt-2">
+          <p class="text-xs text-zilo-muted mb-1.5">O subir foto de rostro</p>
+          <%- include('../partials/media-pick', { id: 'input-selfieFile', accept: 'image/jpeg,image/png,image/webp,image/heic,image/heif' }) %>
+        </div>
         <div id="preview-selfie" class="mt-2">
           <% if (provider.verification?.selfie && provider.verification.selfie !== 'demo') { %>
             <img src="<%= provider.verification.selfie %>" alt="" class="rounded-xl max-h-32 border border-zilo-border">

@@ -278,7 +278,7 @@
         </div>
         <div>
           <label class="text-xs text-zilo-muted">Foto de llegada *</label>
-          <input type="file" id="photoStart" accept="image/*" capture="environment" class="mt-1 block w-full text-xs text-zilo-muted file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent file:text-xs file:font-medium">
+          <input type="file" id="photoStart" accept="image/*" data-pick="both" class="mt-1 block w-full text-xs text-zilo-muted">
           <div id="photoStartPreview" class="hidden mt-2">
             <img src="" alt="Vista previa" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
           </div>
@@ -374,7 +374,7 @@
           </div>
           <div>
             <label class="text-xs text-zilo-muted">Foto que respalda la reevaluación *</label>
-            <input type="file" id="changePhoto" accept="image/*" capture="environment" class="block w-full text-xs mt-1">
+            <input type="file" id="changePhoto" accept="image/*" data-pick="both" class="block w-full text-xs mt-1">
           </div>
           <button type="button" id="btnProposeChange" class="w-full py-3 rounded-xl zilo-btn-primary">Enviar cambio de precio al cliente</button>
         </div>
@@ -561,7 +561,7 @@
         </div>
         <div id="matReceiptWrap" class="hidden">
           <label class="text-xs text-zilo-muted block">Boleta o factura *</label>
-          <input type="file" id="matReceipt" accept="image/*,application/pdf" class="block w-full text-xs text-zilo-muted file:mr-2 file:py-1.5 file:px-2 file:rounded file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent">
+          <input type="file" id="matReceipt" accept="image/*,application/pdf" data-pick="both" class="block w-full text-xs text-zilo-muted">
           <p class="text-[11px] text-zilo-muted mt-1">Obligatorio si compraste el material. La IA verifica monto y legibilidad.</p>
         </div>
         <p id="matStockHint" class="text-[11px] text-zilo-muted">Sin boleta o factura (stock): si el total es menor a $10.000 va incluido en el servicio; si es ≥ $10.000 requiere OK previo del cliente.</p>
@@ -596,7 +596,7 @@
         </div>
         <div>
           <label class="text-xs text-zilo-muted">Foto final de la visita *</label>
-          <input type="file" id="photoEnd" accept="image/*" capture="environment" class="mt-1 block w-full text-xs text-zilo-muted file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zilo-accent/10 file:text-zilo-accent file:text-xs file:font-medium">
+          <input type="file" id="photoEnd" accept="image/*" data-pick="both" class="mt-1 block w-full text-xs text-zilo-muted">
           <div id="photoEndPreview" class="hidden mt-2">
             <img src="" alt="Vista previa" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
           </div>

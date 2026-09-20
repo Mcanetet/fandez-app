@@ -1,0 +1,47 @@
+<%#
+  Selector unificado: Cámara + Archivos (galería/PDF).
+  Mantiene un input maestro #id para que el JS existente siga igual.
+  Uso:
+    include('partials/media-pick', { id: 'techDocFront', accept: 'image/jpeg,image/png,image/webp' })
+    include('partials/media-pick', { id: 'x', accept: 'image/*,application/pdf', dataAttrs: 'data-doc-type="photo"' })
+%>
+<%
+  const _accept = typeof accept !== 'undefined' && accept ? String(accept) : 'image/*,application/pdf';
+  const _showCamera = typeof allowCamera === 'undefined'
+    ? /image/i.test(_accept)
+    : Boolean(allowCamera);
+  const _hint = typeof hint !== 'undefined' && hint
+    ? String(hint)
+    : (_showCamera
+      ? 'Elige Cámara o Archivos (galería / documentos).'
+      : 'Elige un archivo desde tu dispositivo.');
+  const _dataAttrs = typeof dataAttrs !== 'undefined' ? String(dataAttrs) : '';
+  const _extraClass = typeof inputClass !== 'undefined' ? String(inputClass) : '';
+  const _name = typeof name !== 'undefined' && name ? String(name) : '';
+%>
+<div class="fandez-media-pick space-y-1.5" data-media-pick="<%= id %>">
+  <input
+    type="file"
+    id="<%= id %>"
+    <%= _name ? ('name="' + _name + '"') : '' %>
+    accept="<%= _accept %>"
+    class="hidden js-media-master <%= _extraClass %>"
+    data-pick="both"
+    <%- _dataAttrs %>
+  >
+  <div class="grid <%= _showCamera ? 'grid-cols-2' : 'grid-cols-1' %> gap-2">
+    <% if (_showCamera) { %>
+      <label class="inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] px-2 rounded-xl border border-zilo-border bg-white text-xs font-semibold text-zilo-text cursor-pointer hover:border-zilo-accent/40">
+        <svg class="w-4 h-4 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Cámara
+        <input type="file" accept="image/*" capture="environment" class="sr-only fandez-media-src" data-for="<%= id %>" data-src="camera" tabindex="-1">
+      </label>
+    <% } %>
+    <label class="inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] px-2 rounded-xl border border-zilo-border bg-white text-xs font-semibold text-zilo-text cursor-pointer hover:border-zilo-accent/40">
+      <svg class="w-4 h-4 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+      Archivos
+      <input type="file" accept="<%= _accept %>" class="sr-only fandez-media-src" data-for="<%= id %>" data-src="files" tabindex="-1">
+    </label>
+  </div>
+  <p class="text-[10px] text-zilo-muted" data-role="pick-status"><%= _hint %></p>
+</div>
