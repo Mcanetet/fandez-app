@@ -6,6 +6,7 @@
     resumen: 'Resumen',
     finanzas: 'Finanzas',
     crm: 'CRM socios',
+    briefs: 'Briefs servicio',
     documentos: 'DTE / SII',
     contratos: 'Contratos socios',
     notificaciones: 'Notificaciones',
@@ -1144,6 +1145,148 @@
         }
         FandezNotify.show(ADMIN_JS.crmDeleted || 'Contacto eliminado', 'success');
         window.location.href = ADMIN_BASE + '?tab=crm';
+      } catch (_) {
+        FandezNotify.show('Error al eliminar', 'error');
+      }
+    });
+  });
+
+  function collectBriefAnswers() {
+    const answers = {};
+    document.querySelectorAll('[data-brief-answer]').forEach((el) => {
+      answers[el.dataset.briefAnswer] = el.value || '';
+    });
+    return answers;
+  }
+
+  function fillBriefAnswers(answers) {
+    const src = answers && typeof answers === 'object' ? answers : {};
+    document.querySelectorAll('[data-brief-answer]').forEach((el) => {
+      el.value = src[el.dataset.briefAnswer] || '';
+    });
+  }
+
+  function resetBriefForm() {
+    const form = document.getElementById('briefForm');
+    if (!form) return;
+    form.reset();
+    document.getElementById('briefEditId').value = '';
+    fillBriefAnswers({});
+    const preview = document.getElementById('briefPromptPreview');
+    if (preview) preview.value = '';
+  }
+
+  async function copyBriefText(text) {
+    const value = String(text || '').trim();
+    if (!value) {
+      FandezNotify.show('No hay prompt para copiar', 'warning');
+      return;
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = value;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      FandezNotify.show('Prompt copiado', 'success');
+    } catch (_) {
+      FandezNotify.show('No se pudo copiar', 'error');
+    }
+  }
+
+  document.getElementById('briefFormReset')?.addEventListener('click', resetBriefForm);
+
+  document.getElementById('briefCopyPrompt')?.addEventListener('click', () => {
+    const preview = document.getElementById('briefPromptPreview');
+    copyBriefText(preview && preview.value);
+  });
+
+  document.getElementById('briefForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = {
+      id: document.getElementById('briefEditId').value || undefined,
+      companyName: document.getElementById('briefCompany').value.trim(),
+      contactName: document.getElementById('briefContact').value.trim(),
+      email: document.getElementById('briefEmail').value.trim(),
+      phone: document.getElementById('briefPhone').value.trim(),
+      rubro: document.getElementById('briefRubro').value.trim(),
+      audience: document.getElementById('briefAudience').value,
+      comunas: document.getElementById('briefComunas').value.trim(),
+      status: document.getElementById('briefStatus').value || 'borrador',
+      answers: collectBriefAnswers()
+    };
+    try {
+      const res = await adminFetch('/briefs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!data.success) {
+        FandezNotify.show(data.error || 'No se pudo guardar el brief', 'error');
+        return;
+      }
+      FandezNotify.show('Brief guardado', 'success');
+      window.location.href = ADMIN_BASE + '?tab=briefs';
+    } catch (_) {
+      FandezNotify.show('Error al guardar brief', 'error');
+    }
+  });
+
+  document.querySelectorAll('.brief-edit').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      let brief = null;
+      try {
+        brief = JSON.parse(decodeURIComponent(btn.dataset.payload || ''));
+      } catch (_) {
+        return;
+      }
+      if (!brief) return;
+      document.getElementById('briefEditId').value = brief.id || '';
+      document.getElementById('briefCompany').value = brief.companyName || '';
+      document.getElementById('briefContact').value = brief.contactName || '';
+      document.getElementById('briefEmail').value = brief.email || '';
+      document.getElementById('briefPhone').value = brief.phone || '';
+      document.getElementById('briefRubro').value = brief.rubro || '';
+      document.getElementById('briefAudience').value = brief.audience || '';
+      document.getElementById('briefComunas').value = brief.comunas || '';
+      document.getElementById('briefStatus').value = brief.status || 'borrador';
+      fillBriefAnswers(brief.answers || {});
+      const preview = document.getElementById('briefPromptPreview');
+      if (preview) preview.value = brief.promptText || '';
+      document.getElementById('briefForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  document.querySelectorAll('.brief-copy').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      let text = '';
+      try {
+        text = decodeURIComponent(btn.dataset.prompt || '');
+      } catch (_) {
+        text = btn.dataset.prompt || '';
+      }
+      copyBriefText(text);
+    });
+  });
+
+  document.querySelectorAll('.brief-delete').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Eliminar este brief de reunión?')) return;
+      try {
+        const res = await adminFetch(`/briefs/${btn.dataset.id}/delete`, { method: 'POST' });
+        const data = await res.json();
+        if (!data.success) {
+          FandezNotify.show(data.error || 'No se pudo eliminar', 'error');
+          return;
+        }
+        FandezNotify.show('Brief eliminado', 'success');
+        window.location.href = ADMIN_BASE + '?tab=briefs';
       } catch (_) {
         FandezNotify.show('Error al eliminar', 'error');
       }

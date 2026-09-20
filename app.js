@@ -771,6 +771,7 @@ async function initDatabase() {
       try {
         require('./lib/agents/founderAlerts').startDailyDigestScheduler(store);
         require('./lib/agents/opsInbox').ensureTable().catch(() => {});
+        require('./lib/serviceBriefs').ensureTable().catch(() => {});
       } catch (err) {
         console.warn('[founder-digest] init:', err.message);
       }

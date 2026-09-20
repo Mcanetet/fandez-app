@@ -612,7 +612,9 @@ router.get('/', requireRole('admin'), async (req, res) => {
     florenciaConnections: florencia.connectionsStatus(),
     canAccessPanel: (panelId) => canAccessPanel(access, panelId),
     initialTab,
-    attentionInbox: buildAdminAttentionInbox(store, req.locale || 'es')
+    attentionInbox: buildAdminAttentionInbox(store, req.locale || 'es'),
+    serviceBriefs: await require('../lib/serviceBriefs').listBriefs({ limit: 100 }),
+    briefStatuses: require('../lib/serviceBriefs').STATUSES
   });
   } catch (err) {
     console.error('[admin/dashboard]', err.message);
@@ -1519,6 +1521,41 @@ router.post('/crm/:id/delete', requireRole('admin'), requireAdminPermission('crm
   if (result.error) return res.status(400).json({ error: result.error });
   store.logSecurityEvent('crm_delete', req.params.id, req);
   res.json({ success: true, leads: store.getCrmLeads(), stats: store.getCrmStats() });
+});
+
+router.get('/briefs', requireRole('admin'), requireAdminPermission('crm.view'), async (req, res) => {
+  try {
+    const briefs = require('../lib/serviceBriefs');
+    const list = await briefs.listBriefs({ limit: 100 });
+    res.json({ success: true, briefs: list, statuses: briefs.STATUSES, emptyAnswers: briefs.emptyAnswers() });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/briefs', requireRole('admin'), requireAdminPermission('crm.manage'), async (req, res) => {
+  try {
+    const briefs = require('../lib/serviceBriefs');
+    const result = await briefs.upsertBrief(req.body || {}, { userId: req.session.user.id });
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
+    store.logSecurityEvent('service_brief_upsert', result.brief.id, req);
+    const list = await briefs.listBriefs({ limit: 100 });
+    res.json({ success: true, brief: result.brief, briefs: list });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/briefs/:id/delete', requireRole('admin'), requireAdminPermission('crm.manage'), async (req, res) => {
+  try {
+    const briefs = require('../lib/serviceBriefs');
+    await briefs.deleteBrief(req.params.id);
+    store.logSecurityEvent('service_brief_delete', req.params.id, req);
+    const list = await briefs.listBriefs({ limit: 100 });
+    res.json({ success: true, briefs: list });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 router.post('/toggle-coverage', requireRole('admin'), requireAdminPermission('cobertura.manage'), (req, res) => {

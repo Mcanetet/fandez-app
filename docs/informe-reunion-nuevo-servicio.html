@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Fandez — Reunión nuevo servicio / socio</title>
+<style>
+  body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.4; color: #1a1a1a; margin: 0; padding: 14mm; }
+  h1 { font-size: 18pt; color: #c45c14; margin: 0 0 8pt; }
+  h2 { font-size: 13pt; border-bottom: 2px solid #c45c14; padding-bottom: 3pt; margin: 16pt 0 6pt; page-break-after: avoid; }
+  h3 { font-size: 11pt; color: #c45c14; margin: 12pt 0 4pt; page-break-after: avoid; }
+  p { margin: 0 0 6pt; }
+  ul { margin: 4pt 0 8pt; padding-left: 16pt; }
+  li { margin-bottom: 2pt; }
+  table { width: 100%; border-collapse: collapse; margin: 8pt 0 12pt; font-size: 8pt; }
+  th, td { border: 1px solid #e5e2dc; padding: 4pt 5pt; text-align: left; vertical-align: top; }
+  th { background: #faf8f5; }
+  pre { background: #faf8f5; border: 1px solid #e5e2dc; padding: 8pt; font-size: 8pt; white-space: pre-wrap; page-break-inside: avoid; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: 0.92em; }
+  hr { border: none; border-top: 1px solid #e5e2dc; margin: 14pt 0; }
+  .meta { color: #5a5a5a; font-size: 8.5pt; margin-bottom: 12pt; }
+</style>
+</head>
+<body>
+<p class="meta">Fandez · Documento interno · Septiembre 2026</p>
+<h1>Procedimiento — Reunión con proveedor / socio para incorporar un servicio nuevo</h1>
+<p><strong>Audiencia:</strong> Comercial · Producto · Admin  </p>
+<p><strong>Objetivo:</strong> Salir de la reunión con un <strong>brief cerrado</strong> que sirva de prompt para crear el servicio en Fandez: catálogo, fórmula de precio e <strong>intake del cliente</strong> (campos en la app que calculan el monto antes de pagar).</p>
+<p><strong>Principio Fandez (no negociable en el brief):</strong></p>
+<ul>
+<li>Split del precio de servicio: <strong>15% Fandez</strong> · <strong>~3% tarjeta</strong> · <strong>82% socio</strong> (servicio + transporte dentro del 82%).</li>
+<li>Materiales: pass-through al socio (0% comisión), salvo pacto distinto.</li>
+<li>Ubicación: sale del <strong>registro del cliente</strong> (dirección / comuna). No pedirla de nuevo en el intake, salvo detalle de acceso.</li>
+<li>Precio al cliente = <strong>total a pagar</strong> (IVA incluido / precio final).</li>
+</ul>
+<hr>
+<h2>0. Antes de la reunión (15 min)</h2>
+<table>
+<tr><th>#</th><th>Preparar</th></tr>
+<tr><td>1</td><td>Nombre comercial del rubro (ej. Limpieza hogar / oficina)</td></tr>
+<tr><td>2</td><td>Si es B2C, B2B o ambos</td></tr>
+<tr><td>3</td><td>Comunas objetivo (alineadas a oleadas Fandez)</td></tr>
+<tr><td>4</td><td>Llevar esta guía + planilla de precios en blanco</td></tr>
+<tr><td>5</td><td>Grabar o tomar notas; al final pedir validación escrita de tarifas</td></tr>
+</table>
+<p><strong>Duración sugerida:</strong> 60–90 min.</p>
+<hr>
+<h2>1. Guion de la reunión (bloques)</h2>
+<h3>Bloque A — Quiénes son (10 min)</h3>
+<ul>
+<li>¿Razón social, RUT, años en el rubro, cobertura actual?</li>
+<li>¿Atienden hogar, oficina, edificios, post-obra, o todo?</li>
+<li>¿Cuántos equipos / personas pueden poner online en punta?</li>
+<li>¿Tienen seguro RC? ¿Emisión de boleta/factura?</li>
+<li>¿Disponibilidad: días, ventanas, urgencias, feriados?</li>
+</ul>
+<h3>Bloque B — Qué vendemos (catálogo) (15 min)</h3>
+<p>Para <strong>cada</strong> subservicio / pack (máx. 8–12 al inicio):</p>
+<ul>
+<li>Nombre corto que entendería el cliente en la app  </li>
+<li>Qué incluye (checklist) y qué <strong>no</strong> incluye  </li>
+<li>¿Es visita única, por horas, por m², por ambiente, o proyecto?  </li>
+<li>Duración típica y tamaño de cuadrilla (1 persona / 2 / más)  </li>
+<li>¿Requiere visita diagnóstica previa o se cotiza 100% online con el formulario?</li>
+</ul>
+<h3>Bloque C — Cómo se calcula el precio (el corazón) (25 min)</h3>
+<ul>
+<li><strong>Unidad de cobro:</strong> fija · por m² · por ambiente · por hora · fórmula mixta  </li>
+<li><strong>Tarifa base</strong> (CLP, precio final cliente) y <strong>mínimo por job</strong>  </li>
+<li>Factores que <strong>suben</strong> el precio (lista cerrada)  </li>
+<li>Factores que <strong>bajan</strong> o no aplican  </li>
+<li>Add-ons con precio propio (ej. ventanas, horno, mudanza light)  </li>
+<li>Materiales / insumos: ¿van incluidos, se venden aparte, o el cliente aporta?  </li>
+<li>Recurrencia: ¿descuento semanal / quincenal / mensual?  </li>
+<li>¿Hay tope o “llamar a cotizar” sobre cierto tamaño?</li>
+</ul>
+<p>&gt; Regla de producto: todo factor de precio debe ser un <strong>campo del intake</strong> o un dato ya conocido (comuna del perfil). Nada de “el operador calcula a ojo” en el happy path.</p>
+<h3>Bloque D — Intake del cliente en la app (20 min)</h3>
+<p>Preguntar: *“Si el cliente solo puede tocar la pantalla, ¿qué debe responder para que el precio salga solo?”*</p>
+<ul>
+<li>Lista de campos obligatorios (tipo, opciones, validación)  </li>
+<li>Campos opcionales (notas, fotos)  </li>
+<li>Qué se toma del <strong>perfil</strong> (dirección, comuna, tipo persona/empresa)  </li>
+<li>Fotos: ¿obligatorias? ¿de qué (pieza, estado, acceso)?  </li>
+<li>Acceso: ¿llaves, conserje, código, horario edificio?  </li>
+<li>Condiciones especiales del rubro (ej. mascotas → pelos; alergias a químicos)</li>
+</ul>
+<h3>Bloque E — Operación y riesgos (10 min)</h3>
+<ul>
+<li>Motivos típicos de cancelación / no-show / reclamo  </li>
+<li>Qué pasa si el lugar está mucho más sucio / grande de lo declarado  </li>
+<li>Reagendamiento y ventana de llegada  </li>
+<li>Evidencia al cerrar (fotos before/after, checklist firmado digital)</li>
+</ul>
+<h3>Bloque F — Cierre comercial Fandez (5 min)</h3>
+<ul>
+<li>Confirmar split 15 / ~3 / 82 y materiales  </li>
+<li>Plazo para enviar lista de precios firmada (Excel/PDF)  </li>
+<li>Piloto: comunas, cupos/semana, fecha go-live deseada</li>
+</ul>
+<hr>
+<h2>2. Plantilla de campos de intake (rellenar en la reunión)</h2>
+<p>Usar una fila por pregunta al cliente. Marcar si <strong>mueve precio</strong>.</p>
+<table>
+<tr><th>ID campo</th><th>Pregunta en la app</th><th>Tipo</th><th>Opciones / rango</th><th>¿Mueve precio?</th><th>Efecto en tarifa</th><th>Obligatorio</th></tr>
+<tr><td>`tipo_inmueble`</td><td>¿Qué tipo de espacio?</td><td>select</td><td>Depto / Casa / Oficina / Local</td><td>sí/no</td><td>…</td><td>sí</td></tr>
+<tr><td>`m2`</td><td>Metros cuadrados aprox.</td><td>number</td><td>min–max</td><td>sí</td><td>$/m² o tramos</td><td>sí</td></tr>
+<tr><td>`dormitorios`</td><td>¿Cuántos dormitorios / piezas?</td><td>number</td><td>0–10</td><td>sí</td><td>+X por pieza</td><td>sí</td></tr>
+<tr><td>`banos`</td><td>¿Cuántos baños?</td><td>number</td><td>1–8</td><td>sí</td><td>+Y por baño</td><td>sí</td></tr>
+<tr><td>`mascotas`</td><td>¿Hay mascotas?</td><td>boolean</td><td>Sí / No</td><td>sí</td><td>recargo pelos / alérgenos</td><td>sí</td></tr>
+<tr><td>`frecuencia`</td><td>¿Cada cuánto?</td><td>select</td><td>Única / Semanal / …</td><td>sí</td><td>% descuento</td><td>sí</td></tr>
+<tr><td>`profundidad`</td><td>Nivel de limpieza</td><td>select</td><td>Mantención / Profunda / Post-obra</td><td>sí</td><td>multiplicador</td><td>sí</td></tr>
+<tr><td>`add_on_*`</td><td>Add-ons</td><td>multi</td><td>Ventanas, horno, …</td><td>sí</td><td>suma fija</td><td>no</td></tr>
+<tr><td>`acceso`</td><td>¿Cómo se entra?</td><td>text/select</td><td>Conserje / Llave / Código</td><td>no</td><td>—</td><td>sí</td></tr>
+<tr><td>`notas`</td><td>Indicaciones</td><td>text</td><td>libre</td><td>no</td><td>—</td><td>no</td></tr>
+<tr><td>`fotos`</td><td>Fotos del espacio</td><td>media</td><td>0–4</td><td>no*</td><td>*si muy sucio → ajuste en terreno</td><td>recomendado</td></tr>
+<tr><td>_(perfil)_</td><td>Dirección / comuna</td><td>auto</td><td>registro cliente</td><td>sí (futuro uplift zona)</td><td>no pedir de nuevo</td><td>auto</td></tr>
+</table>
+<p>\*Ajuste en terreno = flujo existente de cambio de precio con OK del cliente.</p>
+<hr>
+<h2>3. Fórmula de precio (dejar por escrito)</h2>
+<p>Completar con el proveedor:</p>
+<pre><code>
+precio_servicio =
+
+  max(
+
+    MINIMO_JOB,
+
+    BASE(tipo, profundidad)
+
+    + (m2 × TARIFA_M2)            // si aplica
+
+    + (dormitorios × TARIFA_PIEZA)
+
+    + (banos × TARIFA_BANO)
+
+    + recargo_mascotas
+
+    + sum(add_ons)
+
+  )
+
+  × descuento_frecuencia
+
+  × multiplicador_zona           // futuro; hoy = 1
+
+</code></pre>
+<p>Luego, en liquidación Fandez:</p>
+<pre><code>
+take_fandez     = 15% × precio_servicio   // IVA incluido
+
+fee_tarjeta     ≈ 3%  × precio_servicio
+
+pago_socio      = 82% × precio_servicio   // incluye transporte
+
+materiales      = pass-through (0% Fandez)
+
+</code></pre>
+<hr>
+<h2>4. Entregable: prompt para crear el servicio</h2>
+<p>Al terminar, pegar las respuestas en este bloque y usarlo con producto / agente de código:</p>
+<pre><code>
+# BRIEF SERVICIO FANDEZ — [NOMBRE RUBRO]
+
+
+
+## Meta
+
+Crear servicio cliente en app Fandez con precio calculado 100% desde intake (sin cotización manual en happy path).
+
+
+
+## Identidad
+
+- id_servicio: [slug]
+
+- nombre_ui: […]
+
+- icono / categoría: […]
+
+- B2C / B2B: […]
+
+- comunas piloto: […]
+
+
+
+## Modelo económico
+
+- Split: 15% Fandez / ~3% tarjeta / 82% socio (transporte ⊂ 82%)
+
+- Materiales: [incluidos | aparte | cliente aporta]
+
+- Ubicación: desde registro cliente; uplift zona: [no / sí futuro]
+
+
+
+## Actividades (SKU)
+
+1. id / nombre / incluye / no incluye / duración / cuadrilla / precio base o fórmula
+
+2. …
+
+
+
+## Intake (campos)
+
+| id | label | tipo | opciones | mueve_precio | regla |
+
+|----|-------|------|----------|--------------|-------|
+
+
+
+## Fórmula
+
+[pegar fórmula numérica con tarifas CLP]
+
+
+
+## Mínimos y topes
+
+- min_job: $…
+
+- max_autoquote: [m² / $ / “sobre X llamar”]
+
+
+
+## Ops
+
+- ventanas horarias: …
+
+- evidencia cierre: …
+
+- regla si realidad ≠ declarado: cambio de precio con OK cliente
+
+
+
+## Riesgos / exclusiones
+
+- …
+
+
+
+## Proveedor ancla
+
+- empresa, contacto, capacidad semanal, go-live deseado
+
+</code></pre>
+<hr>
+<h2>5. Ejemplo listo — reunión Limpieza (usar hoy)</h2>
+<p>Checklist mínimo a cerrar con la empresa de limpieza:</p>
+<h3>Preguntas sí o sí</h3>
+<ul>
+<li>¿Packs: mantención, profunda, post-obra, mudanza, oficinas?  </li>
+<li>¿Cobran por m², por dormitorio+baño, o tarifa fija por tramo (ej. 40–60 m²)?  </li>
+<li>Mínimo por visita (CLP) y duración mínima.  </li>
+<li>Recargo por mascotas (pelos / orina / cantidad).  </li>
+<li>¿Incluyen productos e implementos o los lleva el cliente?  </li>
+<li>Add-ons con precio: ventanas interiores, horno, refrigerador, balcón, planchado, lavado de ropa.  </li>
+<li>Descuentos por frecuencia (semanal / quincenal / mensual).  </li>
+<li>Post-obra: ¿multiplica ×1,5 / ×2? ¿excluye retiro de escombros?  </li>
+<li>Oficinas: ¿por puesto, por m², o por baño+cocina?  </li>
+<li>¿Aceptan edificios con conserje / horarios restringidos?  </li>
+<li>¿Qué fotos pide el cliente al cotizar?  </li>
+<li>Tabla de precios firmada (tramos m² × tipo de limpieza).</li>
+</ul>
+<h3>Intake sugerido (borrador para validar en la mesa)</h3>
+<table>
+<tr><th>Campo</th><th>Tipo</th><th>Mueve precio</th></tr>
+<tr><td>Tipo de espacio (depto/casa/oficina)</td><td>select</td><td>sí</td></tr>
+<tr><td>m² aproximados</td><td>number</td><td>sí</td></tr>
+<tr><td>Dormitorios / piezas</td><td>number</td><td>sí</td></tr>
+<tr><td>Baños</td><td>number</td><td>sí</td></tr>
+<tr><td>Nivel (mantención / profunda / post-obra)</td><td>select</td><td>sí</td></tr>
+<tr><td>Mascotas (sí/no + cantidad)</td><td>boolean+number</td><td>sí</td></tr>
+<tr><td>Frecuencia</td><td>select</td><td>sí</td></tr>
+<tr><td>Add-ons</td><td>multi-select</td><td>sí</td></tr>
+<tr><td>Acceso / conserje</td><td>select+text</td><td>no</td></tr>
+<tr><td>Notas (alergias, químicos, focos)</td><td>text</td><td>no</td></tr>
+<tr><td>Fotos (opcional 1–3)</td><td>media</td><td>no</td></tr>
+<tr><td>Dirección</td><td>auto perfil</td><td>zona futura</td></tr>
+</table>
+<h3>Prompt rápido post-reunión (llenar números en vivo)</h3>
+<pre><code>
+Crea el servicio &quot;Limpieza&quot; en Fandez.
+
+Precio online con intake: tipo_inmueble, m2, dormitorios, banos, nivel, mascotas, frecuencia, add_ons.
+
+Dirección/comuna desde perfil del cliente.
+
+Fórmula: [PEGAR TARIFAS DEL PROVEEDOR].
+
+Split 15/3/82; materiales [incluidos/aparte].
+
+Exclusiones: […].
+
+Si el estado real supera lo declarado → flujo cambio de precio con OK del cliente.
+
+</code></pre>
+<hr>
+<h2>6. Después de la reunión (checklist producto)</h2>
+<table>
+<tr><th>#</th><th>Acción</th><th>Dueño</th></tr>
+<tr><td>1</td><td>Brief + tarifas en Drive / `docs/`</td><td>Comercial</td></tr>
+<tr><td>2</td><td>Crear rubro + actividades en catálogo</td><td>Producto</td></tr>
+<tr><td>3</td><td>Implementar intake + preview de precio</td><td>Producto</td></tr>
+<tr><td>4</td><td>Materiales del rubro (si aplica)</td><td>Producto</td></tr>
+<tr><td>5</td><td>Chips diagnóstico / tips foto</td><td>Producto</td></tr>
+<tr><td>6</td><td>Copy Sofía (qué incluye / no incluye)</td><td>Soporte</td></tr>
+<tr><td>7</td><td>Onboarding socio ancla + prueba 3 pedidos</td><td>Ops</td></tr>
+<tr><td>8</td><td>Soft launch 1–2 comunas</td><td>Comercial</td></tr>
+</table>
+<p><strong>No publicar</strong> el servicio hasta tener: tarifas mínimas, fórmula testeada en preview, y al menos 1 socio online en la zona piloto.</p>
+<hr>
+<h2>7. Anti-patrones (evitar)</h2>
+<ul>
+<li>Cotizar “a ojo” por WhatsApp fuera de la app.  </li>
+<li>Pedir dirección otra vez si ya está en el perfil.  </li>
+<li>Meter transporte como línea que reste al 15% de Fandez.  </li>
+<li>Más de ~10 campos obligatorios (abandono de checkout).  </li>
+<li>Factores de precio que el cliente no puede responder sin técnico en sitio.  </li>
+<li>Lanzar 20 SKUs: empezar con 4–6 packs claros.</li>
+</ul>
+</body>
+</html>
