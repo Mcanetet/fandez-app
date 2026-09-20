@@ -158,7 +158,7 @@
               return svc ? svc.name : id;
             });
           %>
-            <div class="tech-list-card rounded-xl zilo-card-premium border border-zilo-border/70" data-tech-id="<%= t.id %>" data-tech-name="<%= t.name %>" data-tech-phone="<%= t.phone || '' %>" data-tech-email="<%= t.email %>" data-tech-specialties="<%= (t.specialties || []).join(',') %>" data-self="<%= t.isSelfOperator ? '1' : '0' %>">
+            <div class="tech-list-card rounded-xl zilo-card-premium border border-zilo-border/70" data-tech-id="<%= t.id %>" data-tech-name="<%= t.name %>" data-tech-phone="<%= t.phone || '' %>" data-tech-email="<%= t.email %>" data-tech-specialties="<%= (t.specialties || []).join(',') %>" data-self="<%= t.isSelfOperator ? '1' : '0' %>" data-doc-front="<%= t.docs && t.docs.idCardFront ? '1' : '0' %>" data-doc-back="<%= t.docs && t.docs.idCardBack ? '1' : '0' %>" data-doc-criminal="<%= t.docs && t.docs.criminalRecord ? '1' : '0' %>">
               <div class="tech-list-card__head">
                 <div class="flex items-center gap-3 min-w-0">
                   <div class="w-10 h-10 rounded-xl bg-zilo-accent/15 border border-zilo-accent/25 flex items-center justify-center text-xs font-semibold text-zilo-accent shrink-0" data-role="tech-avatar"><%= t.avatar %></div>
@@ -171,12 +171,12 @@
                       <span class="text-[10px] <%= t.emailVerified ? 'text-zilo-success' : 'text-amber-600' %> block">
                         <%= t.emailVerified ? 'Email verificado' : 'Email pendiente' %>
                       </span>
-                      <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %> block">
+                      <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %> block" data-role="tech-dossier">
                         <%= t.dossierCheck.ok
                           ? 'Expediente completo · listo para pedidos'
                           : ('Expediente incompleto' + (t.dossierCheck.missing && t.dossierCheck.missing.length
                             ? (': ' + t.dossierCheck.missing.join(', '))
-                            : ' — sube docs en Expediente')) %>
+                            : ' — sube docs en Editar')) %>
                       </span>
                     <% } else { %>
                       <span class="text-[10px] text-zilo-success block">Tú · cuenta de socio</span>
@@ -291,14 +291,14 @@
         </div>
         <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary" <%= companyServices.length ? '' : 'disabled' %>>Crear técnico</button>
       </form>
-      <p class="text-[11px] text-zilo-muted mt-3">Comparte con el técnico el correo y la contraseña. Completa su expediente (foto, carnet, antecedentes y estudios) para poder delegarle pedidos.</p>
+      <p class="text-[11px] text-zilo-muted mt-3">Comparte con el técnico el correo y la contraseña. Él sube el carnet; tú el certificado de antecedentes (en Editar o Expediente).</p>
     </section>
     </div>
   </main>
 </div>
 
 <div id="techEditModal" class="hidden fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-4 bg-black/50">
-  <div class="w-full max-w-md rounded-2xl bg-zilo-surface border border-zilo-border p-5 shadow-xl">
+  <div class="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl bg-zilo-surface border border-zilo-border p-5 shadow-xl">
     <div class="flex items-center justify-between mb-3">
       <h3 class="font-semibold text-sm">Editar técnico</h3>
       <button type="button" id="techEditClose" class="text-zilo-muted text-sm">Cerrar</button>
@@ -335,10 +335,41 @@
         <% } %>
       </div>
       <p class="text-[11px] text-zilo-muted">El correo no se cambia aquí.</p>
+      <div id="techEditDocs" class="space-y-3 pt-2 border-t border-zilo-border">
+        <p class="text-xs font-semibold">Documentos para validar</p>
+        <p class="text-[10px] text-zilo-muted">El técnico sube el carnet. Tú subes el certificado de antecedentes. Ambos se pueden ver y reemplazar aquí.</p>
+        <div class="space-y-2" data-doc-block="idCardFront">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs">Carnet — frente</span>
+            <a id="techEditDocFrontLink" href="#" target="_blank" rel="noopener" class="text-[10px] text-zilo-accent font-semibold hidden">Ver</a>
+            <span id="techEditDocFrontPending" class="text-[10px] text-amber-600">Pendiente</span>
+          </div>
+          <input type="file" id="techEditDocFront" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" class="block w-full text-xs">
+          <button type="button" data-edit-doc="idCardFront" class="w-full zilo-btn-ghost !py-2 !text-xs">Subir / reemplazar frente</button>
+        </div>
+        <div class="space-y-2" data-doc-block="idCardBack">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs">Carnet — reverso</span>
+            <a id="techEditDocBackLink" href="#" target="_blank" rel="noopener" class="text-[10px] text-zilo-accent font-semibold hidden">Ver</a>
+            <span id="techEditDocBackPending" class="text-[10px] text-amber-600">Pendiente</span>
+          </div>
+          <input type="file" id="techEditDocBack" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" class="block w-full text-xs">
+          <button type="button" data-edit-doc="idCardBack" class="w-full zilo-btn-ghost !py-2 !text-xs">Subir / reemplazar reverso</button>
+        </div>
+        <div class="space-y-2" data-doc-block="criminalRecord">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs">Certificado de antecedentes <span class="text-zilo-muted">(lo sube el socio)</span></span>
+            <a id="techEditDocCriminalLink" href="#" target="_blank" rel="noopener" class="text-[10px] text-zilo-accent font-semibold hidden">Ver</a>
+            <span id="techEditDocCriminalPending" class="text-[10px] text-amber-600">Pendiente</span>
+          </div>
+          <input type="file" id="techEditDocCriminal" accept="image/jpeg,image/png,image/webp,application/pdf" class="block w-full text-xs">
+          <button type="button" data-edit-doc="criminalRecord" class="w-full zilo-btn-ghost !py-2 !text-xs">Subir / reemplazar antecedentes</button>
+        </div>
+      </div>
       <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary">Guardar cambios</button>
     </form>
   </div>
 </div>
 
 <%- include('../partials/nav-provider', { navActive: 'equipo' }) %>
-<%- include('../partials/footer', { pageScript: '/js/equipo.js' }) %>
+<%- include('../partials/footer', { pageScript: '/js/equipo.js', extraScripts: ['/js/image-upload.js'] }) %>

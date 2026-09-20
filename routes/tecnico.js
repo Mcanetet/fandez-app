@@ -134,6 +134,7 @@ router.get('/', requireRole('tecnico'), (req, res) => {
     user: req.session.user,
     tecnico,
     socio,
+    dossierCheck: store.canTechnicianOperate(tecnico),
     jobs,
     agenda,
     completedJobs,
@@ -207,7 +208,7 @@ router.post('/toggle-online', requireRole('tecnico'), (req, res) => {
     const check = store.canTechnicianOperate(store.getUserById(req.session.user.id));
     return res.status(400).json({
       success: false,
-      error: `Tu expediente está incompleto: ${check.missing.join(', ')}. Pide al socio que cargue los documentos.`
+      error: `Tu expediente está incompleto: ${check.missing.join(', ')}. Sube tu carnet aquí; el socio debe cargar el certificado de antecedentes.`
     });
   }
 
@@ -217,6 +218,26 @@ router.post('/toggle-online', requireRole('tecnico'), (req, res) => {
   }
 
   res.json({ success: true, online, synced });
+});
+
+router.post('/documentos', requireRole('tecnico'), (req, res) => {
+  const type = String(req.body.type || '');
+  if (!['idCardFront', 'idCardBack'].includes(type) || !req.body.data) {
+    return res.status(400).json({
+      success: false,
+      error: 'Solo puedes subir el carnet (frente y reverso).'
+    });
+  }
+  try {
+    const { saveTechnicianDocumentFile } = require('../lib/uploads');
+    const url = saveTechnicianDocumentFile(req.session.user.id, type, req.body.data);
+    const result = store.saveTechnicianOwnDocument(req.session.user.id, type, url);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
+    store.logSecurityEvent('tecnico_carnet', `${req.session.user.id}:${type}`, req);
+    res.json({ success: true, check: result.check });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message || 'No se pudo guardar.' });
+  }
 });
 
 router.post('/accept/:requestId', requireRole('tecnico'), (req, res) => {

@@ -3745,12 +3745,12 @@ function ensureTechnicianDossier(tecnico) {
   const dossier = tecnico.verification;
   if (!Array.isArray(dossier.studyCertificates)) dossier.studyCertificates = [];
   if (!Array.isArray(dossier.otherCertificates)) dossier.otherCertificates = [];
+  // Validación operativa: carnet (frente+reverso) + antecedentes.
+  // Foto / estudios quedan opcionales.
   const complete = Boolean(
-    dossier.photo &&
     dossier.idCardFront &&
     dossier.idCardBack &&
-    dossier.criminalRecord &&
-    dossier.studyCertificates.length
+    dossier.criminalRecord
   );
   dossier.status = complete ? 'complete' : 'incomplete';
   return dossier;
@@ -3772,11 +3772,9 @@ function canTechnicianOperate(tecnico) {
   }
   const dossier = ensureTechnicianDossier(tecnico);
   const missing = [];
-  if (!dossier.photo) missing.push('foto');
-  if (!dossier.idCardFront) missing.push('carnet frontal');
-  if (!dossier.idCardBack) missing.push('carnet reverso');
+  if (!dossier.idCardFront) missing.push('carnet (frente)');
+  if (!dossier.idCardBack) missing.push('carnet (reverso)');
   if (!dossier.criminalRecord) missing.push('certificado de antecedentes');
-  if (!dossier.studyCertificates.length) missing.push('certificado de estudios');
   if (tecnico.active === false) missing.push('cuenta activa');
   return { ok: missing.length === 0, missing, status: dossier.status };
 }
@@ -3898,6 +3896,25 @@ function saveTechnicianDocument(socioId, tecnicoId, type, url, label) {
   dossier.updatedAt = new Date().toISOString();
   ensureTechnicianDossier(tecnico);
   repository.persist(() => repository.saveUser(tecnico), `expediente técnico ${tecnicoId}`);
+  return { success: true, verification: dossier, check: canTechnicianOperate(tecnico) };
+}
+
+/** El técnico solo puede cargar su carnet (frente/reverso). Antecedentes los sube el socio. */
+function saveTechnicianOwnDocument(tecnicoId, type, url) {
+  const tecnico = getUserById(tecnicoId);
+  if (!tecnico || tecnico.role !== 'tecnico') return { error: 'Técnico no encontrado.' };
+  if (tecnico.isSelfOperator) {
+    return { error: 'Como socio-operador usas tus documentos de socio; no hace falta subir carnet aquí.' };
+  }
+  if (!['idCardFront', 'idCardBack'].includes(type)) {
+    return { error: 'Solo puedes subir el carnet (frente y reverso). El certificado de antecedentes lo carga tu socio.' };
+  }
+  if (!url) return { error: 'Archivo inválido.' };
+  const dossier = ensureTechnicianDossier(tecnico);
+  dossier[type] = url;
+  dossier.updatedAt = new Date().toISOString();
+  ensureTechnicianDossier(tecnico);
+  repository.persist(() => repository.saveUser(tecnico), `carnet técnico ${tecnicoId}`);
   return { success: true, verification: dossier, check: canTechnicianOperate(tecnico) };
 }
 
@@ -8278,6 +8295,7 @@ module.exports = {
   setTechnicianCanClaimWall,
   canTechnicianOperate,
   saveTechnicianDocument,
+  saveTechnicianOwnDocument,
   getReadyTechniciansForService,
   hasTechnicianCoverage,
   getProviderServicesStatus,

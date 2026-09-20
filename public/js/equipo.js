@@ -190,6 +190,112 @@
     if (ev.target === editModal) closeEditModal();
   });
 
+  function setDocLink(linkEl, pendingEl, techId, kind, hasDoc) {
+    if (!linkEl || !pendingEl) return;
+    if (hasDoc) {
+      linkEl.href = `/media/technician/${encodeURIComponent(techId)}/doc/${encodeURIComponent(kind)}`;
+      linkEl.classList.remove('hidden');
+      pendingEl.classList.add('hidden');
+    } else {
+      linkEl.classList.add('hidden');
+      pendingEl.classList.remove('hidden');
+    }
+  }
+
+  function syncEditDocs(card) {
+    const id = card?.dataset.techId || '';
+    const docsBlock = document.getElementById('techEditDocs');
+    if (!docsBlock) return;
+    const isSelf = card?.dataset.self === '1';
+    docsBlock.classList.toggle('hidden', isSelf);
+    if (isSelf) return;
+    setDocLink(
+      document.getElementById('techEditDocFrontLink'),
+      document.getElementById('techEditDocFrontPending'),
+      id,
+      'idCardFront',
+      card.dataset.docFront === '1'
+    );
+    setDocLink(
+      document.getElementById('techEditDocBackLink'),
+      document.getElementById('techEditDocBackPending'),
+      id,
+      'idCardBack',
+      card.dataset.docBack === '1'
+    );
+    setDocLink(
+      document.getElementById('techEditDocCriminalLink'),
+      document.getElementById('techEditDocCriminalPending'),
+      id,
+      'criminalRecord',
+      card.dataset.docCriminal === '1'
+    );
+    ['techEditDocFront', 'techEditDocBack', 'techEditDocCriminal'].forEach((fid) => {
+      const el = document.getElementById(fid);
+      if (el) el.value = '';
+    });
+  }
+
+  async function fileToDataUrl(input) {
+    const file = input?.files?.[0];
+    if (!file) throw new Error('Selecciona un archivo');
+    if (window.FandezUpload?.prepareUploadFile) {
+      return window.FandezUpload.prepareUploadFile(file);
+    }
+    if (file.size > 5 * 1024 * 1024) throw new Error('El archivo supera 5 MB');
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const editDocInputs = {
+    idCardFront: 'techEditDocFront',
+    idCardBack: 'techEditDocBack',
+    criminalRecord: 'techEditDocCriminal'
+  };
+
+  document.querySelectorAll('[data-edit-doc]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const type = button.dataset.editDoc;
+      const id = editId?.value;
+      const input = document.getElementById(editDocInputs[type]);
+      if (!id || !input) return;
+      button.disabled = true;
+      try {
+        const data = await fileToDataUrl(input);
+        const res = await fetch(`/proveedor/equipo/${id}/expediente/documento`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ type, data })
+        });
+        const result = await res.json();
+        if (!res.ok || !result.success) throw new Error(result.error || 'No se pudo guardar');
+        const card = document.querySelector(`[data-tech-id="${CSS.escape(id)}"]`);
+        if (card) {
+          if (type === 'idCardFront') card.dataset.docFront = '1';
+          if (type === 'idCardBack') card.dataset.docBack = '1';
+          if (type === 'criminalRecord') card.dataset.docCriminal = '1';
+          syncEditDocs(card);
+          const statusEl = card.querySelector('[data-role="tech-dossier"]');
+          if (statusEl && result.check) {
+            statusEl.className = `text-[10px] ${result.check.ok ? 'text-zilo-success' : 'text-amber-600'} block`;
+            statusEl.textContent = result.check.ok
+              ? 'Expediente completo · listo para pedidos'
+              : (`Expediente incompleto${result.check.missing?.length ? ': ' + result.check.missing.join(', ') : ''}`);
+          }
+        }
+        notify('Documento guardado', 'success');
+      } catch (err) {
+        notify(err.message || 'No se pudo subir', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
   document.querySelectorAll('.tech-edit-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const card = btn.closest('[data-tech-id]');
@@ -199,6 +305,7 @@
       editPhone.value = card.dataset.techPhone || '';
       if (editPassword) editPassword.value = '';
       syncEditSpecialties(card.dataset.techSpecialties || '');
+      syncEditDocs(card);
       editModal.classList.remove('hidden');
     });
   });

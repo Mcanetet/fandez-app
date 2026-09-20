@@ -649,4 +649,42 @@
   } else {
     window.addEventListener('fandez:resume', () => resumeTecnicoSession());
   }
+
+  async function fileToDataUrl(input) {
+    const file = input?.files?.[0];
+    if (!file) throw new Error('Selecciona un archivo');
+    if (window.FandezUpload?.prepareUploadFile) {
+      return window.FandezUpload.prepareUploadFile(file);
+    }
+    if (file.size > 5 * 1024 * 1024) throw new Error('El archivo supera 5 MB');
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.querySelectorAll('[data-tech-doc]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const type = button.dataset.techDoc;
+      const input = document.getElementById(type === 'idCardFront' ? 'techDocFront' : 'techDocBack');
+      button.disabled = true;
+      try {
+        const data = await fileToDataUrl(input);
+        const res = await fetch('/tecnico/documentos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ type, data })
+        });
+        const result = await res.json();
+        if (!res.ok || !result.success) throw new Error(result.error || 'No se pudo guardar');
+        notify('Carnet guardado', 'success');
+        setTimeout(() => location.reload(), 500);
+      } catch (err) {
+        button.disabled = false;
+        notify(err.message || 'No se pudo subir', 'error');
+      }
+    });
+  });
 })();

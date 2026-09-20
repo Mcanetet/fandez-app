@@ -211,6 +211,40 @@ function sendTechnicianPhoto(req, res) {
 
 router.get('/media/technician/:technicianId/photo', sendTechnicianPhoto);
 
+function canViewTechnicianPrivateDoc(user, technician) {
+  if (!user || !technician) return false;
+  if (user.role === 'admin') return true;
+  if (user.id === technician.id) return true;
+  if (user.role === 'provider') {
+    return Boolean(store.getTechnicianForProvider?.(user.id, technician.id));
+  }
+  return false;
+}
+
+function sendTechnicianDoc(req, res) {
+  const user = req.session && req.session.user;
+  if (!user) return res.status(401).end();
+  const technicianId = String(req.params.technicianId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const kind = String(req.params.kind || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const allowed = new Set(['idCardFront', 'idCardBack', 'criminalRecord', 'photo']);
+  if (!technicianId || !allowed.has(kind)) return res.status(400).end();
+  const technician = store.getUserById?.(technicianId);
+  if (!technician || technician.role !== 'tecnico') return res.status(404).end();
+  if (!canViewTechnicianPrivateDoc(user, technician)) return res.status(404).end();
+
+  const dossier = technician.verification || {};
+  let stored = dossier[kind] || null;
+  if (kind === 'photo') stored = dossier.photo || dossier.selfie || null;
+  // Placeholder de self-operator no es un archivo real
+  if (!stored || stored === 'self-operator-via-provider' || stored === 'self-operator') {
+    return res.status(404).end();
+  }
+  const abs = resolveTechnicianPhotoPath(stored);
+  return sendResolvedPhoto(res, abs);
+}
+
+router.get('/media/technician/:technicianId/doc/:kind', sendTechnicianDoc);
+
 function canViewProviderDoc(user, providerId) {
   if (!user || !providerId) return false;
   if (user.role === 'admin') return true;

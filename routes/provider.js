@@ -89,16 +89,24 @@ function equipoViewLocals(req, provider, extra = {}) {
     title: 'Mi equipo — Fandez',
     user: req.session.user,
     provider,
-    technicians: store.getTechniciansByProvider(provider.id).map((tecnico) => ({
-      ...tecnico,
-      // Self-op usa correo interno; al socio le mostramos el suyo.
-      displayEmail: tecnico.isSelfOperator ? provider.email : tecnico.email,
-      emailVerified: tecnico.isSelfOperator
-        ? store.isEmailVerified(provider)
-        : store.isEmailVerified(tecnico),
-      dossierCheck: store.canTechnicianOperate(tecnico),
-      canClaimWall: store.technicianCanClaimWallForProvider(tecnico, provider.id)
-    })),
+    technicians: store.getTechniciansByProvider(provider.id).map((tecnico) => {
+      const v = tecnico.verification || {};
+      const hasDoc = (val) => Boolean(val && val !== 'self-operator-via-provider' && val !== 'self-operator');
+      return {
+        ...tecnico,
+        displayEmail: tecnico.isSelfOperator ? provider.email : tecnico.email,
+        emailVerified: tecnico.isSelfOperator
+          ? store.isEmailVerified(provider)
+          : store.isEmailVerified(tecnico),
+        dossierCheck: store.canTechnicianOperate(tecnico),
+        canClaimWall: store.technicianCanClaimWallForProvider(tecnico, provider.id),
+        docs: {
+          idCardFront: hasDoc(v.idCardFront),
+          idCardBack: hasDoc(v.idCardBack),
+          criminalRecord: hasDoc(v.criminalRecord)
+        }
+      };
+    }),
     selfOperator: store.getSelfOperator(provider.id),
     // Se puede agregar como técnico con servicios activos; pedidos exigen KYC+contrato.
     canEnableSelf: hasServices,

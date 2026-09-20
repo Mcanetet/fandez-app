@@ -49,6 +49,50 @@
       </div>
     <% } %>
 
+    <% if (!tecnico.isSelfOperator) { %>
+      <% const v = tecnico.verification || {}; %>
+      <% const check = typeof dossierCheck !== 'undefined' ? dossierCheck : { ok: false, missing: [] }; %>
+      <section class="zilo-card-premium rounded-2xl p-4 space-y-3" id="techDocsSection"
+        data-has-front="<%= v.idCardFront ? '1' : '0' %>"
+        data-has-back="<%= v.idCardBack ? '1' : '0' %>">
+        <div>
+          <p class="zilo-label mb-0.5">Tu carnet</p>
+          <p class="text-xs text-zilo-muted">Solo subes el carnet (frente y reverso). El certificado de antecedentes lo carga tu socio.</p>
+        </div>
+        <% if (check.ok) { %>
+          <p class="text-xs text-zilo-success font-medium">Expediente listo para trabajar</p>
+        <% } else { %>
+          <p class="text-xs text-amber-800">Falta: <%= (check.missing || []).join(', ') || 'documentos' %>.</p>
+        <% } %>
+        <div class="grid grid-cols-1 gap-3">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <label class="text-xs font-medium">Carnet — frente</label>
+              <% if (v.idCardFront) { %>
+                <a href="/media/technician/<%= tecnico.id %>/doc/idCardFront" target="_blank" rel="noopener" class="text-[10px] text-zilo-accent font-semibold">Ver</a>
+              <% } else { %>
+                <span class="text-[10px] text-amber-600">Pendiente</span>
+              <% } %>
+            </div>
+            <input type="file" id="techDocFront" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" class="block w-full text-xs">
+            <button type="button" data-tech-doc="idCardFront" class="mt-2 w-full zilo-btn-ghost !py-2 !text-xs">Subir frente</button>
+          </div>
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <label class="text-xs font-medium">Carnet — reverso</label>
+              <% if (v.idCardBack) { %>
+                <a href="/media/technician/<%= tecnico.id %>/doc/idCardBack" target="_blank" rel="noopener" class="text-[10px] text-zilo-accent font-semibold">Ver</a>
+              <% } else { %>
+                <span class="text-[10px] text-amber-600">Pendiente</span>
+              <% } %>
+            </div>
+            <input type="file" id="techDocBack" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" class="block w-full text-xs">
+            <button type="button" data-tech-doc="idCardBack" class="mt-2 w-full zilo-btn-ghost !py-2 !text-xs">Subir reverso</button>
+          </div>
+        </div>
+      </section>
+    <% } %>
+
     <% if (showWall) { %>
     <details class="zilo-card-premium rounded-2xl overflow-hidden group" id="sectionWall" data-tour="tech-wall" <%= tecnico.online ? 'open' : '' %>>
       <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
@@ -223,7 +267,7 @@
 
 <%- include('../partials/onboarding-tour') %>
 
-<%- include('../partials/footer', { pageScript: '/js/tecnico.js' }) %>
+<%- include('../partials/footer', { pageScript: '/js/tecnico.js', extraScripts: ['/js/image-upload.js'] }) %>
 <script src="/js/guide.js"></script>
 <script src="/js/map.js"></script>
 <% if (typeof linkedProvider !== 'undefined' && linkedProvider) { %>
