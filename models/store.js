@@ -2759,7 +2759,16 @@ function setLocationConsent(providerId, consent) {
 
 function updateProviderLocation(providerId, lat, lng) {
   const provider = getUserById(providerId);
-  if (!provider || !provider.locationShare?.consent) return null;
+  if (!provider) return null;
+  ensureProviderFields(provider);
+  // Si está en línea / operativo, asumir consentimiento de ubicación operativa.
+  if (!provider.locationShare.consent) {
+    if (!provider.online && !getContractSummary(provider.providerContract)?.canOperate) {
+      return null;
+    }
+    provider.locationShare.consent = true;
+    provider.locationShare.consentAt = new Date().toISOString();
+  }
   provider.locationShare.lat = parseFloat(lat);
   provider.locationShare.lng = parseFloat(lng);
   provider.locationShare.updatedAt = new Date().toISOString();
