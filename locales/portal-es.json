@@ -1,7 +1,7 @@
 {
   "status.request.pending_payment": "Pago pendiente",
   "status.request.pending": "Pago pendiente",
-  "status.request.pending_transfer": "Transferencia pendiente",
+  "status.request.pending_transfer": "Confirmando transferencia · buscando socio",
   "status.request.scheduled": "Visita programada",
   "status.request.searching": "Buscando técnico",
   "status.request.assigned": "Técnico asignado",

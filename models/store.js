@@ -1106,6 +1106,23 @@ function approveTransferPayment(requestId) {
   return request;
 }
 
+/**
+ * Desbloquea transferencias pendientes cuando la política permite auto-aprobar.
+ * Se llama al abrir el panel del cliente o el muro del socio.
+ */
+function recoverAutoApprovedTransfers({ clientId = null } = {}) {
+  const { shouldAutoApproveClientTransfer } = require('../lib/transferPolicy');
+  if (!shouldAutoApproveClientTransfer()) return [];
+  const activated = [];
+  for (const request of requests) {
+    if (normalizePaymentStatus(request.paymentStatus) !== 'pending_transfer') continue;
+    if (clientId && request.clientId !== clientId) continue;
+    const approved = approveTransferPayment(request.id);
+    if (approved) activated.push(approved);
+  }
+  return activated;
+}
+
 function commitCheckoutDiscounts(userId, requestId) {
   const user = getUserById(userId);
   const request = requests.find(r => r.id === requestId && r.clientId === userId);
@@ -1729,6 +1746,7 @@ function previewCancellationFee(requestId, clientId) {
 
 /** Solicitudes que el cliente debe atender (banner + push del sistema). */
 function getClientAttentionItems(clientId, now = Date.now()) {
+  recoverAutoApprovedTransfers({ clientId });
   const items = [];
   for (const request of requests) {
     if (request.clientId !== clientId) continue;
@@ -1741,6 +1759,21 @@ function getClientAttentionItems(clientId, now = Date.now()) {
         title: 'Completa tu pago',
         body: `Tu pedido de ${request.serviceName} quedó guardado. Puedes editarlo o continuar al pago.`,
         url: `/cliente/servicio/${request.serviceId}?resume=${request.id}`
+      });
+      continue;
+    }
+
+    if (
+      request.status === 'pending_payment'
+      && normalizePaymentStatus(request.paymentStatus) === 'pending_transfer'
+    ) {
+      items.push({
+        requestId: request.id,
+        type: 'transfer_pending',
+        urgency: 'high',
+        title: 'Transferencia en revisión',
+        body: `Estamos confirmando tu transferencia de ${request.serviceName}. En unos segundos inicia la búsqueda.`,
+        url: `/pagos/transferencia?ref=${request.id}`
       });
       continue;
     }
@@ -4583,6 +4616,7 @@ function getOnlineTechnicians(serviceId) {
 }
 
 function getWorkWallItems(userId) {
+  recoverAutoApprovedTransfers();
   promoteDueScheduledSearches();
   const user = getUserById(userId);
   if (!user || !['provider', 'tecnico'].includes(user.role)) return [];
@@ -6719,6 +6753,12 @@ const REQUEST_STATUS_LABELS = {
 
 function getRequestStatusLabel(request, locale = 'es') {
   if (!request) return '—';
+  if (
+    request.status === 'pending_payment'
+    && normalizePaymentStatus(request.paymentStatus) === 'pending_transfer'
+  ) {
+    return translate(locale, 'status.request.pending_transfer');
+  }
   if (request.techStatus === 'en_camino') return translate(locale, 'status.tech.en_camino');
   if (request.techStatus === 'en_sitio' || request.techStatus === 'diagnostico') {
     return translate(locale, 'status.tech.en_sitio');
@@ -6806,11 +6846,23 @@ function enrichRequestForClient(request, locale = 'es') {
 }
 
 function getActiveRequestsForClient(clientId, locale = 'es') {
+  recoverAutoApprovedTransfers({ clientId });
   return requests
-    .filter(r => r.clientId === clientId && ['scheduled', 'searching', 'assigned', 'in_progress'].includes(r.status))
+    .filter((r) => {
+      if (r.clientId !== clientId) return false;
+      if (['scheduled', 'searching', 'assigned', 'in_progress'].includes(r.status)) return true;
+      // Transferencia confirmada pero aún no promovida a searching (o esperando admin).
+      if (
+        r.status === 'pending_payment'
+        && ['pending_transfer', 'approved'].includes(normalizePaymentStatus(r.paymentStatus))
+      ) {
+        return true;
+      }
+      return false;
+    })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 5)
-    .map(r => enrichRequestForClient(r, locale));
+    .map((r) => enrichRequestForClient(r, locale));
 }
 
 function getLastCompletedRequest(clientId, locale = 'es') {
@@ -8496,6 +8548,7 @@ module.exports = {
   setRequestBillingSnapshot,
   submitTransferPayment,
   approveTransferPayment,
+  recoverAutoApprovedTransfers,
   getReferralStats,
   applyReferralCode,
   enableClientPortal,

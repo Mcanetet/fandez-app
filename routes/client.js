@@ -232,6 +232,14 @@ router.get('/', requireRole('client'), (req, res) => {
   const referralBonus = req.session.referralBonus;
   if (referralBonus) delete req.session.referralBonus;
   const timeoutMinutes = noProviderTimeoutMinutes();
+  if (typeof store.recoverAutoApprovedTransfers === 'function') {
+    const recovered = store.recoverAutoApprovedTransfers({ clientId: req.session.user.id });
+    const io = req.app.get('io');
+    if (io && recovered.length) {
+      const { notifyProvidersForRequest } = require('../lib/dispatch');
+      recovered.forEach((request) => notifyProvidersForRequest(io, request));
+    }
+  }
   if (typeof store.promoteDueScheduledSearches === 'function') {
     store.promoteDueScheduledSearches();
   }

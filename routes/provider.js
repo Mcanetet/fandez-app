@@ -195,11 +195,17 @@ router.get('/pendientes', requireRole('provider'), (req, res) => {
 });
 
 router.get('/muro', requireRole('provider'), (req, res) => {
+  const io = req.app.get('io');
+  const { notifyProvidersForRequest } = require('../lib/dispatch');
+  if (typeof store.recoverAutoApprovedTransfers === 'function') {
+    const recovered = store.recoverAutoApprovedTransfers();
+    if (io && recovered.length) {
+      recovered.forEach((request) => notifyProvidersForRequest(io, request));
+    }
+  }
   if (typeof store.promoteDueScheduledSearches === 'function') {
     const promoted = store.promoteDueScheduledSearches();
-    const io = req.app.get('io');
     if (io && promoted.length) {
-      const { notifyProvidersForRequest } = require('../lib/dispatch');
       promoted.forEach((request) => notifyProvidersForRequest(io, request));
     }
   }

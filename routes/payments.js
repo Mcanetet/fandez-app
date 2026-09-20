@@ -32,15 +32,7 @@ function paymentSuccessPath(requestId, { auto = true, chargeId } = {}) {
  * En producción con abono bancario real se puede exigir OK admin con
  * REQUIRE_TRANSFER_ADMIN_APPROVAL=true.
  */
-function shouldAutoApproveClientTransfer() {
-  const requireAdmin = String(process.env.REQUIRE_TRANSFER_ADMIN_APPROVAL || '').trim().toLowerCase();
-  if (requireAdmin === '1' || requireAdmin === 'true' || requireAdmin === 'yes') return false;
-  const forceAuto = String(process.env.AUTO_APPROVE_TRANSFERS || '').trim().toLowerCase();
-  if (forceAuto === '1' || forceAuto === 'true' || forceAuto === 'yes') return true;
-  if (forceAuto === '0' || forceAuto === 'false' || forceAuto === 'no') return false;
-  // Por defecto: activar al confirmar el cliente (demo y lanzamiento con transferencia).
-  return true;
-}
+const { shouldAutoApproveClientTransfer } = require('../lib/transferPolicy');
 
 function activateTransferAndNotify(req, requestId) {
   const approved = store.approveTransferPayment(requestId);
