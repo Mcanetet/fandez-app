@@ -45,6 +45,13 @@
           <% if (incList.length) { %> · Incluye: <%= incList.join(', ') %><% } %>
         </p>
       <% } %>
+      <% if (request.cleaningFactors) { %>
+        <p class="text-xs text-zilo-muted mt-1 leading-relaxed">
+          Materiales incluidos
+          <% if (request.cleaningFactors.hasPets) { %> · Mascotas (+15%)<% } %>
+          <% if (request.cleaningFactors.postEvent) { %> · Post evento (+15%)<% } %>
+        </p>
+      <% } %>
       <% if (request.urgencyTierLabel) {
         const arrival = (typeof summary !== 'undefined' && summary.arrivalDisplay)
           || { urgent: request.urgencyTier === 'immediate' || request.urgencyTier === 'critical', prefix: (request.urgencyTier === 'immediate' || request.urgencyTier === 'critical') ? 'Urgencia' : 'Llegada', label: request.urgencyTierLabel };

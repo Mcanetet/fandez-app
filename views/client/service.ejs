@@ -1,8 +1,9 @@
 <%- include('../partials/head', { useMap: true }) %>
 
-<% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria']; %>
+<% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria', 'limpieza']; %>
 <% const brandOptional = brandOptionalServices.indexOf(String(service.id || '').toLowerCase()) !== -1; %>
-<% const perM2 = String(service.id || '') === 'jardineria' || service.pricingUnit === 'm2'; %>
+<% const perM2 = String(service.id || '') === 'jardineria' || String(service.id || '') === 'limpieza' || service.pricingUnit === 'm2'; %>
+<% const isCleaning = String(service.id || '') === 'limpieza'; %>
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="servicePage"
   data-service-id="<%= service.id %>"
   data-service-name="<%= service.name %>"
@@ -10,6 +11,8 @@
   data-visit-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
   data-from-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
   data-pricing-unit="<%= perM2 ? 'm2' : 'job' %>"
+  data-cleaning="<%= isCleaning ? '1' : '0' %>"
+  data-min-m2="<%= isCleaning ? 20 : 10 %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
   data-resume-id="<%= typeof checkoutDraft !== 'undefined' && checkoutDraft ? checkoutDraft.id : '' %>"
   data-whatsapp="<%= company.whatsapp %>"
@@ -210,8 +213,8 @@
                 : (act.pricingUnit === 'm2' ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m²') : formatCLP(act.basePrice)) %>
             </option>
           <% }); %>
-          <option value="otro" data-base="<%= perM2 ? 5500 : 100000 %>" data-unit="<%= perM2 ? 'm2' : 'job' %>" data-per-m2="<%= perM2 ? 5500 : '' %>" data-min-m2="15">
-            <%= perM2 ? 'Otro — describir (desde $5.500 / m²)' : 'Otro — describir (desde $100.000)' %>
+          <option value="otro" data-base="<%= isCleaning ? 1500 : (perM2 ? 5500 : 100000) %>" data-unit="<%= perM2 ? 'm2' : 'job' %>" data-per-m2="<%= isCleaning ? 1500 : (perM2 ? 5500 : '') %>" data-min-m2="<%= isCleaning ? 20 : 15 %>">
+            <%= isCleaning ? 'Otro — describir (desde $1.500 / m²)' : (perM2 ? 'Otro — describir (desde $5.500 / m²)' : 'Otro — describir (desde $100.000)') %>
           </option>
         </select>
         <p class="text-[11px] text-zilo-muted mt-1"><%= t('client.service.subservice_hint') %></p>
@@ -226,9 +229,36 @@
       <% if (perM2) { %>
       <div id="gardenAreaBlock">
         <label for="squareMeters" class="zilo-label block mb-1.5"><%= t('client.service.area_m2') %> *</label>
-        <input type="number" id="squareMeters" name="squareMeters" min="10" step="1" inputmode="numeric" required class="zilo-input" placeholder="<%= t('client.service.area_m2_ph') %>">
-        <p class="text-[11px] text-zilo-muted mt-1" id="gardenAreaHint"><%= t('client.service.area_m2_hint') %></p>
+        <input type="number" id="squareMeters" name="squareMeters" min="<%= isCleaning ? 20 : 10 %>" step="1" inputmode="numeric" required class="zilo-input" placeholder="<%= t('client.service.area_m2_ph') %>">
+        <p class="text-[11px] text-zilo-muted mt-1" id="gardenAreaHint">
+          <%= isCleaning
+            ? 'Indica los m² a limpiar (mín. 20). Precio base $1.500 / m². Llevamos los materiales.'
+            : t('client.service.area_m2_hint') %>
+        </p>
       </div>
+
+      <% if (isCleaning) { %>
+      <div id="cleaningFactors" class="space-y-3 p-4 rounded-2xl border border-sky-200/80 bg-sky-50/50">
+        <div>
+          <p class="zilo-label mb-1">Condiciones del servicio</p>
+          <p class="text-[11px] text-zilo-muted">Cada opción suma +15% al total. Los materiales van incluidos.</p>
+        </div>
+        <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+          <input type="checkbox" id="cleaningHasPets" class="mt-0.5 accent-[#14B8A6] shrink-0">
+          <span class="min-w-0">
+            <span class="text-sm font-medium block">Mascotas dentro de la casa</span>
+            <span class="text-[11px] text-zilo-muted">+15% por pelo, olores y cuidado extra</span>
+          </span>
+        </label>
+        <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+          <input type="checkbox" id="cleaningPostEvent" class="mt-0.5 accent-[#14B8A6] shrink-0">
+          <span class="min-w-0">
+            <span class="text-sm font-medium block">Post evento / post fiesta</span>
+            <span class="text-[11px] text-zilo-muted">+15% por suciedad extra tras reunión o celebración</span>
+          </span>
+        </label>
+      </div>
+      <% } %>
 
       <div id="landscapeFactors" class="hidden space-y-3 p-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/40">
         <div>

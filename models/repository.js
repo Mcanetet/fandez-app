@@ -22,6 +22,7 @@ const SEED_SERVICES = [
   { id: 'generadores', name: 'Generadores', icon: 'generadores', color: '#6366F1', visitPrice: 140000, basicMin: 140000, basicMax: 250000, description: 'Mantención preventiva, pruebas de carga, transferencia y reparación de grupos electrógenos.', enabled: true },
   { id: 'pintura', name: 'Pintura', icon: 'pintura', color: '#C45C14', visitPrice: 100000, basicMin: 100000, basicMax: 220000, description: 'Pintura de interiores, muros, techos, retoques y preparación de superficies.', enabled: true },
   { id: 'jardineria', name: 'Jardinería y paisajismo', icon: 'jardineria', color: '#16A34A', visitPrice: 40000, basicMin: 40000, basicMax: 180000, description: 'Mantención por m² y proyectos de paisajismo cuantificados por factores (estándar, terreno, especies).', enabled: true },
+  { id: 'limpieza', name: 'Limpieza', icon: 'limpieza', color: '#14B8A6', visitPrice: 30000, basicMin: 30000, basicMax: 150000, description: 'Limpieza por m² ($1.500). Materiales incluidos. Adicionales +15% por mascotas o post evento.', enabled: true },
   { id: 'otros', name: 'Otros', icon: 'otros', color: '#64748B', visitPrice: 100000, basicMin: 100000, basicMax: 150000, description: 'Electrodomésticos (lavadora/lavavajillas electrónica) y oficios complementarios.', enabled: true }
 ];
 

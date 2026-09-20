@@ -483,7 +483,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   const {
     serviceId, address, notes, lat, lng, gift, clientPhoto, clientBrandPhoto,
     brandNotVisible, urgencyTier, activityId, customName, localTime, timeZone,
-    squareMeters, landscapeProject, resumeRequestId, keepClientPhoto, keepBrandPhoto
+    squareMeters, landscapeProject, cleaningFactors, resumeRequestId, keepClientPhoto, keepBrandPhoto
   } = req.body;
   const service = store.getServiceById(serviceId);
   if (!service || !service.enabled) {
@@ -508,11 +508,15 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   const hasExistingPhoto = Boolean(resumeDraft?.clientPhotoUrl);
   const hasExistingBrand = Boolean(resumeDraft?.clientBrandPhotoUrl);
 
-  if (service.id === 'jardineria' && !clientPhoto && !(keepPhoto && hasExistingPhoto)) {
-    return res.status(400).json({ error: 'Sube al menos una foto del jardín o del área a trabajar.' });
+  if ((service.id === 'jardineria' || service.id === 'limpieza') && !clientPhoto && !(keepPhoto && hasExistingPhoto)) {
+    return res.status(400).json({
+      error: service.id === 'limpieza'
+        ? 'Sube al menos una foto del espacio a limpiar.'
+        : 'Sube al menos una foto del jardín o del área a trabajar.'
+    });
   }
   if (!clientPhoto) {
-    // Foto recomendada; no bloquea la solicitud (salvo jardinería)
+    // Foto recomendada; no bloquea la solicitud (salvo jardinería / limpieza)
   }
   const skipBrand = brandNotVisible === true || brandNotVisible === 'true' || brandNotVisible === 1 || !clientBrandPhoto;
   if (!skipBrand && !clientBrandPhoto && !(keepBrand && hasExistingBrand)) {
@@ -552,6 +556,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
       timeZone,
       squareMeters,
       landscapeProject: landscapeProject && typeof landscapeProject === 'object' ? landscapeProject : null,
+      cleaningFactors: cleaningFactors && typeof cleaningFactors === 'object' ? cleaningFactors : null,
       resumeRequestId: resumeId,
       keepClientPhoto: keepPhoto && !clientPhotoUrl,
       keepBrandPhoto: keepBrand && !clientBrandPhotoUrl
@@ -571,7 +576,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   } catch (err) {
     console.error('Error creando solicitud:', err.message);
     const isCoverage = /operamos|comuna|trabajando/i.test(err.message || '');
-    const isUserError = /Describe|foto|marca|subservicio|urgencia|dirección|cobertura|Opción|Selecciona|mínimo|metros|jardín|pedido|actualizar/i.test(err.message || '');
+    const isUserError = /Describe|foto|marca|subservicio|urgencia|dirección|cobertura|Opción|Selecciona|mínimo|metros|jardín|espacio|limpi|pedido|actualizar/i.test(err.message || '');
     res.status(isCoverage || isUserError ? 400 : 500).json({
       error: (isCoverage || isUserError)
         ? (err.message || 'No se pudo crear la solicitud')

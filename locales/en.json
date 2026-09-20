@@ -686,6 +686,8 @@
   "services.pintura.desc": "Interior painting, walls, ceilings, touch-ups and surface prep.",
   "services.jardineria.name": "Gardening & landscaping",
   "services.jardineria.desc": "Upkeep per m² and landscaping projects quantified with market factors.",
+  "services.limpieza.name": "Cleaning",
+  "services.limpieza.desc": "Cleaning per m² ($1,500). Materials included. +15% for pets or post-event.",
   "services.otros.name": "Other",
   "services.otros.desc": "Appliances (washer/dishwasher electronics) and complementary trades.",
 

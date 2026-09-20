@@ -168,6 +168,14 @@
       toggleLandscapeFields();
     }
 
+    const cf = draft.cleaningFactors;
+    if (cf) {
+      const pets = document.getElementById('cleaningHasPets');
+      const post = document.getElementById('cleaningPostEvent');
+      if (pets) pets.checked = Boolean(cf.hasPets);
+      if (post) post.checked = Boolean(cf.postEvent);
+    }
+
     if (draft.notes) {
       const notesEl = document.getElementById('notes');
       if (notesEl) notesEl.value = draft.notes;
@@ -332,9 +340,29 @@
     }
   }
 
+  function isCleaningService() {
+    return page?.dataset?.cleaning === '1' || page?.dataset?.serviceId === 'limpieza';
+  }
+
+  function readCleaningFactors() {
+    return {
+      hasPets: Boolean(document.getElementById('cleaningHasPets')?.checked),
+      postEvent: Boolean(document.getElementById('cleaningPostEvent')?.checked)
+    };
+  }
+
+  function cleaningMultiplier() {
+    const f = readCleaningFactors();
+    let mult = 1;
+    if (f.hasPets) mult += 0.15;
+    if (f.postEvent) mult += 0.15;
+    return mult;
+  }
+
   function selectedActivityBase() {
     const opt = activitySelect?.selectedOptions?.[0];
     const perM2 = page?.dataset?.pricingUnit === 'm2' || opt?.dataset?.unit === 'm2';
+    const minM2 = parseInt(page?.dataset?.minM2 || '10', 10) || 10;
     if (isLandscapeSelected()) {
       const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
       const m2 = Number.isFinite(typed) && typed >= LANDSCAPE_MIN_M2 ? typed : LANDSCAPE_MIN_M2;
@@ -344,9 +372,13 @@
     if (perM2) {
       const rate = parseInt(opt?.dataset?.perM2 || opt?.dataset?.base || page?.dataset?.fromPrice, 10);
       const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
-      const m2 = Number.isFinite(typed) && typed >= 10 ? typed : 10;
-      const n = (Number.isFinite(rate) && rate > 0 ? rate : 5500) * m2;
-      return Math.max(40000, Math.round(n));
+      const m2 = Number.isFinite(typed) && typed >= minM2 ? typed : minM2;
+      const floor = isCleaningService() ? 30000 : 40000;
+      const defaultRate = isCleaningService() ? 1500 : 5500;
+      let n = (Number.isFinite(rate) && rate > 0 ? rate : defaultRate) * m2;
+      n = Math.max(floor, Math.round(n));
+      if (isCleaningService()) n = Math.round(n * cleaningMultiplier());
+      return n;
     }
     const base = opt?.dataset?.base;
     const n = base ? parseInt(base, 10) : NaN;
@@ -365,6 +397,9 @@
     .forEach((id) => {
       document.getElementById(id)?.addEventListener('change', () => updatePricePreview());
     });
+  ['cleaningHasPets', 'cleaningPostEvent'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('change', () => updatePricePreview());
+  });
   toggleClientOtherFields();
   toggleLandscapeFields();
 
@@ -2754,6 +2789,9 @@
     const gardenJob = page?.dataset?.pricingUnit === 'm2';
     const landscapeJob = gardenJob && isLandscapeSelected();
     const landscapeProject = landscapeJob ? readLandscapeProject() : null;
+    const cleaningJob = isCleaningService();
+    const cleaningFactors = cleaningJob ? readCleaningFactors() : null;
+    const minM2 = parseInt(page?.dataset?.minM2 || '10', 10) || 10;
     const squareMetersRaw = document.getElementById('squareMeters')?.value;
     const squareMeters = gardenJob ? parseFloat(squareMetersRaw) : undefined;
     if (document.getElementById('activityId') && !activityId) {
@@ -2777,8 +2815,13 @@
         document.getElementById('landscapeStandard')?.focus();
         return;
       }
-    } else if (gardenJob && (!Number.isFinite(squareMeters) || squareMeters < 10)) {
-      FandezNotify.show(t('client.js.need_m2'), 'warning');
+    } else if (gardenJob && (!Number.isFinite(squareMeters) || squareMeters < minM2)) {
+      FandezNotify.show(
+        cleaningJob
+          ? `Indica los m² a limpiar (mínimo ${minM2})`
+          : t('client.js.need_m2'),
+        'warning'
+      );
       document.getElementById('squareMeters')?.focus();
       return;
     }
@@ -2787,7 +2830,10 @@
     let brandNotVisible = Boolean(brandNotVisibleCheck?.checked) || brandOptional;
     const hasProblemPhoto = Boolean(cachedProblemPhoto || clientPhotoInput?.files?.length || resumeKeepClientPhoto);
     if (gardenJob && !hasProblemPhoto) {
-      FandezNotify.show(t('client.js.need_garden_photo'), 'warning');
+      FandezNotify.show(
+        cleaningJob ? 'Sube una foto del espacio a limpiar' : t('client.js.need_garden_photo'),
+        'warning'
+      );
       clientPhotoInput?.focus();
       return;
     }
@@ -2862,6 +2908,7 @@
           customName: activityId === 'otro' ? customName : undefined,
           squareMeters: gardenJob ? squareMeters : undefined,
           landscapeProject: landscapeJob ? landscapeProject : undefined,
+          cleaningFactors: cleaningJob ? cleaningFactors : undefined,
           localTime: clock.localTime,
           timeZone: clock.timeZone,
           resumeRequestId: resumeRequestId || undefined,

@@ -52,12 +52,18 @@ const {
   sumMaterialsPreview,
   isPerM2Service,
   isPerM2Activity,
+  isCleaningService,
   isLandscapeActivity,
   resolveM2QuoteBase,
   normalizeLandscapeFactors,
   resolveLandscapeQuoteBase,
   formatLandscapeSummary,
+  normalizeCleaningFactors,
+  applyCleaningSurcharge,
+  formatCleaningSummary,
   GARDEN_OTHER_RATE_M2,
+  CLEANING_OTHER_RATE_M2,
+  CLEANING_MIN_M2,
   LANDSCAPE_MIN_M2
 } = require('../lib/pricing');
 const {
@@ -303,6 +309,7 @@ async function createRequest({
   timeZone,
   squareMeters,
   landscapeProject,
+  cleaningFactors,
   resumeRequestId = null,
   keepClientPhoto = false,
   keepBrandPhoto = false
@@ -332,12 +339,18 @@ async function createRequest({
 
   notes = (notes || '').trim();
   const gardenJob = isPerM2Service(serviceId);
+  const cleaningJob = isCleaningService(serviceId);
+  const minM2 = cleaningJob ? CLEANING_MIN_M2 : 10;
   if (gardenJob && !clientPhotoUrl) {
-    return Promise.reject(new Error('Sube al menos una foto del área a trabajar.'));
+    return Promise.reject(new Error(
+      cleaningJob
+        ? 'Sube al menos una foto del espacio a limpiar.'
+        : 'Sube al menos una foto del área a trabajar.'
+    ));
   }
   const parsedM2 = Number(squareMeters);
-  if (gardenJob && (!Number.isFinite(parsedM2) || parsedM2 < 10)) {
-    return Promise.reject(new Error('Indica los metros cuadrados del área (mínimo 10 m²).'));
+  if (gardenJob && (!Number.isFinite(parsedM2) || parsedM2 < minM2)) {
+    return Promise.reject(new Error(`Indica los metros cuadrados del área (mínimo ${minM2} m²).`));
   }
   const noBrand = Boolean(brandNotVisible) || !clientBrandPhotoUrl;
   if (!noBrand && !clientBrandPhotoUrl) {
@@ -364,10 +377,10 @@ async function createRequest({
       id: `otro-${Date.now()}`,
       name: `Otro: ${name}`,
       kind: 'correctiva',
-      basePrice: gardenJob ? GARDEN_OTHER_RATE_M2 : MIN_WORK_BASE_CLP,
-      pricePerM2: gardenJob ? GARDEN_OTHER_RATE_M2 : null,
+      basePrice: gardenJob ? (cleaningJob ? CLEANING_OTHER_RATE_M2 : GARDEN_OTHER_RATE_M2) : MIN_WORK_BASE_CLP,
+      pricePerM2: gardenJob ? (cleaningJob ? CLEANING_OTHER_RATE_M2 : GARDEN_OTHER_RATE_M2) : null,
       pricingUnit: gardenJob ? 'm2' : 'job',
-      minM2: gardenJob ? 15 : null,
+      minM2: gardenJob ? (cleaningJob ? CLEANING_MIN_M2 : 15) : null,
       manual: true
     };
   } else {
@@ -393,12 +406,20 @@ async function createRequest({
     }
   }
 
-  const quoteBase = landscape
+  let cleaningOpts = null;
+  if (cleaningJob) {
+    cleaningOpts = normalizeCleaningFactors(cleaningFactors);
+  }
+
+  let quoteBase = landscape
     ? resolveLandscapeQuoteBase(landscapeFactors)
     : (perM2
-      ? resolveM2QuoteBase(activityMatch, parsedM2)
+      ? resolveM2QuoteBase(activityMatch, parsedM2, { serviceId })
       : activityMatch.basePrice);
-  const visitCalc = landscape || isManualOther
+  if (cleaningOpts) {
+    quoteBase = applyCleaningSurcharge(quoteBase, cleaningOpts);
+  }
+  const visitCalc = landscape || isManualOther || cleaningJob
     ? calculateVisitPricing(pricing, urgencyTier, {
       horaSolicitud: resolvedLocalTime,
       valorBase: quoteBase,
@@ -409,7 +430,9 @@ async function createRequest({
       horaSolicitud: resolvedLocalTime,
       tierId: urgencyTier,
       timeZone,
-      squareMeters: parsedM2
+      squareMeters: parsedM2,
+      serviceId,
+      cleaningFactors: cleaningOpts
     }) || calculateVisitPricing(pricing, urgencyTier, {
       horaSolicitud: resolvedLocalTime,
       valorBase: quoteBase,
@@ -442,9 +465,15 @@ async function createRequest({
   const beneficiaryPhone = isGift ? (gift.phone || client.phone) : client.phone;
 
   const landscapeSummary = landscape ? formatLandscapeSummary(landscapeFactors) : '';
-  const notesWithLandscape = landscapeSummary && !notes.includes('Proyecto paisajismo:')
-    ? `${notes}\n\n${landscapeSummary}`.trim()
-    : notes;
+  const cleaningSummary = cleaningOpts ? formatCleaningSummary(cleaningOpts, parsedM2) : '';
+  let notesAugmented = notes;
+  if (landscapeSummary && !notes.includes('Proyecto paisajismo:')) {
+    notesAugmented = `${notesAugmented}\n\n${landscapeSummary}`.trim();
+  }
+  if (cleaningSummary && !notes.includes('Limpieza:')) {
+    notesAugmented = `${notesAugmented}\n\n${cleaningSummary}`.trim();
+  }
+  const notesWithLandscape = notesAugmented;
 
   const request = {
     id: existing?.id || uuidv4(),
@@ -471,6 +500,13 @@ async function createRequest({
     landscapeProject: landscape ? {
       ...landscapeFactors,
       quoteTotal: quoteBase
+    } : null,
+    cleaningFactors: cleaningOpts ? {
+      hasPets: cleaningOpts.hasPets,
+      postEvent: cleaningOpts.postEvent,
+      surchargePct: cleaningOpts.surchargePct,
+      labels: cleaningOpts.labels,
+      materialsIncluded: true
     } : null,
     address: fullAddress,
     notes: notesWithLandscape,
@@ -594,6 +630,7 @@ function getCheckoutDraftForClient(clientId, serviceId, resumeId = null) {
     customName,
     squareMeters: request.squareMeters || null,
     landscapeProject: request.landscapeProject || null,
+    cleaningFactors: request.cleaningFactors || null,
     brandNotVisible: Boolean(request.brandNotVisible),
     clientPhotoUrl: request.clientPhotoUrl || null,
     clientBrandPhotoUrl: request.clientBrandPhotoUrl || null,
