@@ -5,11 +5,10 @@
 
   <main class="flex-1 px-5 py-5 space-y-5">
     <% if (typeof canSwitchToProvider !== 'undefined' && canSwitchToProvider) { %>
-    <section class="p-4 rounded-2xl border border-[rgba(47,107,79,0.28)] bg-[rgba(47,107,79,0.08)]">
-      <p class="session-role-pill session-role-pill--provider mb-2"><%= t('session.role.provider') %></p>
-      <p class="text-sm font-semibold mb-1"><%= t('session.switch.to_provider_title') %></p>
-      <p class="text-xs text-zilo-muted mb-3"><%= t('session.switch.to_provider_body') %></p>
-      <button type="button" id="btnSwitchProvider" class="zilo-btn-primary !py-2.5 !bg-[#2F6B4F] !border-[#2F6B4F]"><%= t('session.switch.to_provider_cta') %></button>
+    <section class="p-4 rounded-2xl border border-[rgba(47,107,79,0.28)] bg-[rgba(47,107,79,0.08)] space-y-3">
+      <p class="text-sm font-semibold"><%= t('session.switch.to_provider_title') %></p>
+      <p class="text-xs text-zilo-muted"><%= t('session.switch.to_provider_body') %></p>
+      <%- include('../partials/session-mode-switch', { activeMode: 'client' }) %>
     </section>
     <% } %>
 
@@ -192,16 +191,6 @@
     const data = await res.json();
     if (data.success) FandezNotify.show('Datos de facturación guardados', 'success');
     else FandezNotify.show(data.error || 'Error', 'error');
-  });
-
-  document.getElementById('btnSwitchProvider')?.addEventListener('click', async () => {
-    const res = await fetch('/cliente/modo-socio', { method: 'POST', headers: { Accept: 'application/json' } });
-    const data = await res.json().catch(() => ({}));
-    if (data.success && data.redirect) {
-      window.location.href = data.redirect;
-      return;
-    }
-    FandezNotify.show(data.error || 'No se pudo volver al panel socio', 'error');
   });
 </script>
 

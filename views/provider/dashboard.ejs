@@ -14,6 +14,10 @@
         <%- include('../partials/logout-btn', { withLabel: true }) %>
       </div>
     </div>
+    <div class="px-4 pb-3">
+      <%- include('../partials/session-mode-switch', { activeMode: 'provider' }) %>
+      <p class="session-mode-switch__hint"><%= t('session.switch.hint') %></p>
+    </div>
     <div class="app-session-header__toolbar">
       <%- include('../partials/lang-switcher') %>
       <% if (mod('provider_mensajes')) { %>

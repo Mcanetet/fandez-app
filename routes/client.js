@@ -263,7 +263,8 @@ router.get('/', requireRole('client'), (req, res) => {
       if (step.target === '[data-tour="points"]') return store.isModuleEnabled('client_puntos');
       return true;
     }),
-    onboardingCompleteUrl: '/cliente/onboarding/complete'
+    onboardingCompleteUrl: '/cliente/onboarding/complete',
+    canSwitchToProvider: req.session.user.primaryRole === 'provider' || profile?.role === 'provider'
   });
 });
 
@@ -305,7 +306,7 @@ router.post('/modo-socio', requireRole('client'), (req, res) => {
     name: user.name,
     role: 'provider',
     primaryRole: 'provider',
-    clientEnabled: Boolean(user.clientEnabled)
+    clientEnabled: user.clientEnabled !== false
   };
   store.logSecurityEvent('client_switch_provider', user.email, req);
   res.json({ success: true, redirect: '/proveedor' });

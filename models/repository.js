@@ -362,10 +362,12 @@ function rowToUser(row) {
       ? new Date(row.password_reset_expires_at).toISOString() : null,
     passwordResetSentAt: row.password_reset_sent_at
       ? new Date(row.password_reset_sent_at).toISOString() : null,
-    clientEnabled: Boolean(row.client_enabled)
+    clientEnabled: row.role === 'provider'
+      ? (row.client_enabled == null ? true : Boolean(Number(row.client_enabled)))
+      : Boolean(row.client_enabled)
   };
 
-  if (row.role === 'client' || Boolean(row.client_enabled)) {
+  if (row.role === 'client' || user.clientEnabled) {
     user.billing = row.billing ? normalizeBilling(parseJson(row.billing, null)) : null;
   }
 

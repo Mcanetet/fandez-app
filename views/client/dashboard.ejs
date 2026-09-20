@@ -20,6 +20,13 @@
         <%- include('../partials/logout-btn', { withLabel: true }) %>
       </div>
     </div>
+    <% const canSwitchModes = typeof canSwitchToProvider !== 'undefined' && canSwitchToProvider; %>
+    <% if (canSwitchModes) { %>
+    <div class="px-4 pb-3">
+      <%- include('../partials/session-mode-switch', { activeMode: 'client' }) %>
+      <p class="session-mode-switch__hint"><%= t('session.switch.hint') %></p>
+    </div>
+    <% } %>
   </header>
 
   <main class="flex-1 px-5 py-5 pb-24">

@@ -1,0 +1,21 @@
+<%#
+  Selector Modo cliente | Modo socio (solo cuentas de socio).
+  Locals: activeMode = 'client' | 'provider'
+%>
+<%
+  const _mode = typeof activeMode !== 'undefined' ? activeMode : 'provider';
+%>
+<div class="session-mode-switch" role="group" aria-label="<%= t('session.switch.aria') %>">
+  <button
+    type="button"
+    class="session-mode-switch__btn <%= _mode === 'client' ? 'is-active session-mode-switch__btn--client' : '' %>"
+    data-session-mode="client"
+    <%= _mode === 'client' ? 'aria-current="true" disabled' : '' %>
+  ><%= t('session.role.client') %></button>
+  <button
+    type="button"
+    class="session-mode-switch__btn <%= _mode === 'provider' ? 'is-active session-mode-switch__btn--provider' : '' %>"
+    data-session-mode="provider"
+    <%= _mode === 'provider' ? 'aria-current="true" disabled' : '' %>
+  ><%= t('session.role.provider') %></button>
+</div>

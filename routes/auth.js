@@ -87,7 +87,7 @@ function logoutAndRedirect(req, res, redirectTo = '/') {
 function setSessionUser(req, user, { admin = false, remember = true, activeRole = null } = {}) {
   const primaryRole = user.role;
   let role = activeRole || user.role;
-  if (role === 'client' && primaryRole === 'provider' && !user.clientEnabled) {
+  if (role === 'client' && primaryRole === 'provider' && user.clientEnabled === false) {
     role = 'provider';
   }
   if (role === 'provider' && primaryRole !== 'provider') {
@@ -99,7 +99,7 @@ function setSessionUser(req, user, { admin = false, remember = true, activeRole 
     name: user.name,
     role,
     primaryRole,
-    clientEnabled: Boolean(user.clientEnabled)
+    clientEnabled: user.clientEnabled !== false
   };
   req.session.isAdminSession = admin;
   if (req.session.cookie) {

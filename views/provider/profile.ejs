@@ -76,15 +76,9 @@
     <%- include('../partials/password-form') %>
 
     <section class="p-5 rounded-2xl border border-zilo-accent/25 bg-zilo-accent-soft/35 space-y-3">
-      <p class="session-role-pill session-role-pill--client mb-1"><%= t('session.role.client') %></p>
       <p class="text-sm font-semibold"><%= t('session.switch.to_client_title') %></p>
       <p class="text-xs text-zilo-muted"><%= t('session.switch.to_client_body') %></p>
-      <% if (provider.clientEnabled) { %>
-        <button type="button" id="btnSwitchClient" class="zilo-btn-primary !py-3"><%= t('session.switch.to_client_cta') %></button>
-      <% } else { %>
-        <button type="button" id="btnEnableClient" class="zilo-btn-primary !py-3"><%= t('session.switch.enable_client_cta') %></button>
-        <p class="text-[10px] text-zilo-muted">Al activarlo podrás solicitar servicios. La documentación de socio se sigue gestionando aquí.</p>
-      <% } %>
+      <%- include('../partials/session-mode-switch', { activeMode: 'provider' }) %>
     </section>
 
     <!-- Verificación -->
@@ -256,18 +250,6 @@
       FandezNotify.show('Datos actualizados', 'success');
     } else FandezNotify.show('Error al guardar', 'error');
   });
-
-  async function switchToClientMode() {
-    const res = await fetch('/proveedor/modo-cliente', { method: 'POST', headers: { Accept: 'application/json' } });
-    const data = await res.json().catch(() => ({}));
-    if (data.success && data.redirect) {
-      window.location.href = data.redirect;
-      return;
-    }
-    FandezNotify.show(data.error || 'No se pudo cambiar al modo cliente', 'error');
-  }
-  document.getElementById('btnSwitchClient')?.addEventListener('click', switchToClientMode);
-  document.getElementById('btnEnableClient')?.addEventListener('click', switchToClientMode);
 </script>
 
 <%- include('../partials/nav-provider', { navActive: 'perfil' }) %>

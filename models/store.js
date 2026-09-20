@@ -152,7 +152,8 @@ const WELCOME_DISCOUNT = 0.1;
 function canActAsClient(user) {
   if (!user) return false;
   if (user.role === 'client') return true;
-  return user.role === 'provider' && Boolean(user.clientEnabled);
+  // Socios pueden usar el portal cliente salvo desactivación explícita (admin).
+  return user.role === 'provider' && user.clientEnabled !== false;
 }
 
 function isProviderAccount(user) {
@@ -649,7 +650,7 @@ function updateUserProfile(userId, data) {
   const user = getUserById(userId);
   if (!user) return null;
   const allowed = user.role === 'provider'
-    ? ['name', 'phone', 'bio', 'email', ...(user.clientEnabled ? ['address'] : [])]
+    ? ['name', 'phone', 'bio', 'email', ...(user.clientEnabled !== false ? ['address'] : [])]
     : ['name', 'phone', 'address'];
   allowed.forEach(key => {
     if (data[key] !== undefined && String(data[key]).trim()) {
@@ -3418,7 +3419,8 @@ async function registerUser({
       reviews: [],
       verification: defaultProviderVerification(),
       locationShare: defaultLocationShare(),
-      providerContract: contract
+      providerContract: contract,
+      clientEnabled: true
     };
   } else {
     user = {
