@@ -1,0 +1,50 @@
+<%
+  const inv = typeof invoicePlan !== 'undefined' ? invoicePlan : null;
+  const requestId = typeof invoiceRequestId !== 'undefined' ? invoiceRequestId : null;
+  if (!inv || !requestId) { /* skip */ }
+  else if (inv.status === 'issued') {
+%>
+  <a href="<%= inv.url || ('/documentos/factura-socio/' + requestId) %>" target="_blank" rel="noopener"
+     class="block text-center text-xs text-zilo-accent font-semibold py-2">
+    <%= t('provider.invoice.view_issued') %><% if (inv.folio) { %> · <%= inv.documentType || '' %> <%= inv.folio %><% } %>
+  </a>
+<% } else if (inv.status === 'pending') { %>
+  <details class="provider-invoice-panel mt-1">
+    <summary class="text-xs text-zilo-accent font-semibold cursor-pointer py-1.5">
+      <%= t('provider.invoice.upload_link') %> · <%= formatCLP(inv.amount) %>
+    </summary>
+    <div class="provider-invoice-form mt-2 space-y-2 rounded-xl border border-zilo-border/80 bg-zilo-bg/40 p-3"
+         data-request-id="<%= requestId %>">
+      <p class="text-[11px] text-zilo-muted leading-relaxed">
+        <%= t('provider.invoice.amount_hint', { amount: formatCLP(inv.amount) }) %>
+      </p>
+      <p class="text-[11px] text-zilo-muted leading-relaxed">
+        <%= t('provider.invoice.fandez_fee_hint', {
+          rate: Math.round((inv.laborCommissionRate || 0.15) * 100),
+          mpPercent: (inv.mpFeePercent || 3.8).toFixed(1).replace('.', ','),
+          fees: formatCLP(inv.appTotal || ((inv.fandezFee || 0) + (inv.mpFee || 0)))
+        }) %>
+      </p>
+      <label class="block text-[11px] text-zilo-muted">
+        <%= t('provider.invoice.type') %>
+        <select data-role="invoice-type" class="mt-1 w-full rounded-lg border border-zilo-border bg-zilo-bg px-2 py-2 text-sm text-zilo-text">
+          <option value="boleta"><%= t('provider.invoice.type_boleta') %></option>
+          <option value="factura"><%= t('provider.invoice.type_factura') %></option>
+        </select>
+      </label>
+      <label class="block text-[11px] text-zilo-muted">
+        <%= t('provider.invoice.folio') %>
+        <input data-role="invoice-folio" type="text" inputmode="numeric" autocomplete="off"
+               class="mt-1 w-full rounded-lg border border-zilo-border bg-zilo-bg px-2 py-2 text-sm text-zilo-text"
+               placeholder="123456">
+      </label>
+      <label class="block text-[11px] text-zilo-muted">
+        <%= t('provider.invoice.file') %>
+        <input data-role="invoice-file" type="file" accept="image/*,application/pdf" class="mt-1 w-full text-xs text-zilo-muted">
+      </label>
+      <button type="button" data-role="register-invoice" class="zilo-btn-primary w-full !py-2.5 !text-sm">
+        <%= t('provider.invoice.submit') %>
+      </button>
+    </div>
+  </details>
+<% } %>

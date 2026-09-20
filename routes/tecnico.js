@@ -186,7 +186,21 @@ router.get('/chat/:requestId', requireRole('tecnico'), (req, res) => {
 });
 
 router.post('/chat/:requestId', requireRole('tecnico'), (req, res) => {
-  const result = store.postRequestChatMessage(req.params.requestId, req.session.user, req.body?.body || req.body?.message);
+  let photoUrl = null;
+  const photoData = req.body?.photo || req.body?.image || null;
+  if (photoData) {
+    try {
+      photoUrl = saveRequestFile(req.params.requestId, 'chat', photoData);
+    } catch (_) {
+      return res.status(400).json({ error: 'No se pudo guardar la foto.' });
+    }
+  }
+  const result = store.postRequestChatMessage(
+    req.params.requestId,
+    req.session.user,
+    req.body?.body || req.body?.message,
+    { photoUrl }
+  );
   if (result.error) return res.status(400).json(result);
   const io = req.app.get('io');
   io.emit(`request_chat_${result.requestId}`, { message: result.message });

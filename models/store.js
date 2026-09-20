@@ -5088,16 +5088,18 @@ function ensureRequestChat(request) {
   if (!Array.isArray(request.chatMessages)) request.chatMessages = [];
 }
 
-function appendChatMessage(request, { senderType, senderId, senderName, body }) {
+function appendChatMessage(request, { senderType, senderId, senderName, body, photoUrl }) {
   ensureRequestChat(request);
   const text = String(body || '').trim().slice(0, 1000);
-  if (!text) return null;
+  const photo = photoUrl ? String(photoUrl).trim().slice(0, 500) : null;
+  if (!text && !photo) return null;
   const message = {
     id: `msg-${uuidv4().slice(0, 10)}`,
     senderType,
     senderId: senderId || null,
     senderName: senderName || senderType,
     body: text,
+    photoUrl: photo || null,
     createdAt: new Date().toISOString()
   };
   request.chatMessages.push(message);
@@ -5138,10 +5140,15 @@ function getRequestChat(requestId, user) {
   if (!request) return { error: 'Solicitud no encontrada' };
   if (!canAccessRequestChat(request, user)) return { error: 'No autorizado' };
   ensureRequestChat(request);
+  const { toServingUrl } = require('../lib/uploads');
+  const messages = request.chatMessages.map((msg) => ({
+    ...msg,
+    photoUrl: msg.photoUrl ? (toServingUrl(msg.photoUrl) || msg.photoUrl) : null
+  }));
   return {
     success: true,
     requestId: request.id,
-    messages: request.chatMessages,
+    messages,
     peerName: user.role === 'client'
       ? (request.technicianId ? 'Equipo Fandez (socio y técnico)' : 'Socio Fandez')
       : (getUserById(request.clientId)?.name || request.clientName || 'Cliente'),
@@ -5149,7 +5156,7 @@ function getRequestChat(requestId, user) {
   };
 }
 
-function postRequestChatMessage(requestId, user, body) {
+function postRequestChatMessage(requestId, user, body, { photoUrl = null } = {}) {
   const request = requests.find((r) => r.id === requestId);
   if (!request) return { error: 'Solicitud no encontrada' };
   if (!canAccessRequestChat(request, user)) return { error: 'No autorizado' };
@@ -5161,11 +5168,20 @@ function postRequestChatMessage(requestId, user, body) {
     senderType,
     senderId: user.id,
     senderName: chatDisplayName(senderType, user.name),
-    body
+    body,
+    photoUrl
   });
-  if (!message) return { error: 'Escribe un mensaje.' };
+  if (!message) return { error: 'Escribe un mensaje o adjunta una foto.' };
   repository.persist(() => repository.saveRequest(request), `chat solicitud ${requestId}`);
-  return { success: true, message, requestId: request.id };
+  const { toServingUrl } = require('../lib/uploads');
+  return {
+    success: true,
+    message: {
+      ...message,
+      photoUrl: message.photoUrl ? (toServingUrl(message.photoUrl) || message.photoUrl) : null
+    },
+    requestId: request.id
+  };
 }
 
 function assignProvider(requestId, providerId, { technicianId = null, actorRole = 'admin' } = {}) {
@@ -5391,9 +5407,16 @@ function assignPayoutSchedule(request) {
 function buildProviderInvoicePlan(request, financials) {
   const client = getUserById(request.clientId);
   const billing = request.billingSnapshot || {};
+  const fin = financials || computeRequestFinancials(request, getPricingConfig());
   request.providerInvoicePlan = {
     status: request.providerInvoicePlan?.status === 'issued' ? 'issued' : 'pending',
-    amount: financials.providerTotal,
+    // El socio factura al cliente por el total pagado (mano de obra + materiales).
+    amount: fin.grandTotal || 0,
+    fandezFee: fin.laborCommission || 0,
+    mpFee: fin.cardFee || 0,
+    mpFeePercent: fin.merchantCardFeePercent || 0,
+    laborCommissionRate: fin.laborCommissionRate || 0.15,
+    appTotal: fin.appTotal || 0,
     issuerProviderId: request.providerId,
     recipient: {
       type: billing.type || 'natural',
@@ -5413,9 +5436,42 @@ function buildProviderInvoicePlan(request, financials) {
     fileName: request.providerInvoicePlan?.fileName || null,
     mimeType: request.providerInvoicePlan?.mimeType || null,
     url: request.providerInvoicePlan?.url || null,
-    note: 'El socio emite este documento con su propio RUT y sistema tributario.'
+    note: 'Emite boleta/factura al cliente por el total del servicio. Fandez te factura el 15% IVA incluido + costo Mercado Pago (~3,8%); se descuenta de tu liquidación.'
   };
   return request.providerInvoicePlan;
+}
+
+/** Asegura plan de factura en trabajos completados (monto = total cliente). */
+function ensureProviderInvoicePlan(request) {
+  if (!request || request.status !== 'completed') return null;
+  const fin = computeRequestFinancials(request, getPricingConfig());
+  const existing = request.providerInvoicePlan;
+  const amountMismatch = existing
+    && existing.status !== 'issued'
+    && Number(existing.amount) !== Number(fin.grandTotal || 0);
+  if (!existing || amountMismatch || existing.fandezFee == null) {
+    buildProviderInvoicePlan(request, fin);
+    repository.persist(() => repository.saveRequest(request), `solicitud ${request.id}`);
+  }
+  return request.providerInvoicePlan;
+}
+
+function serializeProviderInvoicePlan(plan) {
+  if (!plan) return null;
+  return {
+    status: plan.status,
+    amount: plan.amount || 0,
+    fandezFee: plan.fandezFee || 0,
+    mpFee: plan.mpFee || 0,
+    mpFeePercent: plan.mpFeePercent || 0,
+    laborCommissionRate: plan.laborCommissionRate || 0.15,
+    appTotal: plan.appTotal || 0,
+    documentType: plan.documentType || null,
+    folio: plan.folio || null,
+    url: plan.status === 'issued' ? (plan.url || null) : null,
+    recipientName: plan.recipient?.legalName || null,
+    note: plan.note || null
+  };
 }
 
 function registerProviderInvoice(requestId, providerId, { documentType, folio, filePath, fileName, mimeType }) {
@@ -7211,6 +7267,9 @@ function enrichRequestForProvider(request, locale = 'es') {
   const pricing = getPricingConfig();
   const visible = getProviderVisibleFinancials(request, pricing);
   const safe = sanitizeRequestForWorker(request, pricing);
+  const providerInvoicePlan = request.status === 'completed'
+    ? serializeProviderInvoicePlan(ensureProviderInvoicePlan(request))
+    : null;
   const { withAgendaDay } = require('../lib/jobAgenda');
   return withAgendaDay({
     ...safe,
@@ -7242,7 +7301,8 @@ function enrichRequestForProvider(request, locale = 'es') {
     payoutScheduledLabel: request.payoutScheduledDate ? formatPayDate(request.payoutScheduledDate, locale === 'en' ? 'en-US' : 'es-CL') : null,
     financials: request.status === 'completed' ? computeRequestFinancials(request, pricing) : undefined,
     financialsVisible: visible,
-    providerPayout: visible.providerPayout
+    providerPayout: visible.providerPayout,
+    providerInvoicePlan
   });
 }
 
@@ -7316,6 +7376,7 @@ function getProviderFinanceLedger(providerId, { limit = 60 } = {}) {
     .map((r) => {
       const fin = computeRequestFinancials(r, pricing);
       const payoutStatus = r.payoutStatus === 'pagado' ? 'pagado' : 'programado';
+      const providerInvoicePlan = serializeProviderInvoicePlan(ensureProviderInvoicePlan(r));
       return {
         id: r.id,
         serviceName: r.serviceName || r.serviceId || 'Servicio',
@@ -7333,9 +7394,12 @@ function getProviderFinanceLedger(providerId, { limit = 60 } = {}) {
         materialsTotal: fin.materialsTotal || 0,
         laborCommission: fin.laborCommission || 0,
         cardFee: fin.cardFee || 0,
+        merchantCardFeePercent: fin.merchantCardFeePercent || 0,
+        laborCommissionRate: fin.laborCommissionRate || 0.15,
         grandTotal: fin.grandTotal || 0,
         visitPaid: fin.visitPaid || 0,
-        serviceAmount: fin.serviceAmount || 0
+        serviceAmount: fin.serviceAmount || 0,
+        providerInvoicePlan
       };
     });
 

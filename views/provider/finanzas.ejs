@@ -85,6 +85,7 @@
                   <p class="text-zilo-success font-medium"><%= t('provider.js.your_payout') %>: <%= formatCLP(row.providerPayout) %></p>
                 </div>
               </details>
+              <%- include('../partials/provider-invoice-upload', { invoicePlan: row.providerInvoicePlan, invoiceRequestId: row.id }) %>
             </article>
           <% }); %>
         </div>
@@ -94,4 +95,4 @@
 
   <%- include('../partials/nav-provider', { navActive: 'finanzas' }) %>
 </div>
-<%- include('../partials/footer') %>
+<%- include('../partials/footer', { pageScript: '/js/provider-invoice.js', extraScripts: ['/js/image-upload.js'] }) %>

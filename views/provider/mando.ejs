@@ -107,7 +107,15 @@
     <div id="jobChatThread" class="job-chat-thread flex-1 overflow-y-auto px-4 py-4 space-y-2.5 min-h-[220px]"></div>
     <form id="jobChatForm" class="job-chat-composer">
       <label class="job-chat-composer__label" for="jobChatInput"><%= t('provider.mando_page.chat_input_label') %></label>
+      <div data-role="chat-photo-preview" class="job-chat-photo-preview hidden">
+        <img data-role="chat-photo-thumb" alt="">
+        <button type="button" data-role="chat-photo-clear" class="job-chat-photo-clear" aria-label="Quitar foto">×</button>
+      </div>
       <div class="job-chat-composer__row">
+        <button type="button" class="job-chat-attach" data-role="chat-photo-btn" aria-label="Adjuntar foto" title="Adjuntar foto">
+          <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/><circle cx="9" cy="9" r="1.5"/></svg>
+        </button>
+        <input type="file" accept="image/*" capture="environment" class="sr-only" data-role="chat-photo-input" tabindex="-1">
         <input id="jobChatInput" type="text" maxlength="1000" autocomplete="off" placeholder="<%= t('provider.mando_page.chat_placeholder') %>" class="job-chat-input">
         <button type="submit" class="job-chat-send"><%= t('provider.mando_page.chat_send') %></button>
       </div>
@@ -117,7 +125,7 @@
 </div>
 
 <%- include('../partials/call-overlay') %>
-<%- include('../partials/footer', { pageScript: '/js/mando.js', extraScripts: ['/js/map.js', '/js/webrtc-call.js'] }) %>
+<%- include('../partials/footer', { pageScript: '/js/mando.js', extraScripts: ['/js/map.js', '/js/image-upload.js', '/js/job-chat.js', '/js/webrtc-call.js'] }) %>
 <script>
   window.MANDO_TECH_MARKERS = <%- JSON.stringify(typeof technicianMarkers !== 'undefined' ? technicianMarkers : []) %>;
 </script>

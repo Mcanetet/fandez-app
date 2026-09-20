@@ -258,6 +258,7 @@
                       <p class="text-zilo-success font-medium"><%= t('provider.js.your_payout') %>: <%= formatCLP(fin.providerPayout) %></p>
                     </div>
                   </details>
+                  <%- include('../partials/provider-invoice-upload', { invoicePlan: req.providerInvoicePlan, invoiceRequestId: req.id }) %>
               <% } else if (req.providerPayout != null && req.status !== 'completed') { %>
                 <p class="text-[10px] text-zilo-muted"><%= t('provider.payout_until_complete') %></p>
               <% } %>
@@ -381,6 +382,6 @@
 
 <%- include('../partials/onboarding-tour') %>
 
-<%- include('../partials/footer', { pageScript: '/js/provider.js', extraScripts: ['/js/image-upload.js'] }) %>
+<%- include('../partials/footer', { pageScript: '/js/provider.js', extraScripts: ['/js/image-upload.js', '/js/provider-invoice.js'] }) %>
 <script src="/js/guide.js"></script>
 <script src="/js/map.js"></script>

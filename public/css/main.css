@@ -510,6 +510,78 @@ html {
   align-items: stretch;
   gap: 0.55rem;
 }
+.job-chat-attach {
+  flex-shrink: 0;
+  width: 2.85rem;
+  min-height: 2.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.85rem;
+  border: 1.5px solid #94A3B8;
+  background: #F8FAFC;
+  color: #334155;
+}
+.job-chat-attach svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.job-chat-attach:hover {
+  border-color: #C45C14;
+  color: #C45C14;
+}
+.job-chat-photo-preview {
+  position: relative;
+  display: inline-flex;
+  margin-bottom: 0.55rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #E2E8F0;
+  background: #F1F5F9;
+}
+.job-chat-photo-preview img {
+  display: block;
+  max-width: 8rem;
+  max-height: 8rem;
+  object-fit: cover;
+}
+.job-chat-photo-clear {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: none;
+  background: rgba(15, 23, 42, 0.75);
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+}
+.job-chat-photo {
+  display: block;
+  margin-top: 0.35rem;
+  border-radius: 0.65rem;
+  overflow: hidden;
+  max-width: 14rem;
+}
+.job-chat-photo img {
+  display: block;
+  width: 100%;
+  max-height: 16rem;
+  object-fit: cover;
+}
+.job-chat-bubble--mine .job-chat-photo {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+.job-chat-text {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.job-chat-text + .job-chat-photo {
+  margin-top: 0.45rem;
+}
 .job-chat-input {
   flex: 1;
   min-width: 0;

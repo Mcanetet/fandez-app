@@ -2310,7 +2310,13 @@
         <span class="job-chat-name">${escapeChatHtml(displayChatName(msg))}</span>
         <span class="job-chat-meta__time">${escapeChatHtml(formatChatTime(msg.createdAt))}</span>
       </span>`;
-    return `<div class="${cls}" data-msg-id="${escapeChatHtml(msg.id)}">${meta}${escapeChatHtml(msg.body)}</div>`;
+    const photo = window.FandezJobChat
+      ? FandezJobChat.renderPhotoBlock(msg, escapeChatHtml)
+      : '';
+    const text = window.FandezJobChat
+      ? FandezJobChat.renderBodyBlock(msg, escapeChatHtml)
+      : escapeChatHtml(msg.body || '');
+    return `<div class="${cls}" data-msg-id="${escapeChatHtml(msg.id)}">${meta}${text}${photo}</div>`;
   }
 
   function appendJobChatMessage(msg) {
@@ -2361,19 +2367,22 @@
       return;
     }
     form.dataset.bound = '1';
+    const photoCtl = window.FandezJobChat ? FandezJobChat.bindPhotoComposer(form) : null;
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const body = input?.value.trim();
-      if (!body) return;
-      input.value = '';
+      const body = input?.value.trim() || '';
+      const photo = photoCtl?.getPhoto?.() || null;
+      if (!body && !photo) return;
+      if (input) input.value = '';
       try {
         const res = await fetch(`/cliente/chat/${requestId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ body })
+          body: JSON.stringify({ body, photo })
         });
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo enviar');
+        photoCtl?.clear?.();
         appendJobChatMessage(data.message);
       } catch (err) {
         FandezNotify.show(err.message || 'No se pudo enviar', 'error');

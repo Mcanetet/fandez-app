@@ -5,7 +5,7 @@ const { emitRequestUpdateToParties } = require('../lib/realtime');
 const { dispatchPendingToProvider, broadcastRequestTaken, buildWorkWallPayload } = require('../lib/dispatch');
 const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
 const { requireModule } = require('../middleware/modules');
-const { saveProviderFile, saveProviderInvoice, saveTechnicianDocumentFile, toServingUrl } = require('../lib/uploads');
+const { saveProviderFile, saveProviderInvoice, saveTechnicianDocumentFile, saveRequestFile, toServingUrl } = require('../lib/uploads');
 const { verifySelfie } = require('../lib/faceVerify');
 const { getProviderOnboardingSteps, getProviderActivationSteps } = require('../lib/onboarding');
 const { getClientIp } = require('../middleware/security');
@@ -985,7 +985,21 @@ router.get('/chat/:requestId', requireRole('provider'), (req, res) => {
 });
 
 router.post('/chat/:requestId', requireRole('provider'), (req, res) => {
-  const result = store.postRequestChatMessage(req.params.requestId, req.session.user, req.body?.body || req.body?.message);
+  let photoUrl = null;
+  const photoData = req.body?.photo || req.body?.image || null;
+  if (photoData) {
+    try {
+      photoUrl = saveRequestFile(req.params.requestId, 'chat', photoData);
+    } catch (_) {
+      return res.status(400).json({ error: 'No se pudo guardar la foto.' });
+    }
+  }
+  const result = store.postRequestChatMessage(
+    req.params.requestId,
+    req.session.user,
+    req.body?.body || req.body?.message,
+    { photoUrl }
+  );
   if (result.error) return res.status(400).json(result);
   const io = req.app.get('io');
   io.emit(`request_chat_${result.requestId}`, { message: result.message });
