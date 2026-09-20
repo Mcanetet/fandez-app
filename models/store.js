@@ -5474,6 +5474,10 @@ function assignTechnician(requestId, socioId, technicianId) {
     return { error: 'Tu empresa no ofrece este servicio actualmente.' };
   }
 
+  const previousTechnicianId = request.technicianId || null;
+  const previousTechnicianName = request.technicianName || null;
+  const isReassign = Boolean(previousTechnicianId && previousTechnicianId !== tecnico.id);
+
   request.technicianId = tecnico.id;
   request.technicianName = tecnico.name;
   request.technicianPhone = tecnico.phone || null;
@@ -5504,7 +5508,9 @@ function assignTechnician(requestId, socioId, technicianId) {
       senderType: 'system',
       senderId: null,
       senderName: 'Fandez',
-      body: `El socio irá a la visita (${tecnico.name}). Llegada estimada: ${request.etaLabel || 'por confirmar'}.`
+      body: isReassign
+        ? `El socio reasignó la visita: irá ${tecnico.name}. Llegada estimada: ${request.etaLabel || 'por confirmar'}.`
+        : `El socio irá a la visita (${tecnico.name}). Llegada estimada: ${request.etaLabel || 'por confirmar'}.`
     });
   } else {
     request.techStatus = 'asignado';
@@ -5512,12 +5518,25 @@ function assignTechnician(requestId, socioId, technicianId) {
       senderType: 'system',
       senderId: null,
       senderName: 'Fandez',
-      body: `El socio asignó a ${tecnico.name}. Tiene ${getRequestTimeouts().techAcceptMinutes} minutos para aceptar el pedido.`
+      body: isReassign
+        ? `El socio reasignó a ${tecnico.name}. Tiene ${getRequestTimeouts().techAcceptMinutes} minutos para aceptar el pedido.`
+        : `El socio asignó a ${tecnico.name}. Tiene ${getRequestTimeouts().techAcceptMinutes} minutos para aceptar el pedido.`
     });
   }
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
-  afterEvent((ev) => ev.onTechnicianAssigned(request));
-  return { success: true, request, tecnico, selfOperator: Boolean(tecnico.isSelfOperator) };
+  afterEvent((ev) => ev.onTechnicianAssigned(request, {
+    reassigned: isReassign,
+    previousTechnicianId: isReassign ? previousTechnicianId : null,
+    previousTechnicianName: isReassign ? previousTechnicianName : null
+  }));
+  return {
+    success: true,
+    request,
+    tecnico,
+    selfOperator: Boolean(tecnico.isSelfOperator),
+    reassigned: isReassign,
+    previousTechnicianId: isReassign ? previousTechnicianId : null
+  };
 }
 
 function clearTechnicianFromRequest(request) {

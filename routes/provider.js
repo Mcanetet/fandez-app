@@ -912,7 +912,8 @@ router.post('/asignar/:requestId', requireRole('provider'), requireModule('provi
     request: enriched,
     acceptMinutes: typeof store.getRequestTimeouts === 'function'
       ? store.getRequestTimeouts().techAcceptMinutes
-      : 10
+      : 10,
+    reassigned: Boolean(result.reassigned)
   });
   const techSocket = store.technicianSockets.get(result.tecnico.id);
   if (techSocket) {
@@ -921,15 +922,30 @@ router.post('/asignar/:requestId', requireRole('provider'), requireModule('provi
       request: enriched,
       acceptMinutes: typeof store.getRequestTimeouts === 'function'
         ? store.getRequestTimeouts().techAcceptMinutes
-        : 10
+        : 10,
+      reassigned: Boolean(result.reassigned)
     });
   }
+  if (result.previousTechnicianId) {
+    const prevSocket = store.technicianSockets.get(result.previousTechnicianId);
+    const unassignPayload = {
+      requestId: result.request.id,
+      serviceName: result.request.serviceName
+    };
+    io.emit(`tecnico_unassigned_${result.previousTechnicianId}`, unassignPayload);
+    if (prevSocket) io.to(prevSocket).emit(`tecnico_unassigned_${result.previousTechnicianId}`, unassignPayload);
+  }
   emitRequestUpdateToParties(io, store, result.request, { request: enriched });
-  store.logSecurityEvent('tecnico_asignado', `${result.tecnico.email} -> ${result.request.id}`, req);
+  store.logSecurityEvent(
+    result.reassigned ? 'tecnico_reasignado' : 'tecnico_asignado',
+    `${result.tecnico.email} -> ${result.request.id}`,
+    req
+  );
 
   res.json({
     success: true,
     selfOperator: Boolean(result.selfOperator),
+    reassigned: Boolean(result.reassigned),
     request: {
       id: result.request.id,
       technicianId: result.tecnico.id,

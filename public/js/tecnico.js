@@ -558,16 +558,18 @@
       const pedidoUrl = payload?.requestId
         ? `/tecnico?pedido=${encodeURIComponent(payload.requestId)}`
         : '/tecnico';
+      const title = payload?.reassigned ? 'Te reasignaron un pedido' : 'Te asignaron un pedido';
       if (window.FandezAlerts) FandezAlerts.notify({
         type: 'order',
-        title: 'Te asignaron un pedido',
+        title,
         body: payload?.request?.serviceName
           ? `${payload.request.serviceName} · Tienes ${mins} min para aceptar`
           : t('tecnico.js.assignment_body'),
-        tag: 'fandez-tec-assignment',
+        tag: 'fandez-tec-assignment-' + (payload?.requestId || 'x') + '-' + Date.now(),
         url: pedidoUrl,
         system: true,
-        requireInteraction: true
+        requireInteraction: true,
+        force: true
       });
       if (window.FandezAlerts?.enablePush) {
         FandezAlerts.enablePush().catch(() => {});
@@ -577,6 +579,23 @@
       setTimeout(() => {
         window.location.href = pedidoUrl;
       }, 700);
+    });
+
+    socket.on(`tecnico_unassigned_${tecnicoId}`, (payload) => {
+      if (window.FandezAlerts) {
+        FandezAlerts.notify({
+          type: 'alert',
+          title: 'Pedido reasignado',
+          body: payload?.serviceName
+            ? `${payload.serviceName} ya no te corresponde`
+            : 'El socio asignó este pedido a otro técnico',
+          tag: 'fandez-tec-unassign-' + (payload?.requestId || 'x'),
+          url: '/tecnico',
+          system: true,
+          force: true
+        });
+      }
+      setTimeout(() => location.reload(), 800);
     });
   }
 
