@@ -8,6 +8,8 @@ const emailVerification = require('../lib/emailVerification');
 const passwordReset = require('../lib/passwordReset');
 const mailer = require('../lib/mailer');
 const { notifyProviderSignup } = require('../lib/sofiaProviderSignup');
+const authAccessWatch = require('../lib/agents/authAccessWatch');
+const founderAlerts = require('../lib/agents/founderAlerts');
 const { localizeServices } = require('../lib/i18n-admin');
 
 const PUBLIC_ROLES = ['client', 'provider', 'tecnico'];
@@ -177,6 +179,9 @@ router.post('/login', rateLimitLogin(12), async (req, res) => {
 
   if (result.error === 'wrong_portal') {
     store.logSecurityEvent('login_admin_blocked_public', email, req);
+    authAccessWatch.reportLoginError({
+      store, req, email, reason: 'wrong_portal'
+    }).catch(() => {});
     const appMode = require('../lib/appMode');
     const adminLoginPath = appMode.adminUrl('/login');
     const adminHint = appMode.isDemoMode()
@@ -189,6 +194,9 @@ router.post('/login', rateLimitLogin(12), async (req, res) => {
 
   if (result.error === 'blocked') {
     store.logSecurityEvent('login_blocked', email, req);
+    authAccessWatch.reportLoginError({
+      store, req, email, reason: 'blocked'
+    }).catch(() => {});
     return res.render('login', loginRenderOptions(req, {
       error: 'Esta cuenta está desactivada. Escribe a soporte@fandez.cl para reactivarla.'
     }));
@@ -196,6 +204,9 @@ router.post('/login', rateLimitLogin(12), async (req, res) => {
 
   if (result.error) {
     store.logSecurityEvent('login_fail', email, req);
+    authAccessWatch.reportLoginError({
+      store, req, email, reason: 'login_fail'
+    }).catch(() => {});
     return res.render('login', loginRenderOptions(req, {
       error: 'Credenciales incorrectas. Intenta nuevamente.'
     }));
@@ -506,6 +517,14 @@ router.post('/registro', async (req, res) => {
       error: req.t(consentCheck.errorKey || 'register.error_consents'),
       form
     });
+    authAccessWatch.reportRegistrationError({
+      store,
+      req,
+      form,
+      error: payload.error,
+      errorKey: consentCheck.errorKey || 'register.error_consents',
+      httpStatus: 400
+    }).catch(() => {});
     if (wantsJson(req)) return res.status(400).json({ error: payload.error });
     return res.status(400).render('registro', payload);
   }
@@ -537,6 +556,11 @@ router.post('/registro', async (req, res) => {
             locale: req.locale || 'es',
             mailWaitMs: 0
           });
+          if (issue?.error || issue?.authFailed) {
+            authAccessWatch.reportVerifyIssue({
+              store, req, user: existingUser, issue, context: 'registro_email_exists'
+            }).catch(() => {});
+          }
           if (wantsJson(req)) {
             return res.status(409).json({
               error: req.t('register.error_email_exists_unverified'),
@@ -564,11 +588,29 @@ router.post('/registro', async (req, res) => {
         form,
         emailExists: true
       });
+      authAccessWatch.reportRegistrationError({
+        store,
+        req,
+        form,
+        error: existsPayload.error,
+        errorKey: 'register.error_email_exists_login',
+        code: 'email_exists',
+        httpStatus: 409
+      }).catch(() => {});
       if (wantsJson(req)) return res.status(409).json({ error: existsPayload.error, emailExists: true });
       return res.status(409).render('registro', existsPayload);
     }
 
     const errMsg = resolveRegisterError(req, result);
+    authAccessWatch.reportRegistrationError({
+      store,
+      req,
+      form,
+      error: errMsg,
+      errorKey: result.errorKey || null,
+      code: result.code || null,
+      httpStatus: 400
+    }).catch(() => {});
     if (wantsJson(req)) return res.status(400).json({ error: errMsg });
     return res.status(400).render('registro', registerRenderOptions(req, {
       title: 'Crear cuenta',
@@ -593,6 +635,7 @@ router.post('/registro', async (req, res) => {
       otherService,
       io: req.app.get('io')
     }).catch((err) => console.error('[registro] sofia socio:', err.message));
+    founderAlerts.alertNewProvider(user).catch(() => {});
   }
 
   if (user.role === 'client' && req.session.pendingReferral) {
@@ -611,6 +654,12 @@ router.post('/registro', async (req, res) => {
   } catch (err) {
     console.error('[registro] verificación email:', err.message);
     issue = { error: err.message || 'mail_error' };
+  }
+
+  if (issue?.error || issue?.authFailed) {
+    authAccessWatch.reportVerifyIssue({
+      store, req, user, issue, context: 'registro'
+    }).catch(() => {});
   }
 
   if (wantsJson(req)) {
@@ -645,6 +694,15 @@ router.post('/registro', async (req, res) => {
     console.error('[registro] error inesperado:', err);
     const form = registerFormFromBody(req.body || {});
     const message = req.t('register.error_generic') || 'No se pudo crear la cuenta. Intenta nuevamente.';
+    authAccessWatch.reportRegistrationError({
+      store,
+      req,
+      form,
+      error: `${message} (${err.message || 'unexpected'})`,
+      errorKey: 'register.error_generic',
+      code: 'unexpected',
+      httpStatus: 500
+    }).catch(() => {});
     if (wantsJson(req)) return res.status(500).json({ error: message });
     return res.status(500).render('registro', registerRenderOptions(req, {
       title: 'Crear cuenta',

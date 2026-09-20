@@ -115,6 +115,25 @@ function buildAdminAttentionInbox(storeRef, locale = 'es') {
     });
   });
   try {
+    const authAccessWatch = require('../lib/agents/authAccessWatch');
+    const auth = authAccessWatch.summarizeRecentFailures(storeRef, { minutes: 180, limit: 6 });
+    if (auth.total > 0) {
+      const top = Object.entries(auth.byEvent)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([ev, n]) => `${ev}×${n}`)
+        .join(' · ');
+      inbox.push({
+        type: 'auth_access',
+        urgency: auth.byEvent.registro_fail || auth.byEvent.verify_mail_issue ? 'high' : 'medium',
+        tab: 'seguridad',
+        title: `Accesos con error · última 3 h (${auth.total})`,
+        body: top || 'Revisa login y registro',
+        actionLabel: 'Ver seguridad'
+      });
+    }
+  } catch (_) { /* ignore */ }
+  try {
     const op = storeRef.getOperationalDiagnostics();
     op.issues.filter((i) => i.severity === 'high').slice(0, 6).forEach((issue) => {
       inbox.push({
@@ -278,6 +297,9 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
 
   if (result.error === 'wrong_portal') {
     store.logSecurityEvent('admin_login_wrong_role', email, req);
+    require('../lib/agents/authAccessWatch').reportLoginError({
+      store, req, email, reason: 'wrong_portal'
+    }).catch(() => {});
     return res.render('admin/login', {
       title: 'Admin — Fandez',
       error: 'Credenciales no válidas para administración.',
@@ -288,6 +310,9 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
 
   if (result.error === 'blocked') {
     store.logSecurityEvent('admin_login_blocked', email, req);
+    require('../lib/agents/authAccessWatch').reportLoginError({
+      store, req, email, reason: 'blocked'
+    }).catch(() => {});
     return res.render('admin/login', {
       title: 'Admin — Fandez',
       error: 'Esta cuenta está desactivada.',
@@ -298,6 +323,9 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
 
   if (result.error) {
     store.logSecurityEvent('admin_login_fail', email, req);
+    require('../lib/agents/authAccessWatch').reportLoginError({
+      store, req, email, reason: 'admin_login_fail'
+    }).catch(() => {});
     return res.render('admin/login', {
       title: 'Admin — Fandez',
       error: 'Credenciales incorrectas.',
