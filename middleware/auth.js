@@ -42,7 +42,10 @@ function requireRole(...roles) {
     if (!req.session.user) {
       if (wantsJson(req)) return res.status(401).json({ success: false, error: 'Sesión expirada. Vuelve a iniciar sesión.' });
       if (roles.includes('admin')) {
-        return res.redirect(absoluteAdminUrl('/login'));
+        const nextQ = req.originalUrl && String(req.originalUrl).includes('/app')
+          ? `?next=${encodeURIComponent('/app')}`
+          : '';
+        return res.redirect(absoluteAdminUrl(`/login${nextQ}`));
       }
       return res.redirect('/login');
     }

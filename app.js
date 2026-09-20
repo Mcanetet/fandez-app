@@ -34,6 +34,7 @@ const { localizeServices } = require('./lib/i18n-admin');
 const { buildPageMeta, getSiteUrl } = require('./lib/seo');
 const seoRoutes = require('./routes/seo');
 const appMode = require('./lib/appMode');
+const androidTwa = require('./lib/androidTwa');
 
 const app = express();
 const server = http.createServer(app);
@@ -142,6 +143,13 @@ app.use((req, res, next) => {
   return res.redirect(301, cleaned + query);
 });
 
+// Digital Asset Links (TWA / Google Play) — debe ser público y sin auth
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json(androidTwa.buildAssetLinksJson());
+});
+
 // Manifest PWA dinámico: iconos v5 + ?v= (Hostinger CDN cachea paths viejos 1 año)
 app.get('/site.webmanifest', (req, res) => {
   res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
@@ -150,16 +158,17 @@ app.get('/site.webmanifest', (req, res) => {
   res.setHeader('Surrogate-Control', 'no-store');
   res.json({
     id: '/',
-    name: 'Fandez — Hogar y oficina con excelencia',
+    name: 'Fandez: servicios a domicilio',
     short_name: 'Fandez',
-    description: 'Expertos verificados en Santiago: pide tu servicio, sigue la visita en vivo y guarda el historial de tu propiedad.',
+    description:
+      'Gasfitería, electricidad y más en Santiago. Paga en app, sigue al técnico y pide para hogar u oficina.',
     lang: 'es-CL',
     start_url: '/app?source=pwa',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait-primary',
     background_color: '#FFFFFF',
-    theme_color: '#FFFFFF',
+    theme_color: '#C45C14',
     // Evita el “primer toque no abre”: al tocar el ícono siempre navega a start_url
     // en vez de solo enfocar una ventana congelada en segundo plano.
     launch_handler: {
@@ -169,7 +178,17 @@ app.get('/site.webmanifest', (req, res) => {
       { src: '/icons/fandez-v11-192.png?v=13', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/icons/fandez-v11-512.png?v=13', sizes: '512x512', type: 'image/png', purpose: 'any' },
       { src: '/icons/fandez-v11-512.png?v=13', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
-    ]
+    ],
+    related_applications: androidTwa.isPlayStoreListingLive()
+      ? [
+          {
+            platform: 'play',
+            url: androidTwa.getPlayStoreUrl(),
+            id: androidTwa.getAndroidPackageId()
+          }
+        ]
+      : [],
+    prefer_related_applications: androidTwa.isPlayStoreListingLive()
   });
 });
 
@@ -227,6 +246,11 @@ function sendBrandAsset(res, relativePath) {
   ['/icons/fandez-v11.ico', 'icons/fandez-v11.ico'],
   ['/icons/fandez-v11-notify.png', 'icons/fandez-v11-notify.png'],
   ['/icons/fandez-v11-badge-96.png', 'icons/fandez-v11-badge-96.png'],
+  ['/icons/fandez-admin-96.png', 'icons/fandez-admin-96.png'],
+  ['/icons/fandez-admin-180.png', 'icons/fandez-admin-180.png'],
+  ['/icons/fandez-admin-192.png', 'icons/fandez-admin-192.png'],
+  ['/icons/fandez-admin-512.png', 'icons/fandez-admin-512.png'],
+  ['/icons/fandez-admin-notify.png', 'icons/fandez-admin-notify.png'],
 ].forEach(([route, file]) => {
   app.get(route, (req, res) => sendBrandAsset(res, file));
 });
@@ -325,6 +349,9 @@ app.use(async (req, res, next) => {
   res.locals.appModeStatus = appMode.getPublicStatus();
   res.locals.requestTimeouts = getRequestTimeouts();
   res.locals.launchNoticeActive = isPreOperations();
+  res.locals.playStoreUrl = androidTwa.getPlayStoreUrl();
+  res.locals.playStoreListingLive = androidTwa.isPlayStoreListingLive();
+  res.locals.androidPackageId = androidTwa.getAndroidPackageId();
   res.locals.googleMapsDirectionsUrl = (address, opts) => {
     const { buildGoogleMapsDirectionsUrl } = require('./lib/geocode');
     return buildGoogleMapsDirectionsUrl(address, opts);
@@ -741,6 +768,12 @@ async function initDatabase() {
         timeoutMinutes: getRequestTimeouts().unassignedNoticeMinutes
       });
       sofiaIncompleteNudge.start(store);
+      try {
+        require('./lib/agents/founderAlerts').startDailyDigestScheduler(store);
+        require('./lib/agents/opsInbox').ensureTable().catch(() => {});
+      } catch (err) {
+        console.warn('[founder-digest] init:', err.message);
+      }
       backup.startBackupScheduler(store, (event, detail) => {
         store.logSecurityEvent(event, detail, null);
       });

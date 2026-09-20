@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="manifest" href="<%= adminBase %>/app.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/fandez-admin-180.png?v=1">
+  <title>Instalar Fandez Admin</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0a0a0c;
+      color: #f4f4f5;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      max-width: 420px;
+      width: 100%;
+      background: #151518;
+      border: 1px solid #2a2a30;
+      border-radius: 20px;
+      padding: 28px 22px;
+      text-align: center;
+    }
+    img { width: 88px; height: 88px; border-radius: 20px; margin-bottom: 14px; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { color: #a1a1aa; font-size: 14px; line-height: 1.45; margin: 0 0 12px; }
+    ol { text-align: left; color: #d4d4d8; font-size: 14px; line-height: 1.5; }
+    a.btn {
+      display: inline-block;
+      margin-top: 8px;
+      background: #c45c14;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      padding: 12px 18px;
+      border-radius: 999px;
+    }
+    .note { font-size: 12px; color: #71717a; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="/icons/fandez-admin-512.png?v=1" alt="Fandez Admin">
+    <h1>Fandez Admin</h1>
+    <p>App privada para ti. Mismas alertas que el correo, para resolver desde el celular. <strong>No está en Google Play</strong>.</p>
+    <ol>
+      <li>Abre este enlace en Chrome (Android) o Safari (iPhone).</li>
+      <li>Inicia sesión admin si te lo pide.</li>
+      <li>Menú del navegador → <strong>Instalar app</strong> / Añadir a pantalla de inicio.</li>
+      <li>Dentro de la app toca <strong>Activar avisos</strong>.</li>
+    </ol>
+    <a class="btn" href="<%= installUrl %>">Abrir Fandez Admin</a>
+    <p class="note">Guarda este link. No lo publiques ni lo pongas en la landing.</p>
+  </div>
+</body>
+</html>

@@ -13,7 +13,7 @@ const OUT = path.join(ROOT, 'dist', 'Fandez-Admin');
 const DOWNLOADS = path.join(require('os').homedir(), 'Downloads');
 const ADMIN_URL =
   process.env.ADMIN_LOGIN_URL ||
-  'https://www.fandez.cl/ops-dde167af2c3bc7dd/login';
+  'https://www.fandez.cl/ops-dde167af2c3bc7dd/app';
 
 const LOGO_PATH = `
   M60 22

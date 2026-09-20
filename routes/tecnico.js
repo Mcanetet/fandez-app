@@ -596,6 +596,9 @@ router.post('/trabajo/:requestId/seguridad', requireRole('tecnico'), (req, res) 
       requestId: c.requestId,
       userId: req.session.user.id
     }).catch(() => {});
+    try {
+      require('../lib/agents/founderAlerts').alertSafetyIncident(c).catch(() => {});
+    } catch (_) { /* ignore */ }
     return res.json({
       success: true,
       complaintId: c.id,

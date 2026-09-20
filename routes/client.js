@@ -997,6 +997,9 @@ function emitSafetyOpsAlert(req, result) {
     userId: c.reporterId,
     meta: payload
   }).catch(() => {});
+  try {
+    require('../lib/agents/founderAlerts').alertSafetyIncident(c).catch(() => {});
+  } catch (_) { /* ignore */ }
 }
 
 router.get('/seguridad/categorias', requireRole('client'), (_req, res) => {

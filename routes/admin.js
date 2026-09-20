@@ -214,31 +214,62 @@ function adminDbNotReadyMessage(req) {
   return msg;
 }
 
+/** Destino post-login seguro (solo /app o /instalar-admin). */
+function safeAdminNext(raw) {
+  const s = String(raw || '').trim();
+  if (!s || s.includes('://') || s.includes('//') || s.includes('\\') || s.includes('..')) return null;
+  let pathOnly = s.startsWith('/') ? s : `/${s}`;
+  const adminBase = require('../lib/appMode').getAdminBasePath();
+  if (pathOnly === adminBase || pathOnly.startsWith(`${adminBase}/`)) {
+    pathOnly = pathOnly.slice(adminBase.length) || '/';
+  }
+  const bare = pathOnly.split('?')[0].split('#')[0] || '/';
+  if (bare === '/app' || bare === '/instalar-admin') return adminUrl(bare);
+  return null;
+}
+
+function rememberAdminNext(req, raw) {
+  const next = safeAdminNext(raw || req.query?.next || req.body?.next);
+  if (next) req.session.adminNext = next;
+  return next || req.session.adminNext || null;
+}
+
+function consumeAdminNext(req, fallback = null) {
+  const next = req.session.adminNext || fallback;
+  delete req.session.adminNext;
+  return next || adminUrl();
+}
+
 router.get('/login', (req, res) => {
+  rememberAdminNext(req, req.query?.next);
   if (req.session.user?.role === 'admin' && req.session.adminMfaVerified) {
-    return res.redirect(adminUrl());
+    return res.redirect(consumeAdminNext(req, adminUrl()));
   }
   if (!store.isReady()) {
     return res.render('admin/login', {
       title: 'Admin — Fandez',
       error: adminDbNotReadyMessage(req),
-      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
+      nextPath: req.session.adminNext || ''
     });
   }
   const expired = req.query.expired === '1';
   res.render('admin/login', {
     title: 'Admin — Fandez',
     error: expired ? 'La verificación MFA expiró. Ingresa nuevamente.' : null,
-    csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
+    csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
+    nextPath: req.session.adminNext || ''
   });
 });
 
 router.post('/login', rateLimitLogin(8), async (req, res) => {
+  rememberAdminNext(req, req.body?.next || req.query?.next);
   if (!store.isReady()) {
     return res.render('admin/login', {
       title: 'Admin — Fandez',
       error: adminDbNotReadyMessage(req),
-      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
+      nextPath: req.session.adminNext || ''
     });
   }
   const email = String(req.body.email || '').trim().toLowerCase();
@@ -250,7 +281,8 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
     return res.render('admin/login', {
       title: 'Admin — Fandez',
       error: 'Credenciales no válidas para administración.',
-      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
+      nextPath: req.session.adminNext || ''
     });
   }
 
@@ -259,7 +291,8 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
     return res.render('admin/login', {
       title: 'Admin — Fandez',
       error: 'Esta cuenta está desactivada.',
-      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
+      nextPath: req.session.adminNext || ''
     });
   }
 
@@ -268,7 +301,8 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
     return res.render('admin/login', {
       title: 'Admin — Fandez',
       error: 'Credenciales incorrectas.',
-      csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
+      csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
+      nextPath: req.session.adminNext || ''
     });
   }
 
@@ -303,7 +337,7 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
   completeAdminSession(req, user, () => {
     rotateCsrfToken(req);
     store.logSecurityEvent('admin_login_ok', email, req);
-    res.redirect(adminUrl());
+    res.redirect(consumeAdminNext(req, adminUrl()));
   });
 });
 
@@ -346,7 +380,7 @@ router.post('/mfa', rateLimitLogin(6), async (req, res) => {
   completeAdminSession(req, user, () => {
     rotateCsrfToken(req);
     store.logSecurityEvent('admin_mfa_ok', user.email, req);
-    res.redirect(adminUrl());
+    res.redirect(consumeAdminNext(req, adminUrl()));
   });
 });
 
@@ -402,6 +436,79 @@ router.post('/mfa/disable', requireRole('admin'), async (req, res) => {
   delete req.session.adminMfaVerified;
   store.logSecurityEvent('admin_mfa_disabled', req.session.user.email, req);
   res.redirect(adminUrl('?tab=seguridad&mfa=disabled'));
+});
+
+router.get('/app.webmanifest', requireRole('admin'), (req, res) => {
+  const base = adminUrl();
+  res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.json({
+    id: `${base}/app`,
+    name: 'Fandez Admin',
+    short_name: 'Fandez Admin',
+    description: 'Panel privado de alertas y operaciones Fandez. No público.',
+    lang: 'es-CL',
+    start_url: `${base}/app?source=pwa-admin`,
+    scope: base.endsWith('/') ? base : `${base}/`,
+    display: 'standalone',
+    orientation: 'portrait-primary',
+    background_color: '#0a0a0c',
+    theme_color: '#0a0a0c',
+    launch_handler: { client_mode: ['navigate-existing', 'auto'] },
+    icons: [
+      { src: '/icons/fandez-admin-192.png?v=1', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-admin-512.png?v=1', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/fandez-admin-512.png?v=1', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+    ],
+    prefer_related_applications: false,
+    related_applications: []
+  });
+});
+
+router.get('/app', requireRole('admin'), (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.render('admin/ops-app', {
+    title: 'Fandez Admin',
+    adminBase: adminUrl(),
+    csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
+    user: req.session.user
+  });
+});
+
+router.get('/instalar-admin', requireRole('admin'), (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  const base = adminUrl();
+  const origin = String(process.env.APP_URL || company.appUrl || 'https://www.fandez.cl').replace(/\/$/, '');
+  res.render('admin/ops-install', {
+    title: 'Instalar Fandez Admin',
+    adminBase: base,
+    installUrl: `${origin}${base}/app`,
+    user: req.session.user
+  });
+});
+
+router.get('/ops-inbox', requireRole('admin'), requireAdminPermission('alertas.view', 'informes.view'), async (req, res) => {
+  try {
+    const opsInbox = require('../lib/agents/opsInbox');
+    const limit = parseInt(req.query.limit, 10) || 80;
+    const items = await opsInbox.listRecent({ limit });
+    const open = items.filter((i) => i.status === 'open').length;
+    res.json({ success: true, open, items });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/ops-inbox/:id/resolve', requireRole('admin'), requireAdminPermission('alertas.manage', 'informes.view'), async (req, res) => {
+  try {
+    const opsInbox = require('../lib/agents/opsInbox');
+    const item = await opsInbox.resolve(req.params.id, { byUserId: req.session.user.id });
+    store.logSecurityEvent('ops_inbox_resolved', req.params.id, req);
+    res.json({ success: true, item });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 router.get('/', requireRole('admin'), async (req, res) => {
@@ -560,6 +667,29 @@ router.post('/informes/finance/notify-founder', requireRole('admin'), requireAdm
     const result = await clara.notifyFounderDecisionPack(finance);
     store.logSecurityEvent('clara_decision_pack_notified', `${finance.decisionCount || 0} items`, req);
     res.json({ success: true, result, decisionCount: finance.decisionCount || 0 });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/informes/ops/notify-founder', requireRole('admin'), requireAdminPermission('informes.view'), requireFounderDecision, async (req, res) => {
+  try {
+    const date = req.body?.date ? new Date(`${req.body.date}T12:00:00`) : new Date();
+    const founderAlerts = require('../lib/agents/founderAlerts');
+    const result = await founderAlerts.sendDailyDigest(store, { date, force: true });
+    store.logSecurityEvent('sofia_daily_digest_notified', result.date || 'today', req);
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/informes/ops/notify-census', requireRole('admin'), requireAdminPermission('informes.view'), requireFounderDecision, async (req, res) => {
+  try {
+    const founderAlerts = require('../lib/agents/founderAlerts');
+    const result = await founderAlerts.sendUserCensus(store);
+    store.logSecurityEvent('sofia_user_census_notified', `${result.census?.providers || 0} socios`, req);
+    res.json({ success: true, result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

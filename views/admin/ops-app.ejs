@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fandez Admin">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="manifest" href="<%= adminBase %>/app.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/fandez-admin-180.png?v=1">
+  <link rel="icon" href="/icons/fandez-admin-192.png?v=1">
+  <title>Fandez Admin</title>
+  <style>
+    :root {
+      --bg: #0a0a0c;
+      --card: #151518;
+      --line: #2a2a30;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --amber: #c45c14;
+      --danger: #ef4444;
+      --ok: #22c55e;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+      min-height: 100%;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(10,10,12,.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px calc(12px + env(safe-area-inset-top));
+      padding-top: calc(12px + env(safe-area-inset-top));
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header img { width: 36px; height: 36px; border-radius: 10px; }
+    header h1 { font-size: 16px; margin: 0; letter-spacing: -0.02em; }
+    header p { margin: 2px 0 0; font-size: 11px; color: var(--muted); }
+    .actions { margin-left: auto; display: flex; gap: 8px; }
+    button, .btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      color: var(--text);
+      background: #222228;
+    }
+    .btn-amber { background: var(--amber); color: #fff; }
+    main { padding: 14px 14px 100px; max-width: 640px; margin: 0 auto; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px;
+      text-align: center;
+    }
+    .stat strong { display: block; font-size: 18px; color: var(--amber); }
+    .stat span { font-size: 10px; color: var(--muted); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .card.critical { border-color: #7f1d1d; box-shadow: inset 3px 0 0 var(--danger); }
+    .card.resolved { opacity: 0.55; }
+    .meta { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .title { font-size: 14px; font-weight: 700; margin: 0 0 6px; }
+    .body {
+      font-size: 12px;
+      color: #d4d4d8;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      max-height: 9em;
+      overflow: hidden;
+    }
+    .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .empty { text-align: center; color: var(--muted); padding: 40px 10px; font-size: 14px; }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      background: #18181b;
+      border: 1px solid var(--line);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      display: none;
+      z-index: 50;
+    }
+    .install-hint {
+      background: #1a120c;
+      border: 1px solid #3f2a1a;
+      color: #fbbf8a;
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="/icons/fandez-admin-192.png?v=1" alt="Fandez Admin">
+    <div>
+      <h1>Fandez Admin</h1>
+      <p>Alertas de agentes · privado</p>
+    </div>
+    <div class="actions">
+      <button type="button" id="btnPush" class="btn-amber">Activar avisos</button>
+      <a class="btn" href="<%= adminBase %>">Panel</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="install-hint" id="installHint">
+      En Chrome/Android: menú ⋮ → <strong>Instalar app</strong> / Añadir a inicio.
+      Queda como “Fandez Admin” (ícono negro). No está en Google Play.
+    </div>
+
+    <div class="stats">
+      <div class="stat"><strong id="statOpen">—</strong><span>Abiertas</span></div>
+      <div class="stat"><strong id="statCrit">—</strong><span>Críticas</span></div>
+      <div class="stat"><strong id="statToday">—</strong><span>Hoy</span></div>
+    </div>
+
+    <div id="list"></div>
+    <div class="empty" id="empty" hidden>Sin alertas abiertas. Sofía / Clara te avisarán aquí y por correo.</div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    window.FandezAdminBase = <%- JSON.stringify(adminBase) %>;
+    window.FandezCsrf = <%- JSON.stringify(csrfToken || '') %>;
+  </script>
+  <script src="/js/notify.js" defer></script>
+  <script src="/js/admin-ops-app.js" defer></script>
+</body>
+</html>
