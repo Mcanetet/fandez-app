@@ -16,7 +16,7 @@
   <main class="flex-1 px-5 py-5 space-y-4">
     <% if (typeof query !== 'undefined' && query.enviado) { %>
       <div class="p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-sm text-emerald-700">
-        Transferencia registrada. Confirmaremos tu pago y activaremos el servicio en breve.
+        Transferencia registrada. Activamos la búsqueda de un socio.
       </div>
     <% } %>
 
@@ -46,16 +46,24 @@
     </section>
     <% } %>
 
-    <p class="text-xs text-zilo-muted text-center px-2">Usa la referencia en el asunto o mensaje de la transferencia para agilizar la confirmación.</p>
+    <p class="text-xs text-zilo-muted text-center px-2">Usa la referencia en el asunto o mensaje de la transferencia para agilizar la conciliación.</p>
 
     <% if (request.paymentStatus !== 'pending_transfer') { %>
       <button type="button" id="btnConfirmTransfer" class="zilo-btn-primary" data-id="<%= request.id %>">
         Ya realicé la transferencia
       </button>
-    <% } else { %>
+      <p class="text-[11px] text-zilo-muted text-center">Al confirmar, iniciamos la búsqueda y el pedido aparece en el muro de los socios.</p>
+    <% } else if (typeof awaitingAdmin !== 'undefined' && awaitingAdmin) { %>
       <div class="p-4 rounded-2xl bg-zilo-accent/5 border border-zilo-accent/20 text-center text-sm">
-        Esperando confirmación del equipo Fandez
+        Transferencia recibida. El equipo Fandez confirma el abono bancario y luego comienza la búsqueda.
       </div>
+    <% } else { %>
+      <div class="p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-center text-sm text-emerald-700">
+        Activando búsqueda de socio…
+      </div>
+      <script>
+        setTimeout(function () { window.location.reload(); }, 1200);
+      </script>
     <% } %>
 
     <a href="/cliente" class="block text-center text-sm text-zilo-muted py-2">Volver al inicio</a>

@@ -27,6 +27,27 @@ function paymentSuccessPath(requestId, { auto = true, chargeId } = {}) {
   return `/pagos/exito?ref=${requestId}${autoQ}${chargeQ}`;
 }
 
+/**
+ * Tras “Ya realicé la transferencia”, activar búsqueda + muro.
+ * En producción con abono bancario real se puede exigir OK admin con
+ * REQUIRE_TRANSFER_ADMIN_APPROVAL=true.
+ */
+function shouldAutoApproveClientTransfer() {
+  const requireAdmin = String(process.env.REQUIRE_TRANSFER_ADMIN_APPROVAL || '').trim().toLowerCase();
+  if (requireAdmin === '1' || requireAdmin === 'true' || requireAdmin === 'yes') return false;
+  const forceAuto = String(process.env.AUTO_APPROVE_TRANSFERS || '').trim().toLowerCase();
+  if (forceAuto === '1' || forceAuto === 'true' || forceAuto === 'yes') return true;
+  if (forceAuto === '0' || forceAuto === 'false' || forceAuto === 'no') return false;
+  // Por defecto: activar al confirmar el cliente (demo y lanzamiento con transferencia).
+  return true;
+}
+
+function activateTransferAndNotify(req, requestId) {
+  const approved = store.approveTransferPayment(requestId);
+  if (approved) notifyProviders(req, approved);
+  return approved;
+}
+
 function notifyProviders(req, request) {
   notifyProvidersForRequest(req.app.get('io'), request);
 }
@@ -476,6 +497,13 @@ router.get('/transferencia', requireRole('client'), (req, res) => {
     return res.redirect(paymentSuccessPath(request.id));
   }
 
+  // Pedidos ya marcados como transferidos: activar búsqueda si corresponde
+  // (desbloquea los que quedaron esperando “confirmación del equipo”).
+  if (request.paymentStatus === 'pending_transfer' && shouldAutoApproveClientTransfer()) {
+    const approved = activateTransferAndNotify(req, request.id);
+    if (approved) return res.redirect(paymentSuccessPath(request.id));
+  }
+
   const pricing = store.getPricingConfig();
   res.render('payments/transfer', {
     title: 'Transferencia bancaria — Fandez',
@@ -484,7 +512,8 @@ router.get('/transferencia', requireRole('client'), (req, res) => {
     bank: pricing.bankTransfer,
     query: req.query,
     formatCLP: store.formatCLP,
-    company
+    company,
+    awaitingAdmin: request.paymentStatus === 'pending_transfer' && !shouldAutoApproveClientTransfer()
   });
 });
 
@@ -492,11 +521,9 @@ router.post('/transferencia/confirmar', requireRole('client'), (req, res) => {
   const result = store.submitTransferPayment(req.body.requestId, req.session.user.id);
   if (result.error) return res.status(400).json({ success: false, error: result.error });
 
-  // Modo demo: activar búsqueda al instante (en producción el admin confirma el abono).
-  if (!appMode.isProductionMode()) {
-    const approved = store.approveTransferPayment(req.body.requestId);
+  if (shouldAutoApproveClientTransfer()) {
+    const approved = activateTransferAndNotify(req, req.body.requestId);
     if (approved) {
-      notifyProviders(req, approved);
       return res.json({
         success: true,
         redirect: paymentSuccessPath(req.body.requestId)
