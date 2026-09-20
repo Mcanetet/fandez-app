@@ -2,6 +2,9 @@
   const job = typeof r !== 'undefined' ? r : null;
   const team = Array.isArray(technicians) ? technicians : [];
   if (!job) return;
+  const eligibleTechs = team.filter(tech => Array.isArray(tech.specialties) && tech.specialties.includes(job.serviceId));
+  const waitingAccept = Boolean(job.technicianId && job.techStatus === 'asignado');
+  const needsAssign = !job.technicianId;
 %>
 <div class="p-4 rounded-2xl zilo-card-premium" data-request-id="<%= job.id %>"
   data-agenda-day="<%= job.agendaDay || 'today' %>"
@@ -43,13 +46,45 @@
   <% } %>
 
   <div data-role="assign-area" class="mt-3 space-y-2">
-    <% if (job.technicianId && job.techStatus === 'asignado') { %>
-      <div class="p-3 rounded-xl border border-amber-300 bg-amber-50 space-y-2"
+    <% if (needsAssign || waitingAccept) { %>
+      <div class="p-3 rounded-xl border <%= waitingAccept ? 'border-amber-300 bg-amber-50' : 'border-zilo-accent/30 bg-zilo-accent/5' %> space-y-2"
+        <% if (waitingAccept) { %>
         data-accept-deadline="<%= job.technicianAssignedAt || '' %>"
-        data-accept-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>">
-        <p class="text-xs text-amber-900"><%= t('provider.mando_page.waiting_accept', { name: job.technicianName }) %></p>
-        <p class="text-sm font-semibold text-amber-950 tabular-nums" data-role="accept-countdown"><%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>:00</p>
-        <p class="text-[11px] text-amber-800/80"><%= t('provider.mando_page.accept_timeout_hint') %></p>
+        data-accept-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>"
+        <% } %>
+      >
+        <% if (waitingAccept) { %>
+          <p class="text-xs text-amber-900"><%= t('provider.mando_page.waiting_accept', { name: job.technicianName }) %></p>
+          <p class="text-sm font-semibold text-amber-950 tabular-nums" data-role="accept-countdown"><%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>:00</p>
+          <p class="text-[11px] text-amber-800/80"><%= t('provider.mando_page.accept_timeout_hint') %></p>
+        <% } else { %>
+          <p class="text-xs font-semibold text-zilo-text">Asigna un técnico para esta visita</p>
+          <p class="text-[11px] text-zilo-muted">Elige quién va. Si eliges a otra persona, tendrá unos minutos para aceptar en su celular.</p>
+        <% } %>
+
+        <% if (team.length > 0) { %>
+          <% if (job.awaitingProviderReassign && !waitingAccept) { %>
+            <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2"><%= t('provider.mando_page.reassign_hint') %></p>
+            <p class="text-xs font-semibold text-amber-900 tabular-nums"
+              data-reassign-deadline="<%= job.techAcceptTimedOutAt || '' %>"
+              data-reassign-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.providerReassignMinutes : 10 %>"
+              data-role="reassign-countdown"></p>
+          <% } %>
+          <label class="zilo-label block !text-[10px]" for="tech-select-<%= job.id %>"><%= waitingAccept ? 'Cambiar técnico' : t('provider.mando_page.pick_tech') %></label>
+          <select id="tech-select-<%= job.id %>" class="zilo-select-tech zilo-input text-sm" data-role="tech-select" <%= eligibleTechs.length ? '' : 'disabled' %>>
+            <option value=""><%= eligibleTechs.length ? t('provider.mando_page.pick_placeholder') : t('provider.mando_page.no_eligible') %></option>
+            <% eligibleTechs.forEach(tech => { %>
+              <option value="<%= tech.id %>" <%= job.technicianId === tech.id ? 'selected' : '' %>><%= tech.isSelfOperator ? (tech.name + ' (tú)') : tech.name %></option>
+            <% }); %>
+          </select>
+          <button type="button" class="zilo-btn-primary w-full !py-3 !text-sm" data-role="assign-btn" data-id="<%= job.id %>" <%= eligibleTechs.length ? '' : 'disabled' %>><%= waitingAccept ? 'Reasignar técnico' : t('provider.mando_page.assign_btn') %></button>
+          <% if (!eligibleTechs.length) { %>
+            <a href="/proveedor/equipo" class="block text-center text-[11px] text-zilo-accent underline"><%= t('provider.mando_page.activate_tech') %></a>
+          <% } %>
+        <% } else { %>
+          <a href="/proveedor/equipo" class="block text-center zilo-btn-ghost !py-3 !text-sm"><%= t('provider.mando_page.add_tech') %></a>
+        <% } %>
+
         <a href="/proveedor/trabajo/<%= job.id %>" class="block text-center zilo-btn-ghost !py-2 !text-xs"><%= t('provider.mando_page.view_job') %></a>
         <details class="mt-1">
           <summary class="text-[11px] text-zilo-muted cursor-pointer py-1">Más opciones</summary>
@@ -71,33 +106,6 @@
             <summary class="text-[11px] text-zilo-muted cursor-pointer py-1">Más opciones</summary>
             <button type="button" class="w-full mt-2 py-2 text-xs text-red-700 underline" data-role="desert-btn" data-id="<%= job.id %>"><%= t('provider.mando_page.release_short') %></button>
           </details>
-        <% } %>
-      </div>
-    <% } else if (team.length > 0) { %>
-      <% const eligibleTechs = team.filter(tech => Array.isArray(tech.specialties) && tech.specialties.includes(job.serviceId)); %>
-      <div class="space-y-2">
-        <% if (job.awaitingProviderReassign) { %>
-          <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2"><%= t('provider.mando_page.reassign_hint') %></p>
-          <p class="text-xs font-semibold text-amber-900 tabular-nums"
-            data-reassign-deadline="<%= job.techAcceptTimedOutAt || '' %>"
-            data-reassign-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.providerReassignMinutes : 10 %>"
-            data-role="reassign-countdown"></p>
-        <% } %>
-        <label class="zilo-label block !text-[10px]" for="tech-select-<%= job.id %>"><%= t('provider.mando_page.pick_tech') %></label>
-        <select id="tech-select-<%= job.id %>" class="zilo-select-tech zilo-input text-sm" data-role="tech-select" <%= eligibleTechs.length ? '' : 'disabled' %>>
-          <option value=""><%= eligibleTechs.length ? t('provider.mando_page.pick_placeholder') : t('provider.mando_page.no_eligible') %></option>
-          <% eligibleTechs.forEach(tech => { %>
-            <option value="<%= tech.id %>"><%= tech.name %></option>
-          <% }); %>
-        </select>
-        <button type="button" class="zilo-btn-primary w-full !py-3 !text-sm" data-role="assign-btn" data-id="<%= job.id %>" <%= eligibleTechs.length ? '' : 'disabled' %>><%= t('provider.mando_page.assign_btn') %></button>
-        <button type="button" class="w-full zilo-btn-ghost !py-2.5 !text-sm" data-role="open-chat" data-id="<%= job.id %>" data-client="<%= job.clientName || 'Cliente' %>"><%= t('provider.mando_page.chat_client') %></button>
-        <details class="mt-1">
-          <summary class="text-[11px] text-zilo-muted cursor-pointer py-1">Más opciones</summary>
-          <button type="button" class="w-full mt-2 py-2 text-xs text-red-700 underline" data-role="desert-btn" data-id="<%= job.id %>"><%= t('provider.mando_page.release_no_tech') %></button>
-        </details>
-        <% if (!eligibleTechs.length) { %>
-          <a href="/proveedor/equipo" class="block text-center text-[11px] text-zilo-accent underline"><%= t('provider.mando_page.activate_tech') %></a>
         <% } %>
       </div>
     <% } else { %>

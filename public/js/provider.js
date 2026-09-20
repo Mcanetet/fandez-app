@@ -647,16 +647,7 @@
 
   async function acceptRequest(requestId, btn) {
     if (btn) btn.disabled = true;
-    const serviceId = currentRequest?.service?.id
-      || currentRequest?.request?.serviceId
-      || wallItems.get(requestId)?.service?.id
-      || wallItems.get(requestId)?.request?.serviceId;
-    const technicianId = await askTechnicianId(serviceId);
-    if (!technicianId) {
-      if (btn) btn.disabled = false;
-      return;
-    }
-    const body = { technicianId };
+    const body = {};
     if (navigator.geolocation) {
       try {
         const pos = await new Promise((resolve, reject) => {
@@ -701,17 +692,16 @@
           return;
         }
       } catch (_) { /* fall through */ }
-      // Si no pudo entrar como técnico, abre la vista de terreno del socio
       window.location.href = `/proveedor/trabajo/${encodeURIComponent(requestId)}`;
       return;
     }
 
     activeRequestId = requestId;
     startLocationWatch();
-    FandezNotify.show('Pedido tomado. Avisamos al técnico. Abriendo detalle…', 'success');
+    FandezNotify.show('Pedido tomado. Elige el técnico en Mando.', 'success');
     setTimeout(() => {
-      window.location.href = `/proveedor/trabajo/${encodeURIComponent(requestId)}`;
-    }, 500);
+      window.location.href = '/proveedor/mando';
+    }, 400);
   }
 
   socket.on('connect', () => {

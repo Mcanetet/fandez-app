@@ -4868,32 +4868,64 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
         error: 'Para aceptar necesitas cobertura lista: en Mi equipo activa “Yo hago el servicio” o un técnico con carnet + antecedentes, con el oficio Limpieza.'
       };
     }
-    if (!technicianId) {
-      return { error: 'Debes asignar un técnico al tomar el pedido.' };
-    }
-    const tecnico = getTechnicianForProvider(user.id, technicianId);
-    if (!tecnico) return { error: 'Técnico no válido.' };
-    if (tecnico.active === false) return { error: 'El técnico está desactivado.' };
-    const operational = canTechnicianOperate(tecnico);
-    if (!operational.ok) {
-      return { error: `Completa el expediente del técnico: ${operational.missing.join(', ')}.` };
-    }
-    if (!Array.isArray(tecnico.specialties) || !tecnico.specialties.includes(request.serviceId)) {
-      return { error: 'Este técnico no está habilitado para este servicio.' };
+
+    let tecnico = null;
+    if (technicianId) {
+      tecnico = getTechnicianForProvider(user.id, technicianId);
+      if (!tecnico) return { error: 'Técnico no válido.' };
+      if (tecnico.active === false) return { error: 'El técnico está desactivado.' };
+      const operational = canTechnicianOperate(tecnico);
+      if (!operational.ok) {
+        return { error: `Completa el expediente del técnico: ${operational.missing.join(', ')}.` };
+      }
+      if (!Array.isArray(tecnico.specialties) || !tecnico.specialties.includes(request.serviceId)) {
+        return { error: 'Este técnico no está habilitado para este servicio.' };
+      }
     }
 
     request.providerId = user.id;
     request.status = 'assigned';
     request.assignedAt = new Date().toISOString();
-    request.technicianId = tecnico.id;
-    request.technicianName = tecnico.name;
-    request.technicianPhone = tecnico.phone || null;
-    request.technicianAssignedAt = new Date().toISOString();
+    bumpProviderCounter(user.id, 'jobsTakenCount', 1);
     request.serviceConfirmStatus = 'pending';
     request.serviceConfirmedAt = null;
     request.serviceConfirmMode = null;
     request.awaitingProviderReassign = false;
-    bumpProviderCounter(user.id, 'jobsTakenCount', 1);
+
+    // Sin técnico aún: el socio elige en Mando (lista en la tarjeta).
+    if (!tecnico) {
+      clearTechnicianFromRequest(request);
+      request.awaitingProviderReassign = true;
+      acceptChatMessage = appendChatMessage(request, {
+        senderType: 'system',
+        senderId: null,
+        senderName: 'Fandez',
+        body: `${user.name} tomó tu pedido y está asignando un técnico del equipo.`
+      });
+      if (request.noProviderDecisionStatus === 'pending') {
+        request.noProviderDecisionStatus = 'resolved';
+        request.noProviderChoice = 'assigned';
+        request.noProviderRespondedAt = new Date().toISOString();
+        request.noProviderChoiceTokenHash = null;
+      }
+      ensureRequestChat(request);
+      repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
+      afterEvent((ev) => {
+        ev.onProviderAssigned(request);
+      });
+      return {
+        success: true,
+        request,
+        chatMessage: acceptChatMessage,
+        selfOperator: false,
+        needsTechnicianAssign: true
+      };
+    }
+
+    request.technicianId = tecnico.id;
+    request.technicianName = tecnico.name;
+    request.technicianPhone = tecnico.phone || null;
+    request.technicianAssignedAt = new Date().toISOString();
 
     if (tecnico.isSelfOperator) {
       request.techStatus = 'aceptado';
@@ -5437,7 +5469,6 @@ function assignTechnician(requestId, socioId, technicianId) {
   request.technicianName = tecnico.name;
   request.technicianPhone = tecnico.phone || null;
   request.technicianAssignedAt = new Date().toISOString();
-  request.techStatus = 'asignado';
   request.serviceConfirmStatus = 'pending';
   request.serviceConfirmedAt = null;
   request.serviceConfirmMode = null;
@@ -5446,15 +5477,38 @@ function assignTechnician(requestId, socioId, technicianId) {
   request.etaMinutesMax = null;
   request.etaLabel = null;
   request.etaDeclaredAt = null;
-  appendChatMessage(request, {
-    senderType: 'system',
-    senderId: null,
-    senderName: 'Fandez',
-    body: `El socio asignó a ${tecnico.name}. Tiene ${getRequestTimeouts().techAcceptMinutes} minutos para aceptar el pedido.`
-  });
+
+  if (tecnico.isSelfOperator) {
+    request.techStatus = 'aceptado';
+    const actorCoords = resolveActorCoords(tecnico.id, null, null)
+      || resolveActorCoords(socioId, null, null);
+    if (actorCoords && request.coords) {
+      applyDrivingEtaToRequest(request, actorCoords.lat, actorCoords.lng, { persist: false });
+    } else {
+      request.etaMinutesMin = 45;
+      request.etaMinutesMax = 90;
+      request.etaLabel = formatEtaRangeLabel(45, 90, 'es');
+      request.etaDeclaredAt = new Date().toISOString();
+      request.etaSource = 'fallback';
+    }
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `El socio irá a la visita (${tecnico.name}). Llegada estimada: ${request.etaLabel || 'por confirmar'}.`
+    });
+  } else {
+    request.techStatus = 'asignado';
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `El socio asignó a ${tecnico.name}. Tiene ${getRequestTimeouts().techAcceptMinutes} minutos para aceptar el pedido.`
+    });
+  }
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   afterEvent((ev) => ev.onTechnicianAssigned(request));
-  return { success: true, request, tecnico };
+  return { success: true, request, tecnico, selfOperator: Boolean(tecnico.isSelfOperator) };
 }
 
 function clearTechnicianFromRequest(request) {
@@ -7136,8 +7190,10 @@ function enrichRequestForProvider(request, locale = 'es') {
       : null,
     statusLabel: getRequestStatusLabel(request, locale),
     arrivalDisplay: getArrivalDisplay(request, null, locale),
-    techStatusLabel: request.awaitingProviderReassign && !request.technicianId
-      ? translate(locale, 'provider.request.reassigning')
+    techStatusLabel: (!request.technicianId && request.providerId)
+      ? (request.awaitingProviderReassign
+        ? translate(locale, 'provider.request.reassigning')
+        : translate(locale, 'provider.mando_page.pick_tech'))
       : (getTechStatusLabel(request.techStatus, locale) || getRequestStatusLabel(request, locale)),
     payoutScheduledLabel: request.payoutScheduledDate ? formatPayDate(request.payoutScheduledDate, locale === 'en' ? 'en-US' : 'es-CL') : null,
     financials: request.status === 'completed' ? computeRequestFinancials(request, pricing) : undefined,

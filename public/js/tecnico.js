@@ -562,12 +562,24 @@
           ? `${payload.request.serviceName} · Tienes ${mins} min para aceptar`
           : t('tecnico.js.assignment_body'),
         tag: 'fandez-tec-assignment',
-        url: '/tecnico'
+        url: '/tecnico',
+        system: true,
+        requireInteraction: true
       });
+      if (window.FandezAlerts?.enablePush) {
+        FandezAlerts.enablePush().catch(() => {});
+      }
       playAlertSound();
       startRepeatingAlert();
       setTimeout(() => location.reload(), 900);
     });
+  }
+
+  // Suscribir push al abrir el panel técnico (avisos con app cerrada)
+  if (window.FandezAlerts) {
+    FandezAlerts.ensurePermission().then((p) => {
+      if (p === 'granted') FandezAlerts.enablePush();
+    }).catch(() => {});
   }
 
   onlineToggle?.addEventListener('change', async () => {

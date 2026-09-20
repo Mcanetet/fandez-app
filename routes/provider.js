@@ -906,13 +906,23 @@ router.post('/asignar/:requestId', requireRole('provider'), requireModule('provi
   if (result.error) return res.status(400).json({ success: false, error: result.error });
 
   const io = req.app.get('io');
-  io.emit(`tecnico_assignment_${result.tecnico.id}`, { requestId: result.request.id });
-  emitRequestUpdateToParties(io, store, result.request, { request: result.request });
+  const enriched = store.enrichRequestForProvider(result.request, req.locale);
+  io.emit(`tecnico_assignment_${result.tecnico.id}`, {
+    requestId: result.request.id,
+    request: enriched
+  });
+  emitRequestUpdateToParties(io, store, result.request, { request: enriched });
   store.logSecurityEvent('tecnico_asignado', `${result.tecnico.email} -> ${result.request.id}`, req);
 
   res.json({
     success: true,
-    request: { id: result.request.id, technicianId: result.tecnico.id, technicianName: result.tecnico.name, techStatus: result.request.techStatus }
+    selfOperator: Boolean(result.selfOperator),
+    request: {
+      id: result.request.id,
+      technicianId: result.tecnico.id,
+      technicianName: result.tecnico.name,
+      techStatus: result.request.techStatus
+    }
   });
 });
 

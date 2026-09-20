@@ -137,7 +137,15 @@
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'Error');
 
-        notify(`Asignado a ${data.request.technicianName}. Tiene 10 min para aceptar.`, 'success');
+        if (data.selfOperator) {
+          notify(`Vas tú a la visita. Abriendo terreno…`, 'success');
+          setTimeout(() => {
+            window.location.href = `/proveedor/trabajo/${encodeURIComponent(btn.dataset.id)}`;
+          }, 500);
+          return;
+        }
+
+        notify(`Asignado a ${data.request.technicianName}. Le llega aviso al celular; tiene 10 min para aceptar.`, 'success');
         setTimeout(() => location.reload(), 700);
       } catch (err) {
         btn.disabled = false;
@@ -145,6 +153,13 @@
       }
     });
   });
+
+  // Pedir permiso de notificaciones push en Mando (socio)
+  if (window.FandezAlerts) {
+    FandezAlerts.ensurePermission().then((p) => {
+      if (p === 'granted') FandezAlerts.enablePush();
+    }).catch(() => {});
+  }
 
   document.querySelectorAll('[data-role="desert-btn"]').forEach((btn) => {
     btn.addEventListener('click', async () => {
