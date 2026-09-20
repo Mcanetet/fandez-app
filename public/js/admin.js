@@ -435,7 +435,7 @@
         });
         const data = await res.json();
         if (data.success) {
-          FandezNotify.show('Email verificado', 'success');
+          FandezNotify.show(data.message || 'Email verificado', 'success');
           refreshManagedUsers();
         } else {
           FandezNotify.show(data.error || 'No se pudo verificar', 'error');

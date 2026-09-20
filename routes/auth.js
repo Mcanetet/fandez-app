@@ -156,10 +156,13 @@ function loginRenderOptions(req, extra = {}) {
 }
 
 router.get('/login', (req, res) => {
-  // Sesión admin no usa el login público
+  // Misma cookie dominio: sesión admin no debe secuestrar el login público
+  // (PWA/web normal). Cerrar y mostrar formulario de cliente/socio/técnico.
   if (isAdminSessionUser(req)) {
-    const { adminUrl } = require('../lib/appMode');
-    return res.redirect(adminUrl('/login'));
+    const dest = req.originalUrl && req.originalUrl.startsWith('/login')
+      ? req.originalUrl
+      : '/login';
+    return logoutAndRedirect(req, res, dest);
   }
   if (req.session.user) {
     const user = store.getUserById(req.session.user.id);
@@ -957,9 +960,11 @@ router.post('/recuperar/nueva', rateLimitLogin(8), async (req, res) => {
 
 router.get('/logout', (req, res) => {
   const wasAdmin = isAdminSessionUser(req);
-  // Admin vuelve al login admin; resto a la home pública
+  // Admin vuelve al login admin; resto a la home pública.
+  // ?to=public: liberar cookie admin al abrir la app/web normal (misma sesión).
   const { adminUrl } = require('../lib/appMode');
-  logoutAndRedirect(req, res, wasAdmin ? adminUrl('/login') : '/');
+  const toPublic = req.query.to === 'public' || req.query.next === '/';
+  logoutAndRedirect(req, res, toPublic ? '/' : (wasAdmin ? adminUrl('/login') : '/'));
 });
 
 router.post('/cuenta/password', async (req, res) => {

@@ -2196,10 +2196,19 @@ router.post('/usuarios/verificar-email/forzar', requireRole('admin'), requireAdm
   const result = await store.forceVerifyEmail(user.id, { actorId: req.session.user.id });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   store.logSecurityEvent('admin_force_verify', email, req);
+  let message = result.already ? 'Ya estaba verificado.' : `Correo verificado manualmente: ${email}`;
+  if (user.role === 'tecnico') {
+    const dossier = store.canTechnicianOperate(user);
+    message += dossier.ok
+      ? ' Técnico listo: el socio ya puede usarlo en cobertura/pedidos.'
+      : ` Esto solo desbloquea el login. El socio aún debe completar el expediente (${(dossier.missing || []).join(', ') || 'docs pendientes'}) para verlo como aprobado/listo.`;
+  }
   res.json({
     success: true,
     already: Boolean(result.already),
-    message: result.already ? 'Ya estaba verificado.' : `Correo verificado manualmente: ${email}`
+    role: user.role,
+    dossierOk: user.role === 'tecnico' ? store.canTechnicianOperate(user).ok : null,
+    message
   });
 });
 

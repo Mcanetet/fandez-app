@@ -84,17 +84,25 @@ const { getDiagnosisChips } = require('../lib/diagnosisChips');
 
 function equipoViewLocals(req, provider, extra = {}) {
   const onlineGate = store.canProviderGoOnline(provider);
+  const hasServices = Array.isArray(provider.specialties) && provider.specialties.length > 0;
   return {
     title: 'Mi equipo — Fandez',
     user: req.session.user,
     provider,
     technicians: store.getTechniciansByProvider(provider.id).map((tecnico) => ({
       ...tecnico,
+      // Self-op usa correo interno; al socio le mostramos el suyo.
+      displayEmail: tecnico.isSelfOperator ? provider.email : tecnico.email,
+      emailVerified: tecnico.isSelfOperator
+        ? store.isEmailVerified(provider)
+        : store.isEmailVerified(tecnico),
       dossierCheck: store.canTechnicianOperate(tecnico),
       canClaimWall: store.technicianCanClaimWallForProvider(tecnico, provider.id)
     })),
     selfOperator: store.getSelfOperator(provider.id),
-    canEnableSelf: onlineGate.ok && Array.isArray(provider.specialties) && provider.specialties.length > 0,
+    // Se puede agregar como técnico con servicios activos; pedidos exigen KYC+contrato.
+    canEnableSelf: hasServices,
+    selfReady: onlineGate.ok,
     selfGateMissing: onlineGate.missing || [],
     services: store.SERVICES,
     serviceStatus: store.getProviderServicesStatus(provider.id),
@@ -654,6 +662,19 @@ router.post('/equipo', requireRole('provider'), requireModule('provider_equipo')
     if (isJson) return res.status(400).json({ success: false, error: result.error });
     const provider = store.getUserById(req.session.user.id);
     return res.status(400).render('provider/equipo', equipoViewLocals(req, provider, { error: result.error }));
+  }
+
+  if (result.selfOperator) {
+    store.logSecurityEvent('self_operator_enabled', result.tecnico.id, req);
+    const isJson = req.xhr || (req.get('accept') || '').includes('application/json');
+    if (isJson) {
+      return res.json({
+        success: true,
+        selfOperator: true,
+        message: result.message || 'Te agregaste como técnico con tu cuenta de socio.'
+      });
+    }
+    return res.redirect('/proveedor/equipo?ok=self');
   }
 
   store.logSecurityEvent(result.linked ? 'tecnico_vinculado' : 'tecnico_creado', result.tecnico.email, req);

@@ -3516,6 +3516,21 @@ async function createTechnician(socioId, { name, email, password, phone, special
   if (!name || !email) return { error: 'Completa nombre y correo.' };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: 'Ingresa un correo válido.' };
 
+  // Mismo correo del socio → perfil «yo soy el técnico» (no se duplica la cuenta).
+  const socioEmail = String(socio.email || '').trim().toLowerCase();
+  if (email && socioEmail && email === socioEmail) {
+    const self = await enableSelfOperator(socioId);
+    if (self.error) return self;
+    return {
+      success: true,
+      selfOperator: true,
+      linked: false,
+      tecnico: self.tecnico,
+      created: Boolean(self.created),
+      message: 'Listo: te agregaste como técnico con tu cuenta de socio. No necesitas otro correo ni expediente aparte.'
+    };
+  }
+
   if (!Array.isArray(socio.specialties) || !socio.specialties.length) {
     return { error: 'Primero activa al menos un servicio de tu empresa para asignárselo al técnico.' };
   }
@@ -3529,6 +3544,11 @@ async function createTechnician(socioId, { name, email, password, phone, special
 
   const existing = getUserByEmail(email);
   if (existing) {
+    if (existing.id === socioId || existing.role === 'provider') {
+      return {
+        error: 'Ese correo es de una cuenta socio. Usa «Agregarme como técnico con mi cuenta de socio» o el correo de otra persona.'
+      };
+    }
     if (existing.role !== 'tecnico') {
       return { error: 'Ese correo ya pertenece a otra cuenta (no técnico). Usa otro correo o vincula un técnico existente.' };
     }
@@ -3685,6 +3705,12 @@ function linkTechnicianToProvider(socioId, { email, specialties } = {}) {
   if (!socio || socio.role !== 'provider') return { error: 'Cuenta de socio no válida.' };
   const normalized = String(email || '').trim().toLowerCase();
   if (!normalized) return { error: 'Ingresa el correo del técnico.' };
+  const socioEmail = String(socio.email || '').trim().toLowerCase();
+  if (normalized === socioEmail) {
+    return {
+      error: 'Para agregarte tú mismo usa el botón «Agregarme como técnico con mi cuenta de socio».'
+    };
+  }
   const tecnico = USERS.find((u) => u.role === 'tecnico' && String(u.email || '').toLowerCase() === normalized);
   if (!tecnico) return { error: 'No existe un técnico con ese correo. Créalo o pídele que se registre con otro socio primero.' };
   if (technicianBelongsToProvider(tecnico, socioId)) {
@@ -3762,14 +3788,10 @@ async function enableSelfOperator(providerId) {
     return { error: 'Cuenta de socio no válida.' };
   }
   if (!Array.isArray(provider.specialties) || !provider.specialties.length) {
-    return { error: 'Activa al menos un servicio de tu empresa antes de operar tú mismo.' };
+    return { error: 'Activa al menos un servicio de tu empresa antes de agregarte como técnico.' };
   }
-  const gate = canProviderGoOnline(provider);
-  if (!gate.ok) {
-    return {
-      error: `Completa tu verificación y contrato para operar: ${(gate.missing || []).join(', ')}.`
-    };
-  }
+  // Crear el perfil técnico es fácil: reutiliza docs del socio.
+  // Tomar pedidos sigue exigiendo verificación + contrato (canTechnicianOperate).
 
   let existing = getTechniciansByProvider(providerId).find((t) => t.isSelfOperator);
   if (existing) {
@@ -3778,6 +3800,24 @@ async function enableSelfOperator(providerId) {
     existing.name = provider.name;
     existing.phone = provider.phone || existing.phone;
     existing.avatar = provider.avatar || existing.avatar;
+    if (isEmailVerified(provider) && !existing.emailVerifiedAt) {
+      existing.emailVerifiedAt = provider.emailVerifiedAt || new Date().toISOString();
+    }
+    // Mantener expediente alineado con KYC del socio
+    existing.verification = {
+      ...(existing.verification || {}),
+      status: 'complete',
+      isSelfOperator: true,
+      photo: provider.verification?.selfie || existing.verification?.photo || null,
+      idCardFront: provider.verification?.idCardFront || existing.verification?.idCardFront || null,
+      idCardBack: provider.verification?.idCardBack || existing.verification?.idCardBack || null,
+      criminalRecord: existing.verification?.criminalRecord || 'self-operator-via-provider',
+      studyCertificates: (existing.verification?.studyCertificates?.length
+        ? existing.verification.studyCertificates
+        : [{ url: 'self-operator', label: 'Verificado vía contrato de socio', uploadedAt: new Date().toISOString() }]),
+      otherCertificates: existing.verification?.otherCertificates || [],
+      updatedAt: new Date().toISOString()
+    };
     repository.persist(() => repository.saveUser(existing), `self-operator sync ${existing.id}`);
     return { success: true, tecnico: existing, created: false };
   }
@@ -3819,7 +3859,7 @@ async function enableSelfOperator(providerId) {
     locationShare: provider.locationShare || defaultLocationShare(),
     active: true,
     memberSince: new Date().toISOString().slice(0, 10),
-    emailVerifiedAt: new Date().toISOString(),
+    emailVerifiedAt: provider.emailVerifiedAt || new Date().toISOString(),
     emailVerificationCodeHash: null,
     emailVerificationExpiresAt: null,
     emailVerificationSentAt: null

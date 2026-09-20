@@ -27,7 +27,7 @@
     </div>
 
     <% if (typeof ok !== 'undefined' && ok === 'self') { %>
-      <div class="mb-4 p-3 rounded-xl border border-zilo-success/30 bg-zilo-success/10 text-sm text-zilo-success">Listo: ya puedes tomar pedidos y hacer las visitas tú mismo.</div>
+      <div class="mb-4 p-3 rounded-xl border border-zilo-success/30 bg-zilo-success/10 text-sm text-zilo-success">Listo: quedaste como técnico con tu cuenta de socio. Sin otro correo ni expediente aparte.</div>
     <% } %>
     <% if (typeof ok !== 'undefined' && ok === 'linked') { %>
       <div class="mb-4 p-3 rounded-xl border border-zilo-success/30 bg-zilo-success/10 text-sm text-zilo-success">
@@ -47,6 +47,55 @@
       <div class="mb-4 p-3 rounded-xl border border-zilo-danger/30 bg-zilo-danger/10 text-sm text-zilo-danger"><%= error %></div>
     <% } %>
 
+    <% if (typeof selfOperator === 'undefined' || !selfOperator) { %>
+      <section class="mb-5 zilo-card-premium rounded-2xl p-5 border border-zilo-accent/25 bg-zilo-accent-soft/20">
+        <p class="zilo-label mb-1">¿Vas tú a las visitas?</p>
+        <h2 class="text-sm font-semibold mb-1">Agregarme como técnico con mi cuenta de socio</h2>
+        <p class="text-xs text-zilo-muted mb-3">Mismo correo y tus documentos de socio. No creas otra cuenta ni expediente de técnico aparte.</p>
+        <% if (typeof canEnableSelf !== 'undefined' && canEnableSelf) { %>
+          <form method="POST" action="/proveedor/equipo/yo-hago-servicio">
+            <button type="submit" class="w-full py-3.5 rounded-xl zilo-btn-primary font-semibold">Agregarme como técnico con mi cuenta de socio</button>
+          </form>
+          <% if (typeof selfReady !== 'undefined' && !selfReady) { %>
+            <p class="text-[11px] text-amber-800 mt-2">
+              Quedarás en el equipo ya. Para tomar pedidos falta:
+              <%= (selfGateMissing && selfGateMissing.length) ? selfGateMissing.join(', ') : 'verificación o contrato' %>.
+            </p>
+          <% } %>
+        <% } else { %>
+          <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
+            Primero activa al menos un servicio de tu empresa (pestaña Servicios).
+          </p>
+        <% } %>
+      </section>
+    <% } else { %>
+      <section class="mb-5 zilo-card-premium rounded-2xl p-5 border border-zilo-success/25">
+        <p class="text-sm text-zilo-success font-medium mb-1">Ya estás en el equipo como técnico (tu cuenta de socio)</p>
+        <% if (typeof selfReady !== 'undefined' && selfReady) { %>
+          <button type="button" id="btnEnterTerrainTop" class="w-full py-3 rounded-xl zilo-btn-ghost">Ir a mi panel de visitas</button>
+          <script>
+            document.getElementById('btnEnterTerrainTop')?.addEventListener('click', async () => {
+              const res = await fetch('/proveedor/entrar-terreno', { method: 'POST', headers: { Accept: 'application/json' } });
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok || !data.success) {
+                if (window.FandezNotify) FandezNotify.show(data.error || 'No se pudo entrar', 'error');
+                return;
+              }
+              window.location.href = '/tecnico';
+            });
+          </script>
+        <% } else { %>
+          <p class="text-xs text-amber-800">
+            Completa verificación y contrato para tomar pedidos
+            <% if (typeof selfGateMissing !== 'undefined' && selfGateMissing.length) { %>
+              (falta: <%= selfGateMissing.join(', ') %>)
+            <% } %>.
+          </p>
+          <a href="/proveedor/perfil" class="inline-flex text-xs font-semibold text-zilo-accent mt-2">Ir a mi perfil →</a>
+        <% } %>
+      </section>
+    <% } %>
+
     <nav class="flex gap-1 mb-5 p-1 rounded-xl bg-zilo-elevated border border-zilo-border sticky top-[4.5rem] z-20" id="equipoTabs" role="tablist" aria-label="Secciones de equipo">
       <button type="button" class="equipo-tab flex-1 py-2.5 rounded-lg text-xs font-semibold bg-white text-zilo-accent shadow-sm" data-tab="servicios" role="tab" aria-selected="true">Servicios</button>
       <button type="button" class="equipo-tab flex-1 py-2.5 rounded-lg text-xs font-semibold text-zilo-muted" data-tab="tecnicos" role="tab" aria-selected="false">Técnicos</button>
@@ -54,40 +103,6 @@
     </nav>
 
     <div data-equipo-panel="servicios" class="equipo-panel space-y-6">
-    <section class="mb-6 zilo-card-premium rounded-2xl p-5 border border-zilo-accent/20">
-      <p class="zilo-label mb-1">¿Trabajas solo?</p>
-      <h2 class="text-sm font-semibold mb-1">Yo hago el servicio</h2>
-      <p class="text-xs text-zilo-muted mb-3">Si eres el que va a los domicilios, actívalo y no necesitas crear otro técnico. Usarás tus documentos de socio ya verificados.</p>
-      <% if (typeof selfOperator !== 'undefined' && selfOperator) { %>
-        <p class="text-sm text-zilo-success font-medium mb-2">Activo · puedes tomar y ejecutar visitas</p>
-        <form method="POST" action="/proveedor/entrar-terreno" id="enterTerrainForm" class="hidden"></form>
-        <button type="button" id="btnEnterTerrain" class="w-full py-3 rounded-xl zilo-btn-ghost">Ir a mi panel de visitas</button>
-        <script>
-          document.getElementById('btnEnterTerrain')?.addEventListener('click', async () => {
-            const res = await fetch('/proveedor/entrar-terreno', { method: 'POST', headers: { Accept: 'application/json' } });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.success) {
-              if (window.FandezNotify) FandezNotify.show(data.error || 'No se pudo entrar', 'error');
-              return;
-            }
-            window.location.href = '/tecnico';
-          });
-        </script>
-      <% } else if (typeof canEnableSelf !== 'undefined' && canEnableSelf) { %>
-        <form method="POST" action="/proveedor/equipo/yo-hago-servicio">
-          <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary">Activar: yo hago las visitas</button>
-        </form>
-      <% } else { %>
-        <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-2">
-          Primero completa verificación, contrato y al menos un servicio activo
-          <% if (typeof selfGateMissing !== 'undefined' && selfGateMissing.length) { %>
-            (falta: <%= selfGateMissing.join(', ') %>)
-          <% } %>.
-        </p>
-        <a href="/proveedor/perfil" class="inline-flex text-xs font-semibold text-zilo-accent">Ir a mi perfil →</a>
-      <% } %>
-    </section>
-
     <section class="mb-6 zilo-card-premium rounded-2xl p-5" id="servicesSection">
       <p class="zilo-label mb-1">Servicios de la empresa</p>
       <p class="text-xs text-zilo-muted mb-4">Elige qué servicios ofrece tu empresa. Luego asigna a cada técnico uno o más de esos mismos servicios (ej. eléctrico y gasfitería).</p>
@@ -133,7 +148,7 @@
       <% if (technicians.length === 0) { %>
         <div class="zilo-empty zilo-card-premium rounded-2xl">
           <p class="zilo-display">Aún no tienes técnicos</p>
-          <p class="text-sm">Agrega tu primer técnico en la pestaña Agregar</p>
+          <p class="text-sm mb-3">Si vas tú a domicilio, usa el botón de arriba. Si no, agrega a tu equipo en la pestaña Agregar.</p>
         </div>
       <% } else { %>
         <div class="space-y-2" id="techList">
@@ -149,10 +164,30 @@
                   <div class="w-10 h-10 rounded-xl bg-zilo-accent/15 border border-zilo-accent/25 flex items-center justify-center text-xs font-semibold text-zilo-accent shrink-0" data-role="tech-avatar"><%= t.avatar %></div>
                   <div class="min-w-0">
                     <strong class="text-sm block truncate" data-role="tech-name"><%= t.name %></strong>
-                    <span class="text-xs text-zilo-muted truncate block" data-role="tech-email"><%= t.email %></span>
+                    <span class="text-xs text-zilo-muted truncate block" data-role="tech-email"><%= t.displayEmail || t.email %></span>
                     <% if (t.phone) { %><span class="text-[10px] text-zilo-muted truncate block" data-role="tech-phone"><%= t.phone %></span><% } %>
                     <span class="text-[10px] text-zilo-muted truncate block mt-0.5 <%= techSpecs.length ? '' : 'hidden' %>" data-role="tech-specs"><%= techSpecs.join(' · ') %></span>
-                    <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %>"><%= t.isSelfOperator ? 'Tú · listo para visitas' : (t.dossierCheck.ok ? 'Expediente completo' : 'Expediente incompleto') %></span>
+                    <% if (!t.isSelfOperator) { %>
+                      <span class="text-[10px] <%= t.emailVerified ? 'text-zilo-success' : 'text-amber-600' %> block">
+                        <%= t.emailVerified ? 'Email verificado' : 'Email pendiente' %>
+                      </span>
+                      <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %> block">
+                        <%= t.dossierCheck.ok
+                          ? 'Expediente completo · listo para pedidos'
+                          : ('Expediente incompleto' + (t.dossierCheck.missing && t.dossierCheck.missing.length
+                            ? (': ' + t.dossierCheck.missing.join(', '))
+                            : ' — sube docs en Expediente')) %>
+                      </span>
+                    <% } else { %>
+                      <span class="text-[10px] text-zilo-success block">Tú · cuenta de socio</span>
+                      <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %> block">
+                        <%= t.dossierCheck.ok
+                          ? 'Listo para visitas'
+                          : ('Pendiente para pedidos' + (t.dossierCheck.missing && t.dossierCheck.missing.length
+                            ? (': ' + t.dossierCheck.missing.join(', '))
+                            : '')) %>
+                      </span>
+                    <% } %>
                   </div>
                 </div>
                 <label class="toggle-ios shrink-0" title="Activar / desactivar">
@@ -186,6 +221,11 @@
     </div>
 
     <div data-equipo-panel="agregar" class="equipo-panel hidden space-y-6">
+    <section class="zilo-card-premium rounded-2xl p-5 mb-6 border border-zilo-accent/20">
+      <p class="zilo-label mb-1">¿Eres tú el técnico?</p>
+      <p class="text-xs text-zilo-muted mb-3">No uses tu correo en el formulario de abajo: usa el botón de arriba «Agregarme como técnico con mi cuenta de socio». Si igual pones tu mismo correo al crear, también te agregamos como técnico sin duplicar cuenta.</p>
+    </section>
+
     <section class="zilo-card-premium rounded-2xl p-5 mb-6">
       <p class="zilo-label mb-1">Vincular técnico existente</p>
       <p class="text-xs text-zilo-muted mb-3">Un técnico puede trabajar con varios socios. Si ya tiene cuenta, se enlaza al RUT de tu empresa (no se duplica).</p>

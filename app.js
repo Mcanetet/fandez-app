@@ -395,9 +395,12 @@ app.get('/', (req, res) => {
   }
   // Desde páginas de error: forzar landing para no reentrar al dashboard roto
   const forceLanding = req.query.landing === '1' || req.query.landing === 'true';
-  // Admin con sesión activa: no mostrar landing/CTA público (evita “Empezar gratis” → panel)
-  if (!forceLanding && (req.session.user?.role === 'admin' || req.session.isAdminSession)) {
-    return res.redirect(ADMIN_BASE);
+  // Sesión admin NO debe secuestrar la web/PWA pública (misma cookie en fandez.cl).
+  // El panel solo se abre por ADMIN_BASE / PWA admin (start_url bajo /ops-…/app).
+  const isAdminOnly =
+    req.session.user?.role === 'admin' || req.session.isAdminSession;
+  if (isAdminOnly) {
+    return res.redirect(303, '/logout?to=public');
   }
   if (!forceLanding && req.session.user && store.isReady()) {
     const dashboards = {
@@ -426,10 +429,15 @@ app.get('/', (req, res) => {
  */
 app.get('/app', (req, res) => {
   const role = req.session.user?.role;
+  const isAdminOnly =
+    role === 'admin' || req.session.isAdminSession;
+  // PWA pública (start_url=/app?source=pwa): nunca mandar a Admin.
+  // Admin PWA usa ADMIN_BASE/app (manifest propio).
+  if (isAdminOnly) {
+    return res.redirect(303, '/logout?to=public');
+  }
   let target = '/';
-  if (req.session.user?.role === 'admin' || req.session.isAdminSession) {
-    target = ADMIN_BASE;
-  } else if (role === 'client') {
+  if (role === 'client') {
     target = '/cliente';
   } else if (role === 'provider') {
     target = '/proveedor';
