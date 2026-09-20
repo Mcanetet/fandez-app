@@ -675,7 +675,8 @@ function updateUserBilling(userId, data) {
   if (!result.ok) return { error: result.errors[0] };
   const rutGuard = assertRutAvailableForAccount(result.billing?.rut, {
     users: USERS,
-    excludeUserId: userId
+    excludeUserId: userId,
+    purpose: 'client_billing'
   });
   if (!rutGuard.ok) return { error: rutGuard.error, errorKey: rutGuard.errorKey };
   user.billing = result.billing;
@@ -2616,7 +2617,7 @@ function updateProviderContractDraft(providerId, payload) {
 
   const rutGuard = assertRutsAvailableForAccount(
     [c.legalEntity?.rut, c.legalRepresentative?.rut],
-    { users: USERS, excludeUserId: providerId }
+    { users: USERS, excludeUserId: providerId, purpose: 'provider_identity' }
   );
   if (!rutGuard.ok) return { error: rutGuard.error, errorKey: rutGuard.errorKey };
 
@@ -2874,7 +2875,7 @@ function submitProviderContract(providerId, { signature, ip, userAgent }) {
 
   const rutGuard = assertRutsAvailableForAccount(
     [c.legalEntity?.rut, c.legalRepresentative?.rut],
-    { users: USERS, excludeUserId: providerId }
+    { users: USERS, excludeUserId: providerId, purpose: 'provider_identity' }
   );
   if (!rutGuard.ok) return { error: rutGuard.error, errorKey: rutGuard.errorKey, errors: [rutGuard.error] };
 
@@ -3140,7 +3141,8 @@ function attachProviderRegistrationDocuments(provider, {
   ensureProviderFields(provider);
   const rutGuard = assertRutsAvailableForAccount([companyRut, repRut], {
     users: USERS,
-    excludeUserId: provider.id
+    excludeUserId: provider.id,
+    purpose: 'provider_identity'
   });
   if (!rutGuard.ok) return { error: rutGuard.error, errorKey: rutGuard.errorKey };
 
@@ -3252,7 +3254,10 @@ async function registerUser({
       return { errorKey: 'register.error_client_rut_invalid' };
     }
     if (rut) {
-      const rutGuard = assertRutAvailableForAccount(rut, { users: USERS });
+      const rutGuard = assertRutAvailableForAccount(rut, {
+        users: USERS,
+        purpose: 'client_billing'
+      });
       if (!rutGuard.ok) return { errorKey: rutGuard.errorKey, error: rutGuard.error };
     }
   }
@@ -3268,7 +3273,10 @@ async function registerUser({
         };
       }
     }
-    const rutGuard = assertRutsAvailableForAccount(providerRuts, { users: USERS });
+    const rutGuard = assertRutsAvailableForAccount(providerRuts, {
+      users: USERS,
+      purpose: 'provider_identity'
+    });
     if (!rutGuard.ok) return { errorKey: rutGuard.errorKey, error: rutGuard.error };
   }
 

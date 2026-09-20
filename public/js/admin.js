@@ -3853,7 +3853,7 @@
   document.querySelectorAll('.btn-set-app-mode').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const mode = btn.dataset.mode;
-      if (!confirm('¿Cambiar a ' + (mode === 'production' ? 'PRODUCCIÓN' : 'DEMO') + '?\n\n• Demo: atajos en login + mismo RUT cliente/socio + pagos simulados\n• Producción: sin atajos demo + RUT único por cuenta + pagos reales')) return;
+      if (!confirm('¿Cambiar a ' + (mode === 'production' ? 'PRODUCCIÓN' : 'DEMO') + '?\n\n• Demo: atajos en login + pagos simulados + sin bloqueo de RUT\n• Producción: sin atajos demo + pagos reales + RUT único por tipo (cliente/socio; la misma persona puede ser ambos)')) return;
       try {
         const res = await adminFetch('/modo', {
           method: 'POST',

@@ -2858,14 +2858,14 @@ function hasPerm(key) {
             <h4 class="text-sm font-semibold"><%= modePanel.isProduction ? 'Producción' : 'Modo demo' %></h4>
             <p class="text-xs text-gray-600 mt-1">
               <% if (modePanel.isDemo) { %>
-                Pruebas: pagos simulados, atajos demo en el login y el mismo RUT puede usarse en cuenta cliente y socio.
+                Pruebas: pagos simulados, atajos demo en el login y sin restricción de RUT duplicado.
               <% } else { %>
-                Real: pagos reales, sin atajos demo en el login y cada RUT solo en una cuenta (cliente y socio = cuentas distintas).
+                Real: pagos reales, sin atajos demo. Un RUT de cliente no se repite en otro cliente ni un RUT de socio en otro socio; la misma persona sí puede ser cliente y socio.
               <% } %>
             </p>
             <ul class="mt-2 text-[11px] text-gray-600 space-y-1 list-disc pl-4">
               <li>Usuarios demo en login: <strong><%= modePanel.isDemo ? 'visibles' : 'ocultos' %></strong></li>
-              <li>Mismo RUT cliente + socio: <strong><%= modePanel.allowSameRutAcrossAccounts ? 'permitido' : 'bloqueado' %></strong></li>
+              <li>Mismo RUT cliente + socio: <strong>permitido</strong> (bloqueo solo entre dos clientes o dos socios)</li>
               <li>Pagos: <strong><%= modePanel.isDemo ? 'demo / simulados' : 'reales' %></strong></li>
             </ul>
             <p class="text-[11px] text-gray-500 mt-2">URL admin: <code class="bg-white/70 px-1 rounded"><%= modePanel.adminBasePath %>/login</code>
