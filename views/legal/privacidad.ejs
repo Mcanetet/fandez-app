@@ -100,8 +100,21 @@
     </section>
 
     <section>
-      <h2 class="text-lg font-semibold text-zilo-text mb-2">12. Cambios a esta política</h2>
-      <p>Podemos actualizar esta política. Te notificaremos cambios sustanciales y solicitaremos nuevo consentimiento cuando la ley lo exija. Versión vigente: <%= policyVersion || '2.0-21719' %>.</p>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">12. Aplicación Android (Google Play)</h2>
+      <p>Fandez también se ofrece como aplicación Android distribuida en Google Play (Trusted Web Activity). La app abre el mismo servicio web en <a href="<%= typeof siteUrl !== 'undefined' ? siteUrl : 'https://www.fandez.cl' %>" class="text-blue-600"><%= typeof siteUrl !== 'undefined' ? siteUrl : 'https://www.fandez.cl' %></a> (paquete <code>cl.fandez.app</code>).</p>
+      <p class="mt-2">Además de lo indicado arriba, la app puede solicitar o usar:</p>
+      <ul class="list-disc list-inside space-y-1 mt-2">
+        <li><strong>Ubicación aproximada o precisa</strong> — para cobertura, seguimiento de visita y Modo Guardián (con consentimiento cuando aplique).</li>
+        <li><strong>Notificaciones</strong> — avisos de estado del pedido, mensajes y seguridad (Web Push / sistema).</li>
+        <li><strong>Cámara</strong> — verificación KYC de socios y evidencias de trabajo, solo cuando el flujo lo pide.</li>
+        <li><strong>Identificadores de dispositivo / sesión</strong> — para seguridad, fraude y funcionamiento de la sesión.</li>
+      </ul>
+      <p class="mt-2">El tratamiento sigue las mismas finalidades y bases legales de esta política. Puedes desinstalar la app en cualquier momento; la eliminación de cuenta se gestiona en <a href="/legal/mis-datos" class="text-blue-600">Mis datos personales</a> o escribiendo al DPD.</p>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">13. Cambios a esta política</h2>
+      <p>Podemos actualizar esta política. Te notificaremos cambios sustanciales y solicitaremos nuevo consentimiento cuando la ley lo exija. Versión vigente: <%= policyVersion || '2.1-play' %>.</p>
     </section>
   </div>
 </article>

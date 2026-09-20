@@ -24,6 +24,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Fandez">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="fandez-play-store-url" content="<%= typeof playStoreUrl !== 'undefined' && playStoreUrl ? playStoreUrl : '' %>">
+  <meta name="fandez-play-listing-live" content="<%= typeof playStoreListingLive !== 'undefined' && playStoreListingLive ? 'true' : 'false' %>">
+  <script>
+    window.FANDEZ_PLAY_STORE_URL = <%= JSON.stringify(typeof playStoreUrl !== 'undefined' ? playStoreUrl : '') %>;
+    window.FANDEZ_PLAY_STORE_LISTING_LIVE = <%= typeof playStoreListingLive !== 'undefined' && playStoreListingLive ? 'true' : 'false' %>;
+  </script>
   <% var favBase = (typeof siteUrl !== 'undefined' && siteUrl) ? String(siteUrl).replace(/\/$/, '') : ''; %>
   <% var favV = typeof assetVersion !== 'undefined' ? assetVersion : '1'; %>
   <!-- v11: 2 semicírculos en tile ámbar — rompe caché Saturno/globo Chrome -->

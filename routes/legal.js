@@ -50,7 +50,7 @@ router.get('/privacidad', (req, res) => {
     title: 'Política de Privacidad — Fandez',
     seo: buildPageMeta('privacy', req),
     company,
-    lastUpdated: '11 de julio de 2026',
+    lastUpdated: '19 de septiembre de 2026',
     policyVersion: POLICY_VERSION
   });
 });
@@ -60,7 +60,7 @@ router.get('/terminos', (req, res) => {
     title: 'Términos y Condiciones — Fandez',
     seo: buildPageMeta('terms', req),
     company,
-    lastUpdated: '11 de septiembre de 2026'
+    lastUpdated: '19 de septiembre de 2026'
   });
 });
 

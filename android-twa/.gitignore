@@ -1,0 +1,14 @@
+android.keystore
+*.keystore
+*.jks
+*.apk
+*.aab
+app/
+gradle/
+gradlew
+gradlew.bat
+build/
+.gradle/
+local.properties
+bubblewrap-config.json
+android.keystore.passwords

@@ -33,10 +33,17 @@
     <% } %>
 
     <div class="landing-cta-stack">
-      <a href="/registro?role=provider" class="zilo-btn-primary">
-        <%= t('landing.cta.signup') %>
-        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
+      <p class="landing-cta-label"><%= t('landing.cta.demand_label') %></p>
+      <div class="landing-demand-grid">
+        <a href="/registro?role=client&amp;billing=natural" class="landing-demand-card">
+          <span class="landing-demand-card__title"><%= t('landing.cta.person') %></span>
+          <span class="landing-demand-card__hint"><%= t('landing.cta.person_hint') %></span>
+        </a>
+        <a href="/registro?role=client&amp;billing=empresa" class="landing-demand-card">
+          <span class="landing-demand-card__title"><%= t('landing.cta.company') %></span>
+          <span class="landing-demand-card__hint"><%= t('landing.cta.company_hint') %></span>
+        </a>
+      </div>
       <a href="/registro?emergency=1" class="landing-urgent-cta">
         <span class="landing-urgent-cta__icon" aria-hidden="true">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
@@ -46,10 +53,17 @@
           <span class="landing-urgent-cta__hint"><%= t('landing.emergency_hint') %></span>
         </span>
       </a>
+      <% if (typeof playStoreListingLive !== 'undefined' && playStoreListingLive) { %>
+      <a href="<%= playStoreUrl %>" class="zilo-btn-ghost zilo-btn-block fandez-install-entry" data-play-store-link rel="noopener" target="_blank">
+        <svg class="w-5 h-5 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l4-4m-4 4l-4-4"/><path d="M5 19h14"/></svg>
+        <%= t('landing.play_cta') %>
+      </a>
+      <% } else { %>
       <button type="button" data-install-app class="zilo-btn-ghost zilo-btn-block fandez-install-entry">
         <svg class="w-5 h-5 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l4-4m-4 4l-4-4"/><path d="M5 19h14"/></svg>
         <%= t('landing.install_cta') %>
       </button>
+      <% } %>
     </div>
     <p class="text-center text-sm text-zilo-muted <%= typeof launchNoticeActive !== 'undefined' && launchNoticeActive ? 'mb-3' : 'mb-10' %>">
       <%= t('landing.cta.has_account') %>
@@ -108,6 +122,20 @@
       </ul>
     </div>
 
+    <div class="landing-b2b-block mb-8">
+      <h2 class="zilo-display text-xl text-zilo-text mb-2"><%= t('landing.b2b.title') %></h2>
+      <p class="text-sm text-zilo-muted leading-relaxed mb-3"><%= t('landing.b2b.body') %></p>
+      <ul class="landing-b2b-list">
+        <li><%= t('landing.b2b.bullet1') %></li>
+        <li><%= t('landing.b2b.bullet2') %></li>
+        <li><%= t('landing.b2b.bullet3') %></li>
+      </ul>
+      <a href="/registro?role=client&amp;billing=empresa" class="inline-flex items-center gap-1.5 text-sm font-semibold text-zilo-accent mt-3 hover:underline">
+        <%= t('landing.b2b.cta') %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
     <a href="/registro?role=provider" class="group block rounded-2xl p-5 mb-8 border border-zilo-border bg-zilo-card hover:border-zilo-accent/40 transition">
       <div class="flex items-start gap-4">
         <div class="w-11 h-11 rounded-xl bg-zilo-accent-soft border border-zilo-accent/20 flex items-center justify-center shrink-0 text-zilo-accent">
@@ -140,6 +168,11 @@
 
   <footer class="relative z-10 text-center py-8 text-zilo-muted text-xs border-t border-zilo-border space-y-2">
     <p><a href="/quienes-somos" class="hover:text-zilo-accent transition"><%= t('landing.about_link') %></a></p>
+    <p>
+      <a href="/legal/privacidad" class="hover:text-zilo-accent transition">Privacidad</a>
+      ·
+      <a href="/legal/terminos" class="hover:text-zilo-accent transition">Términos</a>
+    </p>
     <p><%= t('footer.copyright') %></p>
   </footer>
 </div>

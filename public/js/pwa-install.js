@@ -17,6 +17,27 @@
     return fallback;
   }
 
+  function playStoreUrl() {
+    try {
+      const meta = document.querySelector('meta[name="fandez-play-store-url"]');
+      if (meta && meta.content) return meta.content;
+    } catch (_) { /* ignore */ }
+    return window.FANDEZ_PLAY_STORE_URL || '';
+  }
+
+  function playListingLive() {
+    if (window.FANDEZ_PLAY_STORE_LISTING_LIVE === true) return true;
+    try {
+      const meta = document.querySelector('meta[name="fandez-play-listing-live"]');
+      if (meta && (meta.content === '1' || meta.content === 'true')) return true;
+    } catch (_) { /* ignore */ }
+    return false;
+  }
+
+  function preferPlayOnAndroid() {
+    return playListingLive() && !isIos() && !!playStoreUrl();
+  }
+
   function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches
       || window.navigator.standalone === true
@@ -137,6 +158,21 @@
     }
 
     if (title) title.textContent = t('pwa.install_title', 'Instala Fandez en tu celular');
+    if (preferPlayOnAndroid()) {
+      if (body) {
+        body.textContent = t(
+          'pwa.install_android_play_body',
+          'Descárgala desde Google Play para la experiencia completa en Android.'
+        );
+      }
+      if (cta) {
+        cta.textContent = t('pwa.install_play_cta', 'Abrir Google Play');
+        cta.classList.remove('hidden');
+      }
+      if (hint) hint.classList.add('hidden');
+      if (steps) steps.classList.add('hidden');
+      return;
+    }
     if (body) {
       body.textContent = deferredPrompt
         ? t('pwa.install_android_body', 'Instálala como app: acceso rápido, sin tienda.')
@@ -181,6 +217,14 @@
       // En iOS solo hay guía; el CTA cierra para que el usuario siga los pasos.
       dismiss();
       return;
+    }
+    if (preferPlayOnAndroid()) {
+      const url = playStoreUrl();
+      if (url) {
+        window.location.href = url;
+        dismiss();
+        return;
+      }
     }
     if (!deferredPrompt) {
       const steps = bannerEl?.querySelector('[data-install-ios-steps]');
@@ -246,6 +290,13 @@
       btn.classList.remove('hidden');
       btn.addEventListener('click', function (e) {
         e.preventDefault();
+        if (preferPlayOnAndroid()) {
+          const url = playStoreUrl();
+          if (url) {
+            window.location.href = url;
+            return;
+          }
+        }
         show({ force: true });
       });
     });

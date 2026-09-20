@@ -1,0 +1,55 @@
+{
+  "packageId": "cl.fandez.app",
+  "host": "www.fandez.cl",
+  "name": "Fandez: servicios a domicilio",
+  "launcherName": "Fandez",
+  "display": "standalone",
+  "themeColor": "#C45C14",
+  "themeColorDark": "#C45C14",
+  "navigationColor": "#C45C14",
+  "navigationColorDark": "#C45C14",
+  "navigationDividerColor": "#C45C14",
+  "navigationDividerColorDark": "#C45C14",
+  "backgroundColor": "#FFFFFF",
+  "enableNotifications": true,
+  "startUrl": "/app?source=twa",
+  "iconUrl": "https://www.fandez.cl/icons/fandez-v11-512.png?v=13",
+  "maskableIconUrl": "https://www.fandez.cl/icons/fandez-v11-512.png?v=13",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "fandez"
+  },
+  "appVersionName": "1.3.4",
+  "appVersionCode": 10304,
+  "appVersion": "1.3.4",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://www.fandez.cl/site.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://www.fandez.cl/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [
+    "https://fandez.cl"
+  ],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [
+    "standalone"
+  ]
+}

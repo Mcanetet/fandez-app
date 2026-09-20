@@ -20,6 +20,8 @@
     "test:e2e": "playwright test",
     "test:e2e:mobile": "playwright test --project=iphone-13",
     "go-live:check": "node scripts/go-live-check.js",
+    "play:feature-graphic": "node scripts/generate-play-feature-graphic.js",
+    "play:assetlinks": "node scripts/print-assetlinks.js",
     "test:e2e:ui": "playwright test --ui",
     "test:tariffs": "node scripts/test-dynamic-tariffs.js",
     "admin:reset": "node scripts/reset-admin.js",
