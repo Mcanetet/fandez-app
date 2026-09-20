@@ -143,7 +143,7 @@
               return svc ? svc.name : id;
             });
           %>
-            <div class="tech-list-card rounded-xl zilo-card-premium border border-zilo-border/70" data-tech-id="<%= t.id %>" data-tech-name="<%= t.name %>" data-tech-phone="<%= t.phone || '' %>" data-tech-email="<%= t.email %>" data-self="<%= t.isSelfOperator ? '1' : '0' %>">
+            <div class="tech-list-card rounded-xl zilo-card-premium border border-zilo-border/70" data-tech-id="<%= t.id %>" data-tech-name="<%= t.name %>" data-tech-phone="<%= t.phone || '' %>" data-tech-email="<%= t.email %>" data-tech-specialties="<%= (t.specialties || []).join(',') %>" data-self="<%= t.isSelfOperator ? '1' : '0' %>">
               <div class="tech-list-card__head">
                 <div class="flex items-center gap-3 min-w-0">
                   <div class="w-10 h-10 rounded-xl bg-zilo-accent/15 border border-zilo-accent/25 flex items-center justify-center text-xs font-semibold text-zilo-accent shrink-0" data-role="tech-avatar"><%= t.avatar %></div>
@@ -151,9 +151,7 @@
                     <strong class="text-sm block truncate" data-role="tech-name"><%= t.name %></strong>
                     <span class="text-xs text-zilo-muted truncate block" data-role="tech-email"><%= t.email %></span>
                     <% if (t.phone) { %><span class="text-[10px] text-zilo-muted truncate block" data-role="tech-phone"><%= t.phone %></span><% } %>
-                    <% if (techSpecs.length) { %>
-                      <span class="text-[10px] text-zilo-muted truncate block mt-0.5"><%= techSpecs.join(' · ') %></span>
-                    <% } %>
+                    <span class="text-[10px] text-zilo-muted truncate block mt-0.5 <%= techSpecs.length ? '' : 'hidden' %>" data-role="tech-specs"><%= techSpecs.join(' · ') %></span>
                     <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %>"><%= t.isSelfOperator ? 'Tú · listo para visitas' : (t.dossierCheck.ok ? 'Expediente completo' : 'Expediente incompleto') %></span>
                   </div>
                 </div>
@@ -279,7 +277,24 @@
         <label class="text-xs text-zilo-muted">Nueva contraseña <span class="opacity-60">(opcional)</span></label>
         <input type="password" id="techEditPassword" minlength="10" class="zilo-input w-full mt-1" placeholder="Dejar vacío para no cambiar">
       </div>
-      <p class="text-[11px] text-zilo-muted">El correo no se cambia aquí. Para especialidades usa el expediente.</p>
+      <div>
+        <span class="text-xs text-zilo-muted block mb-2">Servicios que realiza</span>
+        <p class="text-[10px] text-zilo-muted mb-2">Solo los servicios activos de tu empresa. Debe quedar al menos uno.</p>
+        <% const editCompanyServices = (typeof serviceStatus !== 'undefined' ? serviceStatus : []).filter(s => s.enabled); %>
+        <% if (!editCompanyServices.length) { %>
+          <p class="text-xs text-amber-600 p-2 rounded-lg border border-amber-200 bg-amber-50">Activa servicios de la empresa primero.</p>
+        <% } else { %>
+          <div id="techEditSpecialties" class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-1">
+            <% editCompanyServices.forEach(s => { %>
+              <label class="flex items-center gap-2 text-sm p-2 rounded-lg border border-zilo-border">
+                <input type="checkbox" value="<%= s.id %>" data-service-name="<%= s.name %>" class="tech-edit-spec rounded accent-[#C45C14] shrink-0">
+                <span class="truncate"><%= s.name %></span>
+              </label>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+      <p class="text-[11px] text-zilo-muted">El correo no se cambia aquí.</p>
       <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary">Guardar cambios</button>
     </form>
   </div>

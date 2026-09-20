@@ -164,6 +164,22 @@
   const editPhone = document.getElementById('techEditPhone');
   const editPassword = document.getElementById('techEditPassword');
 
+  function collectEditSpecialties() {
+    return Array.from(document.querySelectorAll('.tech-edit-spec:checked')).map((el) => el.value);
+  }
+
+  function syncEditSpecialties(selectedIds) {
+    const selected = new Set(
+      String(selectedIds || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    );
+    document.querySelectorAll('.tech-edit-spec').forEach((el) => {
+      el.checked = selected.has(el.value);
+    });
+  }
+
   function closeEditModal() {
     editModal?.classList.add('hidden');
     if (editPassword) editPassword.value = '';
@@ -182,6 +198,7 @@
       editName.value = card.dataset.techName || '';
       editPhone.value = card.dataset.techPhone || '';
       if (editPassword) editPassword.value = '';
+      syncEditSpecialties(card.dataset.techSpecialties || '');
       editModal.classList.remove('hidden');
     });
   });
@@ -190,6 +207,11 @@
     ev.preventDefault();
     const id = editId?.value;
     if (!id) return;
+    const specialties = collectEditSpecialties();
+    if (document.querySelectorAll('.tech-edit-spec').length && !specialties.length) {
+      notify('Selecciona al menos un servicio', 'warning');
+      return;
+    }
     const submitBtn = editForm.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
     try {
@@ -199,7 +221,8 @@
         body: JSON.stringify({
           name: editName.value.trim(),
           phone: editPhone.value.trim(),
-          password: editPassword?.value || ''
+          password: editPassword?.value || '',
+          specialties
         })
       });
       const data = await res.json();
@@ -208,9 +231,11 @@
       if (card && data.tecnico) {
         card.dataset.techName = data.tecnico.name || '';
         card.dataset.techPhone = data.tecnico.phone || '';
+        card.dataset.techSpecialties = (data.tecnico.specialties || []).join(',');
         const nameEl = card.querySelector('[data-role="tech-name"]');
         const phoneEl = card.querySelector('[data-role="tech-phone"]');
         const avatarEl = card.querySelector('[data-role="tech-avatar"]');
+        const specsEl = card.querySelector('[data-role="tech-specs"]');
         if (nameEl) nameEl.textContent = data.tecnico.name || '';
         if (avatarEl && data.tecnico.avatar) avatarEl.textContent = data.tecnico.avatar;
         if (phoneEl) {
@@ -225,6 +250,11 @@
             span.textContent = data.tecnico.phone;
             emailEl.insertAdjacentElement('afterend', span);
           }
+        }
+        if (specsEl) {
+          const labels = data.tecnico.specialtyNames || [];
+          specsEl.textContent = labels.join(' · ');
+          specsEl.classList.toggle('hidden', !labels.length);
         }
       }
       notify('Técnico actualizado', 'success');

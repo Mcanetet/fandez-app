@@ -731,13 +731,22 @@ router.post('/equipo/:id/toggle', requireRole('provider'), requireModule('provid
 });
 
 router.post('/equipo/:id/editar', requireRole('provider'), requireModule('provider_equipo'), async (req, res) => {
+  const rawSpecs = req.body.specialties;
+  const specialties = rawSpecs === undefined
+    ? undefined
+    : (Array.isArray(rawSpecs) ? rawSpecs : [rawSpecs]).filter(Boolean);
   const result = await store.updateTechnicianForProvider(req.session.user.id, req.params.id, {
     name: req.body.name,
     phone: req.body.phone,
-    password: req.body.password
+    password: req.body.password,
+    specialties
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   store.logSecurityEvent('tecnico_editado', req.params.id, req);
+  const specialtyNames = (result.tecnico.specialties || []).map((id) => {
+    const svc = store.getServiceById?.(id) || (store.SERVICES || []).find((s) => s.id === id);
+    return svc?.name || id;
+  });
   res.json({
     success: true,
     tecnico: {
@@ -745,7 +754,9 @@ router.post('/equipo/:id/editar', requireRole('provider'), requireModule('provid
       name: result.tecnico.name,
       phone: result.tecnico.phone || '',
       avatar: result.tecnico.avatar,
-      email: result.tecnico.email
+      email: result.tecnico.email,
+      specialties: result.tecnico.specialties || [],
+      specialtyNames
     }
   });
 });

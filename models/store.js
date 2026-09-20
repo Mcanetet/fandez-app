@@ -6946,7 +6946,7 @@ function getProviderFinanceLedger(providerId, { limit = 60 } = {}) {
 }
 
 /** Actualiza datos básicos de un técnico del equipo del socio. */
-async function updateTechnicianForProvider(socioId, tecnicoId, { name, phone, password } = {}) {
+async function updateTechnicianForProvider(socioId, tecnicoId, { name, phone, password, specialties } = {}) {
   const tecnico = getTechnicianForProvider(socioId, tecnicoId);
   if (!tecnico) return { error: 'Técnico no encontrado en tu equipo.' };
   if (tecnico.isSelfOperator) {
@@ -6964,6 +6964,17 @@ async function updateTechnicianForProvider(socioId, tecnicoId, { name, phone, pa
     tecnico.password = await hashPassword(String(password));
   } else if (password && String(password).length > 0) {
     return { error: 'La contraseña debe tener al menos 10 caracteres.' };
+  }
+  if (specialties !== undefined) {
+    const socio = getUserById(socioId);
+    if (!socio || !Array.isArray(socio.specialties) || !socio.specialties.length) {
+      return { error: 'Primero activa los servicios de tu empresa.' };
+    }
+    const wanted = filterSpecialtiesToProvider(socio, specialties);
+    if (!wanted.length) {
+      return { error: 'El técnico debe tener al menos un servicio de los que ofrece tu empresa.' };
+    }
+    tecnico.specialties = wanted;
   }
   repository.persist(() => repository.saveUser(tecnico), `editar técnico ${tecnico.id}`);
   return { success: true, tecnico };
