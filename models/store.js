@@ -8699,6 +8699,5 @@ module.exports = {
   needsOnboarding,
   completeOnboarding,
   getAllDteDocuments,
-  get requests() { return requests; },
   get notifications() { return notifications; }
 };
