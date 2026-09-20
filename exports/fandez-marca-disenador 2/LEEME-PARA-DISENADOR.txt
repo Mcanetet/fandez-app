@@ -1,0 +1,34 @@
+FANDEZ — Pack de marca para diseñador
+=====================================
+
+Qué incluye
+-----------
+01-svg/     Logos vectoriales (editables en Illustrator / Figma / Affinity)
+02-png/     PNG con transparencia (uso web / mockups)
+03-manual/  Manual de marca (PDF + HTML)
+04-fuentes/ Unbounded Bold (wordmark oficial)
+
+Logo oficial
+------------
+- Isotipo: contorno de sopapo/destapador (copa) a ~45°, lectura de infinito.
+- Wordmark: “Fandez” en Unbounded Bold.
+- Color primario: Ámbar #C45C14
+- Negro: #1A1814
+- Blanco: #FFFFFF (fondos oscuros)
+
+Archivos clave para empezar
+---------------------------
+1. 03-manual/Fandez-Manual-de-Marca.pdf  → leer primero
+2. 01-svg/fandez-isotipo-ambar.svg       → vector principal
+3. 01-svg/fandez-lockup-vertical-ambar.svg
+4. 01-svg/fandez-lockup-horizontal-ambar.svg
+
+Notas
+-----
+- Los SVG de lockup usan texto “Fandez” (fuente Unbounded). Al entregar piezas finales,
+  conviene convertir el texto a contornos (Create Outlines / Flatten).
+- Variantes negro/blanco para fondos claros/oscuros o monocromo.
+- No estirar el isotipo ni cambiar el stroke relativo.
+- Tipografía UI (app/web): Source Sans 3. Display auxiliar: Bricolage Grotesque.
+
+Contacto marca / producto: www.fandez.cl

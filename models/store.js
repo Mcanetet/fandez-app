@@ -1329,6 +1329,12 @@ function applyApprovedActivityChange(request, change) {
   request.visitTotal = change.proposedTotal;
   request.estimatedVisit = change.proposedTotal;
   request.basePrice = change.proposedTotal;
+  if (change.squareMeters != null && Number(change.squareMeters) > 0) {
+    request.squareMeters = Number(change.squareMeters);
+  }
+  if (change.cleaningFactors) {
+    request.cleaningFactors = change.cleaningFactors;
+  }
   change.status = 'approved';
   if (['diagnostico', 'presupuesto_pendiente'].includes(request.techStatus)) {
     request.techStatus = 'reparando';
@@ -6245,7 +6251,9 @@ function proposeActivityChange(requestId, technicianId, {
   customName,
   customBasePrice,
   lineItems: rawLineItems,
-  materialsPreview: rawMaterialsPreview
+  materialsPreview: rawMaterialsPreview,
+  squareMeters: rawSquareMeters,
+  cleaningFactors: rawCleaningFactors
 }) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
@@ -6260,11 +6268,23 @@ function proposeActivityChange(requestId, technicianId, {
   if (!notes) return { error: 'Explica por qué el trabajo es distinto al solicitado.' };
 
   const pricing = getPricingConfig();
+  const cleaningJob = isCleaningService(request.serviceId);
   const isManualOther = activityId === 'otro' || activityId === '__other__';
-  const lineItems = normalizeChangeLineItems(rawLineItems);
+  const lineItems = cleaningJob ? [] : normalizeChangeLineItems(rawLineItems);
   const lineItemsTotal = lineItems.reduce((sum, item) => sum + item.lineTotal, 0);
-  const materialsPreview = normalizeMaterialsPreview(rawMaterialsPreview, pricing.materialsCatalog);
+  const materialsPreview = cleaningJob ? [] : normalizeMaterialsPreview(rawMaterialsPreview, pricing.materialsCatalog);
   const materialsApproxTotal = sumMaterialsPreview(materialsPreview);
+
+  let nextSquareMeters = request.squareMeters || null;
+  let nextCleaningFactors = request.cleaningFactors || null;
+  if (cleaningJob) {
+    const parsedM2 = parseFloat(rawSquareMeters);
+    if (!Number.isFinite(parsedM2) || parsedM2 < CLEANING_MIN_M2) {
+      return { error: `Indica los m² reales del área (mínimo ${CLEANING_MIN_M2} m²).` };
+    }
+    nextSquareMeters = parsedM2;
+    nextCleaningFactors = normalizeCleaningFactors(rawCleaningFactors);
+  }
 
   let toActivityId;
   let toActivityName;
@@ -6273,28 +6293,57 @@ function proposeActivityChange(requestId, technicianId, {
   let quote;
 
   if (isManualOther) {
-    toActivityName = String(customName || '').trim();
-    if (toActivityName.length < 4) {
-      return { error: 'En "Otro", escribe el nombre del servicio (mín. 4 caracteres).' };
+    if (cleaningJob) {
+      toActivityName = String(customName || '').trim() || 'Limpieza (ajuste en terreno)';
+      toActivityId = `otro-lim-${Date.now()}`;
+      toActivityKind = 'correctiva';
+      toBasePrice = resolveM2QuoteBase(
+        { pricePerM2: CLEANING_OTHER_RATE_M2, minM2: CLEANING_MIN_M2 },
+        nextSquareMeters,
+        { serviceId: 'limpieza' }
+      );
+      toBasePrice = applyCleaningSurcharge(toBasePrice, nextCleaningFactors);
+      quote = calculateVisitPricing(pricing, request.urgencyTier, {
+        horaSolicitud: request.tariffLocalTime || request.createdAt || new Date(),
+        valorBase: toBasePrice,
+        timeZone: request.tariffTimeZone,
+        skipWorkFloor: true
+      });
+    } else {
+      toActivityName = String(customName || '').trim();
+      if (toActivityName.length < 4) {
+        return { error: 'En "Otro", escribe el nombre del servicio (mín. 4 caracteres).' };
+      }
+      const parsedBase = lineItemsTotal > 0 ? lineItemsTotal : parseInt(customBasePrice, 10);
+      if (!parsedBase || parsedBase < 100000) {
+        return { error: 'Indica el nuevo precio (mín. $100.000) o agrega tareas con precio.' };
+      }
+      toActivityId = `otro-${Date.now()}`;
+      toActivityKind = 'correctiva';
+      toBasePrice = parsedBase;
+      quote = calculateVisitPricing(pricing, request.urgencyTier, {
+        horaSolicitud: request.tariffLocalTime || request.createdAt || new Date(),
+        valorBase: toBasePrice,
+        timeZone: request.tariffTimeZone
+      });
     }
-    const parsedBase = lineItemsTotal > 0 ? lineItemsTotal : parseInt(customBasePrice, 10);
-    if (!parsedBase || parsedBase < 100000) {
-      return { error: 'Indica el nuevo precio (mín. $100.000) o agrega tareas con precio.' };
-    }
-    toActivityId = `otro-${Date.now()}`;
-    toActivityKind = 'correctiva';
-    toBasePrice = parsedBase;
-    quote = calculateVisitPricing(pricing, request.urgencyTier, {
-      horaSolicitud: request.tariffLocalTime || request.createdAt || new Date(),
-      valorBase: toBasePrice,
-      timeZone: request.tariffTimeZone
-    });
   } else {
     const activities = getActivitiesForAppService(pricing, request.serviceId);
     const next = activities.find((a) => a.id === activityId);
     if (!next) return { error: 'Subservicio no válido para esta especialidad.' };
-    if (next.id === request.activityId && lineItemsTotal <= 0 && materialsApproxTotal <= 0) {
-      return { error: 'Elige un subservicio distinto, agrega tareas o selecciona un producto del catálogo.' };
+
+    const m2Changed = cleaningJob
+      && Number(nextSquareMeters) !== Number(request.squareMeters || 0);
+    const petsChanged = cleaningJob
+      && Boolean(nextCleaningFactors?.hasPets) !== Boolean(request.cleaningFactors?.hasPets);
+    const postChanged = cleaningJob
+      && Boolean(nextCleaningFactors?.postEvent) !== Boolean(request.cleaningFactors?.postEvent);
+    const cleaningScopeChanged = m2Changed || petsChanged || postChanged;
+
+    if (next.id === request.activityId && lineItemsTotal <= 0 && materialsApproxTotal <= 0 && !cleaningScopeChanged) {
+      return { error: cleaningJob
+        ? 'Ajusta los m², marca mascotas/post evento o elige otro tipo de limpieza.'
+        : 'Elige un subservicio distinto, agrega tareas o selecciona un producto del catálogo.' };
     }
     toActivityId = next.id;
     toActivityName = next.name;
@@ -6303,18 +6352,28 @@ function proposeActivityChange(requestId, technicianId, {
     quote = quoteActivityForRequest(pricing, next.id, {
       horaSolicitud: request.tariffLocalTime || request.createdAt || new Date(),
       tierId: request.urgencyTier,
-      timeZone: request.tariffTimeZone
+      timeZone: request.tariffTimeZone,
+      squareMeters: cleaningJob ? nextSquareMeters : undefined,
+      serviceId: request.serviceId,
+      cleaningFactors: cleaningJob ? nextCleaningFactors : undefined
     });
+    if (quote) {
+      toBasePrice = quote.baseVisit || quote.tariff?.valorBaseAplicado || toBasePrice;
+    }
     if (quote && lineItemsTotal > 0) {
       quote = {
         ...quote,
         visitTotal: (quote.visitTotal || 0) + lineItemsTotal,
-        valorBase: (quote.valorBase || toBasePrice) + lineItemsTotal
+        baseVisit: (quote.baseVisit || toBasePrice) + lineItemsTotal
       };
       toBasePrice = (toBasePrice || 0) + lineItemsTotal;
       if (lineItems.length) {
         toActivityName = `${next.name} + adicionales`;
       }
+    }
+    if (cleaningJob && nextCleaningFactors) {
+      const summary = formatCleaningSummary(nextCleaningFactors, nextSquareMeters);
+      if (summary) toActivityName = `${next.name} · ${Math.round(nextSquareMeters)} m²`;
     }
   }
 
@@ -6347,6 +6406,8 @@ function proposeActivityChange(requestId, technicianId, {
     proposedTotal,
     previousTotal: request.visitPricePaid || request.visitTotal || request.amountDue || 0,
     lineItems,
+    squareMeters: cleaningJob ? nextSquareMeters : null,
+    cleaningFactors: cleaningJob ? nextCleaningFactors : null,
     photoUrl,
     notes,
     createdAt: new Date().toISOString(),
@@ -6357,9 +6418,13 @@ function proposeActivityChange(requestId, technicianId, {
 
   const linePreview = lineItems.slice(0, 4).map((i) => `${i.description} (${i.qty} ${i.unit})`).join('; ');
   const matPreview = materialsPreview.slice(0, 4).map((m) => `${m.name} ×${m.qty}`).join('; ');
+  const cleaningPreview = cleaningJob
+    ? formatCleaningSummary(nextCleaningFactors, nextSquareMeters)
+    : null;
   const chatParts = [
     `Cambio de alcance propuesto: ${toActivityName} · ${formatCLP(proposedTotal)}`,
     notes ? `Motivo: ${notes}` : null,
+    cleaningPreview || null,
     linePreview ? `Tareas: ${linePreview}` : null,
     matPreview ? `Productos: ${matPreview}` : null,
     'El cliente debe aprobar en la app.'

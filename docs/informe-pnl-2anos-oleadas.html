@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Fandez — P&amp;L 24 meses · Oleadas comunas</title>
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --muted: #5a5a5a;
+      --line: #e5e2dc;
+      --amber: #c45c14;
+      --amber-soft: #f7efe8;
+      --ok: #1b7a4a;
+      --warn: #9a6700;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      font-size: 9.5pt;
+      line-height: 1.4;
+    }
+    .page { padding: 14mm 14mm 12mm; max-width: 210mm; margin: 0 auto; }
+    h1 { font-size: 18pt; margin: 0 0 6pt; letter-spacing: -0.02em; }
+    h2 {
+      font-size: 12pt;
+      margin: 16pt 0 6pt;
+      padding-bottom: 3pt;
+      border-bottom: 2px solid var(--amber);
+      page-break-after: avoid;
+    }
+    h3 { font-size: 10pt; margin: 10pt 0 4pt; color: var(--amber); page-break-after: avoid; }
+    p { margin: 0 0 6pt; }
+    .muted { color: var(--muted); }
+    .cover {
+      min-height: 240mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 22mm 14mm;
+    }
+    .brand { font-size: 24pt; font-weight: 800; color: var(--amber); }
+    .badge {
+      display: inline-block;
+      background: var(--amber-soft);
+      color: var(--amber);
+      font-size: 7.5pt;
+      font-weight: 700;
+      padding: 3pt 7pt;
+      border-radius: 999px;
+      text-transform: uppercase;
+      margin-right: 4pt;
+    }
+    .meta { font-size: 8.5pt; color: var(--muted); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6pt 0 10pt;
+      font-size: 8pt;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 4pt 5pt;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #faf8f5; font-weight: 700; }
+    .box {
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--amber);
+      background: #faf8f5;
+      padding: 7pt 9pt;
+      margin: 8pt 0 10pt;
+      page-break-inside: avoid;
+    }
+    .box.warn { border-left-color: var(--warn); }
+    .box.ok { border-left-color: var(--ok); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6pt;
+      margin: 8pt 0 12pt;
+    }
+    .stat {
+      border: 1px solid var(--line);
+      padding: 7pt;
+      text-align: center;
+    }
+    .stat strong { display: block; font-size: 11pt; color: var(--amber); }
+    .stat span { font-size: 7pt; color: var(--muted); }
+    .pagebreak { page-break-before: always; }
+    .neg { color: #b42318; }
+    .pos { color: var(--ok); }
+    footer.note {
+      margin-top: 12pt;
+      padding-top: 6pt;
+      border-top: 1px solid var(--line);
+      font-size: 7.5pt;
+      color: var(--muted);
+    }
+    ul { margin: 4pt 0 8pt; padding-left: 14pt; }
+    li { margin-bottom: 2pt; }
+    @media print {
+      .page { padding: 0; max-width: none; }
+      .cover { min-height: auto; padding: 18mm 8mm; }
+    }
+  </style>
+</head>
+<body>
+
+<section class="page cover">
+  <div>
+    <div class="brand">Fandez</div>
+    <p class="muted" style="margin-top:4pt">Presupuesto financiero interno · v2 corregido</p>
+  </div>
+  <div>
+    <span class="badge">P&amp;L 24 meses</span>
+    <span class="badge">Oct 2026 – Sep 2028</span>
+    <span class="badge">Oleadas comunas</span>
+    <h1 style="margin-top:12pt">Presupuesto de ventas y P&amp;L<br>Ñuñoa · Providencia · Las Condes · Vitacura · Chicureo · Colina</h1>
+    <p>Split del precio de servicio: <strong>15% Fandez</strong> (IVA incl.) + <strong>~3% tarjeta</strong> + <strong>82% socio</strong> (servicio + transporte). El transporte vive dentro del 82%: no toca la ganancia de Fandez. Más adelante, por ubicación, sube el precio y con ello el monto del 15%.</p>
+    <p class="meta">Septiembre 2026 · Confidencial · v2.1 unit economics</p>
+  </div>
+  <div class="meta">
+    Fuentes: Plan A comercial Fandez · split 15% / ~3% tarjeta / 82% socio · Censo 2024 · proxies Oriente. OpEx = ads + hosting/AI + soporte + legal (sin sueldo founder).
+  </div>
+</section>
+
+<section class="page pagebreak">
+  <h2>1. Resumen ejecutivo</h2>
+  <div class="stats">
+    <div class="stat"><strong class="neg">−$9,3 MM</strong><span>EBITDA Año 1 (Base)</span></div>
+    <div class="stat"><strong class="pos">+$9,6 MM</strong><span>EBITDA Año 2 (Base)</span></div>
+    <div class="stat"><strong>3.735</strong><span>Jobs completados 24 meses</span></div>
+    <div class="stat"><strong class="pos">Jul-27</strong><span>Break-even mensual Base</span></div>
+  </div>
+  <div class="box ok">
+    <strong>Por qué el job es bueno pero el Año 1 sale rojo:</strong>
+    cada visita deja a Fandez ≈ <strong>$14.700</strong> (15% de $98k labor). Eso es margen unitario sano.
+    El rojo no viene de “perder en cada pedido”, sino de que en soft-launch hay pocos jobs frente a OpEx fijo/semifijo (ads + hosting + soporte): p. ej. octubre con ~11 jobs ≈ $150 mil de ingreso vs ~$1,4 MM de gasto.
+  </div>
+  <div class="box warn">
+    <strong>Corrección v1 → v2.1:</strong> no restar la tarjeta ni el transporte al 15% de Fandez. Del precio de servicio: 15% plataforma + ~3% medio de pago + 82% socio. Transporte ⊂ 82%. Materiales siguen 0% / pass-through.
+  </div>
+
+  <h2>2. Unit economics (modelo correcto)</h2>
+  <table>
+    <thead><tr><th>Tramo del precio de servicio</th><th>%</th><th>Quién</th><th>Impacto P&amp;L Fandez</th></tr></thead>
+    <tbody>
+      <tr><td>Comisión plataforma (IVA incluido)</td><td><strong>15%</strong></td><td>Fandez</td><td><strong>+$14.700 / job</strong> sobre ticket labor $98k</td></tr>
+      <tr><td>Comisión tarjeta / MP</td><td><strong>~3%</strong></td><td>Pasarela</td><td>$0 — no come el 15%</td></tr>
+      <tr><td>Servicio + transporte</td><td><strong>82%</strong></td><td>Socio</td><td>$0 — el transporte va aquí dentro</td></tr>
+      <tr><td>Materiales</td><td>—</td><td>Socio 100%</td><td>$0 (fuera del split de servicio)</td></tr>
+      <tr><td>Uplift por ubicación (futuro)</td><td>mismo 15%</td><td>Precio más alto → más $ al 15%</td><td>Sube ganancia Fandez en pesos, no baja el %</td></tr>
+      <tr><td>Cupones / promo</td><td>−3,5% a −7% del take</td><td>Fandez</td><td>Única merma recurrente del 15%</td></tr>
+      <tr><td>Contribución neta típica</td><td>—</td><td>—</td><td>≈ <strong>$13.700 – $14.200 / job</strong></td></tr>
+    </tbody>
+  </table>
+  <div class="box">
+    <strong>Transporte:</strong> hoy no hay línea aparte. El socio cubre traslado con su 82%. Cuando se active precio por zona, sube el ticket del cliente → Fandez sigue en 15% pero cobra más en pesos. El transporte <em>nunca</em> se descuenta de la ganancia de Fandez.
+  </div>
+  <p class="muted">Break-even operativo ≈ <strong>163 jobs/mes</strong> si OpEx ronda $2,3 MM/mes (contribución ~$14.200).</p>
+
+  <h2>3. Calendario de oleadas</h2>
+  <table>
+    <thead><tr><th>Mes</th><th>Comunas activas</th><th>Nota P&amp;L</th></tr></thead>
+    <tbody>
+      <tr><td>Oct 2026</td><td>Ñuñoa · Providencia</td><td>Volumen bajo: unidad positiva, caja negativa por OpEx</td></tr>
+      <tr><td>Nov 2026</td><td>+ Las Condes · Vitacura</td><td>Más ticket Oriente; mismo take 15%</td></tr>
+      <tr><td>Ene 2027</td><td>+ Chicureo · Colina</td><td>Transporte ⊂ 82% socio. Sin uplift de precio aún: Fandez sigue en 15% del ticket actual; riesgo = fill rate</td></tr>
+      <tr><td>Jul 2027</td><td>6 zonas</td><td>Base: primer mes con EBITDA ≈ 0</td></tr>
+      <tr><td>Año 2</td><td>6 zonas</td><td>Escala &gt; OpEx → EBITDA positivo</td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. Incidencias (no cambian el take rate base)</h2>
+  <table>
+    <thead><tr><th>Incidencia</th><th>Mes 1</th><th>Mes 12</th><th>Mes 24</th><th>Efecto</th></tr></thead>
+    <tbody>
+      <tr><td>Reembolso sin socio</td><td>13%</td><td>6,7%</td><td>5%</td><td>Quema CAC; no cuenta como job completado</td></tr>
+      <tr><td>Fill rate</td><td>70%</td><td>87%</td><td>92%</td><td>Tope de GMV (oferta)</td></tr>
+      <tr><td>Promo / cupones sobre take</td><td>7%</td><td>3,8%</td><td>3,5%</td><td>Única merma recurrente del 15%</td></tr>
+      <tr><td>Chargeback</td><td>~0,3%</td><td>~0,3%</td><td>~0,3%</td><td>Menor</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="page pagebreak">
+  <h2>5. Escenario Base — anual (corregido)</h2>
+  <table>
+    <thead><tr><th></th><th>Año 1 (oct26–sep27)</th><th>Año 2 (oct27–sep28)</th><th>Total 24m</th></tr></thead>
+    <tbody>
+      <tr><td>Jobs completados</td><td>1.181</td><td>2.554</td><td>3.735</td></tr>
+      <tr><td>GMV cliente (labor+materiales)</td><td>$130 MM</td><td>$281 MM</td><td>$411 MM</td></tr>
+      <tr><td>Ingreso Fandez (15% − promo)</td><td>$16,5 MM</td><td>$36,1 MM</td><td>$52,6 MM</td></tr>
+      <tr><td>OpEx (ads+hosting+soporte+legal)</td><td>$25,8 MM</td><td>$26,5 MM</td><td>$52,3 MM</td></tr>
+      <tr><td>EBITDA</td><td class="neg">−$9,3 MM</td><td class="pos">+$9,6 MM</td><td class="pos">≈ +$0,3 MM</td></tr>
+    </tbody>
+  </table>
+
+  <h3>EBITDA trimestral (Base, MM$)</h3>
+  <table>
+    <thead><tr><th>Trimestre</th><th>Periodo</th><th>Jobs</th><th>GMV</th><th>Ingreso 15%</th><th>OpEx</th><th>EBITDA</th></tr></thead>
+    <tbody>
+      <tr><td>T1</td><td>oct–dic 26</td><td>88</td><td>$9,7</td><td>$1,2</td><td>$4,8</td><td class="neg">−$3,6</td></tr>
+      <tr><td>T2</td><td>ene–mar 27</td><td>243</td><td>$26,7</td><td>$3,4</td><td>$7,1</td><td class="neg">−$3,7</td></tr>
+      <tr><td>T3</td><td>abr–jun 27</td><td>373</td><td>$41,0</td><td>$5,2</td><td>$7,2</td><td class="neg">−$2,0</td></tr>
+      <tr><td>T4</td><td>jul–sep 27</td><td>477</td><td>$52,5</td><td>$6,7</td><td>$6,7</td><td class="pos">≈ $0</td></tr>
+      <tr><td>T5</td><td>oct–dic 27</td><td>567</td><td>$62,4</td><td>$8,0</td><td>$6,3</td><td class="pos">+$1,7</td></tr>
+      <tr><td>T6</td><td>ene–mar 28</td><td>625</td><td>$68,8</td><td>$8,8</td><td>$6,5</td><td class="pos">+$2,3</td></tr>
+      <tr><td>T7</td><td>abr–jun 28</td><td>664</td><td>$73,0</td><td>$9,4</td><td>$6,7</td><td class="pos">+$2,7</td></tr>
+      <tr><td>T8</td><td>jul–sep 28</td><td>698</td><td>$76,8</td><td>$9,9</td><td>$7,0</td><td class="pos">+$2,9</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. Hitos mensuales (Base)</h2>
+  <table>
+    <thead><tr><th>Mes</th><th>Jobs</th><th>Ingreso Fandez</th><th>OpEx</th><th>EBITDA</th></tr></thead>
+    <tbody>
+      <tr><td>Oct 26 (Ñuñoa+Prov)</td><td>11</td><td>$150 mil</td><td>$1,4 MM</td><td class="neg">−$1,3 MM</td></tr>
+      <tr><td>Nov 26 (+LC+Vit)</td><td>30</td><td>$411 mil</td><td>$1,7 MM</td><td class="neg">−$1,3 MM</td></tr>
+      <tr><td>Ene 27 (+Chic+Col)</td><td>65</td><td>$900 mil</td><td>$2,3 MM</td><td class="neg">−$1,4 MM</td></tr>
+      <tr><td>Sep 27 (cierre Y1)</td><td>170</td><td>$2,4 MM</td><td>$2,3 MM</td><td class="pos">+$0,1 MM</td></tr>
+      <tr><td>Sep 28 (cierre Y2)</td><td>236</td><td>$3,3 MM</td><td>$2,3 MM</td><td class="pos">+$1,0 MM</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Mix demanda por comuna (jobs estimados)</h3>
+  <table>
+    <thead><tr><th>Mes</th><th>Ñuñoa</th><th>Providencia</th><th>Las Condes</th><th>Vitacura</th><th>Chicureo</th><th>Colina</th></tr></thead>
+    <tbody>
+      <tr><td>Oct 26</td><td>9</td><td>6</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Nov 26</td><td>17</td><td>11</td><td>9</td><td>5</td><td>—</td><td>—</td></tr>
+      <tr><td>Ene 27</td><td>28</td><td>19</td><td>24</td><td>12</td><td>2</td><td>3</td></tr>
+      <tr><td>Sep 27</td><td>53</td><td>36</td><td>55</td><td>27</td><td>9</td><td>15</td></tr>
+      <tr><td>Sep 28</td><td>69</td><td>47</td><td>72</td><td>36</td><td>12</td><td>21</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="page pagebreak">
+  <h2>7. OpEx típico mensual (esto es lo que “vuelve negativo” el arranque)</h2>
+  <table>
+    <thead><tr><th>Partida</th><th>Mes 1–3</th><th>Mes 4–12</th><th>Año 2</th></tr></thead>
+    <tbody>
+      <tr><td>Ads / adquisición</td><td>$0,7–1,0 MM</td><td>$1,1–1,5 MM</td><td>≈ $1,0–1,2 MM</td></tr>
+      <tr><td>Hosting + OpenAI + tools</td><td colspan="3">~$0,37 MM / mes</td></tr>
+      <tr><td>Soporte (fijo + variable)</td><td>$0,2–0,5 MM</td><td colspan="2">Crece con jobs</td></tr>
+      <tr><td>Legal / seguros / contable</td><td>~$0,10 MM</td><td colspan="2">~$0,14 MM</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">No incluye sueldo founder ni oficina. Un payroll full-time $1,5–2,5 MM/mes empeora el EBITDA ~$18–30 MM/año.</p>
+
+  <h2>8. Tres escenarios (24 meses)</h2>
+  <table>
+    <thead><tr><th>Escenario</th><th>Jobs 24m</th><th>GMV</th><th>EBITDA Y1</th><th>EBITDA Y2</th><th>Break-even</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Conservador (−30% demanda, +10% ads)</td>
+        <td>2.616</td><td>$288 MM</td>
+        <td class="neg">−$15,7 MM</td><td class="neg">−$2,7 MM</td>
+        <td>No en 24m</td>
+      </tr>
+      <tr>
+        <td><strong>Base</strong></td>
+        <td>3.735</td><td>$411 MM</td>
+        <td class="neg">−$9,3 MM</td><td class="pos">+$9,6 MM</td>
+        <td class="pos">Jul 2027</td>
+      </tr>
+      <tr>
+        <td>Optimista (+45% demanda, −15% ads)</td>
+        <td>5.416</td><td>$596 MM</td>
+        <td class="pos">+$0,3 MM</td><td class="pos">+$28 MM</td>
+        <td class="pos">≈ Abr 2027</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box">
+    <strong>Lectura simple:</strong> el 15% está bien y no lo toca ni la tarjeta (~3%) ni el transporte (va en el 82%). Falta volumen. Con ~160+ jobs/mes el negocio se paga solo (sin founder salary). Cuando exista precio por ubicación, el mismo 15% sobre un ticket mayor mejora el EBITDA sin cambiar el modelo.
+  </div>
+
+  <h2>9. Presupuesto de caja sugerido (Base)</h2>
+  <table>
+    <thead><tr><th>Concepto</th><th>Monto</th></tr></thead>
+    <tbody>
+      <tr><td>Pérdida operativa Año 1 (EBITDA)</td><td>≈ $9,3 MM</td></tr>
+      <tr><td>Colchón working capital (pagos socios / float)</td><td>$8–12 MM</td></tr>
+      <tr><td>Contingencia incidencias / legales</td><td>$3–5 MM</td></tr>
+      <tr><td><strong>Total capital a fondear (orden)</strong></td><td><strong>$20–26 MM CLP</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h2>10. KPIs de control</h2>
+  <table>
+    <thead><tr><th>KPI</th><th>Meta M3</th><th>Meta M12</th><th>Meta M24</th></tr></thead>
+    <tbody>
+      <tr><td>Jobs completados / mes</td><td>≥45</td><td>≥160</td><td>≥230</td></tr>
+      <tr><td>Take Fandez / job (post promo)</td><td>≥$13.500</td><td>≥$14.000</td><td>≥$14.100</td></tr>
+      <tr><td>Fill rate</td><td>≥75%</td><td>≥85%</td><td>≥90%</td></tr>
+      <tr><td>Reembolso sin socio</td><td>≤10%</td><td>≤7%</td><td>≤5%</td></tr>
+      <tr><td>CAC blendeado</td><td>≤$25.000</td><td>≤$15.000</td><td>≤$12.000</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box ok">
+    <strong>Regla de oro:</strong> no abrir Chicureo/Colina sin oferta estable. Split fijo 15 / ~3 / 82. Precio por zona (futuro) = más ticket = más $ al 15%, sin tocar el modelo. Year 1 = inversión de escala. Year 2 = positivo si ≥160–200 jobs/mes.
+  </div>
+
+  <footer class="note">
+    Documento interno Fandez · P&amp;L 24 meses oleadas v2.1 · septiembre 2026.
+    Split: 15% Fandez + ~3% tarjeta + 82% socio (servicio+transporte). Materiales pass-through.
+    Uplift por ubicación futuro aumenta el precio y por tanto el monto del 15%, no reduce la ganancia de Fandez.
+  </footer>
+</section>
+
+</body>
+</html>

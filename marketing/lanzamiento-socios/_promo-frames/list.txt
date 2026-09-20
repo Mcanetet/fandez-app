@@ -1,0 +1,17 @@
+file '/Users/miguelangel/Downloads/fandez app/marketing/lanzamiento-socios/_promo-frames/01.jpg'
+duration 4.6
+file '/Users/miguelangel/Downloads/fandez app/marketing/lanzamiento-socios/_promo-frames/02.jpg'
+duration 4.6
+file '/Users/miguelangel/Downloads/fandez app/marketing/lanzamiento-socios/_promo-frames/03.jpg'
+duration 4.6
+file '/Users/miguelangel/Downloads/fandez app/marketing/lanzamiento-socios/_promo-frames/04.jpg'
+duration 4.6
+file '/Users/miguelangel/Downloads/fandez app/marketing/lanzamiento-socios/_promo-frames/05.jpg'
+duration 4.6
+file '/Users/miguelangel/Downloads/fandez app/marketing/lanzamiento-socios/_promo-frames/06.jpg'
+duration 4.6
+file '/Users/miguelangel/Downloads/fandez app/marketing/lanzamiento-socios/_promo-frames/07.jpg'
+duration 4.6
+file '/Users/miguelangel/Downloads/fandez app/marketing/lanzamiento-socios/_promo-frames/08.jpg'
+duration 4.6
+file '/Users/miguelangel/Downloads/fandez app/marketing/lanzamiento-socios/_promo-frames/08.jpg'

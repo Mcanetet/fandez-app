@@ -418,16 +418,29 @@ router.get('/trabajo/:requestId/subservicios', requireRole('tecnico'), (req, res
   const job = store.getRequestForTechnician(req.params.requestId, req.session.user.id);
   if (!job) return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
   const activities = store.getActivitiesForService(job.serviceId);
+  const cleaning = job.serviceId === 'limpieza';
   res.json({
     success: true,
     currentActivityId: job.activityId || null,
-    activities: activities.map((a) => ({
-      id: a.id,
-      name: a.name,
-      kind: a.kind,
-      basePrice: a.basePrice,
-      basePriceLabel: store.formatCLP(a.basePrice)
-    }))
+    cleaning,
+    squareMeters: job.squareMeters || null,
+    cleaningFactors: job.cleaningFactors || null,
+    activities: activities.map((a) => {
+      const perM2 = Boolean(a.pricePerM2) || a.pricingUnit === 'm2' || cleaning;
+      const rate = a.pricePerM2 || (perM2 ? a.basePrice : null);
+      return {
+        id: a.id,
+        name: a.name,
+        kind: a.kind,
+        basePrice: a.basePrice,
+        pricePerM2: rate || null,
+        pricingUnit: perM2 ? 'm2' : 'job',
+        minM2: a.minM2 || (cleaning ? 20 : null),
+        basePriceLabel: perM2
+          ? `${store.formatCLP(rate || a.basePrice)} / m²`
+          : store.formatCLP(a.basePrice)
+      };
+    })
   });
 });
 
@@ -447,7 +460,9 @@ router.post('/trabajo/:requestId/cambio-servicio', requireRole('tecnico'), (req,
     customName: req.body.customName,
     customBasePrice: req.body.customBasePrice,
     lineItems: req.body.lineItems,
-    materialsPreview: req.body.materialsPreview || req.body.catalogItems
+    materialsPreview: req.body.materialsPreview || req.body.catalogItems,
+    squareMeters: req.body.squareMeters,
+    cleaningFactors: req.body.cleaningFactors
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });

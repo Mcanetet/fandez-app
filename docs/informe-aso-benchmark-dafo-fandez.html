@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Fandez — ASO Google Play, Benchmark Mundial y DAFO</title>
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --muted: #5a5a5a;
+      --line: #e5e2dc;
+      --amber: #c45c14;
+      --amber-soft: #f7efe8;
+      --ok: #1b7a4a;
+      --warn: #9a6700;
+      --bg: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      font-size: 10pt;
+      line-height: 1.4;
+    }
+    .page { padding: 14mm 14mm 12mm; max-width: 210mm; margin: 0 auto; }
+    h1 { font-size: 20pt; margin: 0 0 6pt; letter-spacing: -0.02em; }
+    h2 {
+      font-size: 12.5pt;
+      margin: 18pt 0 8pt;
+      padding-bottom: 4pt;
+      border-bottom: 2px solid var(--amber);
+      page-break-after: avoid;
+    }
+    h3 { font-size: 10.5pt; margin: 12pt 0 5pt; color: var(--amber); page-break-after: avoid; }
+    h4 { font-size: 10pt; margin: 10pt 0 4pt; page-break-after: avoid; }
+    p { margin: 0 0 7pt; }
+    .muted { color: var(--muted); }
+    .cover {
+      min-height: 250mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24mm 16mm;
+    }
+    .brand { font-size: 26pt; font-weight: 800; color: var(--amber); letter-spacing: -0.03em; }
+    .badge {
+      display: inline-block;
+      background: var(--amber-soft);
+      color: var(--amber);
+      font-size: 8pt;
+      font-weight: 700;
+      padding: 3pt 8pt;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-right: 4pt;
+    }
+    .meta { font-size: 9pt; color: var(--muted); margin-top: 8pt; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6pt 0 10pt;
+      font-size: 8.8pt;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 5pt 6pt;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #faf8f5; font-weight: 700; }
+    ul { margin: 4pt 0 8pt; padding-left: 16pt; }
+    li { margin-bottom: 3pt; }
+    .box {
+      border: 1px solid var(--line);
+      background: #faf8f5;
+      padding: 8pt 10pt;
+      margin: 8pt 0 12pt;
+      page-break-inside: avoid;
+    }
+    .box.warn { border-left: 3px solid var(--warn); }
+    .box.ok { border-left: 3px solid var(--ok); }
+    .box.info { border-left: 3px solid var(--amber); }
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8pt;
+      margin: 8pt 0 12pt;
+    }
+    .card {
+      border: 1px solid var(--line);
+      padding: 8pt 9pt;
+      page-break-inside: avoid;
+    }
+    .card h4 { margin-top: 0; color: var(--amber); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6pt;
+      margin: 10pt 0 14pt;
+    }
+    .stat {
+      border: 1px solid var(--line);
+      padding: 8pt;
+      text-align: center;
+    }
+    .stat strong { display: block; font-size: 12pt; color: var(--amber); }
+    .stat span { font-size: 7.5pt; color: var(--muted); }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc li { margin-bottom: 5pt; }
+    .pagebreak { page-break-before: always; }
+    .scorebar {
+      display: flex;
+      align-items: center;
+      gap: 6pt;
+      margin: 3pt 0;
+      font-size: 8.5pt;
+    }
+    .bar {
+      height: 8pt;
+      background: var(--amber);
+      border-radius: 2pt;
+    }
+    .bar-bg {
+      flex: 1;
+      height: 8pt;
+      background: #eee;
+      border-radius: 2pt;
+      overflow: hidden;
+    }
+    footer.note {
+      margin-top: 16pt;
+      padding-top: 8pt;
+      border-top: 1px solid var(--line);
+      font-size: 8pt;
+      color: var(--muted);
+    }
+    @media print {
+      .page { padding: 0; max-width: none; }
+      .cover { min-height: auto; padding: 20mm 10mm; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<section class="page cover">
+  <div>
+    <div class="brand">Fandez</div>
+    <p class="muted" style="margin-top:6pt">fandez.cl · Documento estratégico interno</p>
+  </div>
+  <div>
+    <span class="badge">ASO Google Play</span>
+    <span class="badge">Benchmark mundial</span>
+    <span class="badge">DAFO Chile + global</span>
+    <h1 style="margin-top:14pt">Informe estratégico:<br>Play Store, competencia y DAFO</h1>
+    <p>Plan para publicar en Google Play, mapa competitivo global y LATAM, y análisis DAFO Chile / mundial.</p>
+    <p class="meta">Septiembre 2026 · Confidencial · No publicar scores competitivos en la ficha de Play</p>
+  </div>
+  <div class="meta">
+    Fuentes: producto fandez.cl · prácticas ASO Google Play 2025–26 · capacidades públicas de TaskRabbit, Thumbtack, Angi, Urban Company, GetNinjas, LiLi, Kalabaza, ServiHogar, WorkMatchfy.
+  </div>
+</section>
+
+<!-- ÍNDICE -->
+<section class="page pagebreak">
+  <h2>Índice</h2>
+  <ol class="toc">
+    <li><a href="#resumen">Resumen ejecutivo</a></li>
+    <li><a href="#aso">Estrategia ASO Google Play</a></li>
+    <li><a href="#benchmark">Benchmark mundial y LATAM</a></li>
+    <li><a href="#dafo-cl">DAFO Chile</a></li>
+    <li><a href="#dafo-world">DAFO mundial</a></li>
+    <li><a href="#sintesis">Síntesis y próximos pasos</a></li>
+  </ol>
+
+  <h2 id="resumen">1. Resumen ejecutivo</h2>
+  <div class="stats">
+    <div class="stat"><strong>Lifestyle</strong><span>Categoría Play recomendada</span></div>
+    <div class="stat"><strong>30 / 80</strong><span>Título / short description</span></div>
+    <div class="stat"><strong>3,4 / 5</strong><span>Score medio Fandez vs global*</span></div>
+    <div class="stat"><strong>90 días</strong><span>Fase ASO post-lanzamiento</span></div>
+  </div>
+  <div class="box info">
+    <strong>Posicionamiento de ficha:</strong> Fandez no es “otro directorio de maestros”: es pedido on-demand en Santiago, con pago en app, tracking, código de llegada, Modo Guardián y Sofía. En Play hay que vender esa promesa en los primeros 2–3 screenshots — no el catálogo completo.
+  </div>
+  <div class="box ok">
+    <strong>Veredicto DAFO:</strong> En Chile, fuerte en confianza operativa (pago → tracking → código → Guardián → Sofía) y débil en cobertura y prueba social de store. A escala mundial, competitivo en safety/AI local, pero aún no en marca, densidad de pros ni madurez de app stores.
+  </div>
+  <p class="muted">*Scores = evaluación experta cualitativa (0–5) sobre capacidades públicas; no son métricas auditadas de installs/GMV.</p>
+</section>
+
+<!-- ASO -->
+<section class="page pagebreak">
+  <h2 id="aso">2. Estrategia ASO Google Play</h2>
+
+  <h3>2.1 Metadatos listos para pegar (es-CL)</h3>
+  <table>
+    <thead><tr><th>Campo</th><th>Límite</th><th>Propuesta Fandez</th></tr></thead>
+    <tbody>
+      <tr><td>Título A</td><td>30</td><td>Fandez: servicios a domicilio</td></tr>
+      <tr><td>Título B</td><td>30</td><td>Fandez — técnico a domicilio</td></tr>
+      <tr><td>Descripción corta A</td><td>80</td><td>Gasfitería, electricidad y más en Santiago. Paga en app y sigue al técnico.</td></tr>
+      <tr><td>Descripción corta B</td><td>80</td><td>Pide un técnico verificado en Santiago. Tracking, pago seguro y Sofía te orienta.</td></tr>
+      <tr><td>Categoría</td><td>—</td><td>Lifestyle (o House &amp; Home si está en consola)</td></tr>
+      <tr><td>Tags / temas</td><td>—</td><td>Hogar · Reparaciones · On-demand · Santiago</td></tr>
+    </tbody>
+  </table>
+  <div class="box warn">
+    <strong>Política Play:</strong> no uses “mejor”, “#1”, “gratis”, “descarga ya” ni spam de keywords en título o short description.
+  </div>
+
+  <h3>2.2 Keywords objetivo (Chile)</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4>Alta intención (P1)</h4>
+      <ul>
+        <li>servicios a domicilio Santiago</li>
+        <li>gasfíter / gasfitería a domicilio</li>
+        <li>electricista a domicilio</li>
+        <li>técnico a domicilio</li>
+        <li>aires acondicionados Santiago</li>
+        <li>app servicios hogar Chile</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Long-tail (P2)</h4>
+      <ul>
+        <li>pedir técnico verificado</li>
+        <li>pago seguro servicios hogar</li>
+        <li>seguimiento técnico GPS</li>
+        <li>jardinería a domicilio</li>
+        <li>maestro a domicilio app</li>
+        <li>contratar gasfíter online</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>2.3 Estructura de descripción larga (≤ 4000)</h3>
+  <table>
+    <thead><tr><th>Bloque</th><th>Objetivo ASO</th><th>Contenido</th></tr></thead>
+    <tbody>
+      <tr><td>Párrafo 1</td><td>CTR + keyword</td><td>Qué es Fandez + Santiago + servicios a domicilio + confianza/seguimiento</td></tr>
+      <tr><td>Cómo funciona</td><td>Conversión</td><td>Elige → paga visita → técnico → tracking → código de llegada → reseña</td></tr>
+      <tr><td>Servicios</td><td>Long-tail</td><td>Gasfitería, electricidad, aires, jardinería, pintura… (natural, sin stuffing)</td></tr>
+      <tr><td>Confianza</td><td>Diferenciación</td><td>Socios verificados, MP, Modo Guardián, SOS, Sofía</td></tr>
+      <tr><td>Para socios</td><td>2ª audiencia</td><td>Muro, cobros claros, KYC — sin “cobras en un minuto”</td></tr>
+      <tr><td>Cobertura</td><td>Local SEO</td><td>Santiago y comunas activas</td></tr>
+      <tr><td>CTA + legal</td><td>Compliance</td><td>fandez.cl, privacidad, soporte</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.4 Creatividades</h3>
+  <table>
+    <thead><tr><th>Asset</th><th>Spec</th><th>Mensaje / orden</th></tr></thead>
+    <tbody>
+      <tr><td>Ícono</td><td>512×512</td><td>Isotipo ámbar Fandez; legible a 48px</td></tr>
+      <tr><td>Feature graphic</td><td>1024×500</td><td>“Técnico a domicilio en Santiago”</td></tr>
+      <tr><td>Shot 1</td><td>Portrait</td><td>Pide el servicio en minutos</td></tr>
+      <tr><td>Shot 2</td><td>Portrait</td><td>Sigue al técnico en el mapa</td></tr>
+      <tr><td>Shot 3</td><td>Portrait</td><td>Paga seguro en la app</td></tr>
+      <tr><td>Shot 4</td><td>Portrait</td><td>Código de llegada + Modo Guardián</td></tr>
+      <tr><td>Shot 5</td><td>Portrait</td><td>Habla con Sofía (sin decir ChatGPT)</td></tr>
+      <tr><td>Shot 6</td><td>Opcional</td><td>Muro de pedidos (si captas socios en Play)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.5 Roadmap ASO 90 días</h3>
+  <table>
+    <thead><tr><th>Fase</th><th>Semanas</th><th>Acciones</th><th>KPI</th></tr></thead>
+    <tbody>
+      <tr><td>Pre-launch</td><td>−2 a 0</td><td>Play Console, privacidad, T&amp;C, AAB firmado, Data safety</td><td>Aprobación store</td></tr>
+      <tr><td>Launch</td><td>1–2</td><td>Ficha A + tráfico orgánico; pedir reseñas post-servicio</td><td>CVR ficha 15–25% tráfico caliente</td></tr>
+      <tr><td>Experimentos</td><td>3–6</td><td>A/B título, short, orden screenshots</td><td>Lift CVR ≥ +10% relativo</td></tr>
+      <tr><td>Crecimiento</td><td>7–12</td><td>Custom listings por campaña; Search terms report</td><td>Ranks locales + retención D7</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">Google también pesa installs, retención, crashes y reseñas. Ficha perfecta + app inestable = pierde ranking.</p>
+</section>
+
+<!-- BENCHMARK -->
+<section class="page pagebreak">
+  <h2 id="benchmark">3. Benchmark mundial y LATAM</h2>
+  <p>Escala 0–5 por capacidad (5 = best-in-class). Fandez se compara como on-demand local premium, no por GMV ni marca.</p>
+
+  <h3>3.1 Scorecard Fandez (detalle)</h3>
+  <table>
+    <thead><tr><th>Dimensión</th><th>Score</th><th>Evidencia</th><th>Mejora</th></tr></thead>
+    <tbody>
+      <tr><td>Match / booking</td><td>4</td><td>Pedido + urgencia + muro</td><td>Instant book más visible en ASO</td></tr>
+      <tr><td>Pagos</td><td>4</td><td>Mercado Pago, adicionales, boleta/factura</td><td>Copy “pago protegido”</td></tr>
+      <tr><td>Trust &amp; safety</td><td>5</td><td>KYC, código, Guardián, SOS, MFA</td><td>Screenshots 3–4</td></tr>
+      <tr><td>Tracking live</td><td>5</td><td>Mapa / ETA / en camino</td><td>Hero visual #2</td></tr>
+      <tr><td>AI / concierge</td><td>5</td><td>Sofía + agentes internos</td><td>Screenshot Sofía</td></tr>
+      <tr><td>Cobertura geo</td><td>2</td><td>Santiago focus</td><td>Comunas antes de “todo Chile”</td></tr>
+      <tr><td>Pro tools</td><td>4</td><td>Muro, equipo, liquidación</td><td>Sección socios en descripción</td></tr>
+      <tr><td>App store madurez</td><td>1</td><td>Web-first hoy</td><td>AAB + reseñas post-servicio</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 Comparativa vs líderes globales (scores 0–5)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Dimensión</th>
+        <th>Fandez</th>
+        <th>TaskRabbit</th>
+        <th>Thumbtack</th>
+        <th>Urban Company</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Match / booking</td><td>4</td><td>5</td><td>4</td><td>5</td></tr>
+      <tr><td>Pagos</td><td>4</td><td>5</td><td>3</td><td>5</td></tr>
+      <tr><td>Trust &amp; safety</td><td>5</td><td>4</td><td>4</td><td>4</td></tr>
+      <tr><td>Tracking live</td><td>5</td><td>3</td><td>2</td><td>3</td></tr>
+      <tr><td>AI / concierge</td><td>5</td><td>2</td><td>4</td><td>3</td></tr>
+      <tr><td>Cobertura geo</td><td>2</td><td>5</td><td>5</td><td>4</td></tr>
+      <tr><td>Pro tools</td><td>4</td><td>4</td><td>5</td><td>4</td></tr>
+      <tr><td>App store madurez</td><td>1</td><td>5</td><td>5</td><td>5</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Vista rápida Fandez (barras)</h4>
+  <div class="scorebar"><span style="width:110pt">Trust &amp; safety</span><div class="bar-bg"><div class="bar" style="width:100%"></div></div><span>5</span></div>
+  <div class="scorebar"><span style="width:110pt">Tracking live</span><div class="bar-bg"><div class="bar" style="width:100%"></div></div><span>5</span></div>
+  <div class="scorebar"><span style="width:110pt">AI / concierge</span><div class="bar-bg"><div class="bar" style="width:100%"></div></div><span>5</span></div>
+  <div class="scorebar"><span style="width:110pt">Match / booking</span><div class="bar-bg"><div class="bar" style="width:80%"></div></div><span>4</span></div>
+  <div class="scorebar"><span style="width:110pt">Pagos</span><div class="bar-bg"><div class="bar" style="width:80%"></div></div><span>4</span></div>
+  <div class="scorebar"><span style="width:110pt">Pro tools</span><div class="bar-bg"><div class="bar" style="width:80%"></div></div><span>4</span></div>
+  <div class="scorebar"><span style="width:110pt">Cobertura geo</span><div class="bar-bg"><div class="bar" style="width:40%"></div></div><span>2</span></div>
+  <div class="scorebar"><span style="width:110pt">Store madurez</span><div class="bar-bg"><div class="bar" style="width:20%"></div></div><span>1</span></div>
+
+  <h3>3.3 Matriz competitiva</h3>
+  <table>
+    <thead><tr><th>Player</th><th>Modelo</th><th>Geo</th><th>Vs Fandez / aprender</th></tr></thead>
+    <tbody>
+      <tr><td>TaskRabbit</td><td>Tarea + tarifa horaria</td><td>US/EU</td><td>Same-day UX, TaskProtect copy, reviews</td></tr>
+      <tr><td>Thumbtack</td><td>Leads + Instant Book + AI</td><td>US</td><td>AI search; no copiar lead-spam a socios</td></tr>
+      <tr><td>Angi</td><td>Directorio + pre-priced</td><td>US</td><td>SEO contenido; Fandez gana en app operativa</td></tr>
+      <tr><td>Urban Company</td><td>SKUs fijos + ops</td><td>IN/ME/SEA</td><td>Packaging precios fijos; training pros</td></tr>
+      <tr><td>GetNinjas</td><td>Leads / cotizaciones</td><td>BR/LATAM</td><td>Vender certeza de visita, no “cotiza gratis”</td></tr>
+      <tr><td>LiLi</td><td>Pros + garantía</td><td>Chile</td><td>Fandez responde con tracking + Guardián + Sofía</td></tr>
+      <tr><td>Kalabaza</td><td>Reserva + MP</td><td>Chile</td><td>Ya en stores; creatividades y reseñas</td></tr>
+      <tr><td>ServiHogar</td><td>170+ cats · propuestas</td><td>Chile</td><td>Profundidad on-demand &gt; amplitud</td></tr>
+      <tr><td>WorkMatchfy</td><td>Match + IA docs</td><td>Chile</td><td>Diferenciar journey pago→GPS→código</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>Fortalezas relativas</h4>
+      <ul>
+        <li>Trust stack local (código, SOS, Guardián)</li>
+        <li>Sofía con datos en vivo</li>
+        <li>Flujo operativo cerrado hasta true-up</li>
+        <li>Premium Santiago (calidad &gt; volumen temprano)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Gaps</h4>
+      <ul>
+        <li>Sin Play/App Store nativo</li>
+        <li>Cobertura solo Santiago</li>
+        <li>Menos prueba social pública / seguro en copy</li>
+        <li>Menos SKUs “desde $X” tipo UC/TaskRabbit</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- DAFO CHILE -->
+<section class="page pagebreak">
+  <h2 id="dafo-cl">4. DAFO Chile</h2>
+  <p class="muted">Arena: LiLi, Kalabaza, ServiHogar, WorkMatchfy, WhatsApp informal, directorios.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>Fortalezas (F) — interno</h4>
+      <ul>
+        <li>Journey cerrado: pedido, MP, muro, técnico, boleta/factura</li>
+        <li>Trust: KYC, código, Guardián, SOS, alertas admin</li>
+        <li>Sofía concierge con datos en vivo</li>
+        <li>Posicionamiento premium Santiago / Oriente</li>
+        <li>Ops internas (seguridad, backups, NEO) maduras para el tamaño</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Debilidades (D) — interno</h4>
+      <ul>
+        <li>Cobertura limitada a Santiago</li>
+        <li>Sin app nativa en stores</li>
+        <li>Liquidez del muro irregular → churn socio</li>
+        <li>Activación socio larga (KYC + contrato + equipo)</li>
+        <li>Menos categorías que ServiHogar; menos copy de seguro tipo LiLi</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Oportunidades (O) — externo</h4>
+      <ul>
+        <li>Demanda con fricción WhatsApp (sin tracking ni pago protegido)</li>
+        <li>Google Play + ASO local de alta intención</li>
+        <li>Alianzas hubs, edificios, property managers, seguros</li>
+        <li>Densificar comunas RM antes de regiones</li>
+        <li>Vender visita cerrada en app vs leads infinitos</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Amenazas (A) — externo</h4>
+      <ul>
+        <li>Competidores CL ya en store con reviews</li>
+        <li>Saturación del mensaje “verificado + pago seguro”</li>
+        <li>Informalidad WhatsApp / edificio</li>
+        <li>Incidente de seguridad → daño reputacional alto</li>
+        <li>CAC alto sin liquidez de oferta</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>4.1 Cruces FO / DO / FA / DA (Chile)</h3>
+  <table>
+    <thead><tr><th>Cruce</th><th>Acción prioritaria</th></tr></thead>
+    <tbody>
+      <tr><td>FO</td><td>Ficha Play y ads con hero tracking + Guardián + Sofía; keywords Santiago</td></tr>
+      <tr><td>DO</td><td>Lanzar AAB + reseñas post-servicio; densificar comunas RM</td></tr>
+      <tr><td>FA</td><td>Protocolo SOS/133 + playbook incidente; no competir solo en “verificado”</td></tr>
+      <tr><td>DA</td><td>No ads nacionales sin muro vivo; no prometer activación socio en minutos</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- DAFO MUNDIAL -->
+<section class="page pagebreak">
+  <h2 id="dafo-world">5. DAFO mundial</h2>
+  <p class="muted">Referencia: TaskRabbit, Thumbtack, Angi, Urban Company, GetNinjas. No pelea GMV global hoy; mide capacidad y aprendizaje.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>Fortalezas (F)</h4>
+      <ul>
+        <li>Safety stack comparable a mid-market global</li>
+        <li>AI concierge integrada al pedido</li>
+        <li>Modelo transaccional in-app (no solo lead gen)</li>
+        <li>Stack web listo para wrapper nativo / stores</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Debilidades (D)</h4>
+      <ul>
+        <li>Escala 0 en stores y marca internacional</li>
+        <li>Una ciudad vs redes multi-país</li>
+        <li>Menos SKUs “from $X”</li>
+        <li>Capital/ops limitados vs background checks US o flotas UC</li>
+        <li>Poco contenido SEO tipo Angi</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Oportunidades (O)</h4>
+      <ul>
+        <li>LATAM fragmentado: hueco para on-demand con confianza</li>
+        <li>Exportar playbook Santiago → otras capitales LATAM</li>
+        <li>Ola Instant Book + AI (Sofía + booking ya existen)</li>
+        <li>Partnerships aseguradoras / property tech B2B2C</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Amenazas (A)</h4>
+      <ul>
+        <li>Entrante global/regional con war chest en Chile</li>
+        <li>Commoditización de “pros verificados”</li>
+        <li>Regulación plataformas / labor / datos</li>
+        <li>Dependencia MP y políticas de stores</li>
+        <li>Expectativa same-day denso formada por TR/UC</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>5.1 Cruces estratégicos mundiales</h3>
+  <table>
+    <thead><tr><th>Cruce</th><th>Acción</th></tr></thead>
+    <tbody>
+      <tr><td>FO</td><td>Narrar “TaskRabbit de confianza para Santiago” en decks; no como Angi</td></tr>
+      <tr><td>DO</td><td>Cerrar gap store + 5–8 servicios “desde $X” antes de outbound internacional</td></tr>
+      <tr><td>FA</td><td>Profundizar safety+AI; documentar incident response</td></tr>
+      <tr><td>DA</td><td>No expandir ciudad/país sin unit economics; no pelear SEO global</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- SÍNTESIS -->
+<section class="page pagebreak">
+  <h2 id="sintesis">6. Síntesis y próximos pasos</h2>
+  <table>
+    <thead><tr><th>Ámbito</th><th>Prioridad #1</th><th>Prioridad #2</th><th>Evitar</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Chile</td>
+        <td>Play + ASO local + creatividades trust/tracking</td>
+        <td>Densidad socios por comuna (liquidez muro)</td>
+        <td>Ads nacionales sin oferta</td>
+      </tr>
+      <tr>
+        <td>Mundial (aprendizaje)</td>
+        <td>Empaquetar SKUs y same-day UX</td>
+        <td>Roadmap LATAM capitales post-RM</td>
+        <td>Competir por leads o por marca US</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box ok">
+    <strong>Implicación inmediata:</strong> el DAFO Chile manda el próximo trimestre (store + liquidez + narrativa de seguridad). El DAFO mundial orienta el norte de producto (SKUs, Instant Book, AI) sin distraer el foco Santiago.
+  </div>
+
+  <h3>Checklist de 5 entregables</h3>
+  <ol>
+    <li>Título + short description A/B listos</li>
+    <li>Feature graphic 1024×500</li>
+    <li>5 screenshots con captions</li>
+    <li>Descripción larga 1.500–2.500 caracteres</li>
+    <li>Data safety + política de privacidad en Play Console</li>
+  </ol>
+
+  <footer class="note">
+    Documento interno Fandez · ASO + benchmark + DAFO · septiembre 2026.
+    Scores cualitativos; complementar con GMV, fill rate, D7 y CAC cuando existan series estables.
+    Conservar en docs/; no subir a public/ ni exponer scores competitivos en la ficha de Play.
+  </footer>
+</section>
+
+</body>
+</html>

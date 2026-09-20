@@ -34,3 +34,16 @@ describe('servicio limpieza', () => {
     expect(applyCleaningSurcharge(60000, post)).toBe(69000);
   });
 });
+
+describe('diagnóstico limpieza', () => {
+  test('chips de reevaluación son específicos (m², mascotas, post evento)', () => {
+    const { getDiagnosisChips } = require('../lib/diagnosisChips');
+    const chips = getDiagnosisChips('limpieza');
+    expect(chips).toEqual(expect.arrayContaining([
+      'Área mayor (más m²)',
+      'Mascotas no declaradas',
+      'Post evento / post fiesta'
+    ]));
+    expect(chips).not.toEqual(expect.arrayContaining(['No enciende', 'Fuga / goteo']));
+  });
+});

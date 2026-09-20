@@ -13,6 +13,11 @@
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="trabajoPage"
   data-request-id="<%= request.id %>"
   data-tech-status="<%= request.techStatus %>"
+  data-service-id="<%= request.serviceId || '' %>"
+  data-cleaning="<%= request.serviceId === 'limpieza' ? '1' : '0' %>"
+  data-square-meters="<%= request.squareMeters != null ? request.squareMeters : '' %>"
+  data-cleaning-pets="<%= request.cleaningFactors && request.cleaningFactors.hasPets ? '1' : '0' %>"
+  data-cleaning-post-event="<%= request.cleaningFactors && request.cleaningFactors.postEvent ? '1' : '0' %>"
   data-return-url="<%= typeof returnUrl !== 'undefined' ? returnUrl : '/tecnico' %>"
   data-observer="<%= isObserver ? '1' : '0' %>"
   data-user-name="<%= user && user.name ? user.name : (isObserver ? 'Socio' : 'Técnico') %>"
@@ -301,16 +306,29 @@
       data-code-verified="<%= request.arrivalCodeVerified ? '1' : '0' %>">
       <p class="zilo-label mb-1">Ahora · Diagnóstico</p>
       <div id="arrivalReviewForm" class="space-y-3 <%= request.arrivalCodeVerified && request.serviceConfirmStatus !== 'pending' && request.serviceConfirmStatus !== 'change_pending' ? '' : 'hidden' %>">
-        <h2 class="text-sm font-semibold">¿Qué ves? · <%= request.serviceName %></h2>
-        <div>
-          <label class="text-xs text-zilo-muted mb-2 block">Elige lo que describe el problema (puedes marcar varios)</label>
-          <div class="flex flex-wrap gap-2" id="diagnosisChips">
-            <% (typeof diagnosisChips !== 'undefined' && diagnosisChips.length ? diagnosisChips : ['Otro']).forEach(function(chip) { %>
-              <button type="button" class="diagnosis-chip px-3 py-2 rounded-xl border border-zilo-border text-xs font-medium text-zilo-text" data-chip="<%= chip %>"><%= chip %></button>
-            <% }); %>
+        <% if (request.serviceId === 'limpieza') { %>
+          <h2 class="text-sm font-semibold">¿Qué cambió respecto a lo cotizado?</h2>
+          <div>
+            <label class="text-xs text-zilo-muted mb-2 block">Marca lo que aplica (puedes elegir varios)</label>
+            <div class="flex flex-wrap gap-2" id="diagnosisChips">
+              <% (typeof diagnosisChips !== 'undefined' && diagnosisChips.length ? diagnosisChips : ['Otro']).forEach(function(chip) { %>
+                <button type="button" class="diagnosis-chip px-3 py-2 rounded-xl border border-zilo-border text-xs font-medium text-zilo-text" data-chip="<%= chip %>"><%= chip %></button>
+              <% }); %>
+            </div>
+            <textarea id="diagnosis" rows="2" class="zilo-input w-full mt-3 resize-none" placeholder="Detalle opcional (habitaciones, acceso, estado del lugar…)"></textarea>
           </div>
-          <textarea id="diagnosis" rows="2" class="zilo-input w-full mt-3 resize-none" placeholder="Detalle opcional (marca, modelo, qué probaste…)"></textarea>
-        </div>
+        <% } else { %>
+          <h2 class="text-sm font-semibold">¿Qué ves? · <%= request.serviceName %></h2>
+          <div>
+            <label class="text-xs text-zilo-muted mb-2 block">Elige lo que describe el problema (puedes marcar varios)</label>
+            <div class="flex flex-wrap gap-2" id="diagnosisChips">
+              <% (typeof diagnosisChips !== 'undefined' && diagnosisChips.length ? diagnosisChips : ['Otro']).forEach(function(chip) { %>
+                <button type="button" class="diagnosis-chip px-3 py-2 rounded-xl border border-zilo-border text-xs font-medium text-zilo-text" data-chip="<%= chip %>"><%= chip %></button>
+              <% }); %>
+            </div>
+            <textarea id="diagnosis" rows="2" class="zilo-input w-full mt-3 resize-none" placeholder="Detalle opcional (marca, modelo, qué probaste…)"></textarea>
+          </div>
+        <% } %>
         <div>
           <label class="text-xs text-zilo-muted">Foto de llegada *</label>
           <input type="file" id="photoStart" accept="image/*" data-pick="both" class="mt-1 block w-full text-xs text-zilo-muted">
@@ -324,7 +342,11 @@
 
     <section id="stepConfirmarServicio" data-wizard-panel="confirmar" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'confirmar' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">En el lugar</p>
-      <h2 class="text-sm font-semibold mb-1">¿El trabajo es el correcto?</h2>
+      <% if (request.serviceId === 'limpieza') { %>
+        <h2 class="text-sm font-semibold mb-1">¿El alcance cotizado es correcto?</h2>
+      <% } else { %>
+        <h2 class="text-sm font-semibold mb-1">¿El trabajo es el correcto?</h2>
+      <% } %>
 
       <div class="mb-4 p-3 rounded-xl border border-zilo-border bg-zilo-bg/70 space-y-2" data-role="job-summary">
         <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-muted">Resumen del pedido</p>
@@ -363,29 +385,48 @@
             <% } %>
           </div>
         <% } %>
-        <p class="text-[11px] text-zilo-muted pt-1">Si el alcance no coincide, reevalúa. <strong>Adicionales y cambios de precio los confirma el socio por el chat</strong> con el cliente.</p>
+        <% if (request.serviceId === 'limpieza') { %>
+          <p class="text-[11px] text-zilo-muted pt-1">Si hay <strong>más m²</strong>, <strong>mascotas</strong> o es <strong>post evento</strong>, reevalúa. El cliente confirma el nuevo precio en la app.</p>
+        <% } else { %>
+          <p class="text-[11px] text-zilo-muted pt-1">Si el alcance no coincide, reevalúa. <strong>Adicionales y cambios de precio los confirma el socio por el chat</strong> con el cliente.</p>
+        <% } %>
       </div>
 
       <div class="space-y-2">
-        <button type="button" id="btnConfirmServiceSame" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Sí, es el mismo — continuar</button>
-        <button type="button" id="btnShowServiceChange" class="w-full py-3 rounded-xl zilo-btn-ghost text-sm">Reevaluar — foto, tareas y nuevo precio</button>
+        <button type="button" id="btnConfirmServiceSame" class="w-full py-4 rounded-xl zilo-btn-primary text-base">
+          <%= request.serviceId === 'limpieza' ? 'Sí, m² y condiciones correctos — continuar' : 'Sí, es el mismo — continuar' %>
+        </button>
+        <button type="button" id="btnShowServiceChange" class="w-full py-3 rounded-xl zilo-btn-ghost text-sm">
+          <%= request.serviceId === 'limpieza' ? 'Reevaluar — m², mascotas o post evento' : 'Reevaluar — foto, tareas y nuevo precio' %>
+        </button>
       </div>
     </section>
 
     <div id="fieldExtraActions" class="<%= ['en_sitio','diagnostico','reparando','comprando','materiales_pendiente','presupuesto_pendiente','presupuesto_aprobado'].includes(request.techStatus) && request.arrivalCodeVerified ? '' : 'hidden' %>">
       <button type="button" id="btnToggleServiceChange" class="w-full py-2.5 rounded-xl border border-dashed border-zilo-border text-xs font-semibold text-zilo-muted hover:text-zilo-accent hover:border-zilo-accent/40 transition">
-        ¿El trabajo es distinto? Proponer cambio
+        <%= request.serviceId === 'limpieza'
+          ? '¿Más m², mascotas o post evento? Reevaluar'
+          : '¿El trabajo es distinto? Proponer cambio' %>
       </button>
     </div>
 
-    <!-- Reevaluación: foto + descripción + tareas/precio -->
+    <!-- Reevaluación: foto + descripción + tareas/precio (limpieza: m² / mascotas / post evento) -->
     <section id="stepCambioServicio" data-wizard-panel="cambio" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'cambio' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Reevaluación</p>
-      <h2 class="text-sm font-semibold mb-1">Nuevo alcance y precio</h2>
-      <p class="text-xs text-zilo-muted mb-3">
-        Solicitado: <strong><%= request.activityName || '—' %></strong>.
-        Sube foto, describe, ajusta la lista de tareas (m², unidades u obra adicional) y el nuevo precio. El cliente recibe una alerta y debe poner OK.
-      </p>
+      <% if (request.serviceId === 'limpieza') { %>
+        <h2 class="text-sm font-semibold mb-1">Ajuste de limpieza</h2>
+        <p class="text-xs text-zilo-muted mb-3">
+          Cotizado: <strong><%= request.activityName || '—' %></strong>
+          <% if (request.factorSummary) { %> · <%= request.factorSummary %><% } else if (request.squareMeters) { %> · <%= Math.round(request.squareMeters) %> m²<% } %>.
+          Ajusta <strong>m²</strong>, <strong>mascotas</strong> o <strong>post evento</strong>. El cliente debe poner OK.
+        </p>
+      <% } else { %>
+        <h2 class="text-sm font-semibold mb-1">Nuevo alcance y precio</h2>
+        <p class="text-xs text-zilo-muted mb-3">
+          Solicitado: <strong><%= request.activityName || '—' %></strong>.
+          Sube foto, describe, ajusta la lista de tareas (m², unidades u obra adicional) y el nuevo precio. El cliente recibe una alerta y debe poner OK.
+        </p>
+      <% } %>
       <% if (request.siteReport && request.siteReport.activityChange && ['pending','payment_pending'].includes(request.siteReport.activityChange.status)) { %>
         <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3"><%= request.siteReport.activityChange.status === 'payment_pending' ? 'Cambio aprobado; esperando cobro aproximado del cliente' : 'Cambio de precio pendiente de decisión del cliente' %>: <%= request.siteReport.activityChange.toActivityName %> · <%= formatCLP(request.siteReport.activityChange.proposedTotal) %></p>
       <% } else { %>
@@ -394,11 +435,43 @@
         <% } %>
         <div class="space-y-3">
           <div>
-            <label class="text-xs text-zilo-muted">Nuevo subservicio *</label>
+            <label class="text-xs text-zilo-muted"><%= request.serviceId === 'limpieza' ? 'Tipo de limpieza *' : 'Nuevo subservicio *' %></label>
             <select id="changeActivityId" class="zilo-input w-full mt-1">
               <option value="">Cargando…</option>
             </select>
           </div>
+
+          <% if (request.serviceId === 'limpieza') { %>
+          <div id="cleaningReevalFields" class="space-y-3 p-3 rounded-xl border border-sky-200 bg-sky-50/50">
+            <p class="text-xs font-semibold text-sky-950">Condiciones reales en el lugar</p>
+            <div>
+              <label class="text-xs text-zilo-muted" for="changeSquareMeters">Metros cuadrados reales *</label>
+              <input type="number" id="changeSquareMeters" class="zilo-input w-full mt-1" min="20" step="1" inputmode="numeric"
+                     value="<%= request.squareMeters != null ? Math.round(request.squareMeters) : '' %>"
+                     placeholder="Ej: 80">
+              <p class="text-[11px] text-zilo-muted mt-1">Mín. 20 m² · $1.500 / m². Si el área es mayor a lo cotizado, súbelo aquí.</p>
+            </div>
+            <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+              <input type="checkbox" id="changeHasPets" class="mt-0.5 accent-[#14B8A6] shrink-0"
+                     <%= request.cleaningFactors && request.cleaningFactors.hasPets ? 'checked' : '' %>>
+              <span class="min-w-0">
+                <span class="text-sm font-medium block">Mascotas dentro de la casa</span>
+                <span class="text-[11px] text-zilo-muted">+15% por pelo, olores y cuidado extra</span>
+              </span>
+            </label>
+            <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+              <input type="checkbox" id="changePostEvent" class="mt-0.5 accent-[#14B8A6] shrink-0"
+                     <%= request.cleaningFactors && request.cleaningFactors.postEvent ? 'checked' : '' %>>
+              <span class="min-w-0">
+                <span class="text-sm font-medium block">Post evento / post fiesta</span>
+                <span class="text-[11px] text-zilo-muted">+15% por suciedad extra tras reunión o celebración</span>
+              </span>
+            </label>
+            <p class="text-sm font-semibold text-sky-950">Nuevo total estimado (base): <span id="changeCleaningPreview" class="text-zilo-accent">—</span></p>
+            <p class="text-[10px] text-zilo-muted">Puede sumar recargo de urgencia/horario al enviarlo. Materiales incluidos.</p>
+          </div>
+          <% } %>
+
           <div id="changeOtherFields" class="hidden space-y-3 p-3 rounded-xl border border-zilo-border bg-zilo-surface/40">
             <p class="text-xs text-zilo-muted">Describe el servicio real. El precio sale de la lista de tareas abajo.</p>
             <div>
@@ -406,7 +479,7 @@
               <input type="text" id="changeCustomName" class="zilo-input w-full mt-1" maxlength="120" placeholder="Ej: Obra civil — retiro y reposición de piso">
             </div>
           </div>
-          <div class="p-3 rounded-xl border border-zilo-border bg-zilo-bg/60 space-y-2">
+          <div id="changeLineItemsWrap" class="p-3 rounded-xl border border-zilo-border bg-zilo-bg/60 space-y-2 <%= request.serviceId === 'limpieza' ? 'hidden' : '' %>">
             <div class="flex items-center justify-between gap-2">
               <label class="text-xs font-semibold text-zilo-text">Lista de tareas / ítems</label>
               <button type="button" id="btnAddChangeLine" class="text-[11px] font-semibold text-zilo-accent">+ Agregar ítem</button>
@@ -415,7 +488,7 @@
             <div id="changeLineItems" class="space-y-2"></div>
             <p class="text-sm font-semibold text-right">Mano de obra: <span id="changeLineTotal" class="text-zilo-accent">$0</span></p>
           </div>
-          <div class="p-3 rounded-xl border border-amber-200 bg-amber-50/60 space-y-2">
+          <div id="changeProductsWrap" class="p-3 rounded-xl border border-amber-200 bg-amber-50/60 space-y-2 <%= request.serviceId === 'limpieza' ? 'hidden' : '' %>">
             <div class="flex items-center justify-between gap-2">
               <label class="text-xs font-semibold text-amber-950">Producto / material (precio aprox.)</label>
               <button type="button" id="btnAddChangeProduct" class="text-[11px] font-semibold text-amber-900">+ Agregar producto</button>
@@ -441,7 +514,8 @@
           </div>
           <div>
             <label class="text-xs text-zilo-muted">Descripción / justificación *</label>
-            <textarea id="changeNotes" rows="2" class="zilo-input w-full mt-1 resize-none" placeholder="Ej: Fuga en WC; hay que cambiar el sanitario completo"></textarea>
+            <textarea id="changeNotes" rows="2" class="zilo-input w-full mt-1 resize-none"
+              placeholder="<%= request.serviceId === 'limpieza' ? 'Ej: El área real son 95 m² y hay perro en el living' : 'Ej: Fuga en WC; hay que cambiar el sanitario completo' %>"></textarea>
           </div>
           <div>
             <label class="text-xs text-zilo-muted">Foto que respalda la reevaluación *</label>
@@ -455,21 +529,35 @@
     <!-- Paso 2: Acción -->
     <section id="stepAccion" data-wizard-panel="accion" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'accion' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Ahora · Decisión</p>
-      <h2 class="text-sm font-semibold mb-3">¿Puedes reparar ahora?</h2>
-      <div class="grid gap-2">
-        <button type="button" class="action-btn py-4 px-4 rounded-xl zilo-btn-primary !text-sm text-left" data-action="reparar">
-          <strong class="block text-base">Sí, reparo ahora</strong>
-          <span class="text-xs opacity-80">Tengo lo necesario</span>
-        </button>
-        <button type="button" class="action-btn py-3.5 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="comprar">
-          <strong class="block">Necesito materiales</strong>
-          <span class="text-xs text-zilo-muted">&lt; $10.000 incluidos · ≥ $10.000 con OK del cliente</span>
-        </button>
-        <button type="button" class="action-btn py-3.5 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="presupuesto">
-          <strong class="block">Debo cotizar</strong>
-          <span class="text-xs text-zilo-muted">El cliente debe aprobar el monto</span>
-        </button>
-      </div>
+      <% if (request.serviceId === 'limpieza') { %>
+        <h2 class="text-sm font-semibold mb-3">¿Puedes ejecutar el servicio ahora?</h2>
+        <div class="grid gap-2">
+          <button type="button" class="action-btn py-4 px-4 rounded-xl zilo-btn-primary !text-sm text-left" data-action="reparar">
+            <strong class="block text-base">Sí, limpio ahora</strong>
+            <span class="text-xs opacity-80">Alcance confirmado · materiales incluidos</span>
+          </button>
+          <button type="button" class="action-btn py-3.5 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="presupuesto">
+            <strong class="block">Debo cotizar un ajuste</strong>
+            <span class="text-xs text-zilo-muted">Si el alcance cambió mucho, usa reevaluar (m² / mascotas / post evento)</span>
+          </button>
+        </div>
+      <% } else { %>
+        <h2 class="text-sm font-semibold mb-3">¿Puedes reparar ahora?</h2>
+        <div class="grid gap-2">
+          <button type="button" class="action-btn py-4 px-4 rounded-xl zilo-btn-primary !text-sm text-left" data-action="reparar">
+            <strong class="block text-base">Sí, reparo ahora</strong>
+            <span class="text-xs opacity-80">Tengo lo necesario</span>
+          </button>
+          <button type="button" class="action-btn py-3.5 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="comprar">
+            <strong class="block">Necesito materiales</strong>
+            <span class="text-xs text-zilo-muted">&lt; $10.000 incluidos · ≥ $10.000 con OK del cliente</span>
+          </button>
+          <button type="button" class="action-btn py-3.5 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="presupuesto">
+            <strong class="block">Debo cotizar</strong>
+            <span class="text-xs text-zilo-muted">El cliente debe aprobar el monto</span>
+          </button>
+        </div>
+      <% } %>
     </section>
 
     <!-- Paso 2b: Presupuesto -->

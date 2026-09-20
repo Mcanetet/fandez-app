@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Fandez · Constructora Dicum</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Unbounded';
+      src: url('file:///Users/miguelangel/Downloads/fandez%20app/public/fonts/unbounded-700.woff2') format('woff2');
+      font-weight: 700;
+    }
+    :root {
+      --bg: #F7F3EE; --bg-deep: #EFE8DF; --ink: #1A1814; --muted: #6B635A;
+      --line: #E0D7CC; --accent: #C45C14; --accent-strong: #A84E10; --success: #2F6B4F; --white: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      color: var(--ink);
+      font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      width: 297mm; height: 210mm; max-height: 210mm;
+      page-break-after: always; break-after: page; page-break-inside: avoid;
+      padding: 12mm 16mm; overflow: hidden;
+      background:
+        radial-gradient(900px 420px at 8% -8%, rgba(196,92,20,0.10), transparent 55%),
+        radial-gradient(700px 380px at 100% 0%, rgba(47,107,79,0.08), transparent 50%),
+        linear-gradient(180deg, #FBF8F4 0%, var(--bg) 45%, var(--bg-deep) 100%);
+      display: flex; flex-direction: column;
+    }
+    .page:last-child { page-break-after: auto; }
+    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8mm; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand img { width: 34px; height: 34px; border-radius: 9px; }
+    .brand strong { font-family: Unbounded, system-ui, sans-serif; font-size: 14px; letter-spacing: -0.03em; }
+    .page-num { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent-strong); margin-bottom: 8px;
+    }
+    .eyebrow::before { content: ''; width: 16px; height: 2px; background: var(--accent); }
+    h1, h2 { font-family: Unbounded, system-ui, sans-serif; letter-spacing: -0.035em; line-height: 1.08; font-weight: 700; }
+    h1 { font-size: 34px; max-width: 18ch; }
+    h2 { font-size: 24px; max-width: 28ch; margin-bottom: 10px; }
+    .lead { font-size: 16px; line-height: 1.4; color: var(--muted); max-width: 52ch; margin-top: 8px; }
+    .content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .footer { margin-top: auto; padding-top: 6mm; font-size: 10px; color: var(--muted); border-top: 1px solid var(--line); }
+    .hero-mark { width: 72px; height: 72px; border-radius: 18px; margin-bottom: 14px; box-shadow: 0 10px 28px rgba(26,24,20,0.1); }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+    .flow-step { background: var(--white); border: 1px solid var(--line); border-radius: 14px; padding: 12px 10px; min-height: 108px; }
+    .flow-num { font-family: Unbounded, system-ui, sans-serif; font-size: 10px; color: var(--accent); margin-bottom: 6px; letter-spacing: 0.08em; }
+    .flow-step strong { display: block; font-size: 13px; margin-bottom: 4px; }
+    .flow-step p { font-size: 11px; color: var(--muted); line-height: 1.35; }
+    .money { display: grid; gap: 8px; margin-top: 12px; max-width: 640px; }
+    .money-card { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+    .money-card.accent { background: linear-gradient(145deg, #FFF7F0, #FFE8D4); border-color: rgba(196,92,20,0.28); }
+    .money-card strong { display: block; font-size: 14px; margin-bottom: 2px; }
+    .money-card p { font-size: 12px; color: var(--muted); line-height: 1.35; }
+    .money-card .big { font-family: Unbounded, system-ui, sans-serif; font-size: 26px; color: var(--accent-strong); margin: 2px 0; }
+    .sim-hero { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: linear-gradient(145deg, #FFF7F0, #FFE8D4); border: 1px solid rgba(196,92,20,0.28); font-size: 12px; max-width: 720px; }
+    .sim-hero b { color: var(--accent-strong); }
+    table.prices { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    table.prices th, table.prices td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    table.prices th { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    table.prices td strong { font-size: 13px; color: var(--accent-strong); }
+    table.prices tr:last-child td { border-bottom: 0; }
+    .pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #E7F6EF; color: var(--success); }
+    .pill.fix { background: #FFF1E6; color: var(--accent-strong); }
+    .note { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.4; max-width: 68ch; }
+    .ex-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .ex-card { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+    .ex-card b { display: block; font-size: 12px; margin-bottom: 4px; }
+    .ex-card span { display: block; font-size: 11px; color: var(--muted); line-height: 1.35; }
+    .ex-card .amt { font-family: Unbounded, system-ui, sans-serif; font-size: 15px; color: var(--success); margin-top: 6px; }
+    .checklist { list-style: none; margin-top: 10px; display: grid; gap: 6px; max-width: 560px; }
+    .checklist li { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; background: rgba(255,255,255,0.85); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+    .check { width: 16px; height: 16px; border-radius: 50%; background: var(--success); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .cta { display: inline-flex; margin-top: 14px; padding: 11px 16px; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; text-decoration: none; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .tag { font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,0.9); border: 1px solid var(--line); color: var(--ink); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; max-width: 860px; }
+    .panel { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+    .panel h3 { font-size: 13px; margin-bottom: 6px; }
+    .panel p, .panel li { font-size: 11px; color: var(--muted); line-height: 1.4; }
+    .panel ul { margin-left: 14px; margin-top: 4px; }
+    @page { size: A4 landscape; margin: 0; }
+  </style>
+</head>
+<body>
+  <!-- 1 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">01 / 11</span>
+    </div>
+    <div class="content">
+      <img class="hero-mark" src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="">
+      <p class="eyebrow">Reunión · Constructora Dicum</p>
+      <h1>Pedidos listos.<br>Tú eliges.</h1>
+      <p class="lead">Cómo funciona Fandez para Constructora Dicum — gasfitería, aire acondicionado y obras / mantención en Santiago Oriente.</p>
+      <div class="tags">
+        <span class="tag">Gasfitería</span>
+        <span class="tag">Aire acondicionado</span>
+        <span class="tag">Construcción &amp; mantención</span>
+      </div>
+    </div>
+    <p class="footer">Documento de reunión · Soft launch · Providencia · Las Condes · Ñuñoa · La Reina · Vitacura · fandez.cl</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">02 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Cómo funciona</p>
+      <h2>Cuatro momentos. Cero misterio.</h2>
+      <div class="flow">
+        <article class="flow-step">
+          <div class="flow-num">01</div>
+          <strong>Cliente pide</strong>
+          <p>Elige el servicio, sube foto del problema y paga en la app.</p>
+        </article>
+        <article class="flow-step">
+          <div class="flow-num">02</div>
+          <strong>Sale al muro</strong>
+          <p>Socios en línea de esa especialidad ven zona y neto estimado.</p>
+        </article>
+        <article class="flow-step">
+          <div class="flow-num">03</div>
+          <strong>Tú decides</strong>
+          <p>Revisas fotos y detalle. Tomas o “No me interesa”.</p>
+        </article>
+        <article class="flow-step">
+          <div class="flow-num">04</div>
+          <strong>Ejecutas</strong>
+          <p>Vas tú o delegas a un técnico. Actualizas estados y cobras con liquidación clara.</p>
+        </article>
+      </div>
+      <p class="note">En línea → llegan pedidos. Fuera de línea → silencio. El primero que toma se queda con el trabajo. Ideal para cuadrillas con varios oficios.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">03 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Plata clara</p>
+      <h2>15% app + costo de tarjeta. Materiales 100% tuyos.</h2>
+      <div class="money">
+        <div class="money-card accent">
+          <strong>Comisión Fandez</strong>
+          <div class="big">15%</div>
+          <p>IVA incluido sobre la mano de obra. No se suma al cliente.</p>
+        </div>
+        <div class="money-card">
+          <strong>Costo tarjeta (Mercado Pago)</strong>
+          <p><b>Débito:</b> 2,19% + IVA. &nbsp; <b>Crédito:</b> 2,69% + IVA.<br>Se descuenta al socio. El precio del catálogo es el total del cliente.</p>
+        </div>
+      </div>
+      <div class="sim-hero" style="margin-top:12px">
+        Ejemplo venta <b>$100.000</b> (mano de obra): app −$15.000.
+        Débito −$2.606 → te quedan <b>$82.394</b>.
+        Crédito −$3.201 → te quedan <b>$81.799</b>.
+      </div>
+      <p class="note">Sin cuota fija ni suscripción. Solo pagas cuando hay trabajo cerrado.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 4 Gasfitería -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">04 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Catálogo · Gasfitería</p>
+      <h2>Precios publicados en la app (IVA incluido)</h2>
+      <table class="prices">
+        <thead>
+          <tr><th>Servicio</th><th>Tipo</th><th>Precio cliente</th><th>Neto socio (débito est.)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Cambio o reparación de llave / grifería</td><td><span class="pill">Correctiva</span></td><td><strong>$110.000</strong></td><td>≈ $90.633</td></tr>
+          <tr><td>Reparación o instalación de lavamanos</td><td><span class="pill">Correctiva</span></td><td><strong>$120.000</strong></td><td>≈ $98.873</td></tr>
+          <tr><td>Reparación o instalación de ducha</td><td><span class="pill">Correctiva</span></td><td><strong>$130.000</strong></td><td>≈ $107.112</td></tr>
+          <tr><td>Reparación de filtración</td><td><span class="pill">Correctiva</span></td><td><strong>$140.000</strong></td><td>≈ $115.351</td></tr>
+          <tr><td>Reparación o cambio de sanitario / WC</td><td><span class="pill">Correctiva</span></td><td><strong>$140.000</strong></td><td>≈ $115.351</td></tr>
+          <tr><td>Destape de cañería / alcantarillado</td><td><span class="pill">Correctiva</span></td><td><strong>$160.000</strong></td><td>≈ $131.830</td></tr>
+          <tr><td>Revisión fuga en circuito de agua caliente</td><td><span class="pill">Correctiva</span></td><td><strong>$135.000</strong></td><td>≈ $111.232</td></tr>
+          <tr><td>Inspección y mantención de matriz</td><td><span class="pill">Preventiva</span></td><td><strong>$120.000</strong></td><td>≈ $98.873</td></tr>
+        </tbody>
+      </table>
+      <p class="note">Precios = total cliente. Materiales (grifería, WC, cañería, adhesivos) se cotizan aparte y van íntegros al socio.</p>
+    </div>
+    <p class="footer">Catálogo vigente en fandez.cl · Soft launch socios</p>
+  </section>
+
+  <!-- 5 Aires -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">05 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Catálogo · Aire acondicionado</p>
+      <h2>Mantención, reparación e instalación</h2>
+      <table class="prices">
+        <thead>
+          <tr><th>Servicio</th><th>Tipo</th><th>Precio cliente</th><th>Neto socio (débito est.)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Mantención completa y sanitización</td><td><span class="pill">Preventiva</span></td><td><strong>$89.000</strong></td><td>≈ $73.331</td></tr>
+          <tr><td>Diagnóstico y corrección de ruido</td><td><span class="pill">Correctiva</span></td><td><strong>$95.000</strong></td><td>≈ $78.274</td></tr>
+          <tr><td>Reparación de drenaje / fuga de agua</td><td><span class="pill">Correctiva</span></td><td><strong>$99.000</strong></td><td>≈ $81.570</td></tr>
+          <tr><td>Limpieza química serpentines</td><td><span class="pill">Correctiva</span></td><td><strong>$99.000</strong></td><td>≈ $81.570</td></tr>
+          <tr><td>Reemplazo de placa electrónica</td><td><span class="pill">Correctiva</span></td><td><strong>$115.000</strong></td><td>≈ $94.753</td></tr>
+          <tr><td>Recarga de refrigerante</td><td><span class="pill">Correctiva</span></td><td><strong>$99.000</strong></td><td>≈ $81.570</td></tr>
+          <tr><td>Instalación de equipo split</td><td><span class="pill fix">Instalación</span></td><td><strong>$170.000</strong></td><td>≈ $140.070</td></tr>
+        </tbody>
+      </table>
+      <p class="note">Gas refrigerante, filtros y piezas van como materiales (0% comisión Fandez). Ideal para contratos de mantención en edificios y casas del Oriente.</p>
+    </div>
+    <p class="footer">Catálogo vigente en fandez.cl · Soft launch socios</p>
+  </section>
+
+  <!-- 6 Ejemplos -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">06 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Ejemplos de liquidación</p>
+      <h2>Tres trabajos típicos de Dicum</h2>
+      <div class="ex-grid">
+        <div class="ex-card">
+          <b>Destape cañería</b>
+          <span>Gasfitería · correctiva</span>
+          <div class="amt">Cliente: $160.000</div>
+          <span style="margin-top:4px">App 15%: −$24.000<br>Débito ~2,61%: −$4.170<br><b style="color:#2F6B4F">Socio ≈ $131.830</b></span>
+        </div>
+        <div class="ex-card">
+          <b>Mantención AC completa</b>
+          <span>Aire acondicionado · preventiva</span>
+          <div class="amt">Cliente: $89.000</div>
+          <span style="margin-top:4px">App 15%: −$13.350<br>Débito ~2,61%: −$2.319<br><b style="color:#2F6B4F">Socio ≈ $73.331</b></span>
+        </div>
+        <div class="ex-card">
+          <b>Instalación split</b>
+          <span>Mano de obra (equipo aparte)</span>
+          <div class="amt">Cliente: $170.000</div>
+          <span style="margin-top:4px">App 15%: −$25.500<br>Débito ~2,61%: −$4.430<br><b style="color:#2F6B4F">Socio ≈ $140.070</b><br>+ equipo/materiales 100% tuyos</span>
+        </div>
+      </div>
+      <p class="note">Cifras con <b>débito</b> (2,19% + IVA). Con crédito el neto baja ~$600–$1.500 según monto. Urgencia/horario pueden ajustar el total del cliente.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 7 Construcción mercado -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">07 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Construcción &amp; mantención · mercado Chile</p>
+      <h2>Obras que duran más de un día</h2>
+      <p class="note" style="margin-top:0">Referencia de industria (no es catálogo fijo de visita Fandez). Sirve para cotizar remodelaciones, ampliaciones menores y mantención de edificios.</p>
+      <table class="prices">
+        <thead>
+          <tr><th>Forma de cobro</th><th>Cómo se arma</th><th>Rango referencial</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Visita / urgencia</strong></td>
+            <td>Gasfitería, AC, fallas puntuales. Catálogo Fandez hoy.</td>
+            <td><strong>$100–180 mil</strong> por trabajo típico</td>
+          </tr>
+          <tr>
+            <td><strong>2. Obra menor por m²</strong></td>
+            <td>Remodelación baño/cocina, muros, yeso, pintura + terminaciones.</td>
+            <td>
+              Básico <strong>$180–350 mil / m²</strong><br>
+              Intermedio <strong>$350–550 mil / m²</strong><br>
+              Alto <strong>$550 mil+ / m²</strong>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>3. Proyecto por hitos</strong></td>
+            <td>Abono + avances (ej. 40% / 40% / 20%). Ideal multi-día.</td>
+            <td>Cotización a medida · materiales aparte</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="sim-hero" style="margin-top:10px;max-width:100%">
+        <b>En la reunión:</b> visitas = catálogo fijo (páginas 04–06).
+        Proyectos = <b>cotización a medida</b> con hitos. Materiales e insumos: preferible ítem aparte, 0% comisión Fandez.
+      </div>
+    </div>
+    <p class="footer">Referencia de mercado · Soft launch socios · fandez.cl</p>
+  </section>
+
+  <!-- 8 Ejemplos obra -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">08 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Proyectos · ejemplos para revisar juntos</p>
+      <h2>Obra menor · tres escenarios</h2>
+      <div class="ex-grid">
+        <div class="ex-card">
+          <b>Baño parcial · 4 m²</b>
+          <span>Intermedio $400.000 / m² (M.O. + terminaciones básicas).</span>
+          <div class="amt">Cliente ≈ $1.600.000</div>
+          <span style="margin-top:4px">App 15%: −$240.000<br>Débito ~2,61%: −$41.698<br><b style="color:#2F6B4F">Socio ≈ $1.318.302</b><br>(si materiales van aparte, 100% tuyos)</span>
+        </div>
+        <div class="ex-card">
+          <b>Remodelación cocina · 8 m²</b>
+          <span>Intermedio $450.000 / m².</span>
+          <div class="amt">Cliente ≈ $3.600.000</div>
+          <span style="margin-top:4px">App 15%: −$540.000<br>Débito ~2,61%: −$93.820<br><b style="color:#2F6B4F">Socio ≈ $2.966.180</b></span>
+        </div>
+        <div class="ex-card">
+          <b>Mantención edificio (pack)</b>
+          <span>Gasfitería + AC + revisiones mensuales.</span>
+          <div class="amt">Cotización a medida</div>
+          <span style="margin-top:4px">Se arma como contrato / visitas recurrentes en Fandez + materiales aparte.</span>
+        </div>
+      </div>
+      <div class="two-col" style="margin-top:10px">
+        <div class="panel">
+          <h3>Hoy en Fandez (listo)</h3>
+          <ul>
+            <li>Visitas de gasfitería y aire</li>
+            <li>Pago anticipado del cliente</li>
+            <li>Foto, tracking y liquidación</li>
+            <li>Equipo / técnicos delegados</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Próximo (proyectos)</h3>
+          <ul>
+            <li>Presupuesto cerrado + 2–3 hitos</li>
+            <li>Cliente aprueba cada avance</li>
+            <li>Materiales siempre aparte</li>
+            <li>Ideal para Dicum en remodelaciones</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <p class="footer">Referencia de mercado + liquidación Fandez · Soft launch socios</p>
+  </section>
+
+  <!-- 9 Materiales / por qué Dicum -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">09 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Por qué encaja con Dicum</p>
+      <h2>Misma empresa. Varios oficios. Un muro.</h2>
+      <div class="two-col">
+        <div class="panel">
+          <h3>Lo que activas en la app</h3>
+          <ul>
+            <li><b>Gasfitería</b> — urgencias y correctivas</li>
+            <li><b>Aire acondicionado</b> — mantención e instalación</li>
+            <li><b>Pintura / electricidad</b> — si tu cuadrilla lo cubre</li>
+          </ul>
+          <p style="margin-top:8px">Cada especialidad tiene catálogo y pedidos propios. Tú eliges qué oficios tomar.</p>
+        </div>
+        <div class="panel">
+          <h3>Materiales · 0% comisión</h3>
+          <ul>
+            <li>Grifería, WC, cañerías, adhesivos</li>
+            <li>Gas refrigerante, filtros, placas</li>
+            <li>Cemento, yeso, cerámica, pintura</li>
+          </ul>
+          <p style="margin-top:8px">Se cotizan aparte con boleta real. Fandez no cobra comisión sobre materiales.</p>
+        </div>
+      </div>
+      <div class="sim-hero" style="margin-top:12px;max-width:100%">
+        <b>Operación:</b> un socio (Dicum) + técnicos en expediente.
+        El cliente ve cara y nombre del técnico. Tú controlas el muro y la liquidación.
+      </div>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 10 Activación -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">10 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Activación</p>
+      <h2>Listos para el primer pedido de Dicum.</h2>
+      <ul class="checklist">
+        <li><span class="check">1</span><span>Crear cuenta de socio en fandez.cl (Constructora Dicum)</span></li>
+        <li><span class="check">2</span><span>Verificar identidad + firmar contrato</span></li>
+        <li><span class="check">3</span><span>Activar especialidades: Gasfitería + Aire acondicionado (+ otras si aplica)</span></li>
+        <li><span class="check">4</span><span>Cargar expediente de técnicos (foto, carnet, antecedentes)</span></li>
+        <li><span class="check">5</span><span>Ponerse en línea · revisar muro · tomar pedido</span></li>
+      </ul>
+      <p class="note">Zona foco: Providencia · Las Condes · Ñuñoa · La Reina · Vitacura. Cupos curados: preferimos calidad operativa.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+
+  <!-- 11 CTA -->
+  <section class="page">
+    <div class="top">
+      <div class="brand">
+        <img src="file:///Users/miguelangel/Downloads/fandez%20app/public/icons/fandez-v11-192.png" alt="Fandez">
+        <strong>Fandez</strong>
+      </div>
+      <span class="page-num">11 / 11</span>
+    </div>
+    <div class="content">
+      <p class="eyebrow">Siguiente paso · Constructora Dicum</p>
+      <h2>Regístrate. Activa oficios. Elige tu primer pedido.</h2>
+      <p class="lead">Visitas de gasfitería y aires con catálogo hoy. Obras multi-día: cotiza con rangos de mercado y deja materiales aparte. Demanda pagada, foto del problema y neto visible antes de aceptar.</p>
+      <a class="cta" href="https://www.fandez.cl/registro?role=provider">Quiero ser socio → fandez.cl/registro</a>
+      <p class="note">Documento de reunión personalizado para Constructora Dicum · Catálogo plataforma + referencia de obras · Actualizable.</p>
+    </div>
+    <p class="footer">Soft launch socios · Santiago Oriente · fandez.cl</p>
+  </section>
+</body>
+</html>

@@ -4,6 +4,7 @@
 
   const requestId = page.dataset.requestId;
   const returnUrl = page.dataset.returnUrl || '/tecnico';
+  const isCleaningJob = page.dataset.cleaning === '1' || page.dataset.serviceId === 'limpieza';
   const notify = (msg, type) => { if (window.FandezNotify) window.FandezNotify.show(msg, type); };
 
   async function fileToBase64(input) {
@@ -407,14 +408,15 @@
     const manual = document.getElementById('changeManualPriceWrap');
     if (!select || !box) return;
     const isOther = select.value === 'otro';
-    box.classList.toggle('hidden', !isOther);
+    box.classList.toggle('hidden', !isOther || isCleaningJob);
     if (manual) {
       const lines = collectChangeLineItems();
-      manual.classList.toggle('hidden', !(isOther && lines.length === 0));
+      manual.classList.toggle('hidden', isCleaningJob || !(isOther && lines.length === 0));
     }
   }
 
   function collectChangeLineItems() {
+    if (isCleaningJob) return [];
     const rows = [...document.querySelectorAll('#changeLineItems [data-line-row]')];
     return rows.map((row) => {
       const description = row.querySelector('[data-line-desc]')?.value.trim() || '';
@@ -423,6 +425,35 @@
       const unitPrice = parseInt(row.querySelector('[data-line-price]')?.value, 10);
       return { description, unit, qty, unitPrice };
     }).filter((item) => item.description && Number.isFinite(item.qty) && item.qty > 0 && Number.isFinite(item.unitPrice) && item.unitPrice >= 0);
+  }
+
+  function readCleaningReeval() {
+    const m2 = parseFloat(document.getElementById('changeSquareMeters')?.value);
+    return {
+      squareMeters: Number.isFinite(m2) ? m2 : null,
+      hasPets: Boolean(document.getElementById('changeHasPets')?.checked),
+      postEvent: Boolean(document.getElementById('changePostEvent')?.checked)
+    };
+  }
+
+  function estimateCleaningBase(m2, hasPets, postEvent) {
+    const area = Math.max(20, Number(m2) || 20);
+    let base = Math.max(30000, Math.round(area * 1500));
+    let mult = 1;
+    if (hasPets) mult += 0.15;
+    if (postEvent) mult += 0.15;
+    return Math.round(base * mult);
+  }
+
+  function refreshCleaningPreview() {
+    const el = document.getElementById('changeCleaningPreview');
+    if (!el || !isCleaningJob) return;
+    const f = readCleaningReeval();
+    if (f.squareMeters == null || f.squareMeters < 20) {
+      el.textContent = '—';
+      return;
+    }
+    el.textContent = fmtCLP(estimateCleaningBase(f.squareMeters, f.hasPets, f.postEvent));
   }
 
   function refreshChangeLineTotal() {
@@ -437,6 +468,7 @@
   }
 
   function addChangeLineRow(preset = {}) {
+    if (isCleaningJob) return;
     const wrap = document.getElementById('changeLineItems');
     if (!wrap) return;
     const row = document.createElement('div');
@@ -471,9 +503,16 @@
   }
 
   document.getElementById('btnAddChangeLine')?.addEventListener('click', () => addChangeLineRow());
-  if (document.getElementById('changeLineItems')) {
+  if (!isCleaningJob && document.getElementById('changeLineItems')) {
     addChangeLineRow({ description: '', unit: 'unidad', qty: 1 });
   }
+
+  ['changeSquareMeters', 'changeHasPets', 'changePostEvent'].forEach((id) => {
+    const el = document.getElementById(id);
+    el?.addEventListener('input', refreshCleaningPreview);
+    el?.addEventListener('change', refreshCleaningPreview);
+  });
+  refreshCleaningPreview();
 
   async function loadChangeActivities() {
     const select = document.getElementById('changeActivityId');
@@ -482,20 +521,26 @@
       const res = await fetch(`/tecnico/trabajo/${requestId}/subservicios`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Error');
-      select.innerHTML = '<option value="">Elige el subservicio correcto…</option>';
+      select.innerHTML = isCleaningJob
+        ? '<option value="">Elige el tipo de limpieza…</option>'
+        : '<option value="">Elige el subservicio correcto…</option>';
       (data.activities || []).forEach((a) => {
         const opt = document.createElement('option');
         opt.value = a.id;
         const same = a.id === data.currentActivityId;
+        opt.dataset.perM2 = a.pricePerM2 || '';
         opt.textContent = same
-          ? `${a.name} — mismo servicio + producto/adicional`
+          ? `${a.name} — mismo tipo + ajuste de condiciones`
           : `${a.name} — ${a.basePriceLabel}`;
+        if (same) opt.selected = true;
         select.appendChild(opt);
       });
-      const other = document.createElement('option');
-      other.value = 'otro';
-      other.textContent = 'Otro / obra adicional — con lista de tareas';
-      select.appendChild(other);
+      if (!isCleaningJob) {
+        const other = document.createElement('option');
+        other.value = 'otro';
+        other.textContent = 'Otro / obra adicional — con lista de tareas';
+        select.appendChild(other);
+      }
       select.addEventListener('change', toggleOtherFields);
       toggleOtherFields();
     } catch (_) {
@@ -511,13 +556,18 @@
     const customName = document.getElementById('changeCustomName')?.value.trim();
     const lineItems = collectChangeLineItems();
     const lineTotal = lineItems.reduce((sum, item) => sum + Math.round(item.qty * item.unitPrice), 0);
-    const materialsPreview = collectCatalogPickerItems('changeProductItems');
+    const materialsPreview = isCleaningJob ? [] : collectCatalogPickerItems('changeProductItems');
     const customBasePrice = lineTotal > 0
       ? lineTotal
       : document.getElementById('changeCustomBasePrice')?.value;
-    if (!activityId) return notify('Elige el nuevo subservicio', 'warning');
+    const cleaning = isCleaningJob ? readCleaningReeval() : null;
+    if (!activityId) return notify(isCleaningJob ? 'Elige el tipo de limpieza' : 'Elige el nuevo subservicio', 'warning');
     if (!notes) return notify('Explica el cambio / reevaluación', 'warning');
-    if (activityId === 'otro') {
+    if (isCleaningJob) {
+      if (cleaning.squareMeters == null || cleaning.squareMeters < 20) {
+        return notify('Indica los m² reales (mín. 20)', 'warning');
+      }
+    } else if (activityId === 'otro') {
       if (!customName || customName.length < 4) {
         return notify('En Otro, escribe el nombre del servicio', 'warning');
       }
@@ -528,19 +578,27 @@
     btn.disabled = true;
     try {
       const photo = await fileToBase64(document.getElementById('changePhoto'));
+      const payload = {
+        activityId,
+        notes,
+        photo,
+        customName,
+        customBasePrice,
+        lineItems,
+        materialsPreview,
+        catalogItems: materialsPreview
+      };
+      if (isCleaningJob) {
+        payload.squareMeters = cleaning.squareMeters;
+        payload.cleaningFactors = {
+          hasPets: cleaning.hasPets,
+          postEvent: cleaning.postEvent
+        };
+      }
       const res = await fetch(`/tecnico/trabajo/${requestId}/cambio-servicio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          activityId,
-          notes,
-          photo,
-          customName,
-          customBasePrice,
-          lineItems,
-          materialsPreview,
-          catalogItems: materialsPreview
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Error');
