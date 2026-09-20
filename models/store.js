@@ -97,7 +97,7 @@ const {
 const adminProfilesStore = require('../lib/adminProfilesStore');
 const { checkAddressCoverage, groupCoverageForAdmin, formatCoverageMessage, buildCoverageResult } = require('../lib/coverage');
 const { getCommuneKey, getCommune } = require('../lib/chile-geo');
-const { geocodeAddress, haversineKm, withCommuneContext, coordsMatchAddress, parseStreetAndNumber, geocodeCommuneCenter } = require('../lib/geocode');
+const { haversineKm, withCommuneContext, parseStreetAndNumber, staticCommuneCenter, geocodeAddress } = require('../lib/geocode');
 const {
   POLICY_VERSION,
   CONSENT_DEFINITIONS,
@@ -3261,68 +3261,28 @@ async function registerUser({
   const parsedAddr = parseStreetAndNumber(addr);
   if (!parsedAddr) return { errorKey: 'register.error_address_street_number' };
 
+  // Fast path: el usuario ya confirmó calle+número y pin en el mapa.
+  // No reconsultar Nominatim aquí (rate-limit ~1s + timeouts de 8–12s dejan “Creando cuenta…” pegado).
   const fullAddr = withCommuneContext(addr, communeMeta.name);
-  let geo;
-  try {
-    geo = await Promise.race([
-      geocodeAddress(fullAddr, { strict: true, communeName: communeMeta.name }),
-      new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('geocode_timeout')), 12000);
-      })
-    ]);
-  } catch (err) {
-    console.error('[registro] geocode:', err.message);
-    if (err.message === 'geocode_timeout') {
-      // No tumbar el registro: el usuario ya fijó calle+número y pin en el mapa.
-      geo = {
-        found: true,
-        lat,
-        lng,
-        label: fullAddr,
-        placeId: (addressPlaceId || '').trim() || null,
-        approximate: true
-      };
-    } else {
-      return { errorKey: 'register.error_address_timeout' };
+  if (lat < -56 || lat > -17 || lng < -76 || lng > -66) {
+    return { errorKey: 'register.error_address_mismatch' };
+  }
+  const center = staticCommuneCenter(communeMeta.name, communeMeta.regionName);
+  if (center?.found) {
+    const distToCommune = haversineKm(lat, lng, center.lat, center.lng);
+    if (distToCommune > 25) {
+      return { errorKey: 'register.error_address_mismatch' };
     }
   }
-  // En Chile OSM rara vez trae house_number: basta con que el usuario escribió calle+número
-  // y obtuvimos una ubicación usable (calle o centro de comuna).
-  if (!geo || !geo.found) {
-    geo = {
-      found: true,
-      lat,
-      lng,
-      label: fullAddr,
-      placeId: (addressPlaceId || '').trim() || null,
-      approximate: true
-    };
-  }
 
-  let coordCheck;
-  try {
-    coordCheck = await coordsMatchAddress({
-      lat,
-      lng,
-      geo,
-      communeName: communeMeta.name,
-      maxDistanceKm: geo.approximate ? 4 : 2.5
-    });
-  } catch (err) {
-    console.error('[registro] coords:', err.message);
-    const distKm = haversineKm(lat, lng, geo.lat, geo.lng);
-    coordCheck = distKm <= 4 ? { ok: true, distKm } : { ok: false, distKm };
-  }
-  if (!coordCheck.ok) {
-    try {
-      const center = await geocodeCommuneCenter(communeMeta.name, communeMeta.regionName);
-      const distToCommune = haversineKm(lat, lng, center.lat, center.lng);
-      if (distToCommune <= 8) {
-        coordCheck = { ok: true, distKm: distToCommune, adjusted: true };
-      }
-    } catch (_) { /* keep failure */ }
-  }
-  if (!coordCheck.ok) return { errorKey: 'register.error_address_mismatch' };
+  const geo = {
+    found: true,
+    lat,
+    lng,
+    label: fullAddr,
+    placeId: (addressPlaceId || '').trim() || null,
+    approximate: true
+  };
 
   const coverage = buildCoverageResult(communeMeta, coverageMap);
   if (!coverage.covered) {
@@ -7085,7 +7045,7 @@ function isEmailVerified(user) {
   return Boolean(user.emailVerifiedAt);
 }
 
-async function issueEmailVerification(userId, { locale = 'es', respectCooldown = false, waitForMail = false } = {}) {
+async function issueEmailVerification(userId, { locale = 'es', respectCooldown = false, waitForMail = false, mailWaitMs } = {}) {
   const user = getUserById(userId);
   // Admin: solo MFA (Google Authenticator). Nunca enviar código por correo.
   if (!user || user.role === 'admin' || isEmailVerified(user)) return { skipped: true, reason: 'admin_or_verified' };
@@ -7118,33 +7078,43 @@ async function issueEmailVerification(userId, { locale = 'es', respectCooldown =
       return { error: err.message || 'mail_error' };
     });
 
+  const waitMs = waitForMail
+    ? 28000
+    : (mailWaitMs != null ? Number(mailWaitMs) : 8000);
+
+  // Registro / UX rápida: no esperar SMTP; el código ya está guardado.
+  if (!waitForMail && waitMs <= 0) {
+    mailPromise.then(async (finalResult) => {
+      if (!finalResult?.error) return;
+      console.error('[verify:bg-fail]', finalResult.error);
+      const u = getUserById(userId);
+      if (!u || u.emailVerificationCodeHash !== prepared.codeHash) return;
+      u.emailVerificationSentAt = null;
+      try { await repository.saveUser(u); } catch (_) { /* ignore */ }
+    }).catch(() => {});
+    return { success: true, sentAt: prepared.sentAt, pending: true };
+  }
+
   let mailResult = null;
   try {
-    if (waitForMail) {
-      // Reenvío: el usuario espera; no fingir éxito si SMTP aún no respondió.
-      mailResult = await Promise.race([
-        mailPromise,
-        new Promise((resolve) => setTimeout(
-          () => resolve({ error: 'El servidor de correo tarda demasiado. Intenta de nuevo en un minuto.' }),
-          28000
-        ))
-      ]);
-    } else {
-      mailResult = await Promise.race([
-        mailPromise,
-        new Promise((resolve) => setTimeout(() => resolve({ pending: true }), 8000))
-      ]);
-      if (mailResult?.pending) {
-        // Si falla en segundo plano, liberar cooldown para poder reintentar.
-        mailPromise.then(async (finalResult) => {
-          if (!finalResult?.error) return;
-          console.error('[verify:bg-fail]', finalResult.error);
-          const u = getUserById(userId);
-          if (!u || u.emailVerificationCodeHash !== prepared.codeHash) return;
-          u.emailVerificationSentAt = null;
-          try { await repository.saveUser(u); } catch (_) { /* ignore */ }
-        }).catch(() => {});
-      }
+    mailResult = await Promise.race([
+      mailPromise,
+      new Promise((resolve) => setTimeout(
+        () => resolve(waitForMail
+          ? { error: 'El servidor de correo tarda demasiado. Intenta de nuevo en un minuto.' }
+          : { pending: true }),
+        waitMs
+      ))
+    ]);
+    if (mailResult?.pending) {
+      mailPromise.then(async (finalResult) => {
+        if (!finalResult?.error) return;
+        console.error('[verify:bg-fail]', finalResult.error);
+        const u = getUserById(userId);
+        if (!u || u.emailVerificationCodeHash !== prepared.codeHash) return;
+        u.emailVerificationSentAt = null;
+        try { await repository.saveUser(u); } catch (_) { /* ignore */ }
+      }).catch(() => {});
     }
   } catch (err) {
     console.error('[verify:error]', err.message);
@@ -7152,7 +7122,6 @@ async function issueEmailVerification(userId, { locale = 'es', respectCooldown =
   }
 
   if (mailResult?.pending) {
-    // El envío sigue en curso en segundo plano; el código ya está guardado.
     return { success: true, sentAt: prepared.sentAt, pending: true };
   }
 

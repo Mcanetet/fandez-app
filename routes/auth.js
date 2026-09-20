@@ -482,10 +482,12 @@ router.get('/registro', (req, res) => {
   }
   const defaultRole =
     req.query.role === 'client' || req.query.emergency ? 'client' : 'provider';
+  const billingQ = String(req.query.billing || req.query.client_billing_type || '').toLowerCase();
+  const clientBillingType = billingQ === 'empresa' ? 'empresa' : 'natural';
   res.render('registro', registerRenderOptions(req, {
     title: 'Crear cuenta',
     error: null,
-    form: { role: defaultRole, specialties: [] }
+    form: { role: defaultRole, specialties: [], clientBillingType }
   }));
 });
 
@@ -531,7 +533,10 @@ router.post('/registro', async (req, res) => {
         }
 
         if (!store.isEmailVerified(existingUser)) {
-          const issue = await store.issueEmailVerification(existingUser.id, { locale: req.locale || 'es' });
+          const issue = await store.issueEmailVerification(existingUser.id, {
+            locale: req.locale || 'es',
+            mailWaitMs: 0
+          });
           if (wantsJson(req)) {
             return res.status(409).json({
               error: req.t('register.error_email_exists_unverified'),
@@ -599,7 +604,10 @@ router.post('/registro', async (req, res) => {
   // No bloquear el redirect si el SMTP tarda: el código ya se guarda antes de enviar
   let issue = { success: true };
   try {
-    issue = await store.issueEmailVerification(user.id, { locale: req.locale || 'es' });
+    issue = await store.issueEmailVerification(user.id, {
+      locale: req.locale || 'es',
+      mailWaitMs: 0
+    });
   } catch (err) {
     console.error('[registro] verificación email:', err.message);
     issue = { error: err.message || 'mail_error' };

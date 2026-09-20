@@ -1070,7 +1070,7 @@
         if (typeof FandezNotify !== 'undefined') {
           FandezNotify.show(t('register.error_address_timeout') || 'La creación está tardando. Intenta de nuevo.', 'warning');
         }
-      }, 45000);
+      }, 20000);
     }
   });
 
