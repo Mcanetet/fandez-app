@@ -327,6 +327,22 @@
       wallItems.clear();
       (data.items || []).forEach(upsertWallItem);
       renderWorkWall();
+      if (workWallEmpty && !(data.items || []).length && data.meta) {
+        const open = Array.isArray(data.meta.openServiceIds) ? data.meta.openServiceIds : [];
+        const specs = Array.isArray(data.meta.specialties) ? data.meta.specialties : [];
+        const hint = workWallEmpty.querySelector('[data-wall-hint]');
+        if (hint) {
+          if (open.includes('limpieza') && specs.includes('limpieza')) {
+            hint.textContent = 'Hay pedidos de limpieza en búsqueda. Activa “En línea” y recarga; si ya estás en línea, espera unos segundos.';
+          } else if (open.includes('limpieza') && !specs.includes('limpieza')) {
+            hint.textContent = 'Hay pedidos de limpieza. Activa el oficio Limpieza en Mis servicios (Mi equipo) y recarga.';
+          } else if (open.length) {
+            hint.textContent = `Hay ${open.length} oficio(s) con pedidos abiertos. Revisa que tus servicios coincidan.`;
+          } else {
+            hint.textContent = '';
+          }
+        }
+      }
     } catch (_) {}
   }
 

@@ -1521,13 +1521,14 @@ function broadenSpecialtyForOpenRequest(serviceId) {
     if (u.role !== 'provider' || u.active === false) continue;
     if (!Array.isArray(u.specialties)) u.specialties = [];
     if (u.specialties.includes(sid)) {
-      // Ya ofrece el servicio: alinear self-op / técnicos con la lista del socio.
       syncTechniciansToProviderServices(u.id);
       continue;
     }
+    // Limpieza en lanzamiento: todos los socios activos lo ven.
+    // Otros oficios: solo socios que ya operan algún servicio.
     const hasAnyCoverage = u.specialties.some((spec) => hasTechnicianCoverage(u.id, spec));
     const alreadyOperates = u.specialties.length > 0;
-    if (!hasAnyCoverage && !alreadyOperates) continue;
+    if (sid !== 'limpieza' && !hasAnyCoverage && !alreadyOperates) continue;
     u.specialties = [...u.specialties, sid];
     syncTechniciansToProviderServices(u.id);
     repository.persist(() => repository.saveUser(u), `especialidad abierta ${sid} ${u.id}`);
@@ -1537,16 +1538,46 @@ function broadenSpecialtyForOpenRequest(serviceId) {
 }
 
 /**
- * Prepara al socio para ver el muro: self-operator si no tiene cobertura,
- * y especialidades alineadas. No bloquea la vista del muro si el KYC/contrato
- * aún no permite operar (eso se valida al aceptar).
+ * Prepara al socio para ver el muro: añade oficios de pedidos abiertos,
+ * self-operator si no tiene cobertura, y especialidades alineadas.
  */
 async function ensureProviderReadyForWall(providerId) {
   const provider = getUserById(providerId);
   if (!provider || provider.role !== 'provider') return { ok: false };
-  if (!Array.isArray(provider.specialties) || !provider.specialties.length) {
-    return { ok: false, reason: 'sin_especialidades' };
+  if (!Array.isArray(provider.specialties)) provider.specialties = [];
+
+  const openServiceIds = [...new Set(
+    requests
+      .filter((r) => r.status === 'searching' && isRequestPaymentApproved(r) && !r.providerId)
+      .map((r) => r.serviceId)
+      .filter(Boolean)
+  )];
+
+  let specsChanged = false;
+  for (const sid of openServiceIds) {
+    if (!SERVICES.some((s) => s.id === sid && s.enabled !== false)) continue;
+    if (provider.specialties.includes(sid)) continue;
+    // Pedidos abiertos: el socio debe poder verlos. Limpieza (lanzamiento) y
+    // socios sin oficios o con oficios afines reciben el servicio automáticamente.
+    const relatedHome = ['jardineria', 'pintura', 'limpieza'].some((id) => provider.specialties.includes(id));
+    if (
+      sid === 'limpieza'
+      || provider.specialties.length === 0
+      || relatedHome
+      || provider.specialties.some((spec) => hasTechnicianCoverage(providerId, spec))
+    ) {
+      provider.specialties = [...provider.specialties, sid];
+      specsChanged = true;
+    }
   }
+  if (specsChanged) {
+    repository.persist(() => repository.saveUser(provider), `wall specs ${providerId}`);
+  }
+
+  if (!provider.specialties.length) {
+    return { ok: false, reason: 'sin_especialidades', openServiceIds };
+  }
+
   syncTechniciansToProviderServices(providerId);
   const hasAny = provider.specialties.some((sid) => hasTechnicianCoverage(providerId, sid));
   if (!hasAny) {
@@ -1562,7 +1593,13 @@ async function ensureProviderReadyForWall(providerId) {
       repository.persist(() => repository.saveUser(self), `self-op specs ${self.id}`);
     }
   }
-  return { ok: true, coverage: provider.specialties.some((sid) => hasTechnicianCoverage(providerId, sid)) };
+  return {
+    ok: true,
+    specialties: provider.specialties,
+    coverage: provider.specialties.some((sid) => hasTechnicianCoverage(providerId, sid)),
+    openServiceIds,
+    wallCount: getWorkWallItems(providerId).length
+  };
 }
 
 function getSearchAudienceForRequest(requestId) {

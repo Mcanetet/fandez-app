@@ -204,9 +204,10 @@ router.get('/pendientes', requireRole('provider'), (req, res) => {
 router.get('/muro', requireRole('provider'), async (req, res) => {
   const io = req.app.get('io');
   const { notifyProvidersForRequest } = require('../lib/dispatch');
+  let wallMeta = null;
   if (typeof store.ensureProviderReadyForWall === 'function') {
     try {
-      await store.ensureProviderReadyForWall(req.session.user.id);
+      wallMeta = await store.ensureProviderReadyForWall(req.session.user.id);
     } catch (err) {
       console.warn('[muro] ensureProviderReadyForWall', err.message);
     }
@@ -223,7 +224,19 @@ router.get('/muro', requireRole('provider'), async (req, res) => {
       promoted.forEach((request) => notifyProvidersForRequest(io, request));
     }
   }
-  res.json({ success: true, items: buildWorkWallPayload(req.session.user.id) });
+  const items = buildWorkWallPayload(req.session.user.id);
+  res.json({
+    success: true,
+    items,
+    meta: wallMeta
+      ? {
+          specialties: wallMeta.specialties || [],
+          coverage: Boolean(wallMeta.coverage),
+          openServiceIds: wallMeta.openServiceIds || [],
+          wallCount: items.length
+        }
+      : null
+  });
 });
 
 router.post('/muro/dismiss/:requestId', requireRole('provider'), requireModule('provider_aceptar'), (req, res) => {
