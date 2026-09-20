@@ -959,6 +959,7 @@
       .forEach((el) => {
         if (el.closest('#jobChatModal') || el.id === 'btnOpenFieldChat' || el.id === 'btnOpenFieldChatFab' || el.id === 'btnOpenFieldChatFromTips') return;
         if (el.closest('[data-role="provider-reassign"]')) return;
+        if (el.closest('[data-role="provider-chat-note"]')) return;
         if (el.closest('a')) return;
         el.disabled = true;
       });
@@ -996,6 +997,35 @@
       } catch (err) {
         btn.disabled = false;
         notify(err.message || 'No se pudo reasignar', 'error');
+      }
+    });
+
+    document.getElementById('btnProviderExtraNote')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btnProviderExtraNote');
+      const input = document.getElementById('providerExtraNote');
+      const body = String(input?.value || '').trim();
+      if (body.length < 4) {
+        notify('Escribe el adicional o cambio (mín. 4 caracteres)', 'warning');
+        input?.focus();
+        return;
+      }
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${chatBase}/chat/${requestId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ body: `Adicional / cambio: ${body}` })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo enviar');
+        if (input) input.value = '';
+        notify('Enviado al chat del cliente', 'success');
+        if (data.message) appendChat(data.message);
+        openChat();
+      } catch (err) {
+        notify(err.message || 'No se pudo enviar', 'error');
+      } finally {
+        btn.disabled = false;
       }
     });
   }

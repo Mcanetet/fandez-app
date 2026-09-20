@@ -6299,6 +6299,22 @@ function proposeActivityChange(requestId, technicianId, {
   request.serviceConfirmStatus = 'change_pending';
   request.serviceConfirmMode = 'change';
 
+  const linePreview = lineItems.slice(0, 4).map((i) => `${i.description} (${i.qty} ${i.unit})`).join('; ');
+  const matPreview = materialsPreview.slice(0, 4).map((m) => `${m.name} ×${m.qty}`).join('; ');
+  const chatParts = [
+    `Cambio de alcance propuesto: ${toActivityName} · ${formatCLP(proposedTotal)}`,
+    notes ? `Motivo: ${notes}` : null,
+    linePreview ? `Tareas: ${linePreview}` : null,
+    matPreview ? `Productos: ${matPreview}` : null,
+    'El cliente debe aprobar en la app.'
+  ].filter(Boolean);
+  appendChatMessage(request, {
+    senderType: 'system',
+    senderId: null,
+    senderName: 'Fandez',
+    body: chatParts.join(' ')
+  });
+
   repository.persist(() => repository.saveRequest(request), `cambio actividad ${requestId}`);
   afterEvent((ev) => ev.onActivityChangeProposed?.(request, sr.activityChange));
   return { success: true, request, activityChange: sr.activityChange };
