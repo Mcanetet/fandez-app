@@ -145,7 +145,12 @@
           return;
         }
 
-        notify(`Asignado a ${data.request.technicianName}. Le llega aviso al celular; tiene 10 min para aceptar.`, 'success');
+        notify(
+          data.reassigned
+            ? `Reasignado a ${data.request.technicianName}. Le llega correo y aviso al celular.`
+            : `Asignado a ${data.request.technicianName}. Le llega correo y aviso al celular.`,
+          'success'
+        );
         setTimeout(() => location.reload(), 700);
       } catch (err) {
         btn.disabled = false;
