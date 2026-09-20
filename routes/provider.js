@@ -130,8 +130,15 @@ router.get('/mensajes', requireRole('provider'), requireModule('provider_mensaje
   });
 });
 
-router.get('/', requireRole('provider'), (req, res) => {
+router.get('/', requireRole('provider'), async (req, res) => {
   const provider = store.getUserById(req.session.user.id);
+  if (typeof store.ensureProviderReadyForWall === 'function') {
+    try {
+      await store.ensureProviderReadyForWall(provider.id);
+    } catch (err) {
+      console.warn('[provider] ensureProviderReadyForWall', err.message);
+    }
+  }
   store.getProviderServicesStatus(provider.id);
   const myRequests = store.getRequestsByProvider(req.session.user.id)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -194,9 +201,16 @@ router.get('/pendientes', requireRole('provider'), (req, res) => {
   });
 });
 
-router.get('/muro', requireRole('provider'), (req, res) => {
+router.get('/muro', requireRole('provider'), async (req, res) => {
   const io = req.app.get('io');
   const { notifyProvidersForRequest } = require('../lib/dispatch');
+  if (typeof store.ensureProviderReadyForWall === 'function') {
+    try {
+      await store.ensureProviderReadyForWall(req.session.user.id);
+    } catch (err) {
+      console.warn('[muro] ensureProviderReadyForWall', err.message);
+    }
+  }
   if (typeof store.recoverAutoApprovedTransfers === 'function') {
     const recovered = store.recoverAutoApprovedTransfers();
     if (io && recovered.length) {

@@ -1520,9 +1520,14 @@ function broadenSpecialtyForOpenRequest(serviceId) {
   for (const u of USERS) {
     if (u.role !== 'provider' || u.active === false) continue;
     if (!Array.isArray(u.specialties)) u.specialties = [];
-    if (u.specialties.includes(sid)) continue;
+    if (u.specialties.includes(sid)) {
+      // Ya ofrece el servicio: alinear self-op / técnicos con la lista del socio.
+      syncTechniciansToProviderServices(u.id);
+      continue;
+    }
     const hasAnyCoverage = u.specialties.some((spec) => hasTechnicianCoverage(u.id, spec));
-    if (!hasAnyCoverage) continue;
+    const alreadyOperates = u.specialties.length > 0;
+    if (!hasAnyCoverage && !alreadyOperates) continue;
     u.specialties = [...u.specialties, sid];
     syncTechniciansToProviderServices(u.id);
     repository.persist(() => repository.saveUser(u), `especialidad abierta ${sid} ${u.id}`);
@@ -1531,15 +1536,58 @@ function broadenSpecialtyForOpenRequest(serviceId) {
   return changed;
 }
 
+/**
+ * Prepara al socio para ver el muro: self-operator si no tiene cobertura,
+ * y especialidades alineadas. No bloquea la vista del muro si el KYC/contrato
+ * aún no permite operar (eso se valida al aceptar).
+ */
+async function ensureProviderReadyForWall(providerId) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') return { ok: false };
+  if (!Array.isArray(provider.specialties) || !provider.specialties.length) {
+    return { ok: false, reason: 'sin_especialidades' };
+  }
+  syncTechniciansToProviderServices(providerId);
+  const hasAny = provider.specialties.some((sid) => hasTechnicianCoverage(providerId, sid));
+  if (!hasAny) {
+    try {
+      await enableSelfOperator(providerId);
+    } catch (err) {
+      console.warn('[wall] self-operator', providerId, err.message);
+    }
+  } else {
+    const self = getTechniciansByProvider(providerId).find((t) => t.isSelfOperator);
+    if (self) {
+      self.specialties = [...provider.specialties];
+      repository.persist(() => repository.saveUser(self), `self-op specs ${self.id}`);
+    }
+  }
+  return { ok: true, coverage: provider.specialties.some((sid) => hasTechnicianCoverage(providerId, sid)) };
+}
+
 function getSearchAudienceForRequest(requestId) {
   const eligible = getEligibleProvidersForRequest(requestId);
   const online = eligible.filter((p) => p.online);
   const techOnline = online.reduce((n, p) => n + (p.readyTechs?.length || 0), 0);
+  // Socios en línea con la especialidad (aunque aún no tengan cobertura lista)
+  const request = requests.find((r) => r.id === requestId);
+  let specialtyOnline = 0;
+  if (request) {
+    specialtyOnline = USERS.filter((u) => (
+      u.role === 'provider'
+      && u.active !== false
+      && u.online
+      && u.id !== request.clientId
+      && Array.isArray(u.specialties)
+      && u.specialties.includes(request.serviceId)
+    )).length;
+  }
   return {
     eligibleProviders: eligible.length,
     onlineProviders: online.length,
     onlineTechnicians: techOnline,
-    viewers: Math.max(online.length, techOnline)
+    specialtyOnline,
+    viewers: Math.max(online.length, techOnline, specialtyOnline)
   };
 }
 
@@ -4632,9 +4680,9 @@ function getOnlineProviders(serviceId) {
     (u) =>
       u.role === 'provider' &&
       u.online &&
+      u.active !== false &&
       Array.isArray(u.specialties) &&
-      u.specialties.includes(serviceId) &&
-      hasTechnicianCoverage(u.id, serviceId)
+      u.specialties.includes(serviceId)
   );
 }
 
@@ -4670,21 +4718,20 @@ function getWorkWallItems(userId) {
       if (r.clientId === userId) return false;
       if (user.role === 'provider') {
         if (user.wallDismissed?.[r.id]) return false;
-        return hasTechnicianCoverage(user.id, r.serviceId);
+        // Mostrar pedidos de sus servicios aunque el expediente/self-op aún no esté listo.
+        // Al aceptar se valida cobertura (técnico o “yo hago el servicio”).
+        return true;
       }
       if (user.role === 'tecnico') {
         const parentIds = getTechnicianParentIds(user);
         if (parentIds.includes(r.clientId)) return false;
-        if (!canTechnicianOperate(user).ok) return false;
-        if (!technicianCanClaimAnyWall(user)) return false;
-        const hasSocioCoverage = parentIds.some((pid) => {
+        if (!technicianCanClaimAnyWall(user) && !user.isSelfOperator) return false;
+        // Ver el muro si el oficio coincide; el expediente se exige al aceptar.
+        const parentOffers = parentIds.some((pid) => {
           const socio = getUserById(pid);
-          if (!socio || !Array.isArray(socio.specialties) || !socio.specialties.includes(r.serviceId)) {
-            return false;
-          }
-          return technicianCanClaimWallForProvider(user, pid);
+          return socio && Array.isArray(socio.specialties) && socio.specialties.includes(r.serviceId);
         });
-        if (!hasSocioCoverage) return false;
+        return parentOffers;
       }
       return true;
     })
@@ -4757,7 +4804,7 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
     }
     if (!hasTechnicianCoverage(user.id, request.serviceId)) {
       return {
-        error: 'Necesitas un técnico con expediente completo para este servicio antes de aceptar el pedido.'
+        error: 'Para aceptar necesitas cobertura lista: en Mi equipo activa “Yo hago el servicio” o un técnico con carnet + antecedentes, con el oficio Limpieza.'
       };
     }
     if (!technicianId) {
@@ -8378,6 +8425,7 @@ module.exports = {
   isReady,
   get SERVICES() { return SERVICES; },
   get USERS() { return USERS; },
+  get requests() { return requests; },
   get MODULES() { return MODULES; },
   formatCLP,
   getServiceById,
@@ -8488,6 +8536,7 @@ module.exports = {
   getEligibleProvidersForRequest,
   getSearchAudienceForRequest,
   broadenSpecialtyForOpenRequest,
+  ensureProviderReadyForWall,
   getAdminDispatchQueue,
   getOperationalDiagnostics,
   updateRequestStatus,
