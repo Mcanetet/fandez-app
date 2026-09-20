@@ -27,7 +27,7 @@
     <% } %>
 
     <% if (error) { %>
-      <div class="mb-4 p-3 rounded-xl bg-zilo-danger/10 border border-zilo-danger/30 text-zilo-danger text-sm text-center">
+      <div id="registerError" class="mb-4 p-3 rounded-xl bg-zilo-danger/10 border border-zilo-danger/30 text-zilo-danger text-sm text-center" role="alert" tabindex="-1">
         <p><%= error %></p>
         <% if (typeof emailExists !== 'undefined' && emailExists) { %>
           <p class="mt-2 text-zilo-text text-xs">
@@ -36,6 +36,12 @@
           </p>
         <% } %>
       </div>
+      <script>
+        (function () {
+          var el = document.getElementById('registerError');
+          if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        })();
+      </script>
     <% } %>
 
     <form id="registrationForm" action="/registro" method="POST" class="space-y-4">
@@ -152,17 +158,30 @@
           </select>
         </div>
         <div>
-          <label for="address_commune" class="zilo-label block mb-1.5"><%= t('register.commune') %></label>
-          <select id="address_commune" name="address_commune" required class="zilo-input"
-            data-placeholder="<%= t('register.commune_placeholder') %>"
-            data-region-first="<%= t('register.commune_region_first') %>"
-            data-loading="<%= t('register.commune_loading') %>"
-            <%= form.addressRegion ? '' : 'disabled' %>>
-            <option value=""><%= form.addressRegion ? t('register.commune_placeholder') : t('register.commune_region_first') %></option>
-            <% (registrationCommunes || []).forEach(function(c) { %>
-              <option value="<%= c.code %>" <%= (form.addressCommune || '') === c.code ? 'selected' : '' %>><%= c.name %></option>
-            <% }); %>
-          </select>
+          <label for="address_commune_search" class="zilo-label block mb-1.5"><%= t('register.commune') %></label>
+          <div class="relative">
+            <input type="text" id="address_commune_search" class="zilo-input address-autocomplete-input"
+              autocomplete="address-level2" role="combobox" aria-autocomplete="list"
+              aria-controls="communeSuggestions" aria-expanded="false"
+              placeholder="<%= form.addressRegion ? t('register.commune_search_placeholder') : t('register.commune_region_first') %>"
+              <%= form.addressRegion ? '' : 'disabled' %>
+              value="<%= (function(){ var list = registrationCommunes || []; var code = form.addressCommune || ''; for (var i = 0; i < list.length; i++) { if (list[i].code === code) return list[i].name; } return ''; })() %>">
+            <select id="address_commune" name="address_commune" class="sr-only"
+              tabindex="-1" aria-hidden="true"
+              data-placeholder="<%= t('register.commune_placeholder') %>"
+              data-region-first="<%= t('register.commune_region_first') %>"
+              data-loading="<%= t('register.commune_loading') %>"
+              data-search-placeholder="<%= t('register.commune_search_placeholder') %>"
+              data-no-results="<%= t('register.commune_no_results') %>"
+              <%= form.addressRegion ? '' : 'disabled' %>>
+              <option value=""><%= form.addressRegion ? t('register.commune_placeholder') : t('register.commune_region_first') %></option>
+              <% (registrationCommunes || []).forEach(function(c) { %>
+                <option value="<%= c.code %>" <%= (form.addressCommune || '') === c.code ? 'selected' : '' %>><%= c.name %></option>
+              <% }); %>
+            </select>
+            <div id="communeSuggestions" class="hidden absolute left-0 right-0 top-full mt-1 z-30 rounded-xl border border-zilo-border bg-white shadow-zilo max-h-52 overflow-y-auto" role="listbox"></div>
+          </div>
+          <p class="text-[11px] text-zilo-muted mt-1.5"><%= t('register.commune_hint') %></p>
         </div>
         <div class="relative">
           <label for="address" id="addressLabel" class="zilo-label block mb-1.5"><%= t('register.address_street') %></label>
@@ -352,6 +371,9 @@
   'register.region_hint': t('register.region_hint'),
   'register.commune_region_first': t('register.commune_region_first'),
   'register.commune_placeholder': t('register.commune_placeholder'),
+  'register.commune_search_placeholder': t('register.commune_search_placeholder'),
+  'register.commune_hint': t('register.commune_hint'),
+  'register.commune_no_results': t('register.commune_no_results'),
   'register.validation_region_required': t('register.validation_region_required'),
   'register.commune_loading': t('register.commune_loading'),
   'register.commune_selected': t('register.commune_selected'),

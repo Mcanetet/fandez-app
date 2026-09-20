@@ -211,6 +211,18 @@ html {
   box-shadow: 0 0 0 3px rgba(var(--zilo-accent-rgb), 0.12);
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .address-autocomplete-input.is-searching {
   background-image: linear-gradient(90deg, transparent, rgba(var(--zilo-accent-rgb), 0.08), transparent);
   background-size: 200% 100%;
@@ -3728,6 +3740,62 @@ body.admin-modal-open {
   flex-direction: column;
   gap: 0.75rem;
   margin-bottom: 0.75rem;
+}
+.landing-cta-label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--zilo-muted);
+}
+.landing-demand-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+.landing-demand-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.9rem 0.85rem;
+  border-radius: var(--zilo-radius-btn);
+  border: 1px solid rgba(var(--zilo-accent-rgb), 0.35);
+  background: var(--zilo-accent);
+  color: #fff;
+  text-decoration: none;
+  box-sizing: border-box;
+  min-height: 4.5rem;
+  transition: filter 0.15s;
+}
+.landing-demand-card:hover {
+  filter: brightness(1.05);
+}
+.landing-demand-card__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.landing-demand-card__hint {
+  font-size: 0.7rem;
+  opacity: 0.9;
+  line-height: 1.3;
+}
+.landing-b2b-block {
+  padding: 1.1rem 1.15rem;
+  border-radius: 1rem;
+  border: 1px solid var(--zilo-border);
+  background: var(--zilo-card);
+}
+.landing-b2b-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.8125rem;
+  color: var(--zilo-muted);
+  line-height: 1.45;
+}
+.landing-b2b-list li {
+  margin-bottom: 0.25rem;
 }
 
 .landing-urgent-cta {

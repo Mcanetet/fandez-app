@@ -8,6 +8,8 @@
   }
 
   const communeSelect = document.getElementById('address_commune');
+  const communeSearch = document.getElementById('address_commune_search');
+  const communeSuggestionsEl = document.getElementById('communeSuggestions');
   const regionSelect = document.getElementById('address_region');
   const latInput = document.getElementById('address_lat');
   const lngInput = document.getElementById('address_lng');
@@ -38,6 +40,10 @@
   let addressConfirmed = false;
   let lastSelectedLabel = '';
   let selectedCommune = null;
+  let communeCatalog = [];
+  let communeFilterTimer = null;
+  let communeActiveIndex = -1;
+  let communeMatches = [];
   let suggestAbort = null;
   let suggestSeq = 0;
   let mapResetTimer = null;
@@ -214,6 +220,8 @@
     if (!communeSelect) {
       if (kind === 'placeholder') return t('register.commune_placeholder') || 'Selecciona tu comuna';
       if (kind === 'loading') return t('register.commune_loading') || 'Cargando…';
+      if (kind === 'searchPlaceholder') return t('register.commune_search_placeholder') || 'Escribe para buscar tu comuna';
+      if (kind === 'noResults') return t('register.commune_no_results') || 'No hay comunas con ese nombre';
       return t('register.commune_region_first') || 'Primero elige la región';
     }
     if (kind === 'placeholder') {
@@ -226,9 +234,128 @@
         || t('register.commune_loading')
         || 'Cargando…';
     }
+    if (kind === 'searchPlaceholder') {
+      return communeSelect.dataset.searchPlaceholder
+        || t('register.commune_search_placeholder')
+        || 'Escribe para buscar tu comuna';
+    }
+    if (kind === 'noResults') {
+      return communeSelect.dataset.noResults
+        || t('register.commune_no_results')
+        || 'No hay comunas con ese nombre';
+    }
     return communeSelect.dataset.regionFirst
       || t('register.commune_region_first')
       || 'Primero elige la región';
+  }
+
+  function normalizeSearch(value) {
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ñ/g, 'n')
+      .trim();
+  }
+
+  function setCommuneSearchEnabled(enabled, placeholder) {
+    if (!communeSearch) return;
+    communeSearch.disabled = !enabled;
+    communeSearch.placeholder = placeholder || (enabled ? communeCopy('searchPlaceholder') : communeCopy('regionFirst'));
+    if (!enabled) {
+      communeSearch.value = '';
+      hideCommuneSuggestions();
+    }
+  }
+
+  function hideCommuneSuggestions() {
+    communeActiveIndex = -1;
+    communeMatches = [];
+    if (communeSuggestionsEl) {
+      communeSuggestionsEl.classList.add('hidden');
+      communeSuggestionsEl.innerHTML = '';
+    }
+    if (communeSearch) communeSearch.setAttribute('aria-expanded', 'false');
+  }
+
+  function highlightCommuneSuggestion() {
+    if (!communeSuggestionsEl) return;
+    communeSuggestionsEl.querySelectorAll('.commune-suggestion').forEach((btn, i) => {
+      btn.classList.toggle('bg-zilo-accent-soft', i === communeActiveIndex);
+    });
+  }
+
+  function pickCommune(commune, { close = true } = {}) {
+    if (!commune || !communeSelect) return;
+    communeSelect.value = commune.code;
+    communeSelect.disabled = false;
+    communeSelect.setCustomValidity('');
+    if (communeSearch) {
+      communeSearch.value = commune.name;
+      communeSearch.setCustomValidity('');
+    }
+    if (close) hideCommuneSuggestions();
+    loadCommune(commune.code);
+  }
+
+  function renderCommuneSuggestions(items, query) {
+    if (!communeSuggestionsEl) return;
+    communeMatches = items;
+    communeActiveIndex = -1;
+    if (!items.length) {
+      if (query) {
+        communeSuggestionsEl.innerHTML = `<p class="px-3 py-2.5 text-sm text-zilo-muted">${escapeHtml(communeCopy('noResults'))}</p>`;
+        communeSuggestionsEl.classList.remove('hidden');
+        if (communeSearch) communeSearch.setAttribute('aria-expanded', 'true');
+      } else {
+        hideCommuneSuggestions();
+      }
+      return;
+    }
+
+    communeSuggestionsEl.innerHTML = items.map((item, index) => (
+      `<button type="button" class="commune-suggestion w-full text-left px-3 py-2.5 text-sm hover:bg-zilo-accent-soft transition border-b border-zilo-border last:border-b-0" data-index="${index}" role="option">
+        <span class="block font-medium text-zilo-text">${escapeHtml(item.name)}</span>
+      </button>`
+    )).join('');
+    communeSuggestionsEl.classList.remove('hidden');
+    if (communeSearch) communeSearch.setAttribute('aria-expanded', 'true');
+    communeSuggestionsEl.querySelectorAll('.commune-suggestion').forEach((btn) => {
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const item = communeMatches[Number(btn.dataset.index)];
+        if (item) pickCommune(item);
+      });
+    });
+  }
+
+  function filterCommunes(query, { showAllIfEmpty = false } = {}) {
+    const q = normalizeSearch(query);
+    if (!q) {
+      if (showAllIfEmpty) {
+        renderCommuneSuggestions(communeCatalog.slice(0, 40), '');
+      } else {
+        hideCommuneSuggestions();
+      }
+      return;
+    }
+    const matches = communeCatalog.filter((c) => normalizeSearch(c.name).includes(q));
+    matches.sort((a, b) => {
+      const an = normalizeSearch(a.name);
+      const bn = normalizeSearch(b.name);
+      const aStarts = an.startsWith(q) ? 0 : 1;
+      const bStarts = bn.startsWith(q) ? 0 : 1;
+      if (aStarts !== bStarts) return aStarts - bStarts;
+      return an.localeCompare(bn);
+    });
+    renderCommuneSuggestions(matches.slice(0, 40), query);
+  }
+
+  function syncCommuneSearchFromSelect() {
+    if (!communeSearch || !communeSelect) return;
+    const opt = communeSelect.selectedOptions && communeSelect.selectedOptions[0];
+    const name = opt && communeSelect.value ? opt.textContent.trim() : '';
+    communeSearch.value = name;
   }
 
   function onPinDrag(lat, lng) {
@@ -356,28 +483,46 @@
 
   function resetCommuneOptions(placeholder) {
     if (!communeSelect) return;
+    communeCatalog = [];
     communeSelect.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>`;
     communeSelect.value = '';
     communeSelect.disabled = true;
+    setCommuneSearchEnabled(false, placeholder);
   }
 
   function fillCommuneOptions(communes, selectedCode) {
     if (!communeSelect) return;
+    communeCatalog = (communes || []).map((c) => ({ code: c.code, name: c.name }));
     const options = [`<option value="">${escapeHtml(communeCopy('placeholder'))}</option>`]
-      .concat((communes || []).map((c) => (
+      .concat(communeCatalog.map((c) => (
         `<option value="${escapeHtml(c.code)}"${selectedCode === c.code ? ' selected' : ''}>${escapeHtml(c.name)}</option>`
       )));
     communeSelect.innerHTML = options.join('');
     communeSelect.disabled = false;
+    setCommuneSearchEnabled(true, communeCopy('searchPlaceholder'));
+    if (selectedCode) {
+      communeSelect.value = selectedCode;
+      syncCommuneSearchFromSelect();
+    } else if (communeSearch) {
+      communeSearch.value = '';
+    }
+    hideCommuneSuggestions();
   }
 
-  async function loadRegionCommunes(regionCode, { preserveCommune = '' } = {}) {
+  async function loadRegionCommunes(regionCode, { preserveCommune = '', preserveAddress = false } = {}) {
+    const savedAddress = preserveAddress ? addressInput.value : '';
+    const savedLat = preserveAddress && latInput ? latInput.value : '';
+    const savedLng = preserveAddress && lngInput ? lngInput.value : '';
+    const savedPlace = preserveAddress && placeInput ? placeInput.value : '';
+
     selectedCommune = null;
-    setAddressFieldEnabled(false);
-    addressInput.value = '';
-    hideSuggestions();
-    hideCoverage();
-    clearAddressConfirmation({ resetMap: false });
+    if (!preserveAddress) {
+      setAddressFieldEnabled(false);
+      addressInput.value = '';
+      hideSuggestions();
+      hideCoverage();
+      clearAddressConfirmation({ resetMap: false });
+    }
     clearTimeout(mapResetTimer);
 
     if (!regionCode) {
@@ -393,8 +538,21 @@
       if (!res.ok) throw new Error(data.error || 'region_error');
       fillCommuneOptions(data.communes || [], preserveCommune);
       if (preserveCommune && communeSelect?.value === preserveCommune) {
-        await loadCommune(preserveCommune);
-      } else {
+        await loadCommune(preserveCommune, { preserveAddress });
+        if (preserveAddress) {
+          if (savedAddress) addressInput.value = savedAddress;
+          if (latInput && savedLat) latInput.value = savedLat;
+          if (lngInput && savedLng) lngInput.value = savedLng;
+          if (placeInput && savedPlace) placeInput.value = savedPlace;
+          if (savedLat && savedLng) {
+            addressConfirmed = true;
+            lastSelectedLabel = savedAddress.trim();
+            setAddressFieldEnabled(true);
+            showMapAt(parseFloat(savedLat), parseFloat(savedLng), savedAddress, 19, { draggable: true });
+            enablePinAdjustment(savedAddress);
+          }
+        }
+      } else if (!preserveAddress) {
         resetMapToDefault();
         setMapStatus('');
       }
@@ -404,12 +562,12 @@
     }
   }
 
-  async function loadCommune(code) {
+  async function loadCommune(code, { preserveAddress = false } = {}) {
     const regionCode = getRegionCode();
     if (!code || !regionCode) {
       selectedCommune = null;
       setAddressFieldEnabled(false);
-      addressInput.value = '';
+      if (!preserveAddress) addressInput.value = '';
       hideSuggestions();
       hideCoverage();
       resetMapToDefault();
@@ -433,10 +591,14 @@
       };
 
       setAddressFieldEnabled(true);
-      addressInput.value = '';
-      clearAddressConfirmation({ resetMap: false });
+      if (!preserveAddress) {
+        addressInput.value = '';
+        clearAddressConfirmation({ resetMap: false });
+      }
       clearTimeout(mapResetTimer);
-      showMapAt(data.lat, data.lng, data.name, 13);
+      if (!preserveAddress || !latInput?.value || !lngInput?.value) {
+        showMapAt(data.lat, data.lng, data.name, 13);
+      }
       if (data.coverage) showCoverage(data.coverage);
       setMapStatus(t('register.commune_selected', { name: data.name }));
       syncConfirmButton();
@@ -445,6 +607,27 @@
       setAddressFieldEnabled(false);
       setMapStatus(t('register.address_search_fail'));
     }
+  }
+
+  function resolveTypedCommune() {
+    if (getCommuneCode()) return true;
+    if (!communeSearch || !communeCatalog.length) return false;
+    const q = normalizeSearch(communeSearch.value);
+    if (!q) return false;
+    const exact = communeCatalog.find((c) => normalizeSearch(c.name) === q);
+    const starts = communeCatalog.filter((c) => normalizeSearch(c.name).startsWith(q));
+    const includes = communeCatalog.filter((c) => normalizeSearch(c.name).includes(q));
+    const match = exact
+      || (starts.length === 1 ? starts[0] : null)
+      || (includes.length === 1 ? includes[0] : null);
+    if (!match || !communeSelect) return false;
+    communeSelect.disabled = false;
+    communeSelect.value = match.code;
+    communeSearch.value = match.name;
+    selectedCommune = selectedCommune && selectedCommune.code === match.code
+      ? selectedCommune
+      : { code: match.code, name: match.name, lat: null, lng: null, regionCode: getRegionCode() };
+    return true;
   }
 
   function markConfirmed(item) {
@@ -627,7 +810,76 @@
 
   if (communeSelect) {
     communeSelect.addEventListener('change', () => {
+      communeSelect.setCustomValidity('');
+      if (communeSearch) communeSearch.setCustomValidity('');
       loadCommune(communeSelect.value);
+    });
+  }
+
+  if (communeSearch) {
+    communeSearch.addEventListener('focus', () => {
+      if (communeSearch.disabled || !communeCatalog.length) return;
+      filterCommunes(communeSearch.value, { showAllIfEmpty: true });
+    });
+
+    communeSearch.addEventListener('input', () => {
+      communeSearch.setCustomValidity('');
+      if (communeSelect) communeSelect.setCustomValidity('');
+
+      const value = communeSearch.value.trim();
+      const selectedName = communeSelect?.selectedOptions?.[0]?.textContent?.trim() || '';
+      if (communeSelect?.value && normalizeSearch(value) !== normalizeSearch(selectedName)) {
+        communeSelect.value = '';
+        selectedCommune = null;
+        setAddressFieldEnabled(false);
+        addressInput.value = '';
+        hideSuggestions();
+        clearAddressConfirmation({ resetMap: false });
+        resetMapToDefault();
+        setMapStatus('');
+      }
+
+      clearTimeout(communeFilterTimer);
+      communeFilterTimer = setTimeout(() => {
+        filterCommunes(value, { showAllIfEmpty: !value });
+      }, 120);
+    });
+
+    communeSearch.addEventListener('keydown', (e) => {
+      if (!communeMatches.length || !communeSuggestionsEl || communeSuggestionsEl.classList.contains('hidden')) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const q = normalizeSearch(communeSearch.value);
+          const exact = communeCatalog.find((c) => normalizeSearch(c.name) === q)
+            || (communeCatalog.filter((c) => normalizeSearch(c.name).includes(q)).length === 1
+              ? communeCatalog.find((c) => normalizeSearch(c.name).includes(q))
+              : null);
+          if (exact) pickCommune(exact);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        communeActiveIndex = Math.min(communeActiveIndex + 1, communeMatches.length - 1);
+        highlightCommuneSuggestion();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        communeActiveIndex = Math.max(communeActiveIndex - 1, 0);
+        highlightCommuneSuggestion();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const item = communeActiveIndex >= 0
+          ? communeMatches[communeActiveIndex]
+          : communeMatches[0];
+        if (item) pickCommune(item);
+      } else if (e.key === 'Escape') {
+        hideCommuneSuggestions();
+      }
+    });
+
+    communeSearch.addEventListener('blur', () => {
+      setTimeout(() => hideCommuneSuggestions(), 150);
     });
   }
 
@@ -725,14 +977,23 @@
   }
 
   document.addEventListener('click', (e) => {
-    if (!suggestionsEl || suggestionsEl.classList.contains('hidden')) return;
-    if (e.target === addressInput || suggestionsEl.contains(e.target)) return;
-    hideSuggestions();
+    if (suggestionsEl && !suggestionsEl.classList.contains('hidden')) {
+      if (e.target !== addressInput && !suggestionsEl.contains(e.target)) {
+        hideSuggestions();
+      }
+    }
+    if (communeSuggestionsEl && !communeSuggestionsEl.classList.contains('hidden')) {
+      if (e.target !== communeSearch && !communeSuggestionsEl.contains(e.target)) {
+        hideCommuneSuggestions();
+      }
+    }
   });
 
   roleInputs.forEach((r) => r.addEventListener('change', syncAddressCopy));
 
   form.addEventListener('submit', (e) => {
+    resolveTypedCommune();
+
     if (!getRegionCode()) {
       e.preventDefault();
       if (regionSelect) {
@@ -745,6 +1006,13 @@
       e.preventDefault();
       if (communeSelect) {
         communeSelect.disabled = false;
+      }
+      if (communeSearch) {
+        communeSearch.disabled = false;
+        communeSearch.setCustomValidity(t('register.validation_commune_required'));
+        communeSearch.reportValidity();
+        communeSearch.focus();
+      } else if (communeSelect) {
         communeSelect.setCustomValidity(t('register.validation_commune_required'));
         communeSelect.reportValidity();
       }
@@ -779,6 +1047,10 @@
       communeSelect.disabled = false;
       communeSelect.setCustomValidity('');
     }
+    if (communeSearch) {
+      communeSearch.disabled = false;
+      communeSearch.setCustomValidity('');
+    }
     addressInput.disabled = false;
     addressInput.setCustomValidity('');
     if (unitInput) unitInput.setCustomValidity('');
@@ -808,7 +1080,7 @@
       field.setCustomValidity(t('register.validation_region_required'));
       return;
     }
-    if (field === communeSelect) {
+    if (field === communeSelect || field === communeSearch) {
       field.setCustomValidity(t('register.validation_commune_required'));
       return;
     }
@@ -822,7 +1094,11 @@
   }, true);
 
   if (regionSelect) regionSelect.addEventListener('change', () => regionSelect.setCustomValidity(''));
-  if (communeSelect) communeSelect.addEventListener('change', () => communeSelect.setCustomValidity(''));
+  if (communeSelect) communeSelect.addEventListener('change', () => {
+    communeSelect.setCustomValidity('');
+    if (communeSearch) communeSearch.setCustomValidity('');
+  });
+  if (communeSearch) communeSearch.addEventListener('input', () => communeSearch.setCustomValidity(''));
   if (unitInput) unitInput.addEventListener('input', () => unitInput.setCustomValidity(''));
 
   function onReady(fn) {
@@ -838,16 +1114,32 @@
     const communeCode = getCommuneCode();
 
     if (regionCode) {
+      const savedLat = latInput ? latInput.value : '';
+      const savedLng = lngInput ? lngInput.value : '';
+      const savedPlaceId = placeInput ? placeInput.value : '';
+      const hadConfirmedAddress = Boolean(savedAddress && savedLat && savedLng);
+
       if (communeSelect && communeSelect.options.length <= 1) {
-        await loadRegionCommunes(regionCode, { preserveCommune: communeCode });
-      } else if (communeCode) {
+        await loadRegionCommunes(regionCode, {
+          preserveCommune: communeCode,
+          preserveAddress: hadConfirmedAddress
+        });
+      } else if (communeSelect) {
+        communeCatalog = Array.from(communeSelect.options)
+          .filter((opt) => opt.value)
+          .map((opt) => ({ code: opt.value, name: opt.textContent.trim() }));
         communeSelect.disabled = false;
-        await loadCommune(communeCode);
-      } else {
-        communeSelect.disabled = false;
+        setCommuneSearchEnabled(true, communeCopy('searchPlaceholder'));
+        syncCommuneSearchFromSelect();
+        if (communeCode) {
+          await loadCommune(communeCode, { preserveAddress: hadConfirmedAddress });
+        }
       }
 
       if (savedAddress) addressInput.value = savedAddress;
+      if (latInput && savedLat) latInput.value = savedLat;
+      if (lngInput && savedLng) lngInput.value = savedLng;
+      if (placeInput && savedPlaceId) placeInput.value = savedPlaceId;
 
       const hasCoords = latInput && latInput.value && lngInput && lngInput.value;
       if (hasCoords && communeCode) {

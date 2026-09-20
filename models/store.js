@@ -3264,14 +3264,40 @@ async function registerUser({
   const fullAddr = withCommuneContext(addr, communeMeta.name);
   let geo;
   try {
-    geo = await geocodeAddress(fullAddr, { strict: true, communeName: communeMeta.name });
+    geo = await Promise.race([
+      geocodeAddress(fullAddr, { strict: true, communeName: communeMeta.name }),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('geocode_timeout')), 12000);
+      })
+    ]);
   } catch (err) {
     console.error('[registro] geocode:', err.message);
-    return { errorKey: 'register.error_address_timeout' };
+    if (err.message === 'geocode_timeout') {
+      // No tumbar el registro: el usuario ya fijó calle+número y pin en el mapa.
+      geo = {
+        found: true,
+        lat,
+        lng,
+        label: fullAddr,
+        placeId: (addressPlaceId || '').trim() || null,
+        approximate: true
+      };
+    } else {
+      return { errorKey: 'register.error_address_timeout' };
+    }
   }
   // En Chile OSM rara vez trae house_number: basta con que el usuario escribió calle+número
   // y obtuvimos una ubicación usable (calle o centro de comuna).
-  if (!geo.found) return { errorKey: 'register.error_address_street_number' };
+  if (!geo || !geo.found) {
+    geo = {
+      found: true,
+      lat,
+      lng,
+      label: fullAddr,
+      placeId: (addressPlaceId || '').trim() || null,
+      approximate: true
+    };
+  }
 
   let coordCheck;
   try {
@@ -3300,15 +3326,18 @@ async function registerUser({
 
   const coverage = buildCoverageResult(communeMeta, coverageMap);
   if (!coverage.covered) {
-    const providerBlocked = role === 'provider';
-    const errorKey = providerBlocked
-      ? 'coverage.provider_not_available'
-      : (coverage.messageKey || 'coverage.not_available');
-    return {
-      errorKey,
-      code: 'coverage',
-      coverage
-    };
+    // Clientes: sin cobertura no pueden registrarse en esa comuna.
+    // Socios: sí pueden (expansión / piloto); no bloquear creación ni verificación por email.
+    if (role !== 'provider') {
+      return {
+        errorKey: coverage.messageKey || 'coverage.not_available',
+        code: 'coverage',
+        coverage
+      };
+    }
+    console.warn(
+      `[registro] socio fuera de cobertura operativa: ${communeMeta.name} (${communeMeta.regionCode}/${communeMeta.code})`
+    );
   }
 
   resolvedAddress = unit.length >= 2
