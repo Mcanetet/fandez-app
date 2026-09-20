@@ -34,6 +34,14 @@
         <%= typeof okDetail === 'string' && okDetail ? okDetail : 'El técnico ya estaba registrado y se enlazó a tu empresa.' %>
       </div>
     <% } %>
+    <% if (typeof ok !== 'undefined' && ok === 'invited') { %>
+      <div class="mb-4 p-3 rounded-xl border border-zilo-success/30 bg-zilo-success/10 text-sm text-zilo-success">
+        <%= typeof okDetail === 'string' && okDetail ? okDetail : 'Invitación enviada al correo del técnico.' %>
+      </div>
+    <% } %>
+    <% if (typeof inviteWarn !== 'undefined' && inviteWarn) { %>
+      <div class="mb-4 p-3 rounded-xl border border-amber-300 bg-amber-50 text-sm text-amber-900"><%= inviteWarn %></div>
+    <% } %>
 
     <% if (typeof error !== 'undefined' && error) { %>
       <div class="mb-4 p-3 rounded-xl border border-zilo-danger/30 bg-zilo-danger/10 text-sm text-zilo-danger"><%= error %></div>

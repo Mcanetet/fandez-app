@@ -511,9 +511,11 @@ router.get('/equipo', requireRole('provider'), requireModule('provider_equipo'),
   let okMsg = null;
   if (req.query.ok === 'self') okMsg = 'self';
   if (req.query.ok === 'linked') okMsg = 'linked';
+  if (req.query.ok === 'invited') okMsg = 'invited';
   res.render('provider/equipo', equipoViewLocals(req, provider, {
     ok: okMsg,
-    okDetail: typeof req.query.msg === 'string' ? req.query.msg : null
+    okDetail: typeof req.query.msg === 'string' ? req.query.msg : null,
+    inviteWarn: typeof req.query.warn === 'string' ? req.query.warn : null
   }));
 });
 
@@ -610,7 +612,7 @@ router.post('/servicios', requireRole('provider'), requireModule('provider_equip
   res.json({ success: true, specialties: result.specialties, services: result.services });
 });
 
-router.post('/equipo/vincular', requireRole('provider'), requireModule('provider_equipo'), (req, res) => {
+router.post('/equipo/vincular', requireRole('provider'), requireModule('provider_equipo'), async (req, res) => {
   const result = store.linkTechnicianToProvider(req.session.user.id, {
     email: req.body.email,
     specialties: req.body.specialties
@@ -620,7 +622,23 @@ router.post('/equipo/vincular', requireRole('provider'), requireModule('provider
     return res.status(400).render('provider/equipo', equipoViewLocals(req, provider, { error: result.error }));
   }
   store.logSecurityEvent('tecnico_vinculado', result.tecnico.email, req);
-  res.redirect(`/proveedor/equipo?ok=linked&msg=${encodeURIComponent(result.message || 'Técnico enlazado')}`);
+  const provider = store.getUserById(req.session.user.id);
+  const invite = await require('../lib/technicianInvite').sendTechnicianInvite({
+    store,
+    tecnico: result.tecnico,
+    provider,
+    linked: true,
+    locale: req.locale || 'es'
+  });
+  const baseMsg = result.message || 'Técnico enlazado';
+  if (!invite.ok) {
+    return res.redirect(
+      `/proveedor/equipo?ok=linked&msg=${encodeURIComponent(baseMsg)}&warn=${encodeURIComponent('No pudimos enviar el correo de aviso al técnico. Revisa el correo o pide que revise spam.')}`
+    );
+  }
+  res.redirect(
+    `/proveedor/equipo?ok=linked&msg=${encodeURIComponent(`${baseMsg} Se envió un aviso a ${result.tecnico.email}.`)}`
+  );
 });
 
 router.post('/equipo', requireRole('provider'), requireModule('provider_equipo'), async (req, res) => {
@@ -639,15 +657,23 @@ router.post('/equipo', requireRole('provider'), requireModule('provider_equipo')
   }
 
   store.logSecurityEvent(result.linked ? 'tecnico_vinculado' : 'tecnico_creado', result.tecnico.email, req);
-  if (!result.linked) {
-    await store.issueEmailVerification(result.tecnico.id, { locale: req.locale || 'es' });
-  }
+  const provider = store.getUserById(req.session.user.id);
+  const invite = await require('../lib/technicianInvite').sendTechnicianInvite({
+    store,
+    tecnico: result.tecnico,
+    provider,
+    linked: Boolean(result.linked),
+    locale: req.locale || 'es'
+  });
+
   const isJson = req.xhr || (req.get('accept') || '').includes('application/json');
   if (isJson) {
     return res.json({
       success: true,
       linked: Boolean(result.linked),
       message: result.message || null,
+      inviteSent: Boolean(invite.ok),
+      inviteError: invite.ok ? null : (invite.error || 'mail_failed'),
       tecnico: {
         id: result.tecnico.id,
         name: result.tecnico.name,
@@ -659,10 +685,27 @@ router.post('/equipo', requireRole('provider'), requireModule('provider_equipo')
       }
     });
   }
+
   if (result.linked) {
-    return res.redirect(`/proveedor/equipo?ok=linked&msg=${encodeURIComponent(result.message || 'Técnico enlazado')}`);
+    const baseMsg = result.message || 'Técnico enlazado';
+    if (!invite.ok) {
+      return res.redirect(
+        `/proveedor/equipo?ok=linked&msg=${encodeURIComponent(baseMsg)}&warn=${encodeURIComponent('No pudimos enviar el correo de aviso al técnico.')}`
+      );
+    }
+    return res.redirect(
+      `/proveedor/equipo?ok=linked&msg=${encodeURIComponent(`${baseMsg} Se envió un aviso a ${result.tecnico.email}.`)}`
+    );
   }
-  res.redirect('/proveedor/equipo');
+
+  if (!invite.ok) {
+    return res.redirect(
+      `/proveedor/equipo?ok=invited&msg=${encodeURIComponent(`Técnico creado (${result.tecnico.email}), pero el correo de invitación no salió. Pídele que revise spam o vuelve a intentar.`)}&warn=${encodeURIComponent(invite.error || 'mail_failed')}`
+    );
+  }
+  res.redirect(
+    `/proveedor/equipo?ok=invited&msg=${encodeURIComponent(`Invitación enviada a ${result.tecnico.email}. Comparte también la contraseña que definiste.`)}`
+  );
 });
 
 router.post('/equipo/:id/claim-wall', requireRole('provider'), requireModule('provider_equipo'), (req, res) => {
