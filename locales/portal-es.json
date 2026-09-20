@@ -557,6 +557,8 @@
   "client.js.search_tip_5": "Si pasan {{minutes}} minutos sin asignación, te preguntamos si quieres seguir buscando o pedir devolución.",
   "client.js.search_cancelled": "La búsqueda fue cancelada.",
   "client.js.search_viewers": "{{count}} técnicos están viendo tu pedido",
+  "client.js.search_viewers_none": "Aún no hay socios en línea con este servicio. Seguimos buscando.",
+  "client.js.search_viewers_looking": "Buscando socios disponibles cerca de ti…",
   "client.js.no_provider_title": "Aún no encontramos un técnico para",
   "client.js.no_provider_body": "Han pasado {{minutes}} minutos y nadie ha tomado el pedido. ¿Quieres que sigamos buscando?",
   "client.js.no_provider_notify_title": "¿Seguir buscando?",

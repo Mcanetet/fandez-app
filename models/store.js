@@ -1500,11 +1500,47 @@ function beginSearchingRequest(request, { persist = true } = {}) {
   request.status = 'searching';
   request.searchingAt = nowIso;
   if (!request.scheduledSearchAt) request.scheduledSearchAt = nowIso;
+  // Servicios nuevos (p. ej. limpieza): asegurar que socios operativos los vean en el muro.
+  broadenSpecialtyForOpenRequest(request.serviceId);
   if (persist) {
     repository.persist(() => repository.saveRequest(request), `solicitud ${request.id}`);
   }
   afterEvent((ev) => ev.onServiceSearching(request));
   return request;
+}
+
+/**
+ * Si un servicio del catálogo no está en las especialidades de socios que ya operan,
+ * lo agrega y sincroniza técnicos “yo hago el servicio” para que el muro no quede vacío.
+ */
+function broadenSpecialtyForOpenRequest(serviceId) {
+  const sid = String(serviceId || '').trim();
+  if (!sid || !SERVICES.some((s) => s.id === sid && s.enabled !== false)) return 0;
+  let changed = 0;
+  for (const u of USERS) {
+    if (u.role !== 'provider' || u.active === false) continue;
+    if (!Array.isArray(u.specialties)) u.specialties = [];
+    if (u.specialties.includes(sid)) continue;
+    const hasAnyCoverage = u.specialties.some((spec) => hasTechnicianCoverage(u.id, spec));
+    if (!hasAnyCoverage) continue;
+    u.specialties = [...u.specialties, sid];
+    syncTechniciansToProviderServices(u.id);
+    repository.persist(() => repository.saveUser(u), `especialidad abierta ${sid} ${u.id}`);
+    changed += 1;
+  }
+  return changed;
+}
+
+function getSearchAudienceForRequest(requestId) {
+  const eligible = getEligibleProvidersForRequest(requestId);
+  const online = eligible.filter((p) => p.online);
+  const techOnline = online.reduce((n, p) => n + (p.readyTechs?.length || 0), 0);
+  return {
+    eligibleProviders: eligible.length,
+    onlineProviders: online.length,
+    onlineTechnicians: techOnline,
+    viewers: Math.max(online.length, techOnline)
+  };
 }
 
 function activateRequest(requestId) {
@@ -4618,6 +4654,12 @@ function getOnlineTechnicians(serviceId) {
 function getWorkWallItems(userId) {
   recoverAutoApprovedTransfers();
   promoteDueScheduledSearches();
+  // Pedidos ya en búsqueda de servicios nuevos (p. ej. limpieza): abrir especialidad a socios operativos.
+  for (const r of requests) {
+    if (r.status === 'searching' && isRequestPaymentApproved(r) && !r.providerId) {
+      broadenSpecialtyForOpenRequest(r.serviceId);
+    }
+  }
   const user = getUserById(userId);
   if (!user || !['provider', 'tecnico'].includes(user.role)) return [];
   const specs = user.specialties || [];
@@ -6841,7 +6883,10 @@ function enrichRequestForClient(request, locale = 'es') {
     ),
     awaitingProviderReassign: Boolean(request.awaitingProviderReassign),
     canCallTechnician,
-    visitTeam: getClientVisitTeam(request)
+    visitTeam: getClientVisitTeam(request),
+    searchAudience: request.status === 'searching' && !request.providerId
+      ? getSearchAudienceForRequest(request.id)
+      : null
   };
 }
 
@@ -8441,6 +8486,8 @@ module.exports = {
   confirmServiceSame,
   assignProvider,
   getEligibleProvidersForRequest,
+  getSearchAudienceForRequest,
+  broadenSpecialtyForOpenRequest,
   getAdminDispatchQueue,
   getOperationalDiagnostics,
   updateRequestStatus,

@@ -404,11 +404,11 @@
       </div>
     </div>
 
-    <div id="loaderOverlay" class="hidden fixed inset-0 z-[200] search-overlay flex items-start sm:items-center justify-center overflow-y-auto py-5 sm:py-6">
+    <div id="loaderOverlay" class="hidden fixed inset-0 z-[200] search-overlay flex items-start sm:items-center justify-center overflow-y-auto overscroll-contain">
       <div class="search-overlay-orb search-overlay-orb-a" aria-hidden="true"></div>
       <div class="search-overlay-orb search-overlay-orb-b" aria-hidden="true"></div>
       <div class="search-overlay-grid" aria-hidden="true"></div>
-      <div class="relative text-center px-4 max-w-sm w-full" id="searchExperience" data-timeout-ms="<%= (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) * 60 * 1000 %>">
+      <div class="relative text-center px-4 pt-2 pb-6 max-w-sm w-full" id="searchExperience" data-timeout-ms="<%= (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) * 60 * 1000 %>">
         <% const carouselServices = (typeof catalogServices !== 'undefined' && catalogServices.length)
           ? catalogServices
           : [service]; %>

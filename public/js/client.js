@@ -754,6 +754,26 @@
   let searchTipIndex = 0;
   let searchTimeoutTriggered = false;
   let paymentConfirmPoll = null;
+  let lastSearchAudience = null;
+
+  function updateSearchViewersHint(audience) {
+    const viewersEl = document.getElementById('searchViewersHint');
+    if (!viewersEl) return;
+    if (audience && typeof audience.viewers === 'number') {
+      lastSearchAudience = audience;
+    }
+    const viewers = lastSearchAudience && typeof lastSearchAudience.viewers === 'number'
+      ? lastSearchAudience.viewers
+      : null;
+    if (viewers == null) {
+      viewersEl.textContent = t('client.js.search_viewers_looking');
+    } else if (viewers <= 0) {
+      viewersEl.textContent = t('client.js.search_viewers_none');
+    } else {
+      viewersEl.textContent = t('client.js.search_viewers', { count: String(viewers) });
+    }
+    viewersEl.classList.remove('hidden');
+  }
 
   function clearPaymentConfirmPoll() {
     if (paymentConfirmPoll) {
@@ -889,16 +909,10 @@
     const titleEl = document.getElementById('loaderText');
     const subEl = document.getElementById('loaderSub');
     const labelEl = document.getElementById('searchPhaseLabel');
-    const viewersEl = document.getElementById('searchViewersHint');
     if (titleEl) titleEl.textContent = t(phase.title);
     if (subEl) subEl.textContent = t(phase.sub);
     if (labelEl) labelEl.textContent = t(phase.label);
-    if (viewersEl) {
-      const mins = Math.max(1, Math.floor(elapsedMs / 60000) + 1);
-      const viewers = Math.min(12, 2 + mins);
-      viewersEl.textContent = t('client.js.search_viewers', { count: String(viewers) });
-      viewersEl.classList.remove('hidden');
-    }
+    updateSearchViewersHint();
     updateSearchProgress(elapsedMs);
     if (!isFirstPaint && window.FandezAlerts) {
       FandezAlerts.notify({
@@ -972,12 +986,14 @@
   function startSearchExperience(request) {
     stopSearchExperience();
     searchTimeoutTriggered = false;
+    lastSearchAudience = request?.searchAudience || null;
     fillSearchOrderSummary(request);
     syncSearchStartFromRequest(request);
     if (!searchStartedAt) searchStartedAt = Date.now();
     searchTipIndex = 0;
     const tipEl = document.getElementById('searchTipText');
     if (tipEl) tipEl.textContent = t(SEARCH_TIPS[0], { minutes: String(SEARCH_TIMEOUT_MINUTES) });
+    updateSearchViewersHint(request?.searchAudience);
     applySearchPhase(Date.now() - searchStartedAt);
     searchTimerInterval = setInterval(() => {
       const elapsed = Date.now() - searchStartedAt;
@@ -2558,6 +2574,7 @@
         }
         if (data.request?.status === 'searching') {
           hideScheduledPanel();
+          if (data.request.searchAudience) updateSearchViewersHint(data.request.searchAudience);
           if (loaderOverlay?.classList.contains('hidden')) {
             loaderOverlay.classList.remove('hidden');
             startSearchExperience(data.request);

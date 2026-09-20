@@ -513,6 +513,8 @@
   "client.js.search_tip_5": "If {{minutes}} minutes pass with no assignment, we ask if you want to keep searching or request a refund.",
   "client.js.search_cancelled": "The search was cancelled.",
   "client.js.search_viewers": "{{count}} technicians are viewing your request",
+  "client.js.search_viewers_none": "No partners are online for this service yet. We keep searching.",
+  "client.js.search_viewers_looking": "Looking for available partners near you…",
   "client.js.no_provider_title": "We still have not found a technician for",
   "client.js.no_provider_body": "{{minutes}} minutes have passed and no one has taken the order. Do you want us to keep searching?",
   "client.js.no_provider_notify_title": "Keep searching?",
