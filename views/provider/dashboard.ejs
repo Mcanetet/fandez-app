@@ -53,7 +53,12 @@
     <% } %>
 
     <% if (mod('provider_online')) { %>
-    <section data-tour="online" class="flex items-center justify-between p-5 rounded-2xl zilo-card-premium mb-4 zilo-page-enter-delay-1 <%= typeof canGoOnline !== 'undefined' && !canGoOnline ? 'opacity-90' : '' %>">
+    <section data-tour="online" class="flex items-center justify-between p-5 rounded-2xl zilo-card-premium mb-4 zilo-page-enter-delay-1 <%= typeof canGoOnline !== 'undefined' && !canGoOnline ? 'opacity-90' : '' %>"
+      <% if (typeof canGoOnline !== 'undefined' && !canGoOnline && !provider.online) { %>
+      data-online-blocked="1"
+      data-online-missing="<%= (verificationCheck?.missing || []).join('|') %>"
+      <% } %>
+    >
       <div class="flex items-center gap-3">
         <div id="statusDot" class="w-3 h-3 rounded-full <%= provider.online ? 'bg-zilo-success animate-pulse' : 'bg-zilo-muted/40' %>"></div>
         <div>

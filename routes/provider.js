@@ -259,6 +259,10 @@ router.post('/toggle-online', requireRole('provider'), requireModule('provider_o
         redirect: '/proveedor/perfil#verificacion'
       });
     }
+    // Ir en línea implica compartir ubicación operativa.
+    if (!provider.locationShare?.consent && typeof store.setLocationConsent === 'function') {
+      store.setLocationConsent(provider.id, true);
+    }
   }
 
   store.setProviderOnline(provider.id, online);

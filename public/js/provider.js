@@ -878,6 +878,15 @@
     }
   });
 
+  document.querySelector('[data-tour="online"][data-online-blocked]')?.addEventListener('click', () => {
+    const section = document.querySelector('[data-tour="online"][data-online-blocked]');
+    const missing = (section?.dataset.onlineMissing || '').split('|').filter(Boolean);
+    const msg = missing.length
+      ? FandezI18n.t('js.verification_missing', { items: missing.join(', ') })
+      : FandezI18n.t('provider.activation.complete_first');
+    FandezNotify.show(msg, 'warning');
+  });
+
   document.getElementById('btnRefreshWall')?.addEventListener('click', () => {
     loadWorkWall();
     workWall?.scrollIntoView({ behavior: 'smooth', block: 'start' });

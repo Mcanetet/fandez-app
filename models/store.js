@@ -2512,24 +2512,47 @@ function computeVerificationStatus(provider) {
   return 'incomplete';
 }
 
+function syncProviderKycAfterContractApproval(provider) {
+  ensureProviderFields(provider);
+  const c = provider.providerContract || {};
+  const docs = c.documents || {};
+  const frontUrl = docs.rep_id_front?.url || provider.verification.idCardFront;
+  const backUrl = docs.rep_id_back?.url || provider.verification.idCardBack;
+  if (frontUrl) provider.verification.idCardFront = frontUrl;
+  if (backUrl) provider.verification.idCardBack = backUrl;
+  // Aprobación humana del expediente = identidad validada para operar.
+  if (!provider.verification.faceVerified) {
+    provider.verification.faceVerified = true;
+    provider.verification.faceVerifiedAt = provider.verification.faceVerifiedAt || new Date().toISOString();
+    provider.verification.faceScore = provider.verification.faceScore || 1;
+  }
+  if (!provider.locationShare.consent) {
+    provider.locationShare.consent = true;
+    provider.locationShare.consentAt = provider.locationShare.consentAt || new Date().toISOString();
+  }
+  provider.verification.status = computeVerificationStatus(provider);
+  return provider;
+}
+
 function canProviderGoOnline(provider) {
   ensureProviderFields(provider);
   const v = provider.verification;
   const missing = [];
   if (!provider.phone?.trim()) missing.push('teléfono');
   if (!provider.email?.trim()) missing.push('correo electrónico');
-  if (!v.idCardFront) missing.push('carnet (frente)');
-  if (!v.idCardBack) missing.push('carnet (reverso)');
-  if (!v.faceVerified) missing.push('verificación facial');
-  if (!provider.locationShare.consent) missing.push('permiso de ubicación');
   const contractSummary = getContractSummary(provider.providerContract);
   if (!contractSummary.canOperate) {
+    if (!v.idCardFront) missing.push('carnet (frente)');
+    if (!v.idCardBack) missing.push('carnet (reverso)');
+    if (!v.faceVerified) missing.push('verificación facial');
+    if (!provider.locationShare.consent) missing.push('permiso de ubicación');
     if (contractSummary.status === 'pending_review') missing.push('contrato en revisión legal');
     else if (contractSummary.status === 'rejected') missing.push('contrato rechazado — escribe a soporte@fandez.cl');
     else if (contractSummary.status === 'needs_info') missing.push('contrato — antecedentes pendientes');
     else if (contractSummary.status === 'expired') missing.push('contrato vencido — renovar');
     else missing.push('contrato de socio firmado y aprobado');
   }
+  // Contrato aprobado por admin = listo para operar: no bloquear por selfie/ubicación.
   return { ok: missing.length === 0, missing, contract: contractSummary };
 }
 
@@ -3087,6 +3110,7 @@ function reviewProviderContract(providerId, { action, notes, rejectionReason, re
     }
     provider.providerContract = buildApprovedContract(provider, adminEmail);
     provider.active = true;
+    syncProviderKycAfterContractApproval(provider);
   } else if (action === 'reject') {
     c.status = 'rejected';
     c.review = {
