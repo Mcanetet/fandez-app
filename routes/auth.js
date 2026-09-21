@@ -1093,10 +1093,14 @@ router.post('/activar-tecnico/:token', rateLimitLogin(10), async (req, res) => {
   }
 
   const phone = String(req.body.phone || '').trim();
-  if (phone) {
-    tecnico.phone = phone.slice(0, 32);
-    try { await require('../models/repository').saveUser(tecnico); } catch (_) { /* ignore */ }
+  if (!phone || phone.length < 8) {
+    return renderErr('Ingresa tu teléfono o WhatsApp.', {
+      email: tecnico.email,
+      providerName: provider?.name
+    });
   }
+  tecnico.phone = phone.slice(0, 32);
+  try { await require('../models/repository').saveUser(tecnico); } catch (_) { /* ignore */ }
 
   if (!store.isEmailVerified(tecnico)) {
     await store.forceVerifyEmail(tecnico.id, { actorId: tecnico.id });
