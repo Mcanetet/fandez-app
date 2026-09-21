@@ -1377,6 +1377,138 @@ body.session-role--tecnico::before {
 .provider-home-fold[open] > summary .provider-home-fold__chevron {
   transform: rotate(180deg);
 }
+
+/* Técnico · alertas compactas bajo cabecera */
+.tech-header-alerts:empty { display: none; padding: 0; }
+.tech-header-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.65rem;
+  border: 1px solid transparent;
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.tech-header-alert__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.tech-header-alert__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.tech-header-alert__cta {
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.tech-header-alert--docs {
+  color: #7a3410;
+  background: rgba(196, 92, 20, 0.1);
+  border-color: rgba(196, 92, 20, 0.28);
+}
+.tech-header-alert--docs .tech-header-alert__icon {
+  color: #c45c14;
+  background: rgba(196, 92, 20, 0.14);
+}
+.tech-header-alert--gps {
+  color: #1e3a5f;
+  background: rgba(61, 90, 128, 0.1);
+  border-color: rgba(61, 90, 128, 0.28);
+}
+.tech-header-alert--gps .tech-header-alert__icon {
+  color: #3d5a80;
+  background: rgba(61, 90, 128, 0.14);
+}
+.tech-header-alert--gps-on {
+  color: #1e4a36;
+  background: rgba(47, 107, 79, 0.1);
+  border-color: rgba(47, 107, 79, 0.28);
+  cursor: default;
+}
+.tech-header-alert--gps-on .tech-header-alert__icon {
+  color: #2f6b4f;
+  background: rgba(47, 107, 79, 0.14);
+}
+
+/* Selector Cámara / Archivos — más contenido, menos chrome */
+.fandez-media-pick {
+  margin-top: 0.15rem;
+}
+.fandez-media-pick__row {
+  display: grid;
+  gap: 0.5rem;
+}
+.fandez-media-pick__row--2 { grid-template-columns: 1fr 1fr; }
+.fandez-media-pick__row--1 { grid-template-columns: 1fr; }
+.fandez-media-pick__opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 4.25rem;
+  padding: 0.65rem 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(224, 215, 204, 0.95);
+  background: linear-gradient(180deg, #fff 0%, #faf8f5 100%);
+  color: var(--zilo-text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.fandez-media-pick__opt:hover {
+  border-color: rgba(196, 92, 20, 0.35);
+  box-shadow: 0 4px 14px rgba(28, 25, 23, 0.05);
+}
+.fandez-media-pick__opt:focus-within {
+  outline: 2px solid rgba(196, 92, 20, 0.35);
+  outline-offset: 2px;
+}
+.fandez-media-pick__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 0.7rem;
+  color: #8a5a3a;
+  background: rgba(196, 92, 20, 0.1);
+}
+.fandez-media-pick__opt--files .fandez-media-pick__glyph {
+  color: #3d5a80;
+  background: rgba(61, 90, 128, 0.1);
+}
+.fandez-media-pick__label {
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+.fandez-media-pick__hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.625rem;
+  color: var(--zilo-muted);
+  line-height: 1.35;
+}
 .app-session-header__meta {
   min-width: 0;
   flex: 1 1 auto;

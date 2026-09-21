@@ -204,23 +204,27 @@
       input.removeAttribute('capture');
 
       const wrap = document.createElement('div');
-      wrap.className = 'fandez-media-pick space-y-1.5';
+      wrap.className = 'fandez-media-pick';
       wrap.dataset.mediaPick = id;
       wrap.innerHTML = `
-        <div class="grid ${allowCamera ? 'grid-cols-2' : 'grid-cols-1'} gap-2">
+        <div class="fandez-media-pick__row ${allowCamera ? 'fandez-media-pick__row--2' : 'fandez-media-pick__row--1'}">
           ${allowCamera ? `
-          <label class="inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] px-2 rounded-xl border border-zilo-border bg-white text-xs font-semibold text-zilo-text cursor-pointer">
-            <svg class="w-4 h-4 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            Cámara
+          <label class="fandez-media-pick__opt fandez-media-pick__opt--camera">
+            <span class="fandez-media-pick__glyph" aria-hidden="true">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="3.5"/></svg>
+            </span>
+            <span class="fandez-media-pick__label">Cámara</span>
             <input type="file" accept="image/*" capture="environment" class="sr-only fandez-media-src" data-for="${id}" data-src="camera" tabindex="-1">
           </label>` : ''}
-          <label class="inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] px-2 rounded-xl border border-zilo-border bg-white text-xs font-semibold text-zilo-text cursor-pointer">
-            <svg class="w-4 h-4 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            Archivos
+          <label class="fandez-media-pick__opt fandez-media-pick__opt--files">
+            <span class="fandez-media-pick__glyph" aria-hidden="true">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+            </span>
+            <span class="fandez-media-pick__label">Archivos</span>
             <input type="file" accept="${accept.replace(/"/g, '&quot;')}" class="sr-only fandez-media-src" data-for="${id}" data-src="files" tabindex="-1">
           </label>
         </div>
-        <p class="text-[10px] text-zilo-muted" data-role="pick-status">${allowCamera ? 'Elige Cámara o Archivos (galería / documentos).' : 'Elige un archivo desde tu dispositivo.'}</p>
+        <p class="fandez-media-pick__hint" data-role="pick-status">${allowCamera ? 'Foto directa o desde la galería.' : 'Elige un archivo desde tu dispositivo.'}</p>
       `;
       input.parentNode.insertBefore(wrap, input);
       wrap.insertBefore(input, wrap.firstChild);

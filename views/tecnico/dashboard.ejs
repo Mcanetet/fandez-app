@@ -4,11 +4,18 @@
   const doneJobs = Array.isArray(completedJobs) ? completedJobs : [];
   const showWall = Boolean(canClaimWall);
   const urgentCount = activeJobs.filter((j) => ['asignado', 'aceptado', 'en_camino', 'en_sitio'].includes(j.techStatus)).length;
+  const techVer = (!tecnico.isSelfOperator && tecnico.verification) ? tecnico.verification : {};
+  const dossier = (typeof dossierCheck !== 'undefined' && dossierCheck) ? dossierCheck : { ok: true, missing: [] };
+  const docsMissing = !tecnico.isSelfOperator && !dossier.ok;
+  const docsMissingLabel = (dossier.missing && dossier.missing.length)
+    ? dossier.missing.join(', ')
+    : 'documentos del expediente';
 %>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="tecnicoPage"
   data-tecnico-id="<%= tecnico.id %>"
-  data-can-claim-wall="<%= showWall ? '1' : '0' %>">
+  data-can-claim-wall="<%= showWall ? '1' : '0' %>"
+  data-docs-missing="<%= docsMissing ? '1' : '0' %>">
   <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
     <div class="app-session-header__row">
       <div class="app-session-header__identity">
@@ -24,6 +31,30 @@
         <% } %>
         <%- include('../partials/lang-switcher') %>
         <%- include('../partials/logout-btn', { withLabel: true }) %>
+      </div>
+    </div>
+    <div class="tech-header-alerts px-3 pb-2.5 space-y-1.5" id="techHeaderAlerts" aria-live="polite">
+      <% if (docsMissing) { %>
+      <a href="#techDocsSection" class="tech-header-alert tech-header-alert--docs">
+        <span class="tech-header-alert__icon" aria-hidden="true">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15h6"/></svg>
+        </span>
+        <span class="tech-header-alert__text">Falta expediente: <%= docsMissingLabel %></span>
+        <span class="tech-header-alert__cta">Subir</span>
+      </a>
+      <% } %>
+      <button type="button" id="techGpsAlert" class="tech-header-alert tech-header-alert--gps" hidden>
+        <span class="tech-header-alert__icon" aria-hidden="true">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </span>
+        <span class="tech-header-alert__text" data-role="gps-text"><%= t('tecnico.js.enable_gps') %></span>
+        <span class="tech-header-alert__cta" data-role="gps-cta">Activar</span>
+      </button>
+      <div id="techGpsActive" class="tech-header-alert tech-header-alert--gps-on" hidden>
+        <span class="tech-header-alert__icon" aria-hidden="true">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </span>
+        <span class="tech-header-alert__text">GPS activo · compartiendo ubicación</span>
       </div>
     </div>
   </header>
@@ -44,88 +75,23 @@
     </section>
 
     <% if (urgentCount > 0) { %>
-      <div class="px-3 py-2 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-semibold">
-        Tienes <%= urgentCount %> visita<%= urgentCount === 1 ? '' : 's' %> que requieren acción (aceptar, ir o marcar llegada).
+      <div class="px-3 py-2 rounded-xl border border-amber-200/80 bg-amber-50/90 text-amber-900 text-[11px] font-semibold leading-snug">
+        <%= urgentCount %> visita<%= urgentCount === 1 ? '' : 's' %> con acción pendiente (aceptar, ir o marcar llegada).
       </div>
     <% } %>
 
-    <% if (!tecnico.isSelfOperator) { %>
-      <% const v = tecnico.verification || {}; %>
-      <% const check = typeof dossierCheck !== 'undefined' ? dossierCheck : { ok: false, missing: [] }; %>
-      <section class="zilo-card-premium rounded-2xl p-4 space-y-3" id="techDocsSection"
-        data-has-front="<%= v.idCardFront ? '1' : '0' %>"
-        data-has-back="<%= v.idCardBack ? '1' : '0' %>">
-        <div>
-          <p class="zilo-label mb-0.5">Tu carnet</p>
-          <p class="text-xs text-zilo-muted">Solo subes el carnet (frente y reverso). El certificado de antecedentes lo carga tu socio.</p>
-        </div>
-        <% if (check.ok) { %>
-          <p class="text-xs text-zilo-success font-medium">Expediente listo para trabajar</p>
-        <% } else { %>
-          <p class="text-xs text-amber-800">Falta: <%= (check.missing || []).join(', ') || 'documentos' %>.</p>
-        <% } %>
-        <div class="grid grid-cols-1 gap-3">
-          <div>
-            <div class="flex items-center justify-between gap-2 mb-1">
-              <label class="text-xs font-medium">Carnet — frente</label>
-              <% if (v.idCardFront) { %>
-                <a href="/media/technician/<%= tecnico.id %>/doc/idCardFront" target="_blank" rel="noopener" class="text-[10px] text-zilo-accent font-semibold">Ver</a>
-              <% } else { %>
-                <span class="text-[10px] text-amber-600">Pendiente</span>
-              <% } %>
-            </div>
-            <input type="file" id="techDocFront" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" data-pick="both" class="block w-full text-xs">
-            <button type="button" data-tech-doc="idCardFront" class="mt-2 w-full zilo-btn-ghost !py-2 !text-xs">Subir frente</button>
-          </div>
-          <div>
-            <div class="flex items-center justify-between gap-2 mb-1">
-              <label class="text-xs font-medium">Carnet — reverso</label>
-              <% if (v.idCardBack) { %>
-                <a href="/media/technician/<%= tecnico.id %>/doc/idCardBack" target="_blank" rel="noopener" class="text-[10px] text-zilo-accent font-semibold">Ver</a>
-              <% } else { %>
-                <span class="text-[10px] text-amber-600">Pendiente</span>
-              <% } %>
-            </div>
-            <input type="file" id="techDocBack" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" data-pick="both" class="block w-full text-xs">
-            <button type="button" data-tech-doc="idCardBack" class="mt-2 w-full zilo-btn-ghost !py-2 !text-xs">Subir reverso</button>
-          </div>
-        </div>
-      </section>
-    <% } %>
-
-    <% if (showWall) { %>
-    <details class="zilo-card-premium rounded-2xl overflow-hidden group" id="sectionWall" data-tour="tech-wall" <%= tecnico.online ? 'open' : '' %>>
-      <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
-        <div class="min-w-0">
-          <p class="zilo-label !text-[9px] mb-0.5">Disponibles</p>
-          <strong class="text-sm">Pedidos sin asignación</strong>
-          <p class="text-[11px] text-zilo-muted mt-0.5">Muro · tu socio te autorizó a tomarlos</p>
-        </div>
-        <span id="techWorkWallCount" class="text-xs font-bold text-zilo-accent tabular-nums shrink-0">0</span>
-      </summary>
-      <div class="px-4 pb-4 border-t border-zilo-border/70 pt-3">
-        <div id="techWorkWallEmpty" class="zilo-empty !py-6 rounded-xl border border-dashed border-zilo-border">
-          <p class="text-sm font-medium"><%= t('tecnico.dashboard.no_requests') %></p>
-          <p class="text-xs text-zilo-muted mt-1"><%= t('tecnico.wall_empty_sub') %></p>
-        </div>
-        <div id="techWorkWallList" class="tech-list-stack"></div>
-      </div>
-    </details>
-    <% } else { %>
-    <div class="p-4 rounded-2xl border border-zilo-border bg-zilo-bg/50" data-tour="tech-wall-locked">
-      <p class="text-sm font-semibold">Pedidos del muro</p>
-      <p class="text-xs text-zilo-muted mt-1">Tu socio no activó “Puede tomar pedidos”. Él te asignará las visitas desde su panel.</p>
-    </div>
-    <% } %>
-
-    <details class="zilo-card-premium rounded-2xl overflow-hidden" id="sectionActive" data-tour="tech-jobs" <%= activeJobs.length ? 'open' : '' %>>
+    <!-- 1) Pedidos asignados primero -->
+    <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold" id="sectionActive" data-tour="tech-jobs"<%= activeJobs.length ? ' open' : '' %>>
       <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
         <div class="min-w-0">
           <p class="zilo-label !text-[9px] mb-0.5"><%= t('provider.agenda.section_eyebrow') %></p>
           <strong class="text-sm"><%= t('tecnico.assigned_title') %></strong>
           <p class="text-[11px] text-zilo-muted mt-0.5"><%= t('provider.agenda.tech_sub') %></p>
         </div>
-        <span class="text-xs font-bold tabular-nums shrink-0 <%= activeJobs.length ? 'text-amber-700' : 'text-zilo-muted' %>"><%= activeJobs.length %></span>
+        <span class="flex items-center gap-2 shrink-0">
+          <span class="text-xs font-bold tabular-nums <%= activeJobs.length ? 'text-amber-700' : 'text-zilo-muted' %>"><%= activeJobs.length %></span>
+          <svg class="provider-home-fold__chevron w-4 h-4 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </span>
       </summary>
       <div class="px-4 pb-4 border-t border-zilo-border/70 pt-3 space-y-4">
         <% if (!activeJobs.length) { %>
@@ -208,14 +174,18 @@
       </div>
     </details>
 
-    <details class="zilo-card-premium rounded-2xl overflow-hidden" id="sectionDone" data-tour="tech-history">
+    <!-- 2) Pedidos hechos · siempre plegado -->
+    <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold" id="sectionDone" data-tour="tech-history">
       <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
         <div class="min-w-0">
           <p class="zilo-label !text-[9px] mb-0.5">Historial</p>
           <strong class="text-sm">Trabajos hechos</strong>
           <p class="text-[11px] text-zilo-muted mt-0.5">Solo resumen · sin fotos pesadas</p>
         </div>
-        <span class="text-xs font-bold text-zilo-muted tabular-nums shrink-0"><%= doneJobs.length %></span>
+        <span class="flex items-center gap-2 shrink-0">
+          <span class="text-xs font-bold text-zilo-muted tabular-nums"><%= doneJobs.length %></span>
+          <svg class="provider-home-fold__chevron w-4 h-4 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </span>
       </summary>
       <div class="px-4 pb-4 border-t border-zilo-border/70 pt-3">
         <% if (!doneJobs.length) { %>
@@ -241,8 +211,89 @@
       </div>
     </details>
 
-    <details class="rounded-2xl border border-zilo-border/60 p-4">
-      <summary class="text-xs font-semibold cursor-pointer text-zilo-muted">Seguridad de la cuenta</summary>
+    <!-- 3) Muro (opcional) · plegado si hay asignados -->
+    <% if (showWall) { %>
+    <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold group" id="sectionWall" data-tour="tech-wall"<%= (!activeJobs.length && tecnico.online) ? ' open' : '' %>>
+      <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="zilo-label !text-[9px] mb-0.5">Disponibles</p>
+          <strong class="text-sm">Pedidos sin asignación</strong>
+          <p class="text-[11px] text-zilo-muted mt-0.5">Muro · tu socio te autorizó a tomarlos</p>
+        </div>
+        <span class="flex items-center gap-2 shrink-0">
+          <span id="techWorkWallCount" class="text-xs font-bold text-zilo-accent tabular-nums">0</span>
+          <svg class="provider-home-fold__chevron w-4 h-4 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </span>
+      </summary>
+      <div class="px-4 pb-4 border-t border-zilo-border/70 pt-3">
+        <div id="techWorkWallEmpty" class="zilo-empty !py-6 rounded-xl border border-dashed border-zilo-border">
+          <p class="text-sm font-medium"><%= t('tecnico.dashboard.no_requests') %></p>
+          <p class="text-xs text-zilo-muted mt-1"><%= t('tecnico.wall_empty_sub') %></p>
+        </div>
+        <div id="techWorkWallList" class="tech-list-stack"></div>
+      </div>
+    </details>
+    <% } else { %>
+    <div class="p-4 rounded-2xl border border-zilo-border bg-zilo-bg/50" data-tour="tech-wall-locked">
+      <p class="text-sm font-semibold">Pedidos del muro</p>
+      <p class="text-xs text-zilo-muted mt-1">Tu socio no activó “Puede tomar pedidos”. Él te asignará las visitas desde su panel.</p>
+    </div>
+    <% } %>
+
+    <% if (!tecnico.isSelfOperator) { %>
+      <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold" id="techDocsSection"
+        data-has-front="<%= techVer.idCardFront ? '1' : '0' %>"
+        data-has-back="<%= techVer.idCardBack ? '1' : '0' %>">
+        <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="zilo-label !text-[9px] mb-0.5">Expediente</p>
+            <strong class="text-sm">Tu carnet</strong>
+            <p class="text-[11px] text-zilo-muted mt-0.5">
+              <% if (docsMissing) { %>Falta subir frente y/o reverso<% } else { %>Expediente listo<% } %>
+            </p>
+          </div>
+          <span class="flex items-center gap-2 shrink-0">
+            <span class="text-[10px] font-semibold <%= docsMissing ? 'text-amber-700' : 'text-zilo-success' %>"><%= docsMissing ? 'Pendiente' : 'OK' %></span>
+            <svg class="provider-home-fold__chevron w-4 h-4 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
+        </summary>
+        <div class="px-4 pb-4 border-t border-zilo-border/70 pt-3 space-y-3">
+          <p class="text-xs text-zilo-muted">Solo subes el carnet (frente y reverso). El certificado de antecedentes lo carga tu socio.</p>
+          <div class="grid grid-cols-1 gap-4">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <label class="text-xs font-medium" for="techDocFront">Carnet — frente</label>
+                <% if (techVer.idCardFront) { %>
+                  <a href="/media/technician/<%= tecnico.id %>/doc/idCardFront" target="_blank" rel="noopener" class="text-[10px] text-zilo-accent font-semibold">Ver</a>
+                <% } else { %>
+                  <span class="text-[10px] text-amber-600">Pendiente</span>
+                <% } %>
+              </div>
+              <input type="file" id="techDocFront" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" data-pick="both" class="block w-full text-xs">
+              <button type="button" data-tech-doc="idCardFront" class="mt-2.5 w-full zilo-btn-ghost !py-2.5 !text-xs">Subir frente</button>
+            </div>
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <label class="text-xs font-medium" for="techDocBack">Carnet — reverso</label>
+                <% if (techVer.idCardBack) { %>
+                  <a href="/media/technician/<%= tecnico.id %>/doc/idCardBack" target="_blank" rel="noopener" class="text-[10px] text-zilo-accent font-semibold">Ver</a>
+                <% } else { %>
+                  <span class="text-[10px] text-amber-600">Pendiente</span>
+                <% } %>
+              </div>
+              <input type="file" id="techDocBack" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" data-pick="both" class="block w-full text-xs">
+              <button type="button" data-tech-doc="idCardBack" class="mt-2.5 w-full zilo-btn-ghost !py-2.5 !text-xs">Subir reverso</button>
+            </div>
+          </div>
+        </div>
+      </details>
+    <% } %>
+
+    <details class="rounded-2xl border border-zilo-border/60 p-4 provider-home-fold">
+      <summary class="text-xs font-semibold cursor-pointer text-zilo-muted list-none flex items-center justify-between gap-2">
+        <span>Seguridad de la cuenta</span>
+        <svg class="provider-home-fold__chevron w-4 h-4 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
       <div class="mt-3">
         <%- include('../partials/password-form') %>
       </div>
@@ -270,6 +321,14 @@
 <%- include('../partials/footer', { pageScript: '/js/tecnico.js', extraScripts: ['/js/image-upload.js'] }) %>
 <script src="/js/guide.js"></script>
 <script src="/js/map.js"></script>
+<script>
+(function () {
+  document.querySelectorAll('#sectionDone, #techDocsSection').forEach(function (el) {
+    if (location.hash && el.id && location.hash === '#' + el.id) el.open = true;
+    else el.open = false;
+  });
+})();
+</script>
 <% if (typeof linkedProvider !== 'undefined' && linkedProvider) { %>
 <script>
   document.getElementById('btnBackToProvider')?.addEventListener('click', async () => {
