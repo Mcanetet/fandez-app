@@ -742,65 +742,61 @@
     });
   });
 
-  // Alertas compactas bajo cabecera: GPS (azul) vs docs (ámbar, server-side)
+  // Alertas compactas bajo cabecera: GPS (azul/verde) vs docs (ámbar, server-side)
   (function setupGpsHeaderAlert() {
     const needEl = document.getElementById('techGpsAlert');
     const onEl = document.getElementById('techGpsActive');
     if (!needEl && !onEl) return;
 
-    function showNeed(show) {
-      if (needEl) needEl.hidden = !show;
-      if (show && onEl) onEl.hidden = true;
-    }
-    function showOn(show) {
-      if (onEl) onEl.hidden = !show;
-      if (show && needEl) needEl.hidden = true;
+    function setGpsState(state) {
+      // 'need' | 'on' | 'none'
+      if (needEl) needEl.hidden = state !== 'need';
+      if (onEl) onEl.hidden = state !== 'on';
     }
 
     async function syncGpsAlert() {
       if (!navigator.geolocation) {
-        showNeed(true);
-        if (needEl) {
-          const text = needEl.querySelector('[data-role="gps-text"]');
-          if (text) text.textContent = 'Este dispositivo no tiene GPS';
-          const cta = needEl.querySelector('[data-role="gps-cta"]');
-          if (cta) cta.hidden = true;
-        }
+        setGpsState('need');
+        const text = needEl?.querySelector('[data-role="gps-text"]');
+        if (text) text.textContent = 'Este dispositivo no tiene GPS';
+        const cta = needEl?.querySelector('[data-role="gps-cta"]');
+        if (cta) cta.hidden = true;
         return;
       }
       try {
         if (navigator.permissions?.query) {
           const status = await navigator.permissions.query({ name: 'geolocation' });
           if (status.state === 'granted') {
-            showOn(true);
+            setGpsState('on');
             return;
           }
           if (status.state === 'denied') {
-            showNeed(true);
+            setGpsState('need');
             const text = needEl?.querySelector('[data-role="gps-text"]');
             if (text) text.textContent = 'GPS bloqueado · actívalo en ajustes del navegador';
             return;
           }
         }
       } catch (_) { /* Safari puede no soportar permissions.query */ }
-      showNeed(true);
+      setGpsState('need');
     }
 
     needEl?.addEventListener('click', () => {
       if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
         () => {
-          showOn(true);
+          setGpsState('on');
           notify(t('tecnico.js.sharing_location') || 'Ubicación activa', 'success');
         },
         () => {
-          showNeed(true);
+          setGpsState('need');
           notify(t('tecnico.js.enable_gps'), 'warning');
         },
         { enableHighAccuracy: true, timeout: 12000, maximumAge: 5000 }
       );
     });
 
+    setGpsState('none');
     syncGpsAlert();
   })();
 })();
