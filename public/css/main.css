@@ -1379,7 +1379,11 @@ body.session-role--tecnico::before {
 }
 
 /* Técnico · alertas compactas bajo cabecera */
-.tech-header-alerts:empty { display: none; padding: 0; }
+.tech-header-alerts:empty,
+.tech-header-alerts:not(:has(> :not([hidden]))) {
+  display: none;
+  padding: 0 !important;
+}
 .tech-header-alert {
   display: flex;
   align-items: center;
@@ -1514,7 +1518,15 @@ body.session-role--tecnico::before {
 }
 
 .tech-job-hero {
-  padding: 1rem 1rem 1.1rem;
+  padding: 1rem 1rem 1.15rem;
+}
+.tech-job-hero__eyebrow {
+  margin: 0 0 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--zilo-accent);
 }
 .tech-job-hero .tech-list-card__actions--step {
   margin-top: 0.85rem;
@@ -1530,6 +1542,36 @@ body.session-role--tecnico::before {
 .tech-list-card__actions--step .flex-1 {
   flex: none;
   width: 100%;
+}
+.tech-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem; /* 52px */
+  padding: 0.9rem 1rem;
+  font-size: 1.0625rem; /* ~17px */
+  line-height: 1.2;
+}
+.tech-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem; /* 48px */
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.2;
+}
+#tecnicoPage .tech-home-main {
+  font-size: 0.9375rem;
+}
+#tecnicoPage .tech-header-alert__text {
+  font-size: 0.8125rem;
+}
+#tecnicoPage .tech-online-bar {
+  min-height: 3.25rem;
+}
+#tecnicoPage .provider-home-fold > summary {
+  min-height: 3.25rem;
 }
 .app-session-header__meta {
   min-width: 0;

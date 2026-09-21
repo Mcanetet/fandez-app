@@ -39,7 +39,7 @@
         <span class="tech-header-alert__icon" aria-hidden="true">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15h6"/></svg>
         </span>
-        <span class="tech-header-alert__text">Falta expediente: <%= docsMissingLabel %></span>
+        <span class="tech-header-alert__text">Falta tu carnet — súbelo para trabajar</span>
         <span class="tech-header-alert__cta">Subir</span>
       </a>
       <% } %>
@@ -47,28 +47,22 @@
         <span class="tech-header-alert__icon" aria-hidden="true">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
         </span>
-        <span class="tech-header-alert__text" data-role="gps-text"><%= t('tecnico.js.enable_gps') %></span>
+        <span class="tech-header-alert__text" data-role="gps-text">Activa la ubicación para trabajar</span>
         <span class="tech-header-alert__cta" data-role="gps-cta">Activar</span>
       </button>
-      <div id="techGpsActive" class="tech-header-alert tech-header-alert--gps-on" hidden>
-        <span class="tech-header-alert__icon" aria-hidden="true">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        </span>
-        <span class="tech-header-alert__text">GPS activo · compartiendo ubicación</span>
-      </div>
     </div>
   </header>
 
-  <main class="flex-1 px-5 py-5 pb-10 space-y-3">
-    <section class="flex items-center justify-between p-4 rounded-2xl zilo-card-premium" data-tour="tech-online">
-      <div class="flex items-center gap-3 min-w-0">
-        <div id="techStatusDot" class="w-3 h-3 rounded-full shrink-0 <%= tecnico.online ? 'bg-zilo-success animate-pulse' : 'bg-zilo-muted/40' %>"></div>
+  <main class="flex-1 px-5 py-5 pb-10 space-y-3 tech-home-main">
+    <section class="tech-online-bar flex items-center justify-between gap-3 px-3.5 py-3 rounded-2xl zilo-card-premium" data-tour="tech-online">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div id="techStatusDot" class="w-2.5 h-2.5 rounded-full shrink-0 <%= tecnico.online ? 'bg-zilo-success animate-pulse' : 'bg-zilo-muted/40' %>"></div>
         <div class="min-w-0">
-          <h2 id="techStatusText" class="font-semibold text-sm"><%= tecnico.online ? t('tecnico.online') : t('tecnico.offline') %></h2>
-          <p id="techStatusSub" class="text-xs text-zilo-muted truncate"><%= tecnico.online ? t('tecnico.online_sub') : t('tecnico.offline_sub') %></p>
+          <h2 id="techStatusText" class="font-semibold text-[15px] leading-tight"><%= tecnico.online ? 'Disponible' : 'No disponible' %></h2>
+          <p id="techStatusSub" class="text-[13px] text-zilo-muted truncate leading-tight"><%= tecnico.online ? 'Listo para trabajos' : 'Activa para recibir trabajos' %></p>
         </div>
       </div>
-      <label class="toggle-ios shrink-0">
+      <label class="toggle-ios shrink-0 scale-95 origin-right">
         <input type="checkbox" id="techOnlineToggle" <%= tecnico.online ? 'checked' : '' %>>
         <span class="slider"></span>
       </label>
@@ -118,8 +112,8 @@
         <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold" id="sectionOtherJobs">
           <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
             <div class="min-w-0">
-              <strong class="text-sm">Otras visitas</strong>
-              <p class="text-xs text-zilo-muted mt-0.5">Toca para verlas</p>
+              <strong class="text-[15px]">Otras visitas</strong>
+              <p class="text-[13px] text-zilo-muted mt-0.5">Toca aquí para verlas</p>
             </div>
             <span class="flex items-center gap-2 shrink-0">
               <span class="text-sm font-bold tabular-nums text-amber-700"><%= otherJobs.length %></span>
@@ -140,12 +134,11 @@
     <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold" id="sectionDone" data-tour="tech-history">
       <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <p class="zilo-label !text-[9px] mb-0.5">Historial</p>
-          <strong class="text-sm">Ya terminados</strong>
-          <p class="text-[11px] text-zilo-muted mt-0.5">Toca para ver el resumen</p>
+          <strong class="text-[15px]">Ya terminados</strong>
+          <p class="text-[13px] text-zilo-muted mt-0.5">Toca para ver el resumen</p>
         </div>
         <span class="flex items-center gap-2 shrink-0">
-          <span class="text-xs font-bold text-zilo-muted tabular-nums"><%= doneJobs.length %></span>
+          <span class="text-sm font-bold text-zilo-muted tabular-nums"><%= doneJobs.length %></span>
           <svg class="provider-home-fold__chevron w-4 h-4 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </span>
       </summary>
@@ -178,9 +171,8 @@
     <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold group" id="sectionWall" data-tour="tech-wall"<%= (!activeJobs.length && tecnico.online) ? ' open' : '' %>>
       <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <p class="zilo-label !text-[9px] mb-0.5">Disponibles</p>
-          <strong class="text-sm">Pedidos sin asignación</strong>
-          <p class="text-[11px] text-zilo-muted mt-0.5">Muro · tu socio te autorizó a tomarlos</p>
+          <strong class="text-[15px]">Trabajos libres</strong>
+          <p class="text-[13px] text-zilo-muted mt-0.5">Toca para verlos · tu socio te autorizó</p>
         </div>
         <span class="flex items-center gap-2 shrink-0">
           <span id="techWorkWallCount" class="text-xs font-bold text-zilo-accent tabular-nums">0</span>
@@ -197,8 +189,8 @@
     </details>
     <% } else { %>
     <div class="p-4 rounded-2xl border border-zilo-border bg-zilo-bg/50" data-tour="tech-wall-locked">
-      <p class="text-sm font-semibold">Pedidos del muro</p>
-      <p class="text-xs text-zilo-muted mt-1">Tu socio no activó “Puede tomar pedidos”. Él te asignará las visitas desde su panel.</p>
+      <p class="text-[15px] font-semibold">Trabajos libres</p>
+      <p class="text-[13px] text-zilo-muted mt-1">Tu socio te asignará las visitas. No puedes tomar trabajos libres por ahora.</p>
     </div>
     <% } %>
 
@@ -208,14 +200,13 @@
         data-has-back="<%= techVer.idCardBack ? '1' : '0' %>">
         <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
           <div class="min-w-0">
-            <p class="zilo-label !text-[9px] mb-0.5">Expediente</p>
-            <strong class="text-sm">Tu carnet</strong>
-            <p class="text-[11px] text-zilo-muted mt-0.5">
-              <% if (docsMissing) { %>Falta subir frente y/o reverso<% } else { %>Expediente listo<% } %>
+            <strong class="text-[15px]">Tu carnet</strong>
+            <p class="text-[13px] text-zilo-muted mt-0.5">
+              <% if (docsMissing) { %>Falta subir · toca aquí<% } else { %>Listo<% } %>
             </p>
           </div>
           <span class="flex items-center gap-2 shrink-0">
-            <span class="text-[10px] font-semibold <%= docsMissing ? 'text-amber-700' : 'text-zilo-success' %>"><%= docsMissing ? 'Pendiente' : 'OK' %></span>
+            <span class="text-[13px] font-semibold <%= docsMissing ? 'text-amber-700' : 'text-zilo-success' %>"><%= docsMissing ? 'Falta' : 'OK' %></span>
             <svg class="provider-home-fold__chevron w-4 h-4 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
           </span>
         </summary>

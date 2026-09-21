@@ -15,14 +15,14 @@
   function statusLabel(key) {
     const didactic = {
       asignado: 'Te lo dieron',
-      aceptado: 'Aceptado',
-      en_camino: 'En camino',
+      aceptado: 'Ve al cliente',
+      en_camino: 'Vas al cliente',
       en_sitio: 'En el domicilio',
       diagnostico: 'En el domicilio',
       reparando: 'En el domicilio',
       comprando: 'Comprando',
       materiales_pendiente: 'En el domicilio',
-      presupuesto_pendiente: 'Esperando cliente',
+      presupuesto_pendiente: 'Espera al cliente',
       presupuesto_aprobado: 'En el domicilio',
       completado: 'Listo'
     };
@@ -451,12 +451,8 @@
     actions.innerHTML = '';
     actions.classList.add('flex', 'flex-col', 'gap-2');
 
-    const primaryCls = isHero
-      ? 'w-full min-h-[3.25rem] py-3.5 rounded-2xl zilo-btn-primary !text-base font-bold text-center'
-      : 'w-full min-h-[2.75rem] py-3 rounded-xl zilo-btn-primary !text-sm font-semibold text-center';
-    const ghostCls = isHero
-      ? 'w-full min-h-[2.75rem] py-3 rounded-xl zilo-btn-ghost !text-sm font-semibold text-center'
-      : 'w-full min-h-[2.5rem] py-2.5 rounded-xl zilo-btn-ghost !text-sm text-center';
+    const primaryCls = 'tech-cta-primary w-full rounded-2xl zilo-btn-primary font-bold text-center';
+    const ghostCls = 'tech-cta-secondary w-full rounded-xl zilo-btn-ghost font-semibold text-center';
 
     const addPrimaryBtn = (label, handler) => {
       const b = document.createElement('button');
@@ -482,7 +478,7 @@
       const details = document.createElement('details');
       details.className = 'tech-job-more rounded-xl border border-zilo-border/80 bg-zilo-bg/40';
       const summary = document.createElement('summary');
-      summary.className = 'cursor-pointer px-3 py-2.5 text-xs font-semibold text-zilo-muted list-none flex items-center justify-between';
+      summary.className = 'cursor-pointer px-3 py-3 text-[13px] font-semibold text-zilo-muted list-none flex items-center justify-between min-h-[48px]';
       summary.innerHTML = '<span>Más opciones</span><span aria-hidden="true">▾</span>';
       details.appendChild(summary);
       const box = document.createElement('div');
@@ -689,18 +685,18 @@
     }
 
     if (online) {
-      statusDot.className = 'w-3 h-3 rounded-full bg-zilo-success shadow-lg shadow-zilo-success/40 animate-pulse';
-      statusText.textContent = t('tecnico.online');
-      statusSub.textContent = t('tecnico.online_sub');
+      statusDot.className = 'w-2.5 h-2.5 rounded-full bg-zilo-success shadow-lg shadow-zilo-success/40 animate-pulse';
+      statusText.textContent = 'Disponible';
+      statusSub.textContent = 'Listo para trabajos';
       if (window.FandezAlerts) {
         FandezAlerts.ensurePermission().then(() => FandezAlerts.enablePush());
       } else if (typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission();
       loadWorkWall();
       notify(data.synced > 0 ? t('provider.js.new_on_wall', { count: data.synced }) : t('tecnico.js.online_activated'), 'success');
     } else {
-      statusDot.className = 'w-3 h-3 rounded-full bg-zilo-muted/40';
-      statusText.textContent = t('tecnico.offline');
-      statusSub.textContent = t('tecnico.offline_sub');
+      statusDot.className = 'w-2.5 h-2.5 rounded-full bg-zilo-muted/40';
+      statusText.textContent = 'No disponible';
+      statusSub.textContent = 'Activa para recibir trabajos';
       wallItems.clear();
       renderWorkWall();
       stopRepeatingAlert();
@@ -792,24 +788,21 @@
     });
   });
 
-  // Alertas compactas bajo cabecera: GPS (azul/verde) vs docs (ámbar, server-side)
+  // Alerta GPS solo si falta permiso (no celebrar cuando ya está OK)
   (function setupGpsHeaderAlert() {
     const needEl = document.getElementById('techGpsAlert');
-    const onEl = document.getElementById('techGpsActive');
-    if (!needEl && !onEl) return;
+    if (!needEl) return;
 
-    function setGpsState(state) {
-      // 'need' | 'on' | 'none'
-      if (needEl) needEl.hidden = state !== 'need';
-      if (onEl) onEl.hidden = state !== 'on';
+    function setGpsNeed(show) {
+      needEl.hidden = !show;
     }
 
     async function syncGpsAlert() {
       if (!navigator.geolocation) {
-        setGpsState('need');
-        const text = needEl?.querySelector('[data-role="gps-text"]');
-        if (text) text.textContent = 'Este dispositivo no tiene GPS';
-        const cta = needEl?.querySelector('[data-role="gps-cta"]');
+        setGpsNeed(true);
+        const text = needEl.querySelector('[data-role="gps-text"]');
+        if (text) text.textContent = 'Este celular no tiene ubicación';
+        const cta = needEl.querySelector('[data-role="gps-cta"]');
         if (cta) cta.hidden = true;
         return;
       }
@@ -817,36 +810,36 @@
         if (navigator.permissions?.query) {
           const status = await navigator.permissions.query({ name: 'geolocation' });
           if (status.state === 'granted') {
-            setGpsState('on');
+            setGpsNeed(false);
             return;
           }
           if (status.state === 'denied') {
-            setGpsState('need');
-            const text = needEl?.querySelector('[data-role="gps-text"]');
-            if (text) text.textContent = 'GPS bloqueado · actívalo en ajustes del navegador';
+            setGpsNeed(true);
+            const text = needEl.querySelector('[data-role="gps-text"]');
+            if (text) text.textContent = 'Ubicación bloqueada · actívala en Ajustes';
             return;
           }
         }
       } catch (_) { /* Safari puede no soportar permissions.query */ }
-      setGpsState('need');
+      setGpsNeed(true);
     }
 
-    needEl?.addEventListener('click', () => {
+    needEl.addEventListener('click', () => {
       if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
         () => {
-          setGpsState('on');
-          notify(t('tecnico.js.sharing_location') || 'Ubicación activa', 'success');
+          setGpsNeed(false);
+          notify('Listo · ubicación activada', 'success');
         },
         () => {
-          setGpsState('need');
-          notify(t('tecnico.js.enable_gps'), 'warning');
+          setGpsNeed(true);
+          notify('Activa la ubicación para trabajar', 'warning');
         },
         { enableHighAccuracy: true, timeout: 12000, maximumAge: 5000 }
       );
     });
 
-    setGpsState('none');
+    setGpsNeed(false);
     syncGpsAlert();
   })();
 })();

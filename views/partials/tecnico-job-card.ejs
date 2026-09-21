@@ -8,14 +8,14 @@
   const highlight = needsAction || workNow;
   const statusDidactic = ({
     asignado: 'Te lo dieron',
-    aceptado: 'Aceptado',
-    en_camino: 'En camino',
+    aceptado: 'Ve al cliente',
+    en_camino: 'Vas al cliente',
     en_sitio: 'En el domicilio',
     diagnostico: 'En el domicilio',
     reparando: 'En el domicilio',
     comprando: 'Comprando',
     materiales_pendiente: 'En el domicilio',
-    presupuesto_pendiente: 'Esperando cliente',
+    presupuesto_pendiente: 'Espera al cliente',
     presupuesto_aprobado: 'En el domicilio'
   })[j.techStatus] || (techLabels[j.techStatus] || j.techStatus);
 %>
@@ -31,36 +31,36 @@
      data-hero="<%= isHero ? '1' : '0' %>"
      <% if (j.coords) { %>data-lat="<%= j.coords.lat %>" data-lng="<%= j.coords.lng %>"<% } %>>
   <% if (isHero) { %>
-  <p class="text-[11px] font-bold uppercase tracking-wide text-zilo-accent mb-2">Tu trabajo ahora</p>
+  <p class="tech-job-hero__eyebrow">Tu trabajo ahora · toca el botón</p>
   <% } %>
   <div class="tech-list-card__head">
     <div class="tech-list-card__body min-w-0">
-      <strong class="<%= isHero ? 'text-base' : 'text-sm' %> block truncate"><%= j.serviceName %></strong>
-      <span class="<%= isHero ? 'text-sm' : 'text-xs' %> text-zilo-muted block truncate">
+      <strong class="<%= isHero ? 'text-lg' : 'text-[15px]' %> block truncate"><%= j.serviceName %></strong>
+      <span class="<%= isHero ? 'text-[15px]' : 'text-[13px]' %> text-zilo-muted block truncate">
         <% if (j.isGift && j.beneficiaryName) { %><%= t('tecnico.gift') %> · <%= j.beneficiaryName %><% } else { %><%= j.clientName %><% } %>
       </span>
     </div>
-    <span class="zilo-badge <%= highlight ? 'zilo-badge-success' : 'zilo-badge-muted' %> shrink-0" data-role="status"><%= statusDidactic %></span>
+    <span class="zilo-badge <%= highlight ? 'zilo-badge-success' : 'zilo-badge-muted' %> shrink-0 !text-[11px]" data-role="status"><%= statusDidactic %></span>
   </div>
   <% if (j.urgencyTierLabel) { %>
-    <p class="text-xs text-zilo-muted"><%= t('provider.js.arrival') %>: <%= j.urgencyTierLabel %></p>
+    <p class="text-[13px] text-zilo-muted">Llegada: <%= j.urgencyTierLabel %></p>
   <% } %>
   <% if (j.techStatus === 'asignado') { %>
-    <p class="text-sm font-semibold text-amber-800 tabular-nums" data-role="accept-countdown">Tienes <%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>:00 para aceptar</p>
+    <p class="text-[15px] font-semibold text-amber-800 tabular-nums" data-role="accept-countdown">Tienes <%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>:00 para aceptar</p>
   <% } %>
-  <p class="<%= isHero ? 'text-sm' : 'text-xs' %> text-zilo-text/90 flex items-start gap-1.5 font-medium mt-1">
+  <p class="<%= isHero ? 'text-[15px]' : 'text-[13px]' %> text-zilo-text/90 flex items-start gap-1.5 font-medium mt-1">
     <svg class="w-4 h-4 mt-0.5 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
     <span class="min-w-0 break-words"><%= j.address || t('tecnico.no_address') %></span>
   </p>
   <% if (j.notes || j.clientPhotoUrl || j.clientBrandPhotoUrl || j.brandNotVisible) { %>
   <details class="mt-1">
-    <summary class="text-xs text-zilo-accent font-semibold cursor-pointer py-1">Ver notas<% if (j.clientPhotoUrl || j.clientBrandPhotoUrl) { %> y foto<% } %></summary>
+    <summary class="text-[13px] text-zilo-accent font-semibold cursor-pointer py-1.5 min-h-[44px] flex items-center">Ver notas<% if (j.clientPhotoUrl || j.clientBrandPhotoUrl) { %> y foto<% } %></summary>
     <div class="mt-2 space-y-2">
       <% if (j.notes) { %>
-        <p class="text-sm text-zilo-muted italic p-2.5 rounded-lg bg-white/80 border border-zilo-border"><%= j.notes %></p>
+        <p class="text-[15px] text-zilo-muted italic p-2.5 rounded-lg bg-white/80 border border-zilo-border"><%= j.notes %></p>
       <% } %>
       <% if (j.clientPhotoUrl || j.clientBrandPhotoUrl || j.brandNotVisible) { %>
-        <p class="text-xs text-zilo-accent">
+        <p class="text-[13px] text-zilo-accent">
           <%= t('tecnico.client_photo') %><% if (j.brandNotVisible) { %> · <%= t('tecnico.brand_not_visible') %><% } %>
         </p>
       <% } %>
