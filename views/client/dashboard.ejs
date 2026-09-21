@@ -1,25 +1,25 @@
 <%- include('../partials/head') %>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="clientDashboard">
-  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border" data-tour="welcome">
-    <div class="app-session-header__row">
-      <a href="/cliente/perfil" class="app-session-header__identity group">
-        <div class="app-session-header__avatar group-hover:border-zilo-accent/40 transition">
+  <header class="app-session-header client-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border" data-tour="welcome">
+    <div class="app-session-header__row client-session-header__row">
+      <a href="/cliente/perfil" class="app-session-header__identity client-session-header__identity group">
+        <div class="app-session-header__avatar client-session-header__avatar group-hover:border-zilo-accent/40 transition">
           <%= typeof profile !== 'undefined' ? profile.name.split(' ').map(n=>n[0]).join('').slice(0,2) : '?' %>
         </div>
-        <div class="app-session-header__meta">
-          <span class="session-role-pill session-role-pill--client"><%= t('session.role.client') %></span>
-          <h1><%= user.name.split(' ')[0] %></h1>
+        <div class="app-session-header__meta client-session-header__meta">
+          <h1 class="client-session-header__name"><%= user.name.split(' ')[0] %></h1>
+          <p class="client-session-header__role"><%= t('session.role.client') %></p>
         </div>
       </a>
-      <div class="app-session-header__end">
+      <div class="app-session-header__end client-session-header__end">
         <%- include('../partials/lang-switcher') %>
         <%- include('../partials/logout-btn', { withLabel: true }) %>
       </div>
     </div>
     <% const canSwitchModes = typeof canSwitchToProvider !== 'undefined' && canSwitchToProvider; %>
     <% if (canSwitchModes) { %>
-    <div class="px-4 pb-3">
+    <div class="px-5 pb-3">
       <%- include('../partials/session-mode-switch', { activeMode: 'client' }) %>
       <p class="session-mode-switch__hint"><%= t('session.switch.hint') %></p>
     </div>
