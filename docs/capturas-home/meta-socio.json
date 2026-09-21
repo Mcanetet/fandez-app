@@ -1,0 +1,18 @@
+{
+  "at": "2026-09-21T03:08:23.438Z",
+  "commit": "a4e70a6",
+  "url": "https://www.fandez.cl/proveedor",
+  "metrics": {
+    "ready": true,
+    "padLeft": 25,
+    "padRight": 25,
+    "cssPad": "24px/24px",
+    "name": "Pedro Gómez",
+    "role": "Socio",
+    "pillGone": true
+  },
+  "files": {
+    "viewport": "docs/capturas-home/02-socio-home-viewport.png",
+    "full": "docs/capturas-home/02-socio-home.png"
+  }
+}

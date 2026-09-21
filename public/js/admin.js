@@ -21,7 +21,7 @@
     reclamos: 'Reclamos',
     informes: 'Informes',
     alertas: 'Mensajes alerta',
-    whatsapp: 'WhatsApp',
+    whatsapp: 'Chats',
     aland: 'Aland IA',
     florencia: 'Florencia IA',
     'consumo-ia': 'Consumo OpenAI',

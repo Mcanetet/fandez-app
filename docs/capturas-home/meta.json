@@ -1,0 +1,15 @@
+{
+  "at": "2026-09-21T03:13:36.153Z",
+  "commit": "87f7ec2",
+  "url": "https://www.fandez.cl/cliente",
+  "metrics": {
+    "ready": true,
+    "name": "María",
+    "role": "Cliente",
+    "pillGone": true
+  },
+  "files": {
+    "viewport": "docs/capturas-home/01-cliente-home-viewport.png",
+    "full": "docs/capturas-home/01-cliente-home.png"
+  }
+}

@@ -25,7 +25,7 @@ Tras editar conocimiento: **Admin → Sofía IA → Sincronizar empresa y servic
 | **DO** | FAQ, cobertura, cómo pedir, estado con datos vivos, tip 132/133/131 | Responder |
 | **DRAFT** | Resumir opciones | Sin prometer plazos humanos |
 | **ASK** | Pagos, reembolsos, enojo >2 turnos, “quiero humano”, disputa | `[DERIVAR_PAGOS]` o `[DERIVAR_PROVEEDOR]` |
-| **NEVER** | Inventar ETA/montos/diagnósticos peligrosos; WhatsApp de cobro; secretos | Negar |
+| **NEVER** | Inventar ETA/montos/diagnósticos peligrosos; cobro externo; secretos | Negar |
 
 ### Avisos al founder (`FOUNDER_EMAILS`)
 
@@ -114,7 +114,7 @@ Si el usuario en Sofía pide “publicidad”: explicar que marketing opera desd
 - “Ya te reembolsamos; mira tu cuenta ahora.”  
 - “Llega en exactamente 20 minutos.”  
 - “Soy ChatGPT / un modelo de OpenAI.”  
-- “Págale en efectivo / por este WhatsApp.”  
+- “Págale en efectivo / por fuera de la app.”  
 - “Entrá a /ops-… (URL admin).”  
 - “Cobras en un minuto como socio.”
 

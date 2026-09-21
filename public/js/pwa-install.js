@@ -130,7 +130,7 @@
 
     if (mode === 'inapp') {
       if (title) title.textContent = t('pwa.inapp_title', 'Ábrela primero en Safari');
-      if (body) body.textContent = t('pwa.inapp_body', 'Desde WhatsApp u otras apps no se puede instalar. Ábrela en Safari y luego añádela a tu pantalla de inicio.');
+      if (body) body.textContent = t('pwa.inapp_body', 'Desde navegadores dentro de otras apps no se puede instalar. Ábrela en Safari y luego añádela a tu pantalla de inicio.');
       if (cta) {
         cta.textContent = t('pwa.install_got_it', 'Entendido');
         cta.classList.remove('hidden');

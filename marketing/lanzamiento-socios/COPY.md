@@ -17,7 +17,7 @@ Quiero ser socio
 ---
 
 ## Instagram — caption feed (pieza disruptiva)
-Hook: Basta de cotizar por WhatsApp.
+Hook: Basta de cotizar fuera de la app.
 
 Pedidos listos. Tú eliges.
 
@@ -36,7 +36,7 @@ Hook: Persona + técnico. En una app.
 
 Se piden. Se toman. Se resuelven.
 
-Fandez conecta a quien necesita un servicio del hogar con el técnico o empresa que lo resuelve — sin vueltas por WhatsApp, con pedido claro y seguimiento en la app.
+Fandez conecta a quien necesita un servicio del hogar con el técnico o empresa que lo resuelve — sin vueltas, con pedido claro y seguimiento en la app.
 
 CTA: Conoce Fandez → https://fandez.cl
 
@@ -203,7 +203,7 @@ CTA: Quiero ser socio → fandez.cl/registro
 ---
 
 ## TikTok / Reels (15–25 s)
-Hook: Si tu empresa aún cotiza por WhatsApp… esto te va a doler.
+Hook: Si tu empresa aún cotiza a mano… esto te va a doler.
 Cuerpo: En Fandez el cliente ya pidió el servicio. Tú ves el pedido, la dirección y lo que te pagan. Si te sirve, lo tomas. Si no, pasas.
 Cierre: Link en bio · Regístrate como socio · Activación guiada.
 
@@ -223,14 +223,14 @@ Cómo publicar:
 5. Ubicación: Santiago, Chile · Etiqueta: @fandez.cl
 
 Estructura (Florencia · 20 años):
-1. Herida: el oficio atrapado en WhatsApp
+1. Herida: el oficio atrapado en el chat suelto
 2. Identidad: Fandez = espacio donde se piden y se toman servicios
 3. Ganancia: alcance, pedidos, cobro claro, tú eliges
 4. Ventana: septiembre registra socios / lanzamiento octubre 2026
 5. Doble cierre: www.fandez.cl + @fandez.cl
 
 ### Caption (IG Reels / TikTok / Stories)
-Hook: Si tu oficio todavía vive en WhatsApp, esto es para ti.
+Hook: Si tu oficio todavía vive fuera de la app, esto es para ti.
 
 Fandez es el espacio para servicios del hogar: más alcance, más pedidos y cobros claros. El cliente ya pidió. Tú eliges el trabajo.
 

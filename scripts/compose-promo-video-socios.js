@@ -137,7 +137,7 @@ async function main() {
       file: '01.jpg',
       canvas: cream,
       photo: false,
-      title: 'Si tu oficio\nvive en WhatsApp…',
+      title: 'Si tu oficio\nvive fuera de la app…',
       kicker: 'RECLUTAMIENTO DE SOCIOS',
       lines: ['esto es para ti.']
     },
@@ -229,7 +229,7 @@ async function main() {
   const voiceAiff = path.join(FRAMES, 'voice.aiff');
   const voiceM4a = path.join(FRAMES, 'voice.m4a');
   const script = [
-    'Si tu oficio todavía vive en WhatsApp, esto es para ti.',
+    'Si tu oficio todavía vive fuera de la app, esto es para ti.',
     'Fandez es el espacio donde se piden y se toman los servicios del hogar.',
     'Más alcance. Más pedidos. Cobros claros. Tú eliges el trabajo.',
     'En septiembre estamos registrando a los socios que quieren impulsar su oficio.',

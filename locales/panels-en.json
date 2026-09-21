@@ -16,7 +16,7 @@
   "admin.common.accepted": "Accepted",
   "admin.common.rejected_consent": "Rejected",
   "admin.common.anonymous": "Anonymous",
-  "admin.common.open_whatsapp": "Open WhatsApp",
+  "admin.common.open_whatsapp": "Open chat",
   "admin.common.jobs": "jobs",
   "admin.common.demo_mode": "Demo",
   "admin.common.request": "Request",
@@ -170,7 +170,7 @@
   "admin.contratos.review_notes": "Review notes",
 
   "admin.notificaciones.title": "Notifications",
-  "admin.notificaciones.subtitle": "Email and WhatsApp at service milestones · SMTP: {{smtp}}",
+  "admin.notificaciones.subtitle": "Email at service milestones · SMTP: {{smtp}}",
   "admin.notificaciones.smtp_configured": "configured",
   "admin.notificaciones.smtp_demo": "demo mode (console)",
 
@@ -224,8 +224,8 @@
   "admin.reclamos.in_review": "In review",
   "admin.reclamos.resolve": "Resolve",
 
-  "admin.whatsapp.title": "WhatsApp support",
-  "admin.whatsapp.open_company": "Open company WA",
+  "admin.whatsapp.title": "Support",
+  "admin.whatsapp.open_company": "Open company line",
   "admin.whatsapp.official_line": "Official line",
 
   "admin.datos.title": "Privacy & consent",

@@ -92,7 +92,7 @@ Ver caso → socios elegibles → asignar manual si el muro no liquida.
 | Problema | Actuación |
 |----------|-----------|
 | Docs dudosos | needs_info con lista clara; no aprobar “a ojo” |
-| Socio insiste por WhatsApp | Traer todo al panel; dejar rastro |
+| Socio insiste por fuera de la app | Traer todo al panel; dejar rastro |
 | Reject | Socio queda offline; mensaje claro del motivo |
 
 ---

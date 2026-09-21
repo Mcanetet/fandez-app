@@ -1094,7 +1094,7 @@ router.post('/activar-tecnico/:token', rateLimitLogin(10), async (req, res) => {
 
   const phone = String(req.body.phone || '').trim();
   if (!phone || phone.length < 8) {
-    return renderErr('Ingresa tu teléfono o WhatsApp.', {
+    return renderErr('Ingresa tu teléfono.', {
       email: tecnico.email,
       providerName: provider?.name
     });

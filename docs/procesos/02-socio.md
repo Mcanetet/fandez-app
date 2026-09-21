@@ -126,7 +126,7 @@ Chat dentro del trabajo; sin compartir teléfonos personales por fuera.
 
 | Problema | Actuación |
 |----------|-----------|
-| Cliente pide WhatsApp | Preferir app (respaldo y seguridad) |
+| Cliente pide teléfono fuera de la app | Preferir app (respaldo y seguridad) |
 | Acoso / amenaza | Protocolo seguridad; retirar si aplica |
 
 ---

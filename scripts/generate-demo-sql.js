@@ -182,7 +182,7 @@ function buildChatsSql() {
   const values = SEED_CHATS.map((c) =>
     `(${q(c.id)}, ${q(c.clientName)}, ${q(c.clientPhone)}, ${q(c.lastMessage)}, ${q(c.channel)}, ${q(c.status)}, ${c.unread}, ${dt(c.updatedAt)})`
   ).join(',\n');
-  return `-- ---------- Chats WhatsApp ----------\n\nINSERT IGNORE INTO chats (id, client_name, client_phone, last_message, channel, status, unread, updated_at) VALUES\n${values};`;
+  return `-- ---------- Chats ----------\n\nINSERT IGNORE INTO chats (id, client_name, client_phone, last_message, channel, status, unread, updated_at) VALUES\n${values};`;
 }
 
 function buildConsentsSql() {

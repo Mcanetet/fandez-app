@@ -59,7 +59,7 @@ Rutas base: `/registro` · `/cliente` · `/pagos` · `/aland` · `/seguimiento/:
 |----------|-----------|
 | “¿Cuánto cuesta exacto?” | Dar rango/visita pública; el total final puede variar con materiales/presupuesto en sitio | 
 | No puede pagar | Revisar pasarela; transfer pendiente = espera aprobación; no inventar “ya cobró” |
-| Quiere cotizar por WhatsApp | Explicar que el pedido y el pago van en la app (respaldo) |
+| Quiere cotizar fuera de la app | Explicar que el pedido y el pago van en la app (respaldo) |
 | Módulo solicitar off / servicio disabled | “Ese servicio no está disponible ahora”; ofrecer otro o lista de espera vía soporte |
 
 **Etiqueta Sofía:** dudas de precio/cobertura = DO. Disputa de cobro = `[DERIVAR_PAGOS]`.
@@ -171,7 +171,7 @@ Tras pago / en visita: link `/seguimiento/:token` para familiar (mapa/estado, si
 | Problema | Actuación |
 |----------|-----------|
 | Link no abre | Verificar módulo activo y token; regenerar desde éxito/pago si aplica |
-| Familiar pide WhatsApp del técnico | Explicar privacidad Guardián |
+| Familiar pide el teléfono del técnico | Explicar privacidad Guardián |
 
 ---
 

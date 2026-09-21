@@ -257,7 +257,7 @@ Si el estado real supera lo declarado → flujo cambio de precio con OK del clie
 
 ## 7. Anti-patrones (evitar)
 
-- Cotizar “a ojo” por WhatsApp fuera de la app.  
+- Cotizar “a ojo” fuera de la app.  
 - Pedir dirección otra vez si ya está en el perfil.  
 - Meter transporte como línea que reste al 15% de Fandez.  
 - Más de ~10 campos obligatorios (abandono de checkout).  

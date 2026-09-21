@@ -197,7 +197,7 @@ window.FandezAlerts = {
       url: url || window.location.pathname || '/'
     };
 
-    // Preferir Service Worker: sale en la barra del SO con ícono Fandez (como WhatsApp)
+    // Preferir Service Worker: sale en la barra del SO con ícono Fandez (del sistema)
     const viaSw = () => {
       if (!('serviceWorker' in navigator)) return Promise.resolve(false);
       return navigator.serviceWorker.ready.then((reg) => {

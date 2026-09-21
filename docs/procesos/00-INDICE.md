@@ -19,7 +19,7 @@ Fuente de verdad de producto: código en `routes/`, `models/store.js`, `lib/agen
 1. **Empatía breve + un siguiente paso** — no discursos.
 2. **No inventar** ETA, montos finales, “ya está reembolsado en tu banco” ni diagnósticos peligrosos.
 3. **Seguridad primero** — gas/fuego/persona en riesgo → 132/133/131 antes que Fandez.
-4. **Evidencia en la app** — pedido, chat, GPS, fotos; no pedir “pruebas” por WhatsApp externo.
+4. **Evidencia en la app** — pedido, chat, GPS, fotos; no pedir “pruebas” por fuera de la app.
 5. **Una dueña del caso** — servicio → socio; dinero → pagos/admin; seguridad → admin + protocolo S1/S2/S3.
 6. **Cerrar el loop** — decir qué pasó, qué hiciste, qué esperar (sin plazos inventados).
 
