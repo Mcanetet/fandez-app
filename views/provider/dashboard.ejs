@@ -1,11 +1,11 @@
 <%- include('../partials/head', { useMap: true }) %>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="providerDashboard" data-provider-id="<%= provider.id %>">
-  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
-    <div class="app-session-header__row" data-tour="welcome">
-      <div class="app-session-header__identity">
+  <header class="app-session-header provider-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
+    <div class="app-session-header__row provider-session-header__row" data-tour="welcome">
+      <div class="app-session-header__identity provider-session-header__identity">
         <div class="app-session-header__avatar-menu" data-avatar-menu>
-          <button type="button" class="app-session-header__avatar app-session-header__avatar-btn" id="providerAvatarMenuBtn" aria-expanded="false" aria-controls="providerAvatarMenu" aria-haspopup="true" title="<%= t('provider.menu.business') %>">
+          <button type="button" class="app-session-header__avatar app-session-header__avatar-btn provider-session-header__avatar" id="providerAvatarMenuBtn" aria-expanded="false" aria-controls="providerAvatarMenu" aria-haspopup="true" title="<%= t('provider.menu.business') %>">
             <%= provider.avatar %>
           </button>
           <div class="app-session-header__menu" id="providerAvatarMenu" hidden>
@@ -24,12 +24,12 @@
             </div>
           </div>
         </div>
-        <div class="app-session-header__meta">
-          <p class="session-role-pill session-role-pill--provider"><%= t('session.role.provider') %></p>
-          <h1><%= provider.name %></h1>
+        <div class="app-session-header__meta provider-session-header__meta">
+          <h1 class="provider-session-header__name"><%= provider.name %></h1>
+          <p class="provider-session-header__role"><%= t('session.role.provider') %></p>
         </div>
       </div>
-      <div class="app-session-header__end">
+      <div class="app-session-header__end provider-session-header__end">
         <%- include('../partials/lang-switcher') %>
         <% if (mod('provider_mensajes')) { %>
         <a href="/proveedor/mensajes" class="zilo-icon-btn" title="<%= t('provider.mensajes_title') %>" aria-label="<%= t('provider.mensajes_title') %>">
@@ -66,23 +66,28 @@
     <% } %>
 
     <% if (mod('provider_online')) { %>
-    <section data-tour="online" class="flex items-center justify-between p-5 rounded-2xl zilo-card-premium mb-4 zilo-page-enter-delay-1 <%= typeof canGoOnline !== 'undefined' && !canGoOnline ? 'opacity-90' : '' %>"
+    <section data-tour="online" class="provider-online-bar mb-4 zilo-page-enter-delay-1 <%= typeof canGoOnline !== 'undefined' && !canGoOnline ? 'is-blocked' : '' %>"
       <% if (typeof canGoOnline !== 'undefined' && !canGoOnline && !provider.online) { %>
       data-online-blocked="1"
       data-online-missing="<%= (verificationCheck?.missing || []).join('|') %>"
       <% } %>
+      aria-label="<%= t('provider.online') %>"
     >
-      <div class="flex items-center gap-3">
-        <div id="statusDot" class="w-3 h-3 rounded-full <%= provider.online ? 'bg-zilo-success animate-pulse' : 'bg-zilo-muted/40' %>"></div>
-        <div>
-          <h2 id="statusText" class="font-semibold text-sm"><%= provider.online ? t('provider.online') : t('provider.offline') %></h2>
-          <p id="statusSub" class="text-xs text-zilo-muted"><%= provider.online ? t('provider.status_online_sub') : (typeof canGoOnline !== 'undefined' && !canGoOnline ? t('provider.activation.complete_first') : t('provider.status_offline_sub')) %></p>
+      <div class="provider-online-bar__left">
+        <span class="provider-online-bar__indicator <%= provider.online ? 'is-on' : '' %>" aria-hidden="true">
+          <span id="statusDot" class="provider-online-bar__dot <%= provider.online ? 'is-on' : '' %>"></span>
+        </span>
+        <div class="provider-online-bar__copy min-w-0">
+          <h2 id="statusText" class="provider-online-bar__title"><%= provider.online ? t('provider.online') : t('provider.offline') %></h2>
+          <p id="statusSub" class="provider-online-bar__sub"><%= provider.online ? t('provider.status_online_sub') : (typeof canGoOnline !== 'undefined' && !canGoOnline ? t('provider.activation.complete_first') : t('provider.status_offline_sub')) %></p>
         </div>
       </div>
-      <label class="toggle-ios" title="<%= typeof canGoOnline !== 'undefined' && !canGoOnline ? t('provider.activation.complete_first') : '' %>">
-        <input type="checkbox" id="onlineToggle" <%= provider.online ? 'checked' : '' %> <%= typeof canGoOnline !== 'undefined' && !canGoOnline && !provider.online ? 'disabled' : '' %> aria-describedby="statusSub">
-        <span class="slider"></span>
-      </label>
+      <div class="provider-online-bar__control">
+        <label class="toggle-ios provider-online-bar__toggle" title="<%= typeof canGoOnline !== 'undefined' && !canGoOnline ? t('provider.activation.complete_first') : '' %>">
+          <input type="checkbox" id="onlineToggle" <%= provider.online ? 'checked' : '' %> <%= typeof canGoOnline !== 'undefined' && !canGoOnline && !provider.online ? 'disabled' : '' %> aria-describedby="statusSub">
+          <span class="slider"></span>
+        </label>
+      </div>
     </section>
     <% } %>
 

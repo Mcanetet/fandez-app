@@ -829,7 +829,9 @@
     }
 
     if (online) {
-      statusDot.className = 'w-3 h-3 rounded-full bg-zilo-success animate-pulse';
+      statusDot.className = 'provider-online-bar__dot is-on';
+      const indicator = statusDot.closest('.provider-online-bar__indicator');
+      if (indicator) indicator.classList.add('is-on');
       statusText.textContent = FandezI18n.t('provider.online');
       statusSub.textContent = FandezI18n.t('provider.status_online_sub');
       FandezNotify.show(data.dispatched > 0 ? FandezI18n.t('js.requests_on_wall', { count: data.dispatched }) : FandezI18n.t('js.online_activated'), 'success');
@@ -842,7 +844,9 @@
         Notification.requestPermission();
       }
     } else {
-      statusDot.className = 'w-3 h-3 rounded-full bg-zilo-muted/40';
+      statusDot.className = 'provider-online-bar__dot';
+      const indicator = statusDot.closest('.provider-online-bar__indicator');
+      if (indicator) indicator.classList.remove('is-on');
       statusText.textContent = FandezI18n.t('provider.offline');
       statusSub.textContent = FandezI18n.t('provider.status_offline_sub');
       wallItems.clear();

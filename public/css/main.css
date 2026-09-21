@@ -1698,6 +1698,137 @@ body.session-role--tecnico::before {
   margin: 0;
   flex-shrink: 0;
 }
+
+/* Header socio (home): nombre primero, rol como caption */
+#providerDashboard .provider-session-header {
+  padding: 0.95rem 1.25rem !important;
+}
+#providerDashboard .provider-session-header__row {
+  gap: 0.65rem;
+  align-items: center;
+}
+#providerDashboard .provider-session-header__identity {
+  gap: 0.75rem;
+  align-items: center;
+  min-width: 0;
+}
+#providerDashboard .provider-session-header__avatar {
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: 0.95rem;
+  font-size: 0.8125rem;
+  color: #1e4a36;
+  border-color: rgba(47, 107, 79, 0.28);
+  background: rgba(47, 107, 79, 0.1);
+}
+#providerDashboard .provider-session-header__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+#providerDashboard .provider-session-header__meta h1,
+#providerDashboard .provider-session-header__name {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--zilo-text);
+  max-width: min(42vw, 11.5rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#providerDashboard .provider-session-header__role {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: #3d6b55;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+}
+#providerDashboard .provider-session-header__end {
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* En línea socio: mismo aire que Disponible del técnico */
+#providerDashboard .provider-online-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.35rem;
+  padding: 1.1rem 1.5rem;
+  border-radius: 1.15rem;
+  background: #fff;
+  border: 1px solid var(--zilo-border);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+}
+#providerDashboard .provider-online-bar.is-blocked {
+  opacity: 0.9;
+}
+#providerDashboard .provider-online-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+#providerDashboard .provider-online-bar__indicator {
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: rgba(120, 113, 108, 0.1);
+  transition: background 0.2s ease;
+}
+#providerDashboard .provider-online-bar__indicator.is-on {
+  background: rgba(47, 107, 79, 0.14);
+}
+#providerDashboard .provider-online-bar__dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: rgba(120, 113, 108, 0.55);
+}
+#providerDashboard .provider-online-bar__dot.is-on {
+  background: #2f6b4f;
+  animation: provider-dot-pulse 2.2s ease-in-out infinite;
+}
+@keyframes provider-dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.12); opacity: 0.88; }
+}
+#providerDashboard .provider-online-bar__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--zilo-text);
+}
+#providerDashboard .provider-online-bar__sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  color: var(--zilo-muted);
+}
+#providerDashboard .provider-online-bar__control {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+#providerDashboard .provider-online-bar__toggle {
+  margin: 0;
+  flex-shrink: 0;
+}
 .app-session-header__meta {
   min-width: 0;
   flex: 1 1 auto;
