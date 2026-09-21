@@ -686,6 +686,8 @@
 
     if (online) {
       statusDot.className = 'tech-online-bar__dot is-on';
+      const indicator = statusDot.closest('.tech-online-bar__indicator');
+      if (indicator) indicator.classList.add('is-on');
       statusText.textContent = 'Disponible';
       statusSub.textContent = 'Listo para trabajos';
       if (window.FandezAlerts) {
@@ -695,6 +697,8 @@
       notify(data.synced > 0 ? t('provider.js.new_on_wall', { count: data.synced }) : t('tecnico.js.online_activated'), 'success');
     } else {
       statusDot.className = 'tech-online-bar__dot';
+      const indicator = statusDot.closest('.tech-online-bar__indicator');
+      if (indicator) indicator.classList.remove('is-on');
       statusText.textContent = 'No disponible';
       statusSub.textContent = 'Activa para recibir trabajos';
       wallItems.clear();

@@ -23,7 +23,7 @@
         <div class="app-session-header__meta tech-session-header__meta">
           <h1 class="tech-session-header__name"><%= tecnico.name %></h1>
           <p class="tech-session-header__role">
-            <span class="tech-session-header__role-mark">Técnico</span><% if (socio && socio.name) { %><span class="tech-session-header__role-sep" aria-hidden="true">·</span><span class="tech-session-header__team">Equipo <%= socio.name %></span><% } %>
+            <span class="tech-session-header__badge">Técnico</span><% if (socio && socio.name) { %><span class="tech-session-header__team">Equipo <%= socio.name %></span><% } %>
           </p>
         </div>
       </div>
@@ -58,16 +58,20 @@
   <main class="flex-1 px-5 py-5 pb-10 space-y-3 tech-home-main">
     <section class="tech-online-bar" data-tour="tech-online" aria-label="Disponibilidad">
       <div class="tech-online-bar__left">
-        <span id="techStatusDot" class="tech-online-bar__dot <%= tecnico.online ? 'is-on' : '' %>" aria-hidden="true"></span>
+        <span class="tech-online-bar__indicator <%= tecnico.online ? 'is-on' : '' %>" aria-hidden="true">
+          <span id="techStatusDot" class="tech-online-bar__dot <%= tecnico.online ? 'is-on' : '' %>"></span>
+        </span>
         <div class="tech-online-bar__copy min-w-0">
           <h2 id="techStatusText" class="tech-online-bar__title"><%= tecnico.online ? 'Disponible' : 'No disponible' %></h2>
           <p id="techStatusSub" class="tech-online-bar__sub"><%= tecnico.online ? 'Listo para trabajos' : 'Activa para recibir trabajos' %></p>
         </div>
       </div>
-      <label class="toggle-ios tech-online-bar__toggle shrink-0" title="Cambiar disponibilidad">
-        <input type="checkbox" id="techOnlineToggle" <%= tecnico.online ? 'checked' : '' %> aria-describedby="techStatusSub">
-        <span class="slider"></span>
-      </label>
+      <div class="tech-online-bar__control">
+        <label class="toggle-ios tech-online-bar__toggle" title="Cambiar disponibilidad">
+          <input type="checkbox" id="techOnlineToggle" <%= tecnico.online ? 'checked' : '' %> aria-describedby="techStatusSub">
+          <span class="slider"></span>
+        </label>
+      </div>
     </section>
 
     <% if (urgentCount > 0) { %>
