@@ -16,24 +16,26 @@
   data-tecnico-id="<%= tecnico.id %>"
   data-can-claim-wall="<%= showWall ? '1' : '0' %>"
   data-docs-missing="<%= docsMissing ? '1' : '0' %>">
-  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
-    <div class="app-session-header__row">
-      <div class="app-session-header__identity">
-        <div class="app-session-header__avatar"><%= tecnico.avatar %></div>
-        <div class="app-session-header__meta">
-          <p class="session-role-pill session-role-pill--tecnico"><%= t('session.role.tecnico') %><%= socio ? ' · ' + socio.name : '' %></p>
-          <h1><%= tecnico.name %></h1>
+  <header class="app-session-header tech-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
+    <div class="app-session-header__row tech-session-header__row">
+      <div class="app-session-header__identity tech-session-header__identity">
+        <div class="app-session-header__avatar tech-session-header__avatar" aria-hidden="true"><%= tecnico.avatar %></div>
+        <div class="app-session-header__meta tech-session-header__meta">
+          <h1 class="tech-session-header__name"><%= tecnico.name %></h1>
+          <p class="tech-session-header__role">
+            <span class="tech-session-header__role-mark">Técnico</span><% if (socio && socio.name) { %><span class="tech-session-header__role-sep" aria-hidden="true">·</span><span class="tech-session-header__team">Equipo <%= socio.name %></span><% } %>
+          </p>
         </div>
       </div>
-      <div class="app-session-header__end">
+      <div class="app-session-header__end tech-session-header__end">
         <% if (typeof linkedProvider !== 'undefined' && linkedProvider) { %>
-        <button type="button" id="btnBackToProvider" class="zilo-btn-ghost !py-1.5 !px-2.5 !text-[11px] whitespace-nowrap">Socio</button>
+        <button type="button" id="btnBackToProvider" class="zilo-btn-ghost !py-2 !px-3 !text-xs whitespace-nowrap">Socio</button>
         <% } %>
         <%- include('../partials/lang-switcher') %>
         <%- include('../partials/logout-btn', { withLabel: true }) %>
       </div>
     </div>
-    <div class="tech-header-alerts px-3 pb-2.5 space-y-1.5" id="techHeaderAlerts" aria-live="polite">
+    <div class="tech-header-alerts px-4 pb-3 space-y-1.5" id="techHeaderAlerts" aria-live="polite">
       <% if (docsMissing) { %>
       <a href="#techDocsSection" class="tech-header-alert tech-header-alert--docs">
         <span class="tech-header-alert__icon" aria-hidden="true">
@@ -54,16 +56,16 @@
   </header>
 
   <main class="flex-1 px-5 py-5 pb-10 space-y-3 tech-home-main">
-    <section class="tech-online-bar flex items-center justify-between gap-3 px-3.5 py-3 rounded-2xl zilo-card-premium" data-tour="tech-online">
-      <div class="flex items-center gap-2.5 min-w-0">
-        <div id="techStatusDot" class="w-2.5 h-2.5 rounded-full shrink-0 <%= tecnico.online ? 'bg-zilo-success animate-pulse' : 'bg-zilo-muted/40' %>"></div>
-        <div class="min-w-0">
-          <h2 id="techStatusText" class="font-semibold text-[15px] leading-tight"><%= tecnico.online ? 'Disponible' : 'No disponible' %></h2>
-          <p id="techStatusSub" class="text-[13px] text-zilo-muted truncate leading-tight"><%= tecnico.online ? 'Listo para trabajos' : 'Activa para recibir trabajos' %></p>
+    <section class="tech-online-bar" data-tour="tech-online" aria-label="Disponibilidad">
+      <div class="tech-online-bar__left">
+        <span id="techStatusDot" class="tech-online-bar__dot <%= tecnico.online ? 'is-on' : '' %>" aria-hidden="true"></span>
+        <div class="tech-online-bar__copy min-w-0">
+          <h2 id="techStatusText" class="tech-online-bar__title"><%= tecnico.online ? 'Disponible' : 'No disponible' %></h2>
+          <p id="techStatusSub" class="tech-online-bar__sub"><%= tecnico.online ? 'Listo para trabajos' : 'Activa para recibir trabajos' %></p>
         </div>
       </div>
-      <label class="toggle-ios shrink-0 scale-95 origin-right">
-        <input type="checkbox" id="techOnlineToggle" <%= tecnico.online ? 'checked' : '' %>>
+      <label class="toggle-ios tech-online-bar__toggle shrink-0" title="Cambiar disponibilidad">
+        <input type="checkbox" id="techOnlineToggle" <%= tecnico.online ? 'checked' : '' %> aria-describedby="techStatusSub">
         <span class="slider"></span>
       </label>
     </section>

@@ -1567,11 +1567,128 @@ body.session-role--tecnico::before {
 #tecnicoPage .tech-header-alert__text {
   font-size: 0.8125rem;
 }
-#tecnicoPage .tech-online-bar {
-  min-height: 3.25rem;
-}
 #tecnicoPage .provider-home-fold > summary {
   min-height: 3.25rem;
+}
+
+/* Header técnico: nombre primero, rol como caption (sin pill apretada) */
+#tecnicoPage .tech-session-header {
+  padding: 0.85rem 1rem 0 !important;
+}
+#tecnicoPage .tech-session-header__row {
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding-bottom: 0.75rem;
+}
+#tecnicoPage .tech-session-header__identity {
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+#tecnicoPage .tech-session-header__avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.9rem;
+  font-size: 0.8125rem;
+  margin-top: 0.1rem;
+  color: #3d5a80;
+  border-color: rgba(61, 90, 128, 0.28);
+  background: rgba(61, 90, 128, 0.08);
+}
+#tecnicoPage .tech-session-header__meta h1,
+#tecnicoPage .tech-session-header__name {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--zilo-text);
+  max-width: min(52vw, 14rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#tecnicoPage .tech-session-header__role {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--zilo-muted);
+  font-weight: 500;
+}
+#tecnicoPage .tech-session-header__role-mark {
+  color: #3d5a80;
+  font-weight: 650;
+}
+#tecnicoPage .tech-session-header__role-sep {
+  opacity: 0.45;
+}
+#tecnicoPage .tech-session-header__team {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 11rem;
+}
+#tecnicoPage .tech-session-header__end {
+  gap: 0.4rem;
+  padding-top: 0.15rem;
+}
+
+/* Disponible: aire real a izquierda y derecha */
+#tecnicoPage .tech-online-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4rem;
+  padding: 1rem 1.15rem;
+  border-radius: 1.1rem;
+  background: #fff;
+  border: 1px solid var(--zilo-border);
+}
+#tecnicoPage .tech-online-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+#tecnicoPage .tech-online-bar__dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: rgba(120, 113, 108, 0.35);
+  box-shadow: 0 0 0 4px rgba(120, 113, 108, 0.08);
+}
+#tecnicoPage .tech-online-bar__dot.is-on {
+  background: #2f6b4f;
+  box-shadow: 0 0 0 5px rgba(47, 107, 79, 0.14);
+  animation: tech-dot-pulse 2s ease-in-out infinite;
+}
+@keyframes tech-dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 5px rgba(47, 107, 79, 0.14); }
+  50% { box-shadow: 0 0 0 7px rgba(47, 107, 79, 0.08); }
+}
+#tecnicoPage .tech-online-bar__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--zilo-text);
+}
+#tecnicoPage .tech-online-bar__sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  color: var(--zilo-muted);
+}
+#tecnicoPage .tech-online-bar__toggle {
+  margin-right: 0.15rem;
+  flex-shrink: 0;
 }
 .app-session-header__meta {
   min-width: 0;

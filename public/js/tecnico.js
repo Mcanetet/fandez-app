@@ -685,7 +685,7 @@
     }
 
     if (online) {
-      statusDot.className = 'w-2.5 h-2.5 rounded-full bg-zilo-success shadow-lg shadow-zilo-success/40 animate-pulse';
+      statusDot.className = 'tech-online-bar__dot is-on';
       statusText.textContent = 'Disponible';
       statusSub.textContent = 'Listo para trabajos';
       if (window.FandezAlerts) {
@@ -694,7 +694,7 @@
       loadWorkWall();
       notify(data.synced > 0 ? t('provider.js.new_on_wall', { count: data.synced }) : t('tecnico.js.online_activated'), 'success');
     } else {
-      statusDot.className = 'w-2.5 h-2.5 rounded-full bg-zilo-muted/40';
+      statusDot.className = 'tech-online-bar__dot';
       statusText.textContent = 'No disponible';
       statusSub.textContent = 'Activa para recibir trabajos';
       wallItems.clear();
