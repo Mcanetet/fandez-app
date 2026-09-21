@@ -737,9 +737,9 @@
       <p class="zilo-label mb-1">Ahora · Cierre</p>
       <h2 class="text-sm font-semibold mb-3">Resumen de la visita</h2>
       <div class="space-y-3">
-        <details id="attentionChecklistBox" class="rounded-xl border border-zilo-border bg-zilo-bg/60 p-3" open>
-          <summary class="text-sm font-semibold cursor-pointer text-zilo-accent">Procedimiento de atención Fandez</summary>
-          <p class="text-[11px] text-zilo-muted mt-2 mb-2">Marca lo realizado. No bloquea el cierre, pero si faltan ítems te avisaremos.</p>
+        <details id="attentionChecklistBox" class="rounded-xl border border-zilo-border bg-zilo-bg/60 p-3">
+          <summary class="text-sm font-semibold cursor-pointer text-zilo-accent">Checklist rápido de atención</summary>
+          <p class="text-[11px] text-zilo-muted mt-2 mb-2">4 puntos clave. No bloquea el cierre.</p>
           <div class="space-y-2" id="attentionChecklist">
             <% (typeof attentionChecklist !== 'undefined' ? attentionChecklist : []).forEach(function(item) { %>
             <label class="flex items-start gap-2 text-xs text-zilo-text">
@@ -768,10 +768,11 @@
     <!-- Liquidación final: total cobrado y desglose con porcentajes -->
     <section id="settlementResult" class="zilo-card-premium rounded-2xl p-5 hidden">
       <p class="zilo-label mb-1">Visita completada</p>
-      <h2 class="text-sm font-semibold mb-1">Tu ganancia</h2>
-      <p class="text-2xl font-bold text-zilo-success mb-3" id="setPayoutHero">—</p>
+      <h2 class="text-sm font-semibold mb-1" id="setPayoutTitle">Tu pago</h2>
+      <p class="text-2xl font-bold text-zilo-success mb-1" id="setPayoutHero">—</p>
+      <p class="text-[11px] text-zilo-muted mb-3" id="setTechPayLabel"></p>
       <details class="mb-3">
-        <summary class="text-xs text-zilo-muted cursor-pointer">Ver detalle de comisión</summary>
+        <summary class="text-xs text-zilo-muted cursor-pointer">Ver detalle</summary>
         <div class="space-y-1.5 text-sm mt-3">
           <div class="flex justify-between">
             <span class="text-zilo-muted">Total cobrado al cliente</span>
@@ -786,7 +787,7 @@
             <span id="setApp">—</span>
           </div>
           <div class="flex justify-between text-zilo-success" id="setMaterialsKeepRow">
-            <span>Materiales (100% tuyos)</span>
+            <span>Materiales (empresa)</span>
             <span id="setMaterialsKeep">—</span>
           </div>
           <div class="flex justify-between text-zilo-muted hidden" id="setMaterialsRow">
@@ -797,13 +798,17 @@
             <span id="setIvaLabel">IVA incluido (desglose)</span>
             <span id="setIva">—</span>
           </div>
+          <div class="flex justify-between text-zilo-muted" id="setCompanyNetRow">
+            <span>Neto empresa</span>
+            <span id="setCompanyNet">—</span>
+          </div>
           <div class="flex justify-between pt-2 mt-1 border-t border-zilo-border">
-            <span class="font-medium">Tu neto</span>
+            <span class="font-medium" id="setPayoutLineLabel">Tu pago</span>
             <strong class="text-zilo-success" id="setPayout">—</strong>
           </div>
         </div>
       </details>
-      <p class="text-[11px] text-zilo-muted/80">De la mano de obra: 15% Fandez (IVA incluido) y el costo Mercado Pago a valor presente. Los materiales son 100% tuyos. El cliente no paga recargo de tarjeta.</p>
+      <p class="text-[11px] text-zilo-muted/80" id="setSettlementNote">Tu pago lo define el socio (% o monto fijo sobre el neto de la empresa). Los materiales quedan en la empresa salvo acuerdo distinto.</p>
       <a href="<%= typeof returnUrl !== 'undefined' ? returnUrl : '/tecnico' %>" class="mt-4 block w-full text-center py-3 rounded-xl zilo-btn-primary">Volver al panel</a>
     </section>
   </main>
@@ -845,7 +850,7 @@
         <button type="button" class="job-chat-attach" data-role="chat-photo-btn" aria-label="Adjuntar foto" title="Adjuntar foto">
           <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/><circle cx="9" cy="9" r="1.5"/></svg>
         </button>
-        <input type="file" accept="image/*" capture="environment" class="sr-only" data-role="chat-photo-input" tabindex="-1">
+        <input type="file" accept="image/*" class="sr-only" data-role="chat-photo-input" data-chat-composer="1" tabindex="-1">
         <input id="jobChatInput" type="text" maxlength="1000" autocomplete="off" placeholder="Escribe o adjunta una foto…" class="job-chat-input">
         <button type="submit" class="job-chat-send">Enviar</button>
       </div>

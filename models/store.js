@@ -66,6 +66,7 @@ const {
   CLEANING_MIN_M2,
   LANDSCAPE_MIN_M2
 } = require('../lib/pricing');
+const technicianPay = require('../lib/technicianPay');
 const {
   defaultProviderContract,
   normalizeProviderContract,
@@ -3829,7 +3830,7 @@ function updateTechnicianSpecialties(socioId, tecnicoId, specialtyIds) {
   };
 }
 
-async function createTechnician(socioId, { name, email, password, phone, specialties } = {}) {
+async function createTechnician(socioId, { name, email, password, phone, specialties, payTerms } = {}) {
   const socio = getUserById(socioId);
   if (!socio || socio.role !== 'provider') return { error: 'Cuenta de socio no válida.' };
 
@@ -3876,7 +3877,7 @@ async function createTechnician(socioId, { name, email, password, phone, special
     if (existing.role !== 'tecnico') {
       return { error: 'Ese correo ya pertenece a otra cuenta (no técnico). Usa otro correo o vincula un técnico existente.' };
     }
-    const linked = linkTechnicianToProvider(socioId, { email, specialties: cleanSpecialties });
+    const linked = linkTechnicianToProvider(socioId, { email, specialties: cleanSpecialties, payTerms });
     if (linked.error) return linked;
     setTechnicianCanClaimWall(socioId, linked.tecnico.id, false);
     const rut = formatProviderRutLabel(socio);
@@ -3938,6 +3939,13 @@ async function createTechnician(socioId, { name, email, password, phone, special
     if (idx >= 0) USERS.splice(idx, 1);
     console.error('Error creando técnico:', err.message);
     return { error: 'No se pudo crear el técnico. Intenta nuevamente.' };
+  }
+  if (payTerms) {
+    const pay = setTechnicianPayTermsForProvider(socioId, tecnico.id, payTerms);
+    if (pay.error) {
+      // No bloqueamos la creación si el acuerdo viene mal: el socio puede editarlo después.
+      console.warn('payTerms al crear técnico:', pay.error);
+    }
   }
   return { success: true, linked: false, tecnico };
 }
@@ -4032,6 +4040,105 @@ function setTechnicianCanClaimWall(socioId, tecnicoId, enabled) {
   };
 }
 
+function ensurePayTermsMap(tecnico) {
+  if (!tecnico.payTermsByProvider || typeof tecnico.payTermsByProvider !== 'object') {
+    tecnico.payTermsByProvider = {};
+  }
+  return tecnico.payTermsByProvider;
+}
+
+function getTechnicianPayTermsForProvider(tecnico, providerId) {
+  return technicianPay.getPayTermsForProvider(tecnico, providerId);
+}
+
+function setTechnicianPayTermsForProvider(socioId, tecnicoId, rawTerms) {
+  const tecnico = getTechnicianForProvider(socioId, tecnicoId);
+  if (!tecnico) return { error: 'Técnico no encontrado en tu equipo.' };
+  if (tecnico.isSelfOperator) {
+    return { error: 'En “yo hago el servicio” el neto de la empresa es tuyo; no aplica acuerdo interno.' };
+  }
+  const terms = technicianPay.normalizePayTerms(rawTerms);
+  if (!terms) {
+    return { error: 'Define el pago del técnico: porcentaje (0–100) o monto fijo en pesos.' };
+  }
+  const map = ensurePayTermsMap(tecnico);
+  map[socioId] = terms;
+  repository.persist(() => repository.saveUser(tecnico), `pay-terms ${tecnicoId} → ${socioId}`);
+  return { success: true, payTerms: terms, tecnico };
+}
+
+function serializePayTermsSummary(terms, formatMoney = formatCLP) {
+  if (!terms?.default) {
+    return { configured: false, label: 'Sin acuerdo de pago', mode: null, value: null, byServiceCount: 0 };
+  }
+  const serviceCount = Object.keys(terms.byService || {}).length;
+  return {
+    configured: true,
+    mode: terms.default.mode,
+    value: terms.default.value,
+    label: technicianPay.formatPayRuleLabel(terms.default, formatMoney),
+    byServiceCount: serviceCount,
+    byService: terms.byService || {}
+  };
+}
+
+function buildTechnicianPaySnapshot(request, financials) {
+  if (!request?.technicianId || !request.providerId) return null;
+  const tecnico = getUserById(request.technicianId);
+  if (!tecnico || tecnico.role !== 'tecnico') return null;
+  if (tecnico.isSelfOperator) {
+    const providerPayout = Math.max(0, Math.round(Number(financials?.providerTotal) || 0));
+    return {
+      selfOperator: true,
+      configured: true,
+      mode: 'percent',
+      value: 100,
+      label: 'Tú eres el socio (100% del neto)',
+      providerPayout,
+      technicianPayout: providerPayout,
+      providerKeep: 0,
+      source: 'self'
+    };
+  }
+  const terms = getTechnicianPayTermsForProvider(tecnico, request.providerId);
+  const rule = technicianPay.resolvePayRule(terms, request.serviceId);
+  const providerPayout = Math.max(0, Math.round(Number(financials?.providerTotal) || 0));
+  const computed = technicianPay.computeTechnicianPayout(providerPayout, rule);
+  return {
+    selfOperator: false,
+    configured: computed.configured,
+    mode: computed.mode,
+    value: computed.value,
+    label: computed.configured
+      ? technicianPay.formatPayRuleLabel(rule, formatCLP)
+      : 'Sin acuerdo definido por el socio',
+    providerPayout,
+    technicianPayout: computed.technicianPayout,
+    providerKeep: computed.providerKeep,
+    source: computed.source || null,
+    serviceId: request.serviceId || null,
+    computedAt: new Date().toISOString()
+  };
+}
+
+function attachTechnicianPayToVisible(request, visible) {
+  if (!visible) return visible;
+  const snap = request.technicianPay
+    || (visible.completed
+      ? buildTechnicianPaySnapshot(request, {
+        providerTotal: visible.providerPayout
+      })
+      : null);
+  if (!snap) return visible;
+  return {
+    ...visible,
+    technicianPay: snap,
+    technicianPayout: snap.technicianPayout,
+    technicianPayLabel: snap.label,
+    providerKeepAfterTech: snap.providerKeep
+  };
+}
+
 function getTechnicianParentIds(tecnico) {
   if (!tecnico) return [];
   const list = [];
@@ -4054,7 +4161,7 @@ function getTechnicianForProvider(socioId, tecnicoId) {
 }
 
 /** Vincula un técnico existente (por correo) a otro socio. */
-function linkTechnicianToProvider(socioId, { email, specialties } = {}) {
+function linkTechnicianToProvider(socioId, { email, specialties, payTerms } = {}) {
   const socio = getUserById(socioId);
   if (!socio || socio.role !== 'provider') return { error: 'Cuenta de socio no válida.' };
   const normalized = String(email || '').trim().toLowerCase();
@@ -4083,6 +4190,10 @@ function linkTechnicianToProvider(socioId, { email, specialties } = {}) {
 
   repository.persist(() => repository.saveUser(tecnico), `vincular técnico ${tecnico.id} → ${socioId}`);
   setTechnicianCanClaimWall(socioId, tecnico.id, false);
+  if (payTerms) {
+    const pay = setTechnicianPayTermsForProvider(socioId, tecnico.id, payTerms);
+    if (pay.error) return pay;
+  }
   const rut = formatProviderRutLabel(socio);
   return {
     success: true,
@@ -6918,6 +7029,7 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
   request.completedAt = new Date().toISOString();
   assignPayoutSchedule(request);
   request.financials = computeRequestFinancials(request, getPricingConfig());
+  request.technicianPay = buildTechnicianPaySnapshot(request, request.financials);
   buildProviderInvoicePlan(request, request.financials);
   addLogbookEntryFromRequest(request);
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
@@ -7447,7 +7559,7 @@ function getTechStatusLabel(techStatus, locale = 'es') {
 function enrichRequestForProvider(request, locale = 'es') {
   if (!request) return null;
   const pricing = getPricingConfig();
-  const visible = getProviderVisibleFinancials(request, pricing);
+  const visible = attachTechnicianPayToVisible(request, getProviderVisibleFinancials(request, pricing));
   const safe = sanitizeRequestForWorker(request, pricing);
   const providerInvoicePlan = request.status === 'completed'
     ? serializeProviderInvoicePlan(ensureProviderInvoicePlan(request))
@@ -7598,7 +7710,7 @@ function getProviderFinanceLedger(providerId, { limit = 60 } = {}) {
 }
 
 /** Actualiza datos básicos de un técnico del equipo del socio. */
-async function updateTechnicianForProvider(socioId, tecnicoId, { name, phone, password, specialties } = {}) {
+async function updateTechnicianForProvider(socioId, tecnicoId, { name, phone, password, specialties, payTerms } = {}) {
   const tecnico = getTechnicianForProvider(socioId, tecnicoId);
   if (!tecnico) return { error: 'Técnico no encontrado en tu equipo.' };
   if (tecnico.isSelfOperator) {
@@ -7628,8 +7740,13 @@ async function updateTechnicianForProvider(socioId, tecnicoId, { name, phone, pa
     }
     tecnico.specialties = wanted;
   }
-  repository.persist(() => repository.saveUser(tecnico), `editar técnico ${tecnico.id}`);
-  return { success: true, tecnico };
+  if (payTerms !== undefined) {
+    const pay = setTechnicianPayTermsForProvider(socioId, tecnicoId, payTerms);
+    if (pay.error) return pay;
+  } else {
+    repository.persist(() => repository.saveUser(tecnico), `editar técnico ${tecnico.id}`);
+  }
+  return { success: true, tecnico: getTechnicianForProvider(socioId, tecnicoId) };
 }
 
 /** Quita al técnico de la empresa del socio (no borra la cuenta global). */
@@ -7654,6 +7771,9 @@ function unlinkTechnicianFromProvider(socioId, tecnicoId) {
   }
   if (tecnico.claimWallByProvider && typeof tecnico.claimWallByProvider === 'object') {
     delete tecnico.claimWallByProvider[socioId];
+  }
+  if (tecnico.payTermsByProvider && typeof tecnico.payTermsByProvider === 'object') {
+    delete tecnico.payTermsByProvider[socioId];
   }
   repository.persist(() => repository.saveUser(tecnico), `desvincular técnico ${tecnico.id} de ${socioId}`);
   return { success: true };
@@ -8895,6 +9015,10 @@ module.exports = {
   technicianCanClaimWallForProvider,
   technicianCanClaimAnyWall,
   setTechnicianCanClaimWall,
+  getTechnicianPayTermsForProvider,
+  setTechnicianPayTermsForProvider,
+  serializePayTermsSummary,
+  buildTechnicianPaySnapshot,
   canTechnicianOperate,
   saveTechnicianDocument,
   saveTechnicianOwnDocument,

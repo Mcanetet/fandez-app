@@ -10,9 +10,11 @@
       <button type="button" id="alandFabClose" class="w-8 h-8 rounded-lg hover:bg-white/10 text-lg leading-none" aria-label="Cerrar">×</button>
     </div>
     <div id="alandFabMessages" class="h-64 overflow-y-auto p-3 space-y-2 bg-zilo-bg text-sm"></div>
-    <form id="alandFabForm" class="flex gap-2 p-2 border-t border-zilo-border bg-white">
-      <input type="text" id="alandFabInput" maxlength="2000" placeholder="Escribe tu consulta…" class="flex-1 px-3 py-2 rounded-lg border border-zilo-border text-sm" autocomplete="off">
-      <button type="submit" class="px-3 py-2 rounded-lg aland-btn text-sm font-medium">Enviar</button>
+    <form id="alandFabForm" class="job-chat-composer !p-2 !border-0 border-t border-zilo-border">
+      <div class="job-chat-composer__row">
+        <input type="text" id="alandFabInput" maxlength="2000" placeholder="Escribe tu consulta…" class="job-chat-input" autocomplete="off">
+        <button type="submit" class="job-chat-send">Enviar</button>
+      </div>
     </form>
   </div>
   <button type="button" id="alandFabToggle"

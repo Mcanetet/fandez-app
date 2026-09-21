@@ -90,14 +90,14 @@
 
     <% if (demoMode) { %>
     <p class="text-xs text-zilo-warning/90 p-3 rounded-xl border border-zilo-warning/20 bg-zilo-warning/5 text-center">
-      Modo demo — ninguna pasarela de tarjeta configurada
+      Sin pasarela de tarjeta configurada — confirmación de prueba para no bloquear el servicio
     </p>
     <% } else if (cardGateway) { %>
     <p class="text-xs text-zilo-muted text-center">Pago seguro con <strong><%= cardGateway.label %></strong>.</p>
     <% } %>
 
     <button type="button" id="btnPayAdjustment" class="zilo-btn-primary">
-      <%= demoMode ? 'Confirmar pago demo' : (isApprox ? 'Pagar monto aproximado' : 'Pagar ajuste con tarjeta') %>
+      <%= demoMode ? 'Confirmar y continuar' : (isApprox ? 'Pagar monto aproximado' : 'Pagar ajuste con tarjeta') %>
     </button>
   </main>
 </div>
@@ -119,7 +119,7 @@
           cardGateway: document.querySelector('input[name="cardGateway"]:checked')?.value || null
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo procesar el pago');
       if (data.demo) {
         const confirmRes = await fetch('/pagos/ajuste/demo/confirmar', {
@@ -127,11 +127,12 @@
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({ requestId: page.dataset.requestId, chargeId: page.dataset.chargeId })
         });
-        const confirmed = await confirmRes.json();
+        const confirmed = await confirmRes.json().catch(() => ({}));
         if (!confirmRes.ok || !confirmed.success) throw new Error(confirmed.error || 'No se pudo confirmar');
         window.location.href = confirmed.redirect;
         return;
       }
+      if (!data.redirect) throw new Error('No se recibió el enlace de pago');
       window.location.href = data.redirect;
     } catch (err) {
       btn.disabled = false;

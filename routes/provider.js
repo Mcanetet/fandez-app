@@ -82,6 +82,42 @@ const { serializeFieldJob } = require('../lib/fieldJob');
 const { ATTENTION_CHECKLIST } = require('../lib/onboarding');
 const { getDiagnosisChips } = require('../lib/diagnosisChips');
 
+function parsePayTermsFromBody(body = {}) {
+  const mode = String(body.payMode || body.pay_mode || '').toLowerCase() === 'fixed' ? 'fixed' : 'percent';
+  const valueRaw = body.payValue != null ? body.payValue : body.pay_value;
+  const value = mode === 'fixed'
+    ? parseInt(valueRaw, 10)
+    : parseFloat(valueRaw);
+  if (!Number.isFinite(value)) return null;
+
+  const byService = {};
+  const serviceModes = body.payServiceMode || body.pay_service_mode || {};
+  const serviceValues = body.payServiceValue || body.pay_service_value || {};
+  const serviceIds = new Set([
+    ...Object.keys(typeof serviceModes === 'object' && !Array.isArray(serviceModes) ? serviceModes : {}),
+    ...Object.keys(typeof serviceValues === 'object' && !Array.isArray(serviceValues) ? serviceValues : {})
+  ]);
+  serviceIds.forEach((serviceId) => {
+    const sMode = String(serviceModes[serviceId] || mode).toLowerCase() === 'fixed' ? 'fixed' : 'percent';
+    const sVal = sMode === 'fixed'
+      ? parseInt(serviceValues[serviceId], 10)
+      : parseFloat(serviceValues[serviceId]);
+    if (!Number.isFinite(sVal)) return;
+    byService[serviceId] = { mode: sMode, value: sVal };
+  });
+
+  // JSON payload from edit modal
+  if (body.payTerms && typeof body.payTerms === 'object') {
+    return body.payTerms;
+  }
+
+  return {
+    mode,
+    value,
+    byService
+  };
+}
+
 function equipoViewLocals(req, provider, extra = {}) {
   const onlineGate = store.canProviderGoOnline(provider);
   const hasServices = Array.isArray(provider.specialties) && provider.specialties.length > 0;
@@ -92,6 +128,8 @@ function equipoViewLocals(req, provider, extra = {}) {
     technicians: store.getTechniciansByProvider(provider.id).map((tecnico) => {
       const v = tecnico.verification || {};
       const hasDoc = (val) => Boolean(val && val !== 'self-operator-via-provider' && val !== 'self-operator');
+      const payTerms = store.getTechnicianPayTermsForProvider(tecnico, provider.id);
+      const paySummary = store.serializePayTermsSummary(payTerms);
       return {
         ...tecnico,
         displayEmail: tecnico.isSelfOperator ? provider.email : tecnico.email,
@@ -100,6 +138,8 @@ function equipoViewLocals(req, provider, extra = {}) {
           : store.isEmailVerified(tecnico),
         dossierCheck: store.canTechnicianOperate(tecnico),
         canClaimWall: store.technicianCanClaimWallForProvider(tecnico, provider.id),
+        payTerms,
+        paySummary,
         docs: {
           idCardFront: hasDoc(v.idCardFront),
           idCardBack: hasDoc(v.idCardBack),
@@ -666,9 +706,17 @@ router.post('/servicios', requireRole('provider'), requireModule('provider_equip
 });
 
 router.post('/equipo/vincular', requireRole('provider'), requireModule('provider_equipo'), async (req, res) => {
+  const payTerms = parsePayTermsFromBody(req.body);
+  if (!payTerms) {
+    const provider = store.getUserById(req.session.user.id);
+    return res.status(400).render('provider/equipo', equipoViewLocals(req, provider, {
+      error: 'Define cuánto le pagas al técnico (% o monto fijo).'
+    }));
+  }
   const result = store.linkTechnicianToProvider(req.session.user.id, {
     email: req.body.email,
-    specialties: req.body.specialties
+    specialties: req.body.specialties,
+    payTerms
   });
   if (result.error) {
     const provider = store.getUserById(req.session.user.id);
@@ -698,8 +746,16 @@ router.post('/equipo', requireRole('provider'), requireModule('provider_equipo')
   const { name, email, password, phone } = req.body;
   const rawSpecs = req.body.specialties || [];
   const specialties = Array.isArray(rawSpecs) ? rawSpecs : [rawSpecs];
+  const payTerms = parsePayTermsFromBody(req.body);
+  if (!payTerms) {
+    const isJson = req.xhr || (req.get('accept') || '').includes('application/json');
+    const msg = 'Define cuánto le pagas al técnico (% o monto fijo).';
+    if (isJson) return res.status(400).json({ success: false, error: msg });
+    const provider = store.getUserById(req.session.user.id);
+    return res.status(400).render('provider/equipo', equipoViewLocals(req, provider, { error: msg }));
+  }
   const result = await store.createTechnician(req.session.user.id, {
-    name, email, password, phone, specialties
+    name, email, password, phone, specialties, payTerms
   });
 
   if (result.error) {
@@ -805,7 +861,8 @@ router.post('/equipo/:id/editar', requireRole('provider'), requireModule('provid
     name: req.body.name,
     phone: req.body.phone,
     password: req.body.password,
-    specialties
+    specialties,
+    payTerms: req.body.payTerms !== undefined ? req.body.payTerms : parsePayTermsFromBody(req.body)
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   store.logSecurityEvent('tecnico_editado', req.params.id, req);
@@ -813,6 +870,8 @@ router.post('/equipo/:id/editar', requireRole('provider'), requireModule('provid
     const svc = store.getServiceById?.(id) || (store.SERVICES || []).find((s) => s.id === id);
     return svc?.name || id;
   });
+  const payTerms = store.getTechnicianPayTermsForProvider(result.tecnico, req.session.user.id);
+  const paySummary = store.serializePayTermsSummary(payTerms);
   res.json({
     success: true,
     tecnico: {
@@ -822,7 +881,8 @@ router.post('/equipo/:id/editar', requireRole('provider'), requireModule('provid
       avatar: result.tecnico.avatar,
       email: result.tecnico.email,
       specialties: result.tecnico.specialties || [],
-      specialtyNames
+      specialtyNames,
+      paySummary
     }
   });
 });

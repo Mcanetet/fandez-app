@@ -182,6 +182,7 @@
   /**
    * Convierte inputs sueltos (legacy capture=environment o data-pick=both)
    * en selector Cámara + Archivos, preservando id y accept.
+   * No toca el compositor del chat del servicio (rompe el layout móvil).
    */
   function enhanceMediaPickers(root) {
     const scope = root || document;
@@ -190,6 +191,15 @@
       ? scope.querySelectorAll('input[type="file"][data-pick="both"]:not(.js-media-master):not([data-enhanced="1"]), input[type="file"][capture]:not(.fandez-media-src):not([data-enhanced="1"])')
       : [];
     inputs.forEach((input) => {
+      if (
+        input.closest('.job-chat-composer')
+        || input.closest('.job-chat-composer__row')
+        || input.matches('[data-role="chat-photo-input"]')
+        || input.dataset.chatComposer === '1'
+      ) {
+        input.dataset.enhanced = 'skip-chat';
+        return;
+      }
       if (input.closest('.fandez-media-pick')) {
         input.dataset.enhanced = '1';
         return;
@@ -231,8 +241,33 @@
     });
   }
 
+  function repairChatComposers(root) {
+    const scope = root || document;
+    scope.querySelectorAll?.('.job-chat-composer .fandez-media-pick')?.forEach((pick) => {
+      const master = pick.querySelector('input.js-media-master, input[data-role="chat-photo-input"]');
+      const row = pick.closest('.job-chat-composer__row') || pick.parentElement;
+      if (master && row) {
+        master.classList.remove('hidden', 'js-media-master');
+        master.classList.add('sr-only');
+        master.dataset.role = 'chat-photo-input';
+        master.dataset.chatComposer = '1';
+        master.dataset.enhanced = 'skip-chat';
+        master.removeAttribute('data-pick');
+        master.removeAttribute('capture');
+        const attach = row.querySelector('[data-role="chat-photo-btn"]');
+        if (attach && attach.nextSibling !== master) {
+          attach.insertAdjacentElement('afterend', master);
+        } else if (!attach) {
+          row.insertBefore(master, row.firstChild);
+        }
+      }
+      pick.remove();
+    });
+  }
+
   function bootMediaPickers() {
     bindMediaPickDelegation(document);
+    repairChatComposers(document);
     enhanceMediaPickers(document);
   }
 
@@ -249,6 +284,7 @@
     captureVideoFrame,
     waitForVideoFrame,
     enhanceMediaPickers,
+    repairChatComposers,
     transferFileToInput
   };
 })(window);

@@ -1,0 +1,52 @@
+<%#
+  Bloque de acuerdo de pago socio → técnico.
+  Locals opcionales:
+  - payPrefix: prefijo de name ('' | 'link' no usado; usamos mismos names)
+  - payIdPrefix: prefijo de ids para JS ('' | 'edit')
+  - showByService: boolean
+  - servicesForPay: array {id,name}
+%>
+<%
+  const idPrefix = typeof payIdPrefix !== 'undefined' && payIdPrefix ? String(payIdPrefix) : '';
+  const showSvc = showByService !== false;
+  const svcList = typeof servicesForPay !== 'undefined' ? servicesForPay : [];
+%>
+<div class="rounded-xl border border-zilo-border bg-zilo-bg/50 p-3 space-y-3" data-pay-terms-block="<%= idPrefix || 'form' %>">
+  <div>
+    <p class="text-xs font-semibold text-zilo-text">Pago al técnico *</p>
+    <p class="text-[10px] text-zilo-muted mt-0.5">Sobre el neto que recibe tu empresa (después de comisión Fandez). Él lo verá al cerrar cada visita.</p>
+  </div>
+  <div class="grid grid-cols-2 gap-2">
+    <div>
+      <label class="text-[10px] text-zilo-muted" for="<%= idPrefix %>payMode">Tipo</label>
+      <select name="payMode" id="<%= idPrefix %>payMode" class="zilo-input w-full mt-1 !py-2 text-sm" required data-pay-mode>
+        <option value="percent">Porcentaje del neto</option>
+        <option value="fixed">Monto fijo por visita</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-[10px] text-zilo-muted" for="<%= idPrefix %>payValue">Valor</label>
+      <input type="number" name="payValue" id="<%= idPrefix %>payValue" class="zilo-input w-full mt-1 !py-2 text-sm" required min="0" step="1" value="50" placeholder="50" data-pay-value>
+      <p class="text-[10px] text-zilo-muted mt-1" data-pay-hint>Ej: 50 = 50% del neto</p>
+    </div>
+  </div>
+  <% if (showSvc && svcList.length) { %>
+  <details class="rounded-lg border border-zilo-border/80 bg-white/60">
+    <summary class="text-[11px] font-semibold cursor-pointer px-2.5 py-2 text-zilo-accent">Por oficio (opcional)</summary>
+    <div class="px-2.5 pb-2.5 space-y-2">
+      <p class="text-[10px] text-zilo-muted">Si dejas vacío, usa el valor general de arriba.</p>
+      <% svcList.forEach(function(s) { %>
+      <div class="grid grid-cols-[1fr_88px_88px] gap-1.5 items-end" data-pay-service-row="<%= s.id %>">
+        <p class="text-[11px] truncate pb-2"><%= s.name %></p>
+        <select name="payServiceMode[<%= s.id %>]" class="zilo-input !py-1.5 text-[11px]" data-pay-service-mode="<%= s.id %>">
+          <option value="">General</option>
+          <option value="percent">%</option>
+          <option value="fixed">Fijo</option>
+        </select>
+        <input type="number" name="payServiceValue[<%= s.id %>]" min="0" step="1" class="zilo-input !py-1.5 text-[11px]" placeholder="—" data-pay-service-value="<%= s.id %>">
+      </div>
+      <% }); %>
+    </div>
+  </details>
+  <% } %>
+</div>

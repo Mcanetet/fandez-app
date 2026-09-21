@@ -238,8 +238,8 @@
     </section>
 
     <% if (!mpConfigured && (summary.paymentMethod || 'card') === 'card') { %>
-    <p class="text-xs text-zilo-warning/90 p-3 rounded-xl border border-zilo-warning/20 bg-zilo-warning/5 text-center">
-      Modo demo — ninguna pasarela de tarjeta configurada en el servidor
+    <p class="text-xs text-amber-800 p-3 rounded-xl border border-amber-200 bg-amber-50 text-center">
+      Sin pasarela real — al tocar pagar se confirma un Mercado Pago de prueba y el pedido sigue
     </p>
     <% } else if (cardGateway && (summary.paymentMethod || 'card') === 'card') { %>
     <p class="text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg/50 text-center">
@@ -449,29 +449,40 @@
     btnPay.disabled = true;
     document.getElementById('btnPaySticky')?.setAttribute('disabled', 'disabled');
     const code = promoCode?.value.trim() || '';
-    const res = await fetch('/pagos/crear', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestId,
-        useCredits: useCredits?.checked,
-        usePoints: usePoints?.checked,
-        promoCode: code,
-        paymentMethod: selectedPaymentMethod(),
-        cardGateway: selectedCardGateway(),
-        billing: getBillingPayload()
-      })
-    });
-    const data = await res.json();
-    btnPay.disabled = false;
-    document.getElementById('btnPaySticky')?.removeAttribute('disabled');
-    if (!data.success) {
-      FandezNotify.show(data.error || 'Error', 'error');
-      return;
+    try {
+      const res = await fetch('/pagos/crear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          requestId,
+          useCredits: useCredits?.checked,
+          usePoints: usePoints?.checked,
+          promoCode: code,
+          paymentMethod: selectedPaymentMethod(),
+          cardGateway: selectedCardGateway(),
+          billing: getBillingPayload()
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        FandezNotify.show(data.error || 'No se pudo crear el pago. Intenta nuevamente.', 'error');
+        return;
+      }
+      if (data.free || data.redirect) {
+        window.location.href = data.redirect;
+        return;
+      }
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+      FandezNotify.show('No se recibió el enlace de pago', 'error');
+    } catch (err) {
+      FandezNotify.show(err.message || 'Error de red al pagar', 'error');
+    } finally {
+      btnPay.disabled = false;
+      document.getElementById('btnPaySticky')?.removeAttribute('disabled');
     }
-    if (data.free) window.location.href = data.redirect;
-    else if (data.redirect) window.location.href = data.redirect;
-    else window.location.href = data.checkoutUrl;
   });
 
   recalc();

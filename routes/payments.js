@@ -126,6 +126,12 @@ function buildAdditionalPaymentRequest(request, charge) {
   };
 }
 
+function canUseDemoCardPayment(pricing) {
+  // Demo solo si no hay pasarela real. Si hay credenciales, en producción no se puede saltar el cobro.
+  if (cardCheckout.isAnyCardGatewayConfigured(pricing)) return false;
+  return true;
+}
+
 router.get('/ajuste', requireRole('client'), (req, res) => {
   const request = store.requests.find((r) => r.id === req.query.ref && r.clientId === req.session.user.id);
   const charge = getAdditionalCharge(request);
@@ -134,6 +140,7 @@ router.get('/ajuste', requireRole('client'), (req, res) => {
     return res.redirect(`/pagos/exito?ref=${request.id}&charge=${encodeURIComponent(charge.id)}`);
   }
   const pricing = store.getPricingConfig();
+  const cardReady = cardCheckout.isAnyCardGatewayConfigured(pricing);
   res.render('payments/additional-checkout', {
     title: 'Pago de ajuste — Fandez',
     request,
@@ -142,7 +149,7 @@ router.get('/ajuste', requireRole('client'), (req, res) => {
     formatCLP: store.formatCLP,
     enabledCardGateways: gateways.getEnabledCardGateways(pricing),
     cardGateway: gateways.getActiveCardGateway(pricing),
-    demoMode: !cardCheckout.isAnyCardGatewayConfigured(pricing)
+    demoMode: !cardReady
   });
 });
 
@@ -166,6 +173,13 @@ router.post('/ajuste/crear', requireRole('client'), async (req, res) => {
     if (payment.mode === 'demo') {
       return res.json({ success: true, demo: true });
     }
+    const redirect = payment.mode === 'transbank'
+      ? `${baseUrl}${payment.redirectPath}`
+      : (payment.checkoutUrl || null);
+    if (!redirect) {
+      console.error('Pago de ajuste sin URL de checkout', { gateway: payment.gateway, mode: payment.mode });
+      return res.status(500).json({ error: 'La pasarela no devolvió un enlace de pago. Intenta de nuevo.' });
+    }
     store.setAdditionalPaymentSession(request.id, {
       gateway: payment.gateway,
       token: payment.token,
@@ -176,7 +190,7 @@ router.post('/ajuste/crear', requireRole('client'), async (req, res) => {
     });
     return res.json({
       success: true,
-      redirect: payment.mode === 'transbank' ? `${baseUrl}${payment.redirectPath}` : payment.checkoutUrl
+      redirect
     });
   } catch (err) {
     console.error('Error creando pago de ajuste:', err.message);
@@ -185,16 +199,25 @@ router.post('/ajuste/crear', requireRole('client'), async (req, res) => {
 });
 
 router.post('/ajuste/demo/confirmar', requireRole('client'), (req, res) => {
-  if (appMode.isProductionMode()) {
-    return res.status(403).json({ error: 'Pago demo deshabilitado en producción.' });
+  const pricing = store.getPricingConfig();
+  // Solo demo si no hay pasarela real. Así no se traba el cobro de materiales
+  // cuando falta MP/Transbank, y tampoco se puede saltar el pago si sí hay credenciales.
+  if (!canUseDemoCardPayment(pricing)) {
+    return res.status(403).json({
+      error: appMode.isProductionMode()
+        ? 'Pago demo deshabilitado en producción.'
+        : 'Hay una pasarela configurada: usa el pago con tarjeta.'
+    });
   }
   const request = store.requests.find((r) => r.id === req.body.requestId && r.clientId === req.session.user.id);
   const charge = getAdditionalCharge(request, req.body.chargeId);
   if (!request || !charge || charge.status !== 'pending') {
     return res.status(400).json({ error: 'Ajuste no disponible.' });
   }
+  console.warn(`[pagos] confirmación demo de ajuste request=${request.id} charge=${charge.id} mode=${appMode.getMode()}`);
   store.markAdditionalPaymentApproved(request.id, `demo-${charge.id}`);
-  emitRequestUpdateToParties(req.app.get('io'), store, request, { request });
+  const updated = store.requests.find((r) => r.id === request.id) || request;
+  emitRequestUpdateToParties(req.app.get('io'), store, updated, { request: updated });
   res.json({
     success: true,
     redirect: `/pagos/exito?ref=${request.id}&charge=${encodeURIComponent(charge.id)}`
@@ -323,10 +346,21 @@ router.post('/crear', requireRole('client'), async (req, res) => {
     });
 
     if (payment.mode === 'demo') {
+      // Sin pasarela: aprobar como Mercado Pago ficticio para no trabar pedidos.
+      if (!canUseDemoCardPayment(pricing)) {
+        return res.status(503).json({
+          error: 'Pasarela de tarjeta no disponible. Usa transferencia o contacta soporte.'
+        });
+      }
+      const demoPaymentId = `mpago-demo-${Date.now()}`;
+      console.warn(`[pagos] MP ficticio visita request=${requestId} id=${demoPaymentId} mode=${appMode.getMode()}`);
+      store.markPaymentApproved(requestId, demoPaymentId);
+      store.activateRequest(requestId);
+      notifyProviders(req, store.requests.find(r => r.id === requestId));
       return res.json({
         success: true,
         demo: true,
-        checkoutUrl: `${baseUrl}/pagos/demo?ref=${request.id}`
+        redirect: paymentSuccessPath(requestId)
       });
     }
 
@@ -369,9 +403,32 @@ router.post('/crear', requireRole('client'), async (req, res) => {
       });
     }
 
+    // Último recurso: si no hay pasarela usable, mismo MP ficticio.
+    if (canUseDemoCardPayment(pricing)) {
+      const demoPaymentId = `mpago-demo-${Date.now()}`;
+      console.warn(`[pagos] MP ficticio (fallback) request=${requestId} id=${demoPaymentId}`);
+      store.markPaymentApproved(requestId, demoPaymentId);
+      store.activateRequest(requestId);
+      notifyProviders(req, store.requests.find(r => r.id === requestId));
+      return res.json({ success: true, demo: true, redirect: paymentSuccessPath(requestId) });
+    }
+
     return res.status(500).json({ error: 'No hay pasarela de pago disponible' });
   } catch (err) {
     console.error('Error creando pago con tarjeta:', err.message);
+    // Si falla la pasarela y no hay credenciales, dejar pasar con MP ficticio.
+    if (canUseDemoCardPayment(pricing)) {
+      try {
+        const demoPaymentId = `mpago-demo-${Date.now()}`;
+        console.warn(`[pagos] MP ficticio tras error request=${requestId} id=${demoPaymentId} err=${err.message}`);
+        store.markPaymentApproved(requestId, demoPaymentId);
+        store.activateRequest(requestId);
+        notifyProviders(req, store.requests.find(r => r.id === requestId));
+        return res.json({ success: true, demo: true, redirect: paymentSuccessPath(requestId) });
+      } catch (fallbackErr) {
+        console.error('Fallback demo falló:', fallbackErr.message);
+      }
+    }
     res.status(500).json({ error: 'No se pudo crear el pago. Intenta nuevamente.' });
   }
 });
@@ -530,10 +587,11 @@ router.post('/transferencia/confirmar', requireRole('client'), (req, res) => {
 });
 
 router.get('/demo', requireRole('client'), (req, res) => {
-  if (appMode.isProductionMode()) {
+  const pricing = store.getPricingConfig();
+  if (!canUseDemoCardPayment(pricing)) {
     return res.status(403).render('error', {
       title: 'Pago no disponible',
-      message: 'El pago demo solo está disponible en modo demo. Configura una pasarela de pago.',
+      message: 'El pago demo no está disponible. Usa la pasarela de tarjeta configurada.',
       code: 403
     });
   }
@@ -551,15 +609,17 @@ router.get('/demo', requireRole('client'), (req, res) => {
 });
 
 router.post('/demo/confirmar', requireRole('client'), (req, res) => {
-  if (appMode.isProductionMode()) {
-    return res.status(403).json({ error: 'Pago demo deshabilitado en producción.' });
+  const pricing = store.getPricingConfig();
+  if (!canUseDemoCardPayment(pricing)) {
+    return res.status(403).json({ error: 'Pago demo deshabilitado: hay pasarela de tarjeta configurada.' });
   }
   const request = store.requests.find(r => r.id === req.body.requestId);
   if (!request || request.clientId !== req.session.user.id) {
     return res.status(404).json({ error: 'Solicitud no encontrada' });
   }
 
-  store.markPaymentApproved(request.id, 'demo');
+  console.warn(`[pagos] confirmación demo visita request=${request.id} mode=${appMode.getMode()}`);
+  store.markPaymentApproved(request.id, `mpago-demo-${Date.now()}`);
   store.activateRequest(request.id);
   notifyProviders(req, store.requests.find(r => r.id === request.id));
 

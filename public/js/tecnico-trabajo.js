@@ -727,7 +727,7 @@
       if (!el.checked) missing += 1;
     });
     if (missing > 0) {
-      const ok = confirm(`Faltan ${missing} ítem(s) del Procedimiento de atención Fandez. ¿Completar de todos modos?`);
+      const ok = confirm(`Faltan ${missing} ítem(s) del checklist de atención. ¿Completar de todos modos?`);
       if (!ok) return;
     }
 
@@ -766,6 +766,13 @@
     const fmt = (n) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n || 0);
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
+    const techPay = s.technicianPay || null;
+    const heroAmount = techPay && techPay.technicianPayout != null
+      ? techPay.technicianPayout
+      : s.providerPayout;
+    const isSelf = Boolean(techPay?.selfOperator);
+    const configured = techPay?.configured !== false;
+
     set('setCharged', fmt(s.grandTotal));
     set('setCardLabel', `Mercado Pago valor presente ${s.merchantCardFeePercent || 0}%`);
     set('setCard', `−${fmt(s.cardFee)}`);
@@ -779,8 +786,36 @@
     document.getElementById('setMaterialsRow')?.classList.add('hidden');
     set('setIvaLabel', `IVA incluido en comisión y MP (desglose)`);
     set('setIva', fmt(s.ivaOnFees));
-    set('setPayout', fmt(s.providerPayout));
-    set('setPayoutHero', fmt(s.providerPayout));
+    set('setCompanyNet', fmt(s.providerPayout));
+    set('setPayout', fmt(heroAmount));
+    set('setPayoutHero', fmt(heroAmount));
+
+    const titleEl = document.getElementById('setPayoutTitle');
+    const lineLabel = document.getElementById('setPayoutLineLabel');
+    const labelEl = document.getElementById('setTechPayLabel');
+    const noteEl = document.getElementById('setSettlementNote');
+    if (isSelf) {
+      if (titleEl) titleEl.textContent = 'Tu ganancia';
+      if (lineLabel) lineLabel.textContent = 'Tu neto';
+      if (labelEl) labelEl.textContent = 'Eres el socio: recibes el neto de la empresa.';
+      if (noteEl) {
+        noteEl.textContent = 'De la mano de obra: comisión Fandez e IVA incluido y costo Mercado Pago. Los materiales son 100% de la empresa.';
+      }
+    } else if (configured && techPay?.technicianPayout != null) {
+      if (titleEl) titleEl.textContent = 'Tu pago';
+      if (lineLabel) lineLabel.textContent = 'Tu pago';
+      if (labelEl) labelEl.textContent = techPay.label || 'Según acuerdo con tu socio';
+      if (noteEl) {
+        noteEl.textContent = 'Monto según el acuerdo que definió tu socio (% o fijo sobre el neto de la empresa).';
+      }
+    } else {
+      if (titleEl) titleEl.textContent = 'Neto empresa';
+      if (lineLabel) lineLabel.textContent = 'Neto empresa';
+      if (labelEl) labelEl.textContent = 'Tu socio aún no definió tu pago en Equipo.';
+      if (noteEl) {
+        noteEl.textContent = 'Pide a tu socio que configure tu % o monto fijo en Mi equipo.';
+      }
+    }
 
     document.querySelectorAll('#trabajoPage main > section.field-step, #trabajoPage main > #fieldExtraActions').forEach((el) => {
       el.classList.add('hidden');

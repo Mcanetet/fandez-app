@@ -293,6 +293,10 @@
                       <p><%= t('provider.settlement_iva') %>: <%= formatCLP(fin.ivaOnFees || 0) %> <span class="text-zilo-muted">(ya incluido)</span></p>
                       <p class="text-[9px] text-zilo-muted/80"><%= t('provider.settlement_iva_hint') %></p>
                       <p class="text-zilo-success font-medium"><%= t('provider.js.your_payout') %>: <%= formatCLP(fin.providerPayout) %></p>
+                      <% if (fin.technicianPay && fin.technicianPay.configured && !fin.technicianPay.selfOperator && fin.technicianPayout != null) { %>
+                        <p>Pago técnico (<%= fin.technicianPayLabel || 'acuerdo' %>): <%= formatCLP(fin.technicianPayout) %></p>
+                        <p>Te queda tras técnico: <%= formatCLP(fin.providerKeepAfterTech != null ? fin.providerKeepAfterTech : (fin.providerPayout - fin.technicianPayout)) %></p>
+                      <% } %>
                     </div>
                   </details>
                   <%- include('../partials/provider-invoice-upload', { invoicePlan: req.providerInvoicePlan, invoiceRequestId: req.id }) %>
@@ -384,19 +388,17 @@
 
 <%- include('../partials/guide-modal', {
   role: 'provider',
-  title: 'Procedimiento de atención Fandez',
+  title: 'Guía rápida del socio',
   steps: [
-    { title: 'Activar modo en línea', body: 'Usa el interruptor superior para ponerte en línea. Solo así recibirás solicitudes. Activa las notificaciones del navegador (sonido y vibración).', tip: 'Si cierras la app, vuelve a activarte al regresar.' },
-    { title: 'Recibir y tomar trabajos', body: 'Las solicitudes aparecen en el muro y en un aviso. El primero que la toma se la queda. Revisa dirección, notas y fotos antes de aceptar.', tip: 'No prometas horarios que no puedas cumplir.' },
-    { title: 'Procedimiento en domicilio (nivel europeo)', body: '1) Puntualidad o aviso de demora. 2) Preséntate con nombre y Fandez. 3) Pide permiso de ingreso. 4) Explica el diagnóstico. 5) Pide aprobación antes de cualquier sobrecosto. 6) Foto de inicio y de cierre. 7) Deja el área limpia. 8) Despídete y pide calificación en la app.', tip: 'El técnico usa el checklist en la pantalla de trabajo.' },
-    { title: 'Servicios de regalo', body: 'Si el cliente regaló la visita, verás el badge "Regalo" con beneficiario y teléfono. Atiende a quien está en la dirección.', tip: 'El cliente pagó la visita; el beneficiario es quien recibe el servicio.' },
-    { title: 'Estados del servicio', body: 'Tras aceptar: En camino → En sitio → Diagnóstico → (presupuesto si aplica) → Completar. Actualiza cada estado a tiempo para que Aland IA informe al cliente.', tip: 'Completar actualiza el Pasaporte Hogar del cliente.' },
-    { title: 'Verificación y perfil', body: 'Carnet, rostro y ubicación son obligatorios para ir en línea. Mantén correo y teléfono actualizados.', tip: 'Los clientes ven tus sellos de confianza.' }
+    { title: 'Activar modo en línea', body: 'Con el interruptor superior te pones disponible. Sin eso no llegan pedidos.', tip: 'Activa notificaciones del navegador.' },
+    { title: 'Tomar trabajos', body: 'Revisa dirección, notas y fotos. Quien acepta primero se queda con el servicio.', tip: 'No prometas horarios que no puedas cumplir.' },
+    { title: 'En el domicilio', body: 'Preséntate, pide permiso, explica el diagnóstico, pide OK antes de extras, fotos y deja limpio.', tip: 'El técnico usa el checklist corto en la visita.' },
+    { title: 'Estados', body: 'En camino → En sitio → Diagnóstico → Completar. Cada cambio avisa al cliente.', tip: 'Completar actualiza el Pasaporte Hogar.' },
+    { title: 'Perfil', body: 'Carnet, rostro y ubicación son obligatorios para ir en línea.', tip: 'Mantén correo y teléfono al día.' }
   ],
   extras: [
-    { title: 'Sin sesgos ni promesas', body: 'No asumas capacidad de pago ni urgencia inventada. Informa hechos: tiempos reales, costos y opciones.' },
-    { title: 'Fuera de línea', body: 'Si no puedes atender, desactiva el modo en línea. No recibirás nuevas solicitudes hasta reactivarte.' },
-    { title: 'Historial', body: 'Revisa trabajos recientes. Rating y reseñas mejoran tu visibilidad.' }
+    { title: 'Claridad', body: 'Informá hechos: tiempos reales, costos y opciones. Sin promesas vacías.' },
+    { title: 'Fuera de línea', body: 'Si no puedes atender, desactiva el modo en línea.' }
   ]
 }) %>
 

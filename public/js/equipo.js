@@ -164,6 +164,69 @@
   const editPhone = document.getElementById('techEditPhone');
   const editPassword = document.getElementById('techEditPassword');
 
+  function collectPayTermsFromBlock(root) {
+    if (!root) return null;
+    const modeEl = root.querySelector('[data-pay-mode]');
+    const valueEl = root.querySelector('[data-pay-value]');
+    const mode = (modeEl?.value || 'percent') === 'fixed' ? 'fixed' : 'percent';
+    const value = mode === 'fixed'
+      ? parseInt(valueEl?.value, 10)
+      : parseFloat(valueEl?.value);
+    if (!Number.isFinite(value)) return null;
+    const byService = {};
+    root.querySelectorAll('[data-pay-service-mode]').forEach((sel) => {
+      const serviceId = sel.getAttribute('data-pay-service-mode');
+      const sModeRaw = sel.value;
+      if (!serviceId || !sModeRaw) return;
+      const valEl = root.querySelector(`[data-pay-service-value="${CSS.escape(serviceId)}"]`);
+      const sMode = sModeRaw === 'fixed' ? 'fixed' : 'percent';
+      const sVal = sMode === 'fixed'
+        ? parseInt(valEl?.value, 10)
+        : parseFloat(valEl?.value);
+      if (!Number.isFinite(sVal)) return;
+      byService[serviceId] = { mode: sMode, value: sVal };
+    });
+    return { mode, value, byService };
+  }
+
+  function syncPayHint(root) {
+    if (!root) return;
+    const mode = root.querySelector('[data-pay-mode]')?.value;
+    const hint = root.querySelector('[data-pay-hint]');
+    if (hint) {
+      hint.textContent = mode === 'fixed'
+        ? 'Ej: 25000 = $25.000 fijos por visita'
+        : 'Ej: 50 = 50% del neto de la empresa';
+    }
+  }
+
+  function fillPayTermsBlock(root, { mode, value, byService } = {}) {
+    if (!root) return;
+    const modeEl = root.querySelector('[data-pay-mode]');
+    const valueEl = root.querySelector('[data-pay-value]');
+    if (modeEl) modeEl.value = mode === 'fixed' ? 'fixed' : 'percent';
+    if (valueEl) valueEl.value = value != null && value !== '' ? String(value) : (mode === 'fixed' ? '' : '50');
+    const map = byService && typeof byService === 'object' ? byService : {};
+    root.querySelectorAll('[data-pay-service-mode]').forEach((sel) => {
+      const serviceId = sel.getAttribute('data-pay-service-mode');
+      const rule = map[serviceId];
+      const valEl = root.querySelector(`[data-pay-service-value="${CSS.escape(serviceId)}"]`);
+      if (rule) {
+        sel.value = rule.mode === 'fixed' ? 'fixed' : 'percent';
+        if (valEl) valEl.value = String(rule.value);
+      } else {
+        sel.value = '';
+        if (valEl) valEl.value = '';
+      }
+    });
+    syncPayHint(root);
+  }
+
+  document.querySelectorAll('[data-pay-terms-block]').forEach((block) => {
+    block.querySelector('[data-pay-mode]')?.addEventListener('change', () => syncPayHint(block));
+    syncPayHint(block);
+  });
+
   function collectEditSpecialties() {
     return Array.from(document.querySelectorAll('.tech-edit-spec:checked')).map((el) => el.value);
   }
@@ -306,6 +369,19 @@
       if (editPassword) editPassword.value = '';
       syncEditSpecialties(card.dataset.techSpecialties || '');
       syncEditDocs(card);
+      let byService = {};
+      try {
+        byService = card.dataset.payByService
+          ? JSON.parse(decodeURIComponent(card.dataset.payByService))
+          : {};
+      } catch (_) {
+        byService = {};
+      }
+      fillPayTermsBlock(document.querySelector('#techEditPayWrap [data-pay-terms-block]'), {
+        mode: card.dataset.payMode || 'percent',
+        value: card.dataset.payValue || '50',
+        byService
+      });
       editModal.classList.remove('hidden');
     });
   });
@@ -319,6 +395,11 @@
       notify('Selecciona al menos un servicio', 'warning');
       return;
     }
+    const payTerms = collectPayTermsFromBlock(document.querySelector('#techEditPayWrap [data-pay-terms-block]'));
+    if (!payTerms) {
+      notify('Define el pago del técnico (% o monto fijo)', 'warning');
+      return;
+    }
     const submitBtn = editForm.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
     try {
@@ -329,7 +410,8 @@
           name: editName.value.trim(),
           phone: editPhone.value.trim(),
           password: editPassword?.value || '',
-          specialties
+          specialties,
+          payTerms
         })
       });
       const data = await res.json();
@@ -339,6 +421,23 @@
         card.dataset.techName = data.tecnico.name || '';
         card.dataset.techPhone = data.tecnico.phone || '';
         card.dataset.techSpecialties = (data.tecnico.specialties || []).join(',');
+        if (data.tecnico.paySummary) {
+          card.dataset.payMode = data.tecnico.paySummary.mode || '';
+          card.dataset.payValue = data.tecnico.paySummary.value != null ? String(data.tecnico.paySummary.value) : '';
+          card.dataset.payByService = data.tecnico.paySummary.byService
+            ? encodeURIComponent(JSON.stringify(data.tecnico.paySummary.byService))
+            : '';
+          const payEl = card.querySelector('[data-role="tech-pay"]');
+          if (payEl) {
+            const extra = data.tecnico.paySummary.byServiceCount
+              ? ` · ${data.tecnico.paySummary.byServiceCount} por oficio`
+              : '';
+            payEl.textContent = data.tecnico.paySummary.configured
+              ? `Pago: ${data.tecnico.paySummary.label}${extra}`
+              : 'Pago: sin definir — edítalo';
+            payEl.className = `text-[10px] ${data.tecnico.paySummary.configured ? 'text-zilo-success' : 'text-amber-600'} block`;
+          }
+        }
         const nameEl = card.querySelector('[data-role="tech-name"]');
         const phoneEl = card.querySelector('[data-role="tech-phone"]');
         const avatarEl = card.querySelector('[data-role="tech-avatar"]');
