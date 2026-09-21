@@ -1306,6 +1306,68 @@ body.session-role--tecnico::before {
   background: #fff;
   border: 1px solid rgba(196, 92, 20, 0.25);
 }
+.app-session-header__avatar-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+.app-session-header__avatar-btn {
+  appearance: none;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  line-height: 1;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.app-session-header__avatar-btn[aria-expanded="true"],
+.app-session-header__avatar-btn:hover {
+  border-color: rgba(47, 107, 79, 0.45);
+  box-shadow: 0 0 0 3px rgba(47, 107, 79, 0.12);
+}
+.app-session-header__menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 80;
+  min-width: 12.5rem;
+  padding: 0.4rem 0;
+  border-radius: 0.9rem;
+  background: #fff;
+  border: 1px solid var(--zilo-border);
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.12);
+}
+.app-session-header__menu-label {
+  margin: 0;
+  padding: 0.35rem 0.85rem 0.45rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--zilo-muted);
+}
+.app-session-header__menu-item {
+  display: block;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 550;
+  color: var(--zilo-text);
+  text-decoration: none;
+}
+.app-session-header__menu-item:hover {
+  background: rgba(47, 107, 79, 0.08);
+  color: #1e4a36;
+}
+.app-session-header__menu-divider {
+  height: 1px;
+  margin: 0.35rem 0;
+  background: var(--zilo-border);
+}
+.app-session-header__menu-switch .session-mode-switch {
+  box-shadow: none;
+}
+#activeJobsSection > summary::-webkit-details-marker,
+#providerHistory > summary::-webkit-details-marker {
+  display: none;
+}
 .app-session-header__meta {
   min-width: 0;
   flex: 1 1 auto;
