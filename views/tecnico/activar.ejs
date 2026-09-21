@@ -17,7 +17,7 @@
         </h1>
         <p class="text-sm text-zilo-muted leading-relaxed">
           <strong class="text-zilo-text"><%= companyName %></strong> te sumó como técnico en Fandez.
-          Entra y completa tu ficha para poder trabajar.
+          Entra con tu contraseña y teléfono; el carnet lo subes dentro de tu sesión.
         </p>
       </div>
 
@@ -58,16 +58,15 @@
           </div>
 
           <div>
-            <label for="phone" class="zilo-label block mb-1.5">WhatsApp <span class="font-normal text-zilo-muted">(recomendado)</span></label>
-            <input type="tel" id="phone" name="phone" autocomplete="tel" class="zilo-input" placeholder="+56 9 1234 5678" value="<%= phone || '' %>">
+            <label for="phone" class="zilo-label block mb-1.5">Teléfono / WhatsApp</label>
+            <input type="tel" id="phone" name="phone" autocomplete="tel" class="zilo-input" placeholder="+56 9 1234 5678" value="<%= phone || '' %>" required>
           </div>
 
-          <div class="p-3 rounded-xl border border-zilo-accent/20 bg-zilo-accent-soft/40">
-            <p class="text-sm font-semibold text-zilo-text mb-1">Después de entrar</p>
-            <p class="text-xs text-zilo-muted leading-relaxed">Subirás el carnet (frente y reverso). El certificado de antecedentes lo carga tu empresa.</p>
-          </div>
+          <p class="text-[12px] text-zilo-muted leading-relaxed">
+            Al entrar subirás tu carnet (frente y reverso). El certificado de antecedentes lo carga tu empresa.
+          </p>
 
-          <button type="submit" class="zilo-btn-primary">Activar y completar ficha</button>
+          <button type="submit" class="zilo-btn-primary">Entrar a mi sesión</button>
         </form>
 
         <p class="text-center text-xs text-zilo-muted mt-5">
