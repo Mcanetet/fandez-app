@@ -22,9 +22,7 @@
         <div class="app-session-header__avatar tech-session-header__avatar" aria-hidden="true"><%= tecnico.avatar %></div>
         <div class="app-session-header__meta tech-session-header__meta">
           <h1 class="tech-session-header__name"><%= tecnico.name %></h1>
-          <p class="tech-session-header__role">
-            <span class="tech-session-header__badge">Técnico</span><% if (socio && socio.name) { %><span class="tech-session-header__team">Equipo <%= socio.name %></span><% } %>
-          </p>
+          <p class="tech-session-header__role"><% if (socio && socio.name) { %>Técnico · <%= socio.name %><% } else { %>Técnico<% } %></p>
         </div>
       </div>
       <div class="app-session-header__end tech-session-header__end">
