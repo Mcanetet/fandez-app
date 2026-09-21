@@ -1365,8 +1365,17 @@ body.session-role--tecnico::before {
   box-shadow: none;
 }
 #activeJobsSection > summary::-webkit-details-marker,
-#providerHistory > summary::-webkit-details-marker {
+#providerHistory > summary::-webkit-details-marker,
+#providerMoreSection > summary::-webkit-details-marker,
+.provider-home-fold > summary::-webkit-details-marker {
   display: none;
+}
+.provider-home-fold__chevron {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.provider-home-fold[open] > summary .provider-home-fold__chevron {
+  transform: rotate(180deg);
 }
 .app-session-header__meta {
   min-width: 0;
