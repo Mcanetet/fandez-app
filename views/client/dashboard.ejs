@@ -227,6 +227,22 @@
       </div>
     </details>
     <% } %>
+
+    <% if (mod('client_historial')) { %>
+    <a href="/cliente/historial"
+      class="flex items-center justify-between gap-3 p-4 mt-2 mb-2 rounded-2xl zilo-card-premium border border-zilo-border hover:border-zilo-accent/30 transition">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-9 h-9 rounded-lg bg-zilo-bg border border-zilo-border flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <div class="min-w-0">
+          <strong class="text-sm block text-zilo-text"><%= t('client.dashboard.history_link_title') %></strong>
+          <span class="text-[11px] text-zilo-muted"><%= t('client.dashboard.history_link_sub') %></span>
+        </div>
+      </div>
+      <span class="text-xs font-semibold text-zilo-accent shrink-0"><%= t('client.dashboard.history_link_cta') %></span>
+    </a>
+    <% } %>
   </main>
 
   <%- include('../partials/nav-client', { navActive: 'inicio' }) %>
