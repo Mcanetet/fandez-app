@@ -1397,6 +1397,9 @@ body.session-role--tecnico::before {
   background: transparent;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
+.tech-header-alert[hidden] {
+  display: none !important;
+}
 .tech-header-alert__icon {
   display: inline-flex;
   align-items: center;
