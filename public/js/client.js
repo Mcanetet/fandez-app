@@ -6,6 +6,23 @@
     return typeof FandezI18n !== 'undefined' ? FandezI18n.t(key, vars) : key;
   }
 
+  async function readJsonResponse(res) {
+    const text = await res.text();
+    if (!text) return {};
+    try {
+      return JSON.parse(text);
+    } catch (_) {
+      const looksHtml = /^\s*</.test(text) || /<!DOCTYPE/i.test(text);
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(t('client.js.session_expired') || 'Sesión expirada. Vuelve a iniciar sesión.');
+      }
+      if (res.status >= 500 || looksHtml) {
+        throw new Error(t('client.js.server_busy') || 'El servidor se está actualizando. Reintenta en unos segundos.');
+      }
+      throw new Error(t('client.js.bad_response') || 'Respuesta inválida del servidor.');
+    }
+  }
+
   const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
   const fmtCLP = n => new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 
@@ -101,10 +118,7 @@
     if (draft.lat != null && latInput) latInput.value = draft.lat;
     if (draft.lng != null && lngInput) lngInput.value = draft.lng;
     if (draft.lat != null && draft.lng != null && typeof FandezMap !== 'undefined') {
-      const mapEl = document.getElementById('addressMap');
-      if (mapEl?.id) {
-        FandezMap.update(mapEl.id, Number(draft.lat), Number(draft.lng), draft.address || '', { zoom: 16 });
-      }
+      showAddressOnMap(Number(draft.lat), Number(draft.lng), draft.address || '', { approximate: false });
       addressCovered = true;
       if (coverageAlert) coverageAlert.classList.add('hidden');
       if (mapStatus) mapStatus.textContent = draft.address || '';
@@ -207,11 +221,38 @@
     }
   }
 
+  function onAddressPinDrag(lat, lng) {
+    if (latInput) latInput.value = Number(lat).toFixed(6);
+    if (lngInput) lngInput.value = Number(lng).toFixed(6);
+    if (mapStatus) mapStatus.textContent = t('client.js.pin_adjusted');
+  }
+
+  function showAddressOnMap(lat, lng, label, { approximate = false } = {}) {
+    if (typeof FandezMap === 'undefined') return;
+    const zoom = approximate ? 17 : 18;
+    const opts = {
+      zoom,
+      markerDraggable: true,
+      onMarkerDrag: onAddressPinDrag
+    };
+    if (!FandezMap.maps.addressMap) {
+      FandezMap.init(document.getElementById('addressMap'), {
+        lat, lng, label: label || '', interactive: true, ...opts
+      });
+    } else {
+      FandezMap.update('addressMap', lat, lng, label || '', opts);
+    }
+    FandezMap.enableMapPick('addressMap', onAddressPinDrag, {
+      draggable: true,
+      onMarkerDrag: onAddressPinDrag
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     if (typeof FandezMap !== 'undefined') {
-      FandezMap.init(document.getElementById('addressMap'), {
-        lat: SANTIAGO.lat, lng: SANTIAGO.lng, label: 'Santiago, Chile', zoom: 12
-      });
+      showAddressOnMap(SANTIAGO.lat, SANTIAGO.lng, 'Santiago, Chile', { approximate: true });
+      const map = FandezMap.maps.addressMap;
+      if (map) map.setZoom(12);
     }
 
     updatePricePreview();
@@ -707,8 +748,15 @@
       if (data.success) {
         latInput.value = data.coords.lat;
         lngInput.value = data.coords.lng;
-        FandezMap.update('addressMap', data.coords.lat, data.coords.lng, data.displayName || address);
-        if (data.coverage?.covered) {
+        showAddressOnMap(
+          data.coords.lat,
+          data.coords.lng,
+          data.displayName || address,
+          { approximate: Boolean(data.approximate) }
+        );
+        if (data.approximate) {
+          mapStatus.textContent = t('client.js.pin_drag_hint');
+        } else if (data.coverage?.covered) {
           mapStatus.textContent = data.displayName || t('client.js.location_found');
         } else {
           mapStatus.textContent = data.coverage?.communeName
@@ -2240,7 +2288,7 @@
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ decision })
     });
-    const data = await res.json();
+    const data = await readJsonResponse(res);
     if (!res.ok || !data.success) {
       FandezNotify.show(data.error || t('client.js.respond_error'), 'error');
       return;
@@ -2343,8 +2391,10 @@
 
     const loadChat = async () => {
       try {
-        const res = await fetch(`/cliente/chat/${requestId}`);
-        const data = await res.json();
+        const res = await fetch(`/cliente/chat/${requestId}`, {
+          headers: { Accept: 'application/json' }
+        });
+        const data = await readJsonResponse(res);
         if (!res.ok || !data.success) return;
         if (peer && data.peerName) peer.textContent = data.peerName;
         if (thread) {
@@ -2380,7 +2430,7 @@
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({ body, photo })
         });
-        const data = await res.json();
+        const data = await readJsonResponse(res);
         if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo enviar');
         photoCtl?.clear?.();
         appendJobChatMessage(data.message);
@@ -2561,12 +2611,12 @@
   }
 
   function pollForProvider(requestId, attempts = 0, startedAt = Date.now()) {
-    fetch(`/cliente/solicitud/${requestId}`)
+    fetch(`/cliente/solicitud/${requestId}`, { headers: { Accept: 'application/json' } })
       .then(async (r) => {
         if (r.status === 503) {
           throw new Error('store_not_ready');
         }
-        return r.json();
+        return readJsonResponse(r);
       })
       .then(data => {
         if (data.request?.status === 'scheduled') {
@@ -2627,12 +2677,12 @@
     currentRequestId = requestId;
     if (window.FandezAlerts) FandezAlerts.ensurePermission();
     // Estado inicial: se define al primer poll / socket.
-    fetch(`/cliente/solicitud/${requestId}`)
+    fetch(`/cliente/solicitud/${requestId}`, { headers: { Accept: 'application/json' } })
       .then(async (r) => {
         if (r.status === 503) {
           throw new Error('store_not_ready');
         }
-        return r.json();
+        return readJsonResponse(r);
       })
       .then((data) => {
         if (data.request && isPaymentNotReady(data.request)) {

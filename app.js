@@ -390,8 +390,10 @@ app.use(async (req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-  if (req.query.ref) {
+  if (req.query.ref && store.isReady() && store.isReferralsEnabled()) {
     req.session.pendingReferral = String(req.query.ref).trim().toUpperCase();
+  } else if (req.query.ref && (!store.isReady() || !store.isReferralsEnabled())) {
+    delete req.session.pendingReferral;
   }
   // Desde páginas de error: forzar landing para no reentrar al dashboard roto
   const forceLanding = req.query.landing === '1' || req.query.landing === 'true';
@@ -419,7 +421,9 @@ app.get('/', (req, res) => {
     title: seo.title,
     seo,
     services: localizeServices(store.getLandingServices(), req.t),
-    referralBanner: req.session.pendingReferral || null
+    referralBanner: (store.isReady() && store.isReferralsEnabled())
+      ? (req.session.pendingReferral || null)
+      : null
   });
 });
 
@@ -725,10 +729,22 @@ io.on('connection', (socket) => {
   });
 });
 
+function wantsJsonResponse(req) {
+  const accept = String(req.get('Accept') || '');
+  const xhr = String(req.get('X-Requested-With') || '').toLowerCase() === 'xmlhttprequest';
+  return xhr || accept.includes('application/json') || String(req.path || '').includes('/api/');
+}
+
 app.use((err, req, res, next) => {
   console.error('[ERROR]', req.method, req.path, err.message);
   if (err.stack) console.error(err.stack);
   if (res.headersSent) return next(err);
+  if (wantsJsonResponse(req)) {
+    return res.status(500).json({
+      success: false,
+      error: 'Error interno. Reintenta en unos segundos.'
+    });
+  }
   const retryPath = String(req.originalUrl || req.path || '/').split('#')[0] || '/';
   res.status(500).render('error', {
     title: req.t('error.internal.title'),
@@ -739,6 +755,12 @@ app.use((err, req, res, next) => {
 });
 
 app.use((req, res) => {
+  if (wantsJsonResponse(req)) {
+    return res.status(404).json({
+      success: false,
+      error: 'Recurso no encontrado.'
+    });
+  }
   res.status(404).render('error', {
     title: req.t('error.not_found.title'),
     message: req.t('error.not_found.message'),

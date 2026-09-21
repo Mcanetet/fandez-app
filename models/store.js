@@ -251,6 +251,7 @@ async function init() {
   MODULES = data.modules;
   await ensureMissingModules();
   await ensureClientPuntosDefaultOffOnce();
+  await ensureClientReferidosDefaultOffOnce();
   PRICING_CONFIG = normalizePricing(data.pricing || DEFAULT_PRICING);
   const rawLabor = Number(data.pricing?.laborCommissionRate);
   const rawMerchantFee = parseFloat(data.pricing?.merchantCardFeePercent);
@@ -717,6 +718,9 @@ function getReferralStats(userId) {
 }
 
 function applyReferralCode(userId, code) {
+  if (!isReferralsEnabled()) {
+    return { error: 'Los referidos están desactivados. Actívalos en Admin → Módulos.' };
+  }
   const user = getUserById(userId);
   if (!canActAsClient(user)) return { error: 'Usuario inválido' };
   if (!code) return { error: 'Código requerido' };
@@ -724,16 +728,21 @@ function applyReferralCode(userId, code) {
   if (user.referralCode === code) return { error: 'No puedes usar tu propio código' };
   const referrer = USERS.find(u => u.referralCode === code && canActAsClient(u));
   if (!referrer) return { error: 'Código no válido' };
+  const cfg = getReferralConfig();
+  const bonus = Math.max(0, Number(cfg.creditCLP) || 0);
+  const pointsBonus = Math.max(0, Number(cfg.referrerPoints) || 0);
   user.usedReferral = true;
-  user.creditsCLP = (user.creditsCLP || 0) + 5000;
-  referrer.creditsCLP = (referrer.creditsCLP || 0) + 5000;
+  if (bonus > 0) {
+    user.creditsCLP = (user.creditsCLP || 0) + bonus;
+    referrer.creditsCLP = (referrer.creditsCLP || 0) + bonus;
+  }
   referrer.referralsCount = (referrer.referralsCount || 0) + 1;
-  if (isPointsEnabled()) {
-    referrer.ziloPoints = (referrer.ziloPoints || 0) + 200;
+  if (isPointsEnabled() && pointsBonus > 0) {
+    referrer.ziloPoints = (referrer.ziloPoints || 0) + pointsBonus;
   }
   repository.persist(() => repository.saveUser(user), `usuario ${user.id}`);
   repository.persist(() => repository.saveUser(referrer), `usuario ${referrer.id}`);
-  return { success: true, bonus: 5000 };
+  return { success: true, bonus };
 }
 
 function getActivePromos() {
@@ -1060,7 +1069,7 @@ function applyCheckoutDiscounts(userId, requestId, { useCredits, usePoints, prom
     appliedPromo = code;
   }
 
-  if (useCredits && (user.creditsCLP || 0) > 0 && remaining > 0) {
+  if (useCredits && isReferralsEnabled() && (user.creditsCLP || 0) > 0 && remaining > 0) {
     discountCredits = Math.min(user.creditsCLP, remaining);
     remaining -= discountCredits;
   }
@@ -2190,6 +2199,73 @@ async function ensureClientPuntosDefaultOffOnce() {
   }
 }
 
+/**
+ * Una sola vez: apaga Referidos en installs existentes.
+ * Después el admin puede reactivarlo desde Módulos y fijar el monto en Precios.
+ */
+async function ensureClientReferidosDefaultOffOnce() {
+  const KEY = 'product_defaults_client_referidos_off_v1';
+  const db = require('../lib/db');
+  const mod = getModuleById('client_referidos');
+  if (!mod) return;
+
+  const disableReferPromo = async () => {
+    const promo = PROMOS.find((p) => p.id === 'refer');
+    if (!promo || promo.enabled === false) return;
+    promo.enabled = false;
+    promo.showBanner = false;
+    try {
+      await repository.savePromo(promo);
+    } catch (err) {
+      console.warn('[promos] no se pudo apagar promo refer:', err.message);
+    }
+  };
+
+  if (!db.isConfigured()) {
+    if (!ensureClientReferidosDefaultOffOnce._memoryApplied) {
+      mod.enabled = false;
+      await disableReferPromo();
+      ensureClientReferidosDefaultOffOnce._memoryApplied = true;
+    }
+    return;
+  }
+
+  try {
+    await require('../lib/appModeStore').ensureAppSettingsTable();
+    const res = await db.query(
+      'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+      [KEY]
+    );
+    if (res.rows?.[0]) return;
+
+    mod.enabled = false;
+    await repository.saveModule(mod);
+    await disableReferPromo();
+    await db.query(
+      `INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [KEY, JSON.stringify({ appliedAt: new Date().toISOString(), moduleId: 'client_referidos' })]
+    );
+    console.log('✓ Módulo client_referidos desactivado por defecto (admin puede reactivarlo)');
+  } catch (err) {
+    console.warn('[modules] no se pudo aplicar default referidos off:', err.message);
+  }
+}
+
+function isReferralsEnabled() {
+  return isModuleEnabled('client_referidos');
+}
+
+function getReferralConfig() {
+  const pricing = getPricingConfig();
+  const refs = pricing.referrals || {};
+  return {
+    enabled: isReferralsEnabled(),
+    creditCLP: Math.max(0, parseInt(refs.creditCLP, 10) || 0),
+    referrerPoints: Math.max(0, parseInt(refs.referrerPoints, 10) || 0)
+  };
+}
+
 function isPointsEnabled() {
   return isModuleEnabled('client_puntos');
 }
@@ -2216,6 +2292,14 @@ function toggleModule(moduleId, enabled) {
   if (!mod) return null;
   mod.enabled = enabled;
   repository.persist(() => repository.saveModule(mod), `módulo ${moduleId}`);
+  if (moduleId === 'client_referidos') {
+    const promo = PROMOS.find((p) => p.id === 'refer');
+    if (promo) {
+      promo.enabled = Boolean(enabled);
+      promo.showBanner = Boolean(enabled);
+      repository.persist(() => repository.savePromo(promo), 'promo refer');
+    }
+  }
   return mod;
 }
 
@@ -2377,6 +2461,9 @@ function updatePricingConfig(updates) {
     cancellations: updates.cancellations
       ? { ...current.cancellations, ...updates.cancellations }
       : current.cancellations,
+    referrals: updates.referrals
+      ? { ...current.referrals, ...updates.referrals }
+      : current.referrals,
     materialsCatalog: updates.materialsCatalog != null
       ? updates.materialsCatalog
       : current.materialsCatalog,
@@ -8665,6 +8752,7 @@ async function reloadFromDatabase() {
   MODULES = data.modules;
   await ensureMissingModules();
   await ensureClientPuntosDefaultOffOnce();
+  await ensureClientReferidosDefaultOffOnce();
   PRICING_CONFIG = normalizePricing(data.pricing || DEFAULT_PRICING);
   const rawLabor = Number(data.pricing?.laborCommissionRate);
   const rawMerchantFee = parseFloat(data.pricing?.merchantCardFeePercent);
@@ -8727,6 +8815,8 @@ module.exports = {
   getEnabledModules,
   isModuleEnabled,
   isPointsEnabled,
+  isReferralsEnabled,
+  getReferralConfig,
   toggleModule,
   getCoverageCommunes,
   getCoverageRegions,

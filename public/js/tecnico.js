@@ -78,12 +78,12 @@
         dest = `${dest}, ${commune}`;
       }
       if (!/\bchile\b/i.test(dest)) dest = `${dest}, Chile`;
-      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=driving`;
+      return `https://www.google.com/maps/dir/?destination=${encodeURIComponent(dest)}&travelmode=driving`;
     }
     const lat = card.dataset.lat;
     const lng = card.dataset.lng;
     if (lat && lng) {
-      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving`;
+      return `https://www.google.com/maps/dir/?destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving`;
     }
     return null;
   }

@@ -14,9 +14,6 @@
       </a>
       <div class="app-session-header__end">
         <%- include('../partials/lang-switcher') %>
-        <% if (typeof referral !== 'undefined' && referral.creditsCLP > 0) { %>
-          <span class="px-2 py-1 rounded-lg bg-zilo-success/15 text-zilo-success text-[10px] font-semibold whitespace-nowrap"><%= formatCLP(referral.creditsCLP) %></span>
-        <% } %>
         <%- include('../partials/logout-btn', { withLabel: true }) %>
       </div>
     </div>
@@ -32,121 +29,81 @@
   <main class="flex-1 px-5 py-5 pb-24">
     <%- include('../partials/site-alert') %>
 
-    <% if (typeof launchNoticeActive !== 'undefined' && launchNoticeActive) { %>
-    <section class="mb-5 p-4 rounded-2xl border border-zilo-accent/25 bg-zilo-accent-soft/40">
-      <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-accent mb-1"><%= t('launch.client.kicker') %></p>
-      <p class="text-sm text-zilo-text leading-relaxed"><%= t('launch.banner.dashboard') %></p>
-    </section>
-    <% } %>
-
-    <% const attentionList = typeof attentionItems !== 'undefined' ? attentionItems : []; %>
     <% const hasActive = activeRequests && activeRequests.length > 0; %>
     <% const isReturning = Boolean((typeof lastCompleted !== 'undefined' && lastCompleted) || (passport && passport.entries && passport.entries.length)); %>
-
-    <% if (attentionList.length) { %>
-    <section class="mb-5 p-4 rounded-2xl border border-amber-400/50 bg-amber-50" id="clientAttentionBanner">
-      <p class="text-xs font-semibold text-amber-900 mb-1"><%= t('client.dashboard.pending_alert') %></p>
-      <ul class="space-y-2">
-        <% attentionList.slice(0, 3).forEach(function(item) { %>
-          <li>
-            <a href="<%= item.url %>" class="block p-3 rounded-xl bg-white/80 border border-amber-200 hover:border-amber-400 transition">
-              <strong class="text-sm block text-zilo-text"><%= item.title %></strong>
-              <span class="text-xs text-zilo-muted"><%= item.body %></span>
-            </a>
-          </li>
-        <% }) %>
-      </ul>
-      <p class="text-[11px] text-amber-800/80 mt-3"><%= t('client.dashboard.cancel_policy_hint', {
-        afterAccepted: typeof formatCLP === 'function' ? formatCLP((typeof cancellationPolicy !== 'undefined' && cancellationPolicy.afterTechAccepted) || 15000) : '$15.000',
-        enRoute: typeof formatCLP === 'function' ? formatCLP((typeof cancellationPolicy !== 'undefined' && cancellationPolicy.enRouteOrOnSite) || 30000) : '$30.000'
-      }) %></p>
-    </section>
-    <% } %>
-
-    <% const pendingNoProvider = (activeRequests || []).filter(function(item) { return item.noProviderDecisionStatus === 'pending'; }); %>
-    <% pendingNoProvider.forEach(function(item) { %>
-    <section class="mb-5 p-4 rounded-2xl border border-amber-300 bg-amber-50" data-no-provider-card="<%= item.id %>">
-      <p class="text-xs font-semibold text-aland-strong mb-1"><%= t('client.dashboard.action_required') %></p>
-      <strong class="text-sm block mb-1"><%= t('client.dashboard.no_provider_title', { service: item.serviceName }) %></strong>
-      <p class="text-xs text-amber-900 mb-3"><%= t('client.dashboard.no_provider_body', { minutes: (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) }) %></p>
-      <div class="grid grid-cols-2 gap-2">
-        <button type="button" data-no-provider-choice="continue" data-request-id="<%= item.id %>"
-          class="py-2.5 px-2 rounded-xl bg-zilo-accent text-white text-xs font-semibold"><%= t('client.js.no_provider_continue') %></button>
-        <button type="button" data-no-provider-choice="refund" data-request-id="<%= item.id %>"
-          class="py-2.5 px-2 rounded-xl bg-white border border-red-300 text-red-700 text-xs font-semibold"><%= t('client.dashboard.no_provider_refund_btn') %></button>
-      </div>
-    </section>
-    <% }); %>
+    <% const cancelFeeLabel = typeof formatCLP === 'function' ? formatCLP(20000) : '$20.000'; %>
 
     <% if (hasActive) { %>
-    <!-- Modo visita activa: hero seguimiento + catálogo colapsado -->
-    <section class="mb-6">
-      <% const primaryActive = activeRequests[0]; %>
-      <a href="/cliente/servicio/<%= primaryActive.serviceId %>?tracking=<%= primaryActive.id %>"
-        class="block p-5 rounded-2xl zilo-card-premium border border-zilo-accent/30 mb-4 hover:border-zilo-accent/50 transition">
-        <p class="zilo-label !mb-1 text-zilo-accent">Visita en curso</p>
-        <h2 class="text-lg font-semibold text-zilo-text mb-1"><%= primaryActive.serviceName %></h2>
-        <p class="text-sm text-zilo-muted mb-3"><%= primaryActive.statusLabel || primaryActive.status %><% if (primaryActive.etaLabel) { %> · ETA <%= primaryActive.etaLabel %><% } %></p>
-        <span class="inline-flex items-center justify-center w-full py-3 rounded-xl zilo-btn-primary !text-sm">Seguir visita</span>
-      </a>
-      <% if (activeRequests.length > 1) { %>
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="zilo-label !mb-0"><%= t('client.in_progress') %></h2>
-        <span class="text-[10px] font-semibold text-zilo-accent"><%= t(activeRequests.length === 1 ? 'client.dashboard.active_one' : 'client.dashboard.active_many', { count: activeRequests.length }) %></span>
+    <!-- Solicitudes en curso → luego pedir otro -->
+    <section class="mb-6" id="clientActiveRequests">
+      <div class="flex items-center justify-between gap-2 mb-2">
+        <h2 class="zilo-label !mb-0"><%= t('client.dashboard.requests_in_progress') %></h2>
+        <span class="text-[10px] font-semibold text-zilo-accent tabular-nums"><%= t(activeRequests.length === 1 ? 'client.dashboard.active_one' : 'client.dashboard.active_many', { count: activeRequests.length }) %></span>
       </div>
-      <div class="space-y-2 mb-4">
-        <% activeRequests.slice(1).forEach(function(req) { %>
+      <p class="text-[11px] text-zilo-muted leading-relaxed mb-3"><%= t('client.dashboard.cancel_fee_note', { fee: cancelFeeLabel }) %></p>
+      <div class="space-y-2 mb-5">
+        <% activeRequests.forEach(function(req) { %>
           <a href="/cliente/servicio/<%= req.serviceId %>?tracking=<%= req.id %>"
             class="flex items-center gap-3 p-4 rounded-2xl zilo-card-premium border border-zilo-accent/20 hover:border-zilo-accent/40 transition">
             <div class="flex-1 min-w-0">
-              <strong class="text-sm block truncate"><%= req.serviceName %></strong>
-              <span class="text-xs text-zilo-muted block mt-0.5 truncate"><%= req.statusLabel || req.status %></span>
+              <strong class="text-sm block truncate text-zilo-text"><%= req.serviceName %></strong>
+              <span class="text-xs text-zilo-muted block mt-0.5 truncate"><%= req.statusLabel || req.status %><% if (req.etaLabel) { %> · ETA <%= req.etaLabel %><% } %></span>
             </div>
             <span class="text-[11px] font-semibold text-zilo-accent shrink-0"><%= t('client.dashboard.follow') %></span>
           </a>
         <% }); %>
       </div>
+
+      <% if (mod('client_solicitar')) { %>
+      <details class="group" open>
+        <summary class="cursor-pointer list-none flex items-center justify-between gap-2 py-2">
+          <span>
+            <span class="zilo-label !mb-0" data-tour="services" id="servicesSection"><%= t('client.dashboard.request_another') %></span>
+            <span class="block text-xs text-zilo-muted mt-0.5"><%= t('client.dashboard.request_another_hint') %></span>
+            <% if ((services || []).length > 6) { %>
+            <span class="block text-[10px] font-semibold text-zilo-accent mt-1"><%= (services || []).length %> oficios disponibles</span>
+            <% } %>
+          </span>
+          <span class="text-[11px] text-zilo-accent font-semibold group-open:hidden"><%= t('client.dashboard.show') %></span>
+          <span class="text-[11px] text-zilo-muted font-semibold hidden group-open:inline"><%= t('client.dashboard.hide') %></span>
+        </summary>
+        <div id="servicesGrid" class="grid grid-cols-2 gap-3 mt-3 mb-2">
+          <% (services || []).forEach(function(service, idx) { %>
+            <a href="/cliente/servicio/<%= service.id %>" data-service-id="<%= service.id %>"
+              class="service-item group flex flex-col items-center gap-3 p-5 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 hover:-translate-y-0.5 transition-all duration-300 <%= idx >= 6 ? 'hidden service-item--extra' : '' %>">
+              <%- include('../partials/service-icon', { icon: service.icon, size: 'lg' }) %>
+              <span class="font-medium text-sm text-center leading-tight px-1" style="overflow-wrap:anywhere"><%= service.name %></span>
+              <span class="w-full text-center leading-tight">
+                <span class="block text-[10px] text-zilo-muted"><%= t('client.from_price') %></span>
+                <span class="block text-xs font-medium text-zilo-muted tabular-nums"><%= formatCLP(service.averagePrice) %><% if (service.pricingUnit === 'm2') { %> / m²<% } %></span>
+              </span>
+            </a>
+          <% }); %>
+        </div>
+        <% if ((services || []).length > 6) { %>
+        <% const extraActiveCount = (services || []).length - 6; %>
+        <button type="button" id="btnShowMoreServicesActive"
+          class="w-full mb-2 py-3 rounded-xl border border-zilo-accent/35 bg-zilo-accent/5 text-zilo-accent text-sm font-semibold hover:bg-zilo-accent/10 transition">
+          <%= t('client.dashboard.more_services_count', { count: extraActiveCount }) %>
+        </button>
+        <p class="text-[11px] text-zilo-muted text-center mb-2"><%= t('client.dashboard.services_more_hint') %></p>
+        <script>
+          document.getElementById('btnShowMoreServicesActive')?.addEventListener('click', function () {
+            document.querySelectorAll('#servicesGrid .service-item--extra').forEach(function (el) { el.classList.remove('hidden'); });
+            const hint = this.nextElementSibling;
+            if (hint && hint.tagName === 'P') hint.remove();
+            this.remove();
+          });
+        </script>
+        <% } %>
+      </details>
       <% } %>
     </section>
-
-    <% if (mod('client_solicitar')) { %>
-    <details class="mb-5 group">
-      <summary class="cursor-pointer list-none flex items-center justify-between gap-2 py-2">
-        <span>
-          <span class="zilo-label !mb-0" data-tour="services" id="servicesSection"><%= t('client.dashboard.request_another') %></span>
-          <span class="block text-xs text-zilo-muted mt-0.5"><%= t('client.dashboard.request_another_hint') %></span>
-        </span>
-        <span class="text-[11px] text-zilo-accent font-semibold group-open:hidden">Ver</span>
-        <span class="text-[11px] text-zilo-muted font-semibold hidden group-open:inline">Ocultar</span>
-      </summary>
-      <div id="servicesGrid" class="grid grid-cols-2 gap-3 mt-3 mb-2">
-        <% (services || []).forEach(function(service, idx) { %>
-          <a href="/cliente/servicio/<%= service.id %>" data-service-id="<%= service.id %>"
-            class="service-item group flex flex-col items-center gap-3 p-5 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 hover:-translate-y-0.5 transition-all duration-300 <%= idx >= 6 ? 'hidden service-item--extra' : '' %>">
-            <%- include('../partials/service-icon', { icon: service.icon, size: 'lg' }) %>
-            <span class="font-medium text-sm text-center leading-tight px-1" style="overflow-wrap:anywhere"><%= service.name %></span>
-            <span class="w-full text-center leading-tight">
-              <span class="block text-[10px] text-zilo-muted"><%= t('client.from_price') %></span>
-              <span class="block text-xs font-medium text-zilo-muted tabular-nums"><%= formatCLP(service.averagePrice) %><% if (service.pricingUnit === 'm2') { %> / m²<% } %></span>
-            </span>
-          </a>
-        <% }); %>
-      </div>
-      <% if ((services || []).length > 6) { %>
-      <button type="button" id="btnShowMoreServicesActive" class="w-full mb-2 py-2.5 rounded-xl zilo-btn-ghost text-sm"><%= t('client.dashboard.more_services') %></button>
-      <script>
-        document.getElementById('btnShowMoreServicesActive')?.addEventListener('click', function () {
-          document.querySelectorAll('#servicesGrid .service-item--extra').forEach(function (el) { el.classList.remove('hidden'); });
-          this.remove();
-        });
-      </script>
-      <% } %>
-    </details>
-    <% } %>
 
     <% } else { %>
     <!-- Modo calma: CTA única + servicios -->
     <section class="mb-5">
+      <p class="text-[11px] font-medium text-zilo-success mb-2"><%= t('client.dashboard.account_live') %></p>
       <h2 class="zilo-display text-2xl leading-tight mb-1"><%= t('client.dashboard.hero_title') %></h2>
       <p class="text-sm text-zilo-muted mb-4"><%= t('client.dashboard.hero_sub') %></p>
       <% if (typeof trustStats !== 'undefined') { %>
@@ -173,8 +130,13 @@
     <% } %>
 
     <% if (mod('client_solicitar')) { %>
-    <h2 class="zilo-label mb-3" data-tour="services"><%= t('client.services') %></h2>
-    <div id="servicesGrid" class="grid grid-cols-2 gap-3 mb-5">
+    <div class="flex items-end justify-between gap-2 mb-3" data-tour="services">
+      <h2 class="zilo-label !mb-0"><%= t('client.services') %></h2>
+      <% if ((services || []).length > 6) { %>
+      <span class="text-[10px] font-semibold text-zilo-accent tabular-nums"><%= (services || []).length %> oficios</span>
+      <% } %>
+    </div>
+    <div id="servicesGrid" class="grid grid-cols-2 gap-3 mb-3">
       <% (services || []).forEach(function(service, idx) { %>
         <a href="/cliente/servicio/<%= service.id %>" data-service-id="<%= service.id %>"
           class="service-item group flex flex-col items-center gap-3 p-5 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 hover:-translate-y-0.5 transition-all duration-300 <%= idx >= 6 ? 'hidden service-item--extra' : '' %>">
@@ -188,13 +150,22 @@
       <% }); %>
     </div>
     <% if ((services || []).length > 6) { %>
-    <button type="button" id="btnShowMoreServices" class="w-full mb-5 py-2.5 rounded-xl zilo-btn-ghost text-sm"><%= t('client.dashboard.more_services') %></button>
+    <% const extraCalmCount = (services || []).length - 6; %>
+    <button type="button" id="btnShowMoreServices"
+      class="w-full mb-2 py-3 rounded-xl border border-zilo-accent/35 bg-zilo-accent/5 text-zilo-accent text-sm font-semibold hover:bg-zilo-accent/10 transition">
+      <%= t('client.dashboard.more_services_count', { count: extraCalmCount }) %>
+    </button>
+    <p class="text-[11px] text-zilo-muted text-center mb-5"><%= t('client.dashboard.services_more_hint') %></p>
     <script>
       document.getElementById('btnShowMoreServices')?.addEventListener('click', function () {
-        document.querySelectorAll('.service-item--extra').forEach(function (el) { el.classList.remove('hidden'); });
+        document.querySelectorAll('#servicesGrid .service-item--extra').forEach(function (el) { el.classList.remove('hidden'); });
+        const hint = this.nextElementSibling;
+        if (hint && hint.tagName === 'P') hint.remove();
         this.remove();
       });
     </script>
+    <% } else { %>
+    <div class="mb-5"></div>
     <% } %>
     <% } else { %>
       <div class="zilo-empty zilo-card-premium rounded-2xl mb-5">
@@ -369,56 +340,24 @@
     }
   });
 
-  socket.on('no_provider_choice_required', () => {
-    if (window.FandezAlerts) FandezAlerts.notify({
-      type: 'alert',
-      title: typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.dashboard.action_required') : 'Action required',
-      body: typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_notify_body') : 'Aland needs you to choose how to continue.',
-      tag: 'fandez-no-provider',
-      requireInteraction: true
-    });
-    else FandezNotify.show(typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_notify_body') : 'Aland needs you to choose how to continue.', 'warning');
-    setTimeout(() => location.reload(), 1200);
-  });
-
-  document.querySelectorAll('[data-no-provider-choice]').forEach((button) => {
-    button.addEventListener('click', async () => {
-      const choice = button.dataset.noProviderChoice;
-      const requestId = button.dataset.requestId;
-      const confirmRefund = typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_refund_confirm') : '¿Solicitar la devolución? La iniciamos el siguiente día hábil al mismo medio.';
-      if (choice === 'refund' && !confirm(confirmRefund)) return;
-      const buttons = button.closest('[data-no-provider-card]')?.querySelectorAll('button') || [];
-      buttons.forEach((item) => { item.disabled = true; });
-      try {
-        await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/timeout-busqueda`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          credentials: 'same-origin',
-          body: '{}'
-        }).catch(() => null);
-        const response = await fetch(`/cliente/solicitud/${encodeURIComponent(requestId)}/sin-socio`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ choice })
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.success) throw new Error(data.error || (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_error') : 'Could not save your choice'));
-        const refundDone = choice === 'refund' || data.choice === 'refund';
-        FandezNotify.show(
-          data.already && data.message
-            ? data.message
-            : (refundDone
-              ? (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.refund_requested_body') : 'La iniciamos el siguiente día hábil. En tarjeta, el banco define cuándo lo ves.')
-              : (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.keep_searching_body') : "We'll keep searching.")),
-          'success'
-        );
-        setTimeout(() => location.reload(), 700);
-      } catch (error) {
-        buttons.forEach((item) => { item.disabled = false; });
-        FandezNotify.show(error.message || (typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_error') : 'Could not save your choice'), 'error');
-      }
-    });
+  socket.on('no_provider_choice_required', (payload) => {
+    const url = payload?.url
+      || (payload?.requestId ? `/cliente/solicitud/${encodeURIComponent(payload.requestId)}/sin-socio` : null)
+      || '/cliente';
+    if (window.FandezAlerts) {
+      FandezAlerts.notify({
+        type: 'alert',
+        title: typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_title') : 'Sin socio aún',
+        body: typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_notify_body') : 'Elige cómo continuar con tu búsqueda.',
+        tag: 'fandez-no-provider',
+        requireInteraction: true,
+        url,
+        system: true
+      });
+    } else if (window.FandezNotify) {
+      FandezNotify.show(typeof FandezI18n !== 'undefined' ? FandezI18n.t('client.js.no_provider_notify_body') : 'Elige cómo continuar con tu búsqueda.', 'warning');
+    }
+    setTimeout(() => { window.location.href = url; }, 900);
   });
 </script>
 

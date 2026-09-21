@@ -26,11 +26,13 @@
         </div>
         <div class="w-px bg-zilo-border"></div>
         <% } %>
+        <% if (typeof mod === 'function' && mod('client_referidos')) { %>
         <div class="text-center">
           <strong class="zilo-display text-xl text-zilo-success block"><%= formatCLP(referral.creditsCLP) %></strong>
           <span class="zilo-label !text-[9px]"><%= t('client.profile.credit_label') %></span>
         </div>
         <div class="w-px bg-zilo-border"></div>
+        <% } %>
         <div class="text-center">
           <strong class="zilo-display text-xl block"><%= referral.servicesCount %></strong>
           <span class="zilo-label !text-[9px]"><%= t('client.profile.services_label') %></span>

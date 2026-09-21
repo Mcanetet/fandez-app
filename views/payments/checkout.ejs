@@ -145,7 +145,7 @@
     <section class="zilo-card-premium rounded-2xl p-5 space-y-4">
       <h2 class="zilo-label">Beneficios Fandez</h2>
 
-      <% if (referral.creditsCLP > 0) { %>
+      <% if (referral.creditsCLP > 0 && mod('client_referidos')) { %>
       <label class="flex items-center justify-between gap-3 cursor-pointer">
         <div>
           <strong class="text-sm block">Usar crédito</strong>
@@ -156,7 +156,7 @@
       <% } %>
 
       <% if (mod('client_puntos') && referral.points > 0) { %>
-      <label class="flex items-center justify-between gap-3 cursor-pointer <%= referral.creditsCLP > 0 ? 'pt-3 border-t border-gray-200' : '' %>">
+      <label class="flex items-center justify-between gap-3 cursor-pointer <%= (referral.creditsCLP > 0 && mod('client_referidos')) ? 'pt-3 border-t border-gray-200' : '' %>">
         <div>
           <strong class="text-sm block">Canjear Puntos Fandez</strong>
           <span class="text-xs text-zilo-muted"><%= referral.points %> pts = <%= formatCLP(referral.points * pointsValue) %></span>
@@ -165,7 +165,7 @@
       </label>
       <% } %>
 
-      <div class="<%= (referral.creditsCLP > 0 || (mod('client_puntos') && referral.points > 0)) ? 'pt-3 border-t border-gray-200' : '' %>">
+      <div class="<%= ((referral.creditsCLP > 0 && mod('client_referidos')) || (mod('client_puntos') && referral.points > 0)) ? 'pt-3 border-t border-gray-200' : '' %>">
         <label class="zilo-label block mb-2">Código promocional</label>
         <div class="flex gap-2">
           <input type="text" id="promoCode" placeholder="Ingresa tu código" maxlength="24" autocomplete="off"

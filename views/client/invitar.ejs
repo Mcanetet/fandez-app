@@ -8,8 +8,8 @@
       <div class="w-14 h-14 mx-auto rounded-2xl bg-zilo-accent/10 border border-zilo-accent/20 flex items-center justify-center mb-4">
         <svg class="w-7 h-7 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
       </div>
-      <h2 class="zilo-display text-2xl mb-2"><%= formatCLP(5000) %> por amigo</h2>
-      <p class="text-sm text-zilo-muted mb-5 leading-relaxed">Tú y tu amigo reciben crédito al unirse y solicitar su primer servicio.</p>
+      <h2 class="zilo-display text-2xl mb-2"><%= formatCLP(typeof referralCreditCLP === 'number' ? referralCreditCLP : 0) %> por amigo</h2>
+      <p class="text-sm text-zilo-muted mb-5 leading-relaxed">Tú y tu amigo reciben el mismo crédito al unirse (si el programa está activo).</p>
       <div class="p-4 rounded-xl bg-zilo-bg/60 border border-zilo-border mb-4">
         <span class="zilo-label block mb-2">Tu código</span>
         <strong class="text-2xl font-mono tracking-[0.2em] text-zilo-accent" id="referralCode"><%= referral.code %></strong>

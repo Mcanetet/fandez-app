@@ -360,6 +360,7 @@ router.get('/historial', requireRole('client'), requireModule('client_historial'
 router.get('/invitar', requireRole('client'), requireModule('client_referidos'), (req, res) => {
   const profile = store.getUserById(req.session.user.id);
   const referral = store.getReferralStats(req.session.user.id);
+  const referralCfg = store.getReferralConfig();
   const shareUrl = `${company.appUrl}/?ref=${referral.code}`;
   const giftService = store.getActiveServices()[0] || null;
   res.render('client/invitar', {
@@ -367,6 +368,7 @@ router.get('/invitar', requireRole('client'), requireModule('client_referidos'),
     user: req.session.user,
     profile,
     referral,
+    referralCreditCLP: referralCfg.creditCLP,
     shareUrl,
     giftServiceId: giftService?.id || null,
     canUseWelcome: store.canUseWelcomePromo(profile),
@@ -598,9 +600,10 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
 router.post('/geocode', requireRole('client'), async (req, res) => {
   const { geocodeAddress } = require('../lib/geocode');
   const { formatCoverageMessage } = require('../lib/coverage');
-  const { address } = req.body;
+  const { address, communeName } = req.body;
   if (!address) return res.status(400).json({ error: 'Dirección requerida' });
-  const result = await geocodeAddress(address);
+  const commune = String(communeName || req.session?.user?.communeName || '').trim() || undefined;
+  const result = await geocodeAddress(address, { communeName: commune });
   const coverage = store.validateAddressCoverage({
     address,
     displayName: result.displayName,
@@ -610,6 +613,7 @@ router.post('/geocode', requireRole('client'), async (req, res) => {
     success: true,
     coords: { lat: result.lat, lng: result.lng },
     displayName: result.displayName,
+    approximate: Boolean(result.approximate),
     coverage: {
       covered: coverage.covered,
       unknown: coverage.unknown,

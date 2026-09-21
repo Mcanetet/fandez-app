@@ -29,7 +29,7 @@ const SEED_SERVICES = [
 const SEED_MODULES = [
   { id: 'client_solicitar', audience: 'client', name: 'Solicitar servicios', description: 'Grid de servicios y formulario de solicitud', sortOrder: 1, enabled: true },
   { id: 'client_pasaporte', audience: 'client', name: 'Pasaporte Hogar', description: 'Historial técnico del inmueble y puntaje de salud', sortOrder: 2, enabled: true },
-  { id: 'client_referidos', audience: 'client', name: 'Referidos e invitaciones', description: 'Invitar amigos y ganar crédito', sortOrder: 3, enabled: true },
+  { id: 'client_referidos', audience: 'client', name: 'Referidos e invitaciones', description: 'Invitar amigos y crédito por referido. OFF por defecto: actívalo aquí y define el monto en Precios.', sortOrder: 3, enabled: false },
   { id: 'client_regalo', audience: 'client', name: 'Regalar servicio', description: 'Opción de regalar una visita a otra persona', sortOrder: 4, enabled: true },
   { id: 'client_guardian', audience: 'client', name: 'Modo Guardián', description: 'Enlace de seguimiento para familiares sin cuenta', sortOrder: 5, enabled: true },
   { id: 'client_foto', audience: 'client', name: 'Foto del requerimiento', description: 'Subir foto opcional al solicitar servicio', sortOrder: 6, enabled: true },
@@ -51,7 +51,7 @@ const SEED_MODULES = [
 
 const SEED_PROMOS = [
   { id: 'first', title: '10% en tu 1er servicio', desc: 'Código BIENVENIDO · 10% en tu primer servicio', code: 'BIENVENIDO', color: '#B8956B', sortOrder: 1, enabled: true, discountPercent: 10, showBanner: true, checkoutEnabled: true },
-  { id: 'refer', title: 'Invita y gana $5.000', desc: 'Tú y tu amigo reciben crédito', code: null, color: '#8B7355', sortOrder: 2, enabled: true, discountPercent: null, showBanner: true, checkoutEnabled: false },
+  { id: 'refer', title: 'Invita y gana crédito', desc: 'Tú y tu amigo reciben crédito (monto en Precios)', code: null, color: '#8B7355', sortOrder: 2, enabled: false, discountPercent: null, showBanner: false, checkoutEnabled: false },
   { id: 'gift', title: 'Regala un servicio', desc: 'Modo Guardián para tu familia', code: null, color: '#A67C52', sortOrder: 3, enabled: true, discountPercent: null, showBanner: true, checkoutEnabled: false }
 ];
 

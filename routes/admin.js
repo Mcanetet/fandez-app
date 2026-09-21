@@ -2034,6 +2034,10 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
       afterTechAccepted: parseInt(body.cancelAfterTechAccepted, 10),
       enRouteOrOnSite: parseInt(body.cancelEnRouteOrOnSite, 10)
     },
+    referrals: {
+      creditCLP: parseInt(body.referralCreditClp, 10),
+      referrerPoints: parseInt(body.referralReferrerPoints, 10)
+    },
     laborCommissionRate: parseFloat(body.laborCommissionPercent) / 100,
     materialsCommissionRate: parseFloat(body.materialsCommissionPercent) / 100,
     mpOnlineRatePercent: parseFloat(body.mpOnlineRatePercent),

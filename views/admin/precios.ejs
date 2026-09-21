@@ -43,7 +43,7 @@
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
         <h2 class="text-sm font-semibold mb-1">Cancelaciones</h2>
         <p class="text-xs text-gray-500 mb-4">Monto retenido al cancelar (CLP). El resto se devoluciona al cliente. Escala según avance del servicio.</p>
-        <% const cancelCfg = pricing.cancellations || { beforeAccepted: 0, afterTechAccepted: 15000, enRouteOrOnSite: 30000 }; %>
+        <% const cancelCfg = pricing.cancellations || { beforeAccepted: 0, afterTechAccepted: 20000, enRouteOrOnSite: 20000 }; %>
         <div class="grid grid-cols-1 gap-3">
           <div>
             <label class="text-xs text-gray-500">Antes de que el técnico acepte</label>
@@ -53,12 +53,33 @@
           <div>
             <label class="text-xs text-gray-500">Técnico aceptó (aún no en camino)</label>
             <input type="number" name="cancelAfterTechAccepted" value="<%= cancelCfg.afterTechAccepted %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Socio y técnico ya tomaron el pedido. Default $15.000.</p>
+            <p class="text-[10px] text-gray-400 mt-1">Socio y técnico ya tomaron el pedido. Default $20.000.</p>
           </div>
           <div>
             <label class="text-xs text-gray-500">En camino o en el domicilio</label>
             <input type="number" name="cancelEnRouteOrOnSite" value="<%= cancelCfg.enRouteOrOnSite %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Técnico marcó “en camino” o ya está en sitio. Default $30.000.</p>
+            <p class="text-[10px] text-gray-400 mt-1">Técnico en camino, en domicilio o post diagnóstico. Default $20.000.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
+        <h2 class="text-sm font-semibold mb-1">Referidos (crédito)</h2>
+        <p class="text-xs text-gray-500 mb-4">
+          El programa se enciende/apaga en <strong>Admin → Módulos → Referidos e invitaciones</strong> (ahora OFF).
+          Aquí solo defines el monto cuando lo reactives.
+        </p>
+        <% const refCfg = pricing.referrals || { creditCLP: 5000, referrerPoints: 200 }; %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-gray-500">Crédito por referido (CLP)</label>
+            <input type="number" name="referralCreditClp" value="<%= refCfg.creditCLP %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Se acredita al invitador y al invitado al usar el código. Default $5.000.</p>
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-500">Puntos al invitador (si Puntos Fandez está ON)</label>
+            <input type="number" name="referralReferrerPoints" value="<%= refCfg.referrerPoints %>" min="0" step="10" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Bonus de puntos al socio/cliente que invita. Default 200.</p>
           </div>
         </div>
       </section>
