@@ -222,39 +222,33 @@
             <p id="coverageInterestStatus" class="text-[11px] text-zilo-muted min-h-[1rem]" role="status"></p>
           </div>
         </div>
-        <div id="registerAddressMap" class="fandez-map-panel h-44 sm:h-52 rounded-2xl border border-zilo-border overflow-hidden bg-zilo-bg shadow-zilo"></div>
+        <div id="registerAddressMap" class="fandez-map-panel h-36 sm:h-44 rounded-2xl border border-zilo-border overflow-hidden bg-zilo-bg shadow-zilo"></div>
         <div id="addressMapActions" class="hidden flex flex-wrap gap-2">
           <button type="button" id="addressUseGps" class="zilo-btn-ghost !py-2 !px-3 text-xs"><%= t('register.address_use_gps') %></button>
         </div>
         <p id="addressMapStatus" class="text-[11px] text-zilo-muted min-h-[1rem]"></p>
       </div>
 
-      <div id="providerFields" class="space-y-4 <%= form.role === 'client' ? 'hidden' : '' %>">
+      <div id="providerFields" class="space-y-3 <%= form.role === 'client' ? 'hidden' : '' %>">
         <div class="space-y-2">
-          <span class="zilo-label block mb-1.5"><%= t('register.specialties') %></span>
-          <p class="text-[11px] text-zilo-muted mb-1"><%= t('register.specialties_hint') %></p>
+          <span class="zilo-label block"><%= t('register.specialties') %></span>
+          <p class="text-[11px] text-zilo-muted"><%= t('register.specialties_hint') %></p>
           <div class="specialty-pick-grid">
-            <% services.forEach(function(s){ %>
+            <% services.filter(function(s){ return s.id !== 'otros'; }).forEach(function(s){ %>
               <label class="specialty-pick">
                 <input type="checkbox" name="specialties" value="<%= s.id %>" class="rounded accent-zilo-accent shrink-0 mt-0.5 specialty-check" <%= (form.specialties || []).includes(s.id) ? 'checked' : '' %>>
                 <%- include('partials/service-icon', { icon: s.icon, size: 'xs' }) %>
                 <span class="specialty-pick-name"><%= s.name %></span>
               </label>
             <% }); %>
-            <label class="specialty-pick specialty-pick--wide">
-              <input type="checkbox" id="specialtyOtros" name="specialties" value="otros" class="rounded accent-zilo-accent shrink-0 mt-0.5 specialty-check" <%= (form.specialties || []).includes('otros') || form.otherServiceName ? 'checked' : '' %>>
+            <label class="specialty-pick specialty-pick--other">
+              <input type="checkbox" id="specialtyOtros" name="specialties" value="otros" class="rounded accent-zilo-accent shrink-0 specialty-check" <%= (form.specialties || []).includes('otros') || form.otherServiceName ? 'checked' : '' %>>
               <span class="specialty-pick-name"><%= t('register.other_service') %></span>
             </label>
           </div>
-          <div id="otherServiceFields" class="<%= (form.specialties || []).includes('otros') || form.otherServiceName ? '' : 'hidden' %> space-y-3 p-3 rounded-xl border border-zilo-accent/25 bg-zilo-accent-soft/40">
-            <div>
-              <label for="other_service_name" class="zilo-label block mb-1.5"><%= t('register.other_service_name') %></label>
-              <input type="text" id="other_service_name" name="other_service_name" maxlength="120" class="zilo-input" placeholder="<%= t('register.other_service_name_ph') %>" value="<%= form.otherServiceName || '' %>">
-            </div>
-            <div>
-              <label for="other_service_description" class="zilo-label block mb-1.5"><%= t('register.other_service_desc') %></label>
-              <textarea id="other_service_description" name="other_service_description" rows="2" maxlength="1000" class="zilo-input" placeholder="<%= t('register.other_service_desc_ph') %>"><%= form.otherServiceDescription || '' %></textarea>
-            </div>
+          <div id="otherServiceFields" class="<%= (form.specialties || []).includes('otros') || form.otherServiceName ? '' : 'hidden' %>">
+            <input type="text" id="other_service_name" name="other_service_name" maxlength="120" class="zilo-input" placeholder="<%= t('register.other_service_name_ph') %>" value="<%= form.otherServiceName || '' %>" aria-label="<%= t('register.other_service_name') %>">
+            <input type="hidden" id="other_service_description" name="other_service_description" value="<%= form.otherServiceDescription || form.otherServiceName || '' %>">
           </div>
         </div>
         <p class="text-[11px] text-zilo-muted"><%= t('register.provider_hint') %></p>

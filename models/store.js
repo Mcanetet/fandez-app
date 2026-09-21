@@ -3496,10 +3496,10 @@ async function registerUser({
       return SERVICES.some((s) => s.id === id && s.enabled !== false);
     });
     const otherName = String(otherServiceName || '').trim();
-    const otherDesc = String(otherServiceDescription || '').trim();
+    let otherDesc = String(otherServiceDescription || '').trim();
     if (otherName || otherDesc) {
       if (otherName.length < 3) return { errorKey: 'register.error_other_service_name' };
-      if (otherDesc.length < 10) return { errorKey: 'register.error_other_service_desc' };
+      if (!otherDesc) otherDesc = otherName;
       otherService = {
         id: `req-${uuidv4().slice(0, 8)}`,
         name: otherName.slice(0, 120),
