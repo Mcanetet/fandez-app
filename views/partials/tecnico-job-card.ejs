@@ -1,0 +1,71 @@
+<%#
+  Tarjeta de visita técnico.
+  Locals: j, techLabels, requestTimeouts, t, isHero (bool)
+%>
+<%
+  const needsAction = ['asignado', 'aceptado', 'en_camino', 'en_sitio'].includes(j.techStatus);
+  const workNow = ['en_sitio', 'diagnostico', 'reparando', 'comprando', 'materiales_pendiente', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(j.techStatus);
+  const highlight = needsAction || workNow;
+  const statusDidactic = ({
+    asignado: 'Te lo dieron',
+    aceptado: 'Aceptado',
+    en_camino: 'En camino',
+    en_sitio: 'En el domicilio',
+    diagnostico: 'En el domicilio',
+    reparando: 'En el domicilio',
+    comprando: 'Comprando',
+    materiales_pendiente: 'En el domicilio',
+    presupuesto_pendiente: 'Esperando cliente',
+    presupuesto_aprobado: 'En el domicilio'
+  })[j.techStatus] || (techLabels[j.techStatus] || j.techStatus);
+%>
+<div class="tech-list-card rounded-2xl border <%= isHero ? 'tech-job-hero border-zilo-accent/40 bg-white shadow-sm ring-1 ring-zilo-accent/20' : (highlight ? 'border-amber-400/70 bg-amber-50/70 shadow-sm ring-1 ring-amber-300/40' : 'border-zilo-border zilo-card-premium') %>"
+     data-job-id="<%= j.id %>"
+     data-agenda-day="<%= j.agendaDay || 'today' %>"
+     data-tech-status="<%= j.techStatus %>"
+     data-confirm-status="<%= j.serviceConfirmStatus || '' %>"
+     data-address="<%= encodeURIComponent(j.address || '') %>"
+     data-commune="<%= encodeURIComponent(j.communeName || '') %>"
+     data-assigned-at="<%= j.technicianAssignedAt || '' %>"
+     data-accept-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>"
+     data-hero="<%= isHero ? '1' : '0' %>"
+     <% if (j.coords) { %>data-lat="<%= j.coords.lat %>" data-lng="<%= j.coords.lng %>"<% } %>>
+  <% if (isHero) { %>
+  <p class="text-[11px] font-bold uppercase tracking-wide text-zilo-accent mb-2">Tu trabajo ahora</p>
+  <% } %>
+  <div class="tech-list-card__head">
+    <div class="tech-list-card__body min-w-0">
+      <strong class="<%= isHero ? 'text-base' : 'text-sm' %> block truncate"><%= j.serviceName %></strong>
+      <span class="<%= isHero ? 'text-sm' : 'text-xs' %> text-zilo-muted block truncate">
+        <% if (j.isGift && j.beneficiaryName) { %><%= t('tecnico.gift') %> · <%= j.beneficiaryName %><% } else { %><%= j.clientName %><% } %>
+      </span>
+    </div>
+    <span class="zilo-badge <%= highlight ? 'zilo-badge-success' : 'zilo-badge-muted' %> shrink-0" data-role="status"><%= statusDidactic %></span>
+  </div>
+  <% if (j.urgencyTierLabel) { %>
+    <p class="text-xs text-zilo-muted"><%= t('provider.js.arrival') %>: <%= j.urgencyTierLabel %></p>
+  <% } %>
+  <% if (j.techStatus === 'asignado') { %>
+    <p class="text-sm font-semibold text-amber-800 tabular-nums" data-role="accept-countdown">Tienes <%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>:00 para aceptar</p>
+  <% } %>
+  <p class="<%= isHero ? 'text-sm' : 'text-xs' %> text-zilo-text/90 flex items-start gap-1.5 font-medium mt-1">
+    <svg class="w-4 h-4 mt-0.5 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    <span class="min-w-0 break-words"><%= j.address || t('tecnico.no_address') %></span>
+  </p>
+  <% if (j.notes || j.clientPhotoUrl || j.clientBrandPhotoUrl || j.brandNotVisible) { %>
+  <details class="mt-1">
+    <summary class="text-xs text-zilo-accent font-semibold cursor-pointer py-1">Ver notas<% if (j.clientPhotoUrl || j.clientBrandPhotoUrl) { %> y foto<% } %></summary>
+    <div class="mt-2 space-y-2">
+      <% if (j.notes) { %>
+        <p class="text-sm text-zilo-muted italic p-2.5 rounded-lg bg-white/80 border border-zilo-border"><%= j.notes %></p>
+      <% } %>
+      <% if (j.clientPhotoUrl || j.clientBrandPhotoUrl || j.brandNotVisible) { %>
+        <p class="text-xs text-zilo-accent">
+          <%= t('tecnico.client_photo') %><% if (j.brandNotVisible) { %> · <%= t('tecnico.brand_not_visible') %><% } %>
+        </p>
+      <% } %>
+    </div>
+  </details>
+  <% } %>
+  <div class="tech-list-card__actions tech-list-card__actions--step mt-3" data-role="actions"></div>
+</div>

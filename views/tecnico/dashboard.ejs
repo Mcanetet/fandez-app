@@ -75,112 +75,74 @@
     </section>
 
     <% if (urgentCount > 0) { %>
-      <div class="px-3 py-2 rounded-xl border border-amber-200/80 bg-amber-50/90 text-amber-900 text-[11px] font-semibold leading-snug">
-        <%= urgentCount %> visita<%= urgentCount === 1 ? '' : 's' %> con acción pendiente (aceptar, ir o marcar llegada).
+      <div class="px-3 py-2.5 rounded-xl border border-amber-200/80 bg-amber-50/90 text-amber-950 text-sm font-semibold leading-snug">
+        Tienes <%= urgentCount %> trabajo<%= urgentCount === 1 ? '' : 's' %> por atender
       </div>
     <% } %>
 
-    <!-- 1) Pedidos asignados primero -->
-    <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold" id="sectionActive" data-tour="tech-jobs"<%= activeJobs.length ? ' open' : '' %>>
-      <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
-        <div class="min-w-0">
-          <p class="zilo-label !text-[9px] mb-0.5"><%= t('provider.agenda.section_eyebrow') %></p>
-          <strong class="text-sm"><%= t('tecnico.assigned_title') %></strong>
-          <p class="text-[11px] text-zilo-muted mt-0.5"><%= t('provider.agenda.tech_sub') %></p>
+    <%
+      function techJobPriority(j) {
+        const s = j.techStatus || '';
+        if (['en_sitio', 'diagnostico', 'reparando', 'comprando', 'materiales_pendiente', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(s)) return 100;
+        if (s === 'en_camino') return 80;
+        if (s === 'aceptado') return 60;
+        if (s === 'asignado') {
+          const start = Date.parse(j.technicianAssignedAt || '');
+          const mins = (typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10) || 10;
+          if (Number.isFinite(start)) {
+            const left = start + mins * 60000 - Date.now();
+            if (left <= 0) return 55;
+            if (left <= 60000) return 50;
+          }
+          return 40;
+        }
+        return 10;
+      }
+      const sortedJobs = activeJobs.slice().sort((a, b) => techJobPriority(b) - techJobPriority(a));
+      const heroJob = sortedJobs[0] || null;
+      const otherJobs = sortedJobs.slice(1);
+    %>
+
+    <!-- 1) Una visita ahora + resto plegado -->
+    <section id="sectionActive" data-tour="tech-jobs" class="space-y-3">
+      <% if (!heroJob) { %>
+        <div class="zilo-empty !py-8 rounded-2xl border border-dashed border-zilo-border zilo-card-premium">
+          <p class="text-base font-semibold"><%= t('tecnico.no_jobs') %></p>
+          <p class="text-sm text-zilo-muted mt-1"><%= t('tecnico.no_jobs_sub') %></p>
         </div>
-        <span class="flex items-center gap-2 shrink-0">
-          <span class="text-xs font-bold tabular-nums <%= activeJobs.length ? 'text-amber-700' : 'text-zilo-muted' %>"><%= activeJobs.length %></span>
-          <svg class="provider-home-fold__chevron w-4 h-4 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-        </span>
-      </summary>
-      <div class="px-4 pb-4 border-t border-zilo-border/70 pt-3 space-y-4">
-        <% if (!activeJobs.length) { %>
-          <div class="zilo-empty !py-6 rounded-xl border border-dashed border-zilo-border">
-            <p class="text-sm font-medium"><%= t('tecnico.no_jobs') %></p>
-            <p class="text-xs text-zilo-muted mt-1"><%= t('tecnico.no_jobs_sub') %></p>
-          </div>
-        <% } else {
-          const ag = (typeof agenda !== 'undefined' && agenda) ? agenda : { today: activeJobs, tomorrow: [], later: [] };
-          const agendaSections = [
-            { key: 'today', label: t('provider.agenda.today'), items: ag.today || [] },
-            { key: 'tomorrow', label: t('provider.agenda.tomorrow'), items: ag.tomorrow || [] },
-            { key: 'later', label: t('provider.agenda.later'), items: ag.later || [] }
-          ];
-          agendaSections.forEach(function(section) {
-            if (!section.items.length && section.key !== 'today') return;
-        %>
-          <div data-agenda-day="<%= section.key %>">
-            <div class="flex items-center justify-between gap-2 mb-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-zilo-muted"><%= section.label %></p>
-              <span class="text-[11px] font-bold tabular-nums text-zilo-muted"><%= section.items.length %></span>
+      <% } else { %>
+        <div id="jobList" class="space-y-3">
+          <%- include('../partials/tecnico-job-card', { j: heroJob, isHero: true, techLabels, requestTimeouts, t }) %>
+        </div>
+        <% if (otherJobs.length) { %>
+        <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold" id="sectionOtherJobs">
+          <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <strong class="text-sm">Otras visitas</strong>
+              <p class="text-xs text-zilo-muted mt-0.5">Toca para verlas</p>
             </div>
-            <% if (!section.items.length) { %>
-              <p class="text-xs text-zilo-muted py-1"><%= t('provider.agenda.empty_day') %></p>
-            <% } else { %>
-              <div class="tech-list-stack" <%= section.key === 'today' ? 'id="jobList"' : '' %>>
-                <% section.items.forEach(j => {
-                  const needsAction = ['asignado', 'aceptado', 'en_camino', 'en_sitio'].includes(j.techStatus);
-                  const highlight = needsAction;
-                %>
-                  <div class="tech-list-card rounded-2xl border <%= highlight ? 'border-amber-400/70 bg-amber-50/70 shadow-sm ring-1 ring-amber-300/40' : 'border-zilo-border zilo-card-premium' %>"
-                       data-job-id="<%= j.id %>"
-                       data-agenda-day="<%= j.agendaDay || section.key %>"
-                       data-tech-status="<%= j.techStatus %>"
-                       data-confirm-status="<%= j.serviceConfirmStatus || '' %>"
-                       data-address="<%= encodeURIComponent(j.address || '') %>"
-                       data-commune="<%= encodeURIComponent(j.communeName || '') %>"
-                       data-assigned-at="<%= j.technicianAssignedAt || '' %>"
-                       data-accept-timeout-min="<%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>"
-                       <% if (j.coords) { %>data-lat="<%= j.coords.lat %>" data-lng="<%= j.coords.lng %>"<% } %>>
-                    <div class="tech-list-card__head">
-                      <div class="tech-list-card__body min-w-0">
-                        <strong class="text-sm block truncate"><%= j.serviceName %></strong>
-                        <span class="text-xs text-zilo-muted block truncate">
-                          <% if (j.isGift && j.beneficiaryName) { %><%= t('tecnico.gift') %> · <%= j.beneficiaryName %><% } else { %><%= j.clientName %><% } %>
-                        </span>
-                      </div>
-                      <span class="zilo-badge <%= highlight ? 'zilo-badge-success' : 'zilo-badge-muted' %> shrink-0" data-role="status"><%= techLabels[j.techStatus] || j.techStatus %></span>
-                    </div>
-                    <% if (j.urgencyTierLabel) { %>
-                      <p class="text-[10px] text-zilo-muted"><%= t('provider.js.arrival') %>: <%= j.urgencyTierLabel %></p>
-                    <% } %>
-                    <% if (j.techStatus === 'asignado') { %>
-                      <p class="text-xs font-semibold text-amber-800 tabular-nums" data-role="accept-countdown">Tienes <%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.techAcceptMinutes : 10 %>:00 para aceptar</p>
-                    <% } %>
-                    <p class="text-xs text-zilo-text/90 flex items-start gap-1.5 font-medium">
-                      <svg class="w-3.5 h-3.5 mt-0.5 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                      <span class="min-w-0 break-words"><%= j.address || t('tecnico.no_address') %></span>
-                    </p>
-                    <details>
-                      <summary class="text-[11px] text-zilo-accent font-semibold cursor-pointer py-0.5">Ver detalle</summary>
-                      <div class="mt-2 space-y-2">
-                        <% if (j.notes) { %>
-                          <p class="text-xs text-zilo-muted italic p-2.5 rounded-lg bg-white/80 border border-zilo-border"><%= j.notes %></p>
-                        <% } %>
-                        <% if (j.clientPhotoUrl || j.clientBrandPhotoUrl || j.brandNotVisible) { %>
-                          <p class="text-[10px] text-zilo-accent flex items-center gap-1">
-                            <%= t('tecnico.client_photo') %><% if (j.brandNotVisible) { %> · <%= t('tecnico.brand_not_visible') %><% } %>
-                          </p>
-                        <% } %>
-                      </div>
-                    </details>
-                    <div class="tech-list-card__actions" data-role="actions"></div>
-                  </div>
-                <% }); %>
-              </div>
-            <% } %>
+            <span class="flex items-center gap-2 shrink-0">
+              <span class="text-sm font-bold tabular-nums text-amber-700"><%= otherJobs.length %></span>
+              <svg class="provider-home-fold__chevron w-4 h-4 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </span>
+          </summary>
+          <div class="px-4 pb-4 border-t border-zilo-border/70 pt-3 tech-list-stack" id="otherJobList">
+            <% otherJobs.forEach(function(j) { %>
+              <%- include('../partials/tecnico-job-card', { j, isHero: false, techLabels, requestTimeouts, t }) %>
+            <% }); %>
           </div>
-        <% }); } %>
-      </div>
-    </details>
+        </details>
+        <% } %>
+      <% } %>
+    </section>
 
     <!-- 2) Pedidos hechos · siempre plegado -->
     <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold" id="sectionDone" data-tour="tech-history">
       <summary class="px-4 py-3.5 cursor-pointer list-none flex items-center justify-between gap-3">
         <div class="min-w-0">
           <p class="zilo-label !text-[9px] mb-0.5">Historial</p>
-          <strong class="text-sm">Trabajos hechos</strong>
-          <p class="text-[11px] text-zilo-muted mt-0.5">Solo resumen · sin fotos pesadas</p>
+          <strong class="text-sm">Ya terminados</strong>
+          <p class="text-[11px] text-zilo-muted mt-0.5">Toca para ver el resumen</p>
         </div>
         <span class="flex items-center gap-2 shrink-0">
           <span class="text-xs font-bold text-zilo-muted tabular-nums"><%= doneJobs.length %></span>
@@ -323,7 +285,7 @@
 <script src="/js/map.js"></script>
 <script>
 (function () {
-  document.querySelectorAll('#sectionDone, #techDocsSection').forEach(function (el) {
+  document.querySelectorAll('#sectionDone, #techDocsSection, #sectionOtherJobs').forEach(function (el) {
     if (location.hash && el.id && location.hash === '#' + el.id) el.open = true;
     else el.open = false;
   });

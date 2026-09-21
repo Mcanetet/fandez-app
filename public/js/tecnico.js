@@ -13,6 +13,20 @@
   const fmt = n => new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 
   function statusLabel(key) {
+    const didactic = {
+      asignado: 'Te lo dieron',
+      aceptado: 'Aceptado',
+      en_camino: 'En camino',
+      en_sitio: 'En el domicilio',
+      diagnostico: 'En el domicilio',
+      reparando: 'En el domicilio',
+      comprando: 'Comprando',
+      materiales_pendiente: 'En el domicilio',
+      presupuesto_pendiente: 'Esperando cliente',
+      presupuesto_aprobado: 'En el domicilio',
+      completado: 'Listo'
+    };
+    if (didactic[key]) return didactic[key];
     const map = {
       asignado: 'status.tech.asignado',
       aceptado: 'status.tech.aceptado',
@@ -431,31 +445,70 @@
     const status = card.dataset.techStatus;
     const actions = card.querySelector('[data-role="actions"]');
     const badge = card.querySelector('[data-role="status"]');
+    const isHero = card.dataset.hero === '1';
     if (badge) badge.textContent = statusLabel(status);
+    if (!actions) return;
     actions.innerHTML = '';
+    actions.classList.add('flex', 'flex-col', 'gap-2');
 
-    const addBtn = (label, cls, handler) => {
+    const primaryCls = isHero
+      ? 'w-full min-h-[3.25rem] py-3.5 rounded-2xl zilo-btn-primary !text-base font-bold text-center'
+      : 'w-full min-h-[2.75rem] py-3 rounded-xl zilo-btn-primary !text-sm font-semibold text-center';
+    const ghostCls = isHero
+      ? 'w-full min-h-[2.75rem] py-3 rounded-xl zilo-btn-ghost !text-sm font-semibold text-center'
+      : 'w-full min-h-[2.5rem] py-2.5 rounded-xl zilo-btn-ghost !text-sm text-center';
+
+    const addPrimaryBtn = (label, handler) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = cls;
+      b.className = primaryCls;
       b.textContent = label;
       b.addEventListener('click', () => handler(b));
       actions.appendChild(b);
+      return b;
     };
 
-    const addLink = (label, href) => {
+    const addPrimaryLink = (label, href) => {
       const a = document.createElement('a');
       a.href = href;
-      a.className = 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm text-center';
+      a.className = primaryCls;
       a.textContent = label;
       actions.appendChild(a);
+      return a;
     };
 
-    if (WORK_STATUSES.includes(status)) {
-      if (status === 'en_camino') startSharing(card);
-      addLink(status === 'en_sitio' ? t('tecnico.js.arrived_link') : t('tecnico.js.continue_visit'), `/tecnico/trabajo/${card.dataset.jobId}`);
-      return;
-    }
+    const addMore = (items) => {
+      if (!items.length) return;
+      const details = document.createElement('details');
+      details.className = 'tech-job-more rounded-xl border border-zilo-border/80 bg-zilo-bg/40';
+      const summary = document.createElement('summary');
+      summary.className = 'cursor-pointer px-3 py-2.5 text-xs font-semibold text-zilo-muted list-none flex items-center justify-between';
+      summary.innerHTML = '<span>Más opciones</span><span aria-hidden="true">▾</span>';
+      details.appendChild(summary);
+      const box = document.createElement('div');
+      box.className = 'px-3 pb-3 flex flex-col gap-2 border-t border-zilo-border/60 pt-2';
+      items.forEach((node) => box.appendChild(node));
+      details.appendChild(box);
+      actions.appendChild(details);
+    };
+
+    const makeLink = (label, href, cls) => {
+      const a = document.createElement('a');
+      a.href = href;
+      a.className = cls || ghostCls;
+      a.textContent = label;
+      return a;
+    };
+
+    const makeExtLink = (label, href) => {
+      const a = document.createElement('a');
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.className = ghostCls;
+      a.textContent = label;
+      return a;
+    };
 
     const transition = async (btn, next, successMsg, redirect) => {
       btn.disabled = true;
@@ -469,7 +522,6 @@
           window.location.href = redirect;
           return;
         }
-        // Tras aceptar, llevar al wizard de confirmación/reevaluación
         if (next === 'aceptado') {
           notify(successMsg, 'success');
           window.location.href = `/tecnico/trabajo/${card.dataset.jobId}`;
@@ -483,44 +535,42 @@
       }
     };
 
+    // Trabajo en terreno → un solo botón
+    if (WORK_STATUSES.includes(status)) {
+      if (status === 'en_camino') startSharing(card);
+      addPrimaryLink(
+        status === 'en_sitio' ? 'Seguir visita' : t('tecnico.js.continue_visit'),
+        `/tecnico/trabajo/${card.dataset.jobId}`
+      );
+      return;
+    }
+
     if (status === 'asignado') {
-      addBtn(t('tecnico.js.accept_job'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) => transition(b, 'aceptado', t('tecnico.js.job_accepted')));
-      addLink('Ver pedido', `/tecnico/trabajo/${card.dataset.jobId}`);
-    } else if (status === 'aceptado') {
+      addPrimaryBtn(t('tecnico.js.accept_job'), (b) => transition(b, 'aceptado', t('tecnico.js.job_accepted')));
+      addMore([makeLink('Ver pedido', `/tecnico/trabajo/${card.dataset.jobId}`)]);
+      return;
+    }
+
+    if (status === 'aceptado') {
       const mapUrl = mapsDirectionsUrl(card);
       startSharing(card);
-      addLink('Abrir visita', `/tecnico/trabajo/${card.dataset.jobId}`);
-      addBtn(t('tecnico.js.head_out'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) =>
+      addPrimaryBtn(t('tecnico.js.head_out'), (b) =>
         transition(b, 'en_camino', t('tecnico.js.sharing_location'))
       );
-      if (mapUrl) {
-        const a = document.createElement('a');
-        a.href = mapUrl;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        a.className = 'flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm text-center';
-        a.textContent = t('tecnico.js.open_map');
-        actions.appendChild(a);
-      }
-    } else if (status === 'en_camino') {
+      const more = [];
+      if (mapUrl) more.push(makeExtLink(t('tecnico.js.open_map'), mapUrl));
+      more.push(makeLink('Abrir visita', `/tecnico/trabajo/${card.dataset.jobId}`));
+      addMore(more);
+      return;
+    }
+
+    if (status === 'en_camino') {
       const mapUrl = mapsDirectionsUrl(card);
-      const info = document.createElement('span');
-      info.className = 'w-full text-xs text-zilo-success flex items-center gap-1.5 mb-1';
-      info.innerHTML = `<span class="w-2 h-2 rounded-full bg-zilo-success animate-pulse"></span> ${t('tecnico.js.gps_active')}`;
-      actions.appendChild(info);
-      addBtn(t('tecnico.js.arrived_btn'), 'flex-1 py-2.5 rounded-xl zilo-btn-primary !text-sm', (b) =>
+      startSharing(card);
+      addPrimaryBtn(t('tecnico.js.arrived_btn'), (b) =>
         transition(b, 'en_sitio', t('tecnico.js.welcome_site'), `/tecnico/trabajo/${card.dataset.jobId}`)
       );
-      if (mapUrl) {
-        const a = document.createElement('a');
-        a.href = mapUrl;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        a.className = 'flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm text-center';
-        a.textContent = t('tecnico.js.open_map');
-        actions.appendChild(a);
-      }
-      startSharing(card);
+      if (mapUrl) addMore([makeExtLink(t('tecnico.js.open_map'), mapUrl)]);
     }
   }
 
@@ -612,8 +662,8 @@
     if (pedidoId) {
       const card = document.querySelector(`[data-job-id="${CSS.escape(pedidoId)}"]`);
       if (card) {
-        const section = card.closest('details');
-        if (section && !section.open) section.open = true;
+        const other = document.getElementById('sectionOtherJobs');
+        if (other && other.contains(card)) other.open = true;
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         card.classList.add('ring-2', 'ring-zilo-accent', 'ring-offset-2');
         setTimeout(() => card.classList.remove('ring-2', 'ring-zilo-accent', 'ring-offset-2'), 6000);
