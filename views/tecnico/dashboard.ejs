@@ -280,7 +280,14 @@
 <script src="/js/map.js"></script>
 <script>
 (function () {
+  const completar = /[?&]completar=1/.test(location.search);
   document.querySelectorAll('#sectionDone, #techDocsSection, #sectionOtherJobs').forEach(function (el) {
+    if (!el) return;
+    if (el.id === 'techDocsSection' && completar) {
+      el.open = true;
+      setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 200);
+      return;
+    }
     if (location.hash && el.id && location.hash === '#' + el.id) el.open = true;
     else el.open = false;
   });

@@ -1,0 +1,82 @@
+<%- include('../partials/head') %>
+<%
+  const companyName = (typeof providerName !== 'undefined' && providerName) ? providerName : 'tu empresa';
+  const techName = (typeof tecnicoName !== 'undefined' && tecnicoName) ? String(tecnicoName).trim().split(/\s+/)[0] : '';
+%>
+
+<div class="min-h-screen flex items-center justify-center p-5 relative">
+  <div class="auth-shell auth-shell--wide relative z-10">
+    <%- include('../partials/auth-topbar', { backHref: '/', backLabel: t('auth.back_home'), backShort: t('auth.back_home_short') }) %>
+
+    <div class="zilo-card-premium rounded-2xl p-5 sm:p-8 zilo-page-enter">
+      <div class="text-center mb-5">
+        <%- include('../partials/logo', { className: 'w-14 h-14 mx-auto mb-3', logoId: 'tech-activate' }) %>
+        <p class="zilo-label mb-2">Invitación a equipo</p>
+        <h1 class="zilo-display text-[1.75rem] leading-tight mb-2">
+          <%= techName ? `Hola, ${techName}` : 'Activa tu cuenta' %>
+        </h1>
+        <p class="text-sm text-zilo-muted leading-relaxed">
+          <strong class="text-zilo-text"><%= companyName %></strong> te sumó como técnico en Fandez.
+          Entra y completa tu ficha para poder trabajar.
+        </p>
+      </div>
+
+      <ol class="verify-steps mb-5" aria-label="Pasos">
+        <li class="verify-step verify-step--done">
+          <span class="verify-step__dot" aria-hidden="true"></span>
+          <span>Invitación recibida</span>
+        </li>
+        <li class="verify-step verify-step--current">
+          <span class="verify-step__dot" aria-hidden="true"></span>
+          <span>Activar cuenta</span>
+        </li>
+        <li class="verify-step">
+          <span class="verify-step__dot" aria-hidden="true"></span>
+          <span>Subir carnet</span>
+        </li>
+      </ol>
+
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="mb-4 p-3 rounded-xl bg-zilo-danger/10 border border-zilo-danger/30 text-zilo-danger text-sm text-center"><%= error %></div>
+      <% } %>
+      <% if (typeof expired !== 'undefined' && expired) { %>
+        <div class="mb-4 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-sm text-center">
+          Este enlace expiró. Pide a tu empresa que te reenvíe la invitación.
+        </div>
+        <a href="/login" class="zilo-btn-primary block text-center">Ir a ingresar</a>
+      <% } else { %>
+        <div class="mb-4 p-3 rounded-xl border border-zilo-border bg-zilo-bg/40 space-y-1.5">
+          <p class="text-[11px] text-zilo-muted uppercase tracking-wide font-semibold">Tu correo</p>
+          <p class="text-sm font-semibold text-zilo-accent break-all"><%= email %></p>
+          <p class="text-[11px] text-zilo-muted">Usa la contraseña que te dio <%= companyName %>.</p>
+        </div>
+
+        <form method="POST" action="/activar-tecnico/<%= token %>" class="space-y-4">
+          <div>
+            <label for="password" class="zilo-label block mb-1.5">Contraseña</label>
+            <input type="password" id="password" name="password" required minlength="10" autocomplete="current-password" class="zilo-input" placeholder="La que te compartió tu empresa">
+          </div>
+
+          <div>
+            <label for="phone" class="zilo-label block mb-1.5">WhatsApp <span class="font-normal text-zilo-muted">(recomendado)</span></label>
+            <input type="tel" id="phone" name="phone" autocomplete="tel" class="zilo-input" placeholder="+56 9 1234 5678" value="<%= phone || '' %>">
+          </div>
+
+          <div class="p-3 rounded-xl border border-zilo-accent/20 bg-zilo-accent-soft/40">
+            <p class="text-sm font-semibold text-zilo-text mb-1">Después de entrar</p>
+            <p class="text-xs text-zilo-muted leading-relaxed">Subirás el carnet (frente y reverso). El certificado de antecedentes lo carga tu empresa.</p>
+          </div>
+
+          <button type="submit" class="zilo-btn-primary">Activar y completar ficha</button>
+        </form>
+
+        <p class="text-center text-xs text-zilo-muted mt-5">
+          ¿Ya activaste tu cuenta?
+          <a href="/login" class="text-zilo-accent font-semibold hover:underline">Ingresar</a>
+        </p>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

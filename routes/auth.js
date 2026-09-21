@@ -1018,4 +1018,99 @@ router.post('/api/telemetry/error', (req, res) => {
   res.json({ success: true });
 });
 
+/** Landing del link de invitación al técnico: activar cuenta + ir a completar ficha. */
+router.get('/activar-tecnico/:token', (req, res) => {
+  const found = store.getTechnicianByInviteToken(req.params.token);
+  if (!found) {
+    return res.status(404).render('tecnico/activar', {
+      title: 'Invitación no válida — Fandez',
+      token: req.params.token,
+      email: '',
+      phone: '',
+      tecnicoName: '',
+      providerName: '',
+      expired: false,
+      error: 'Este enlace no es válido. Pide a tu empresa una nueva invitación.'
+    });
+  }
+  if (found.expired) {
+    return res.render('tecnico/activar', {
+      title: 'Invitación expirada — Fandez',
+      token: req.params.token,
+      email: '',
+      phone: '',
+      tecnicoName: '',
+      providerName: '',
+      expired: true,
+      error: null
+    });
+  }
+  const tecnico = found.tecnico;
+  const provider = store.getUserById(tecnico.parentId) || (Array.isArray(tecnico.parentIds) ? store.getUserById(tecnico.parentIds[0]) : null);
+  res.render('tecnico/activar', {
+    title: 'Activar cuenta de técnico — Fandez',
+    token: req.params.token,
+    email: tecnico.email,
+    phone: tecnico.phone || '',
+    tecnicoName: tecnico.name || '',
+    providerName: provider?.name || 'tu empresa',
+    expired: false,
+    error: null
+  });
+});
+
+router.post('/activar-tecnico/:token', rateLimitLogin(10), async (req, res) => {
+  const found = store.getTechnicianByInviteToken(req.params.token);
+  const renderErr = (error, extra = {}) => res.status(400).render('tecnico/activar', {
+    title: 'Activar cuenta de técnico — Fandez',
+    token: req.params.token,
+    email: extra.email || found?.tecnico?.email || '',
+    phone: req.body.phone || found?.tecnico?.phone || '',
+    tecnicoName: found?.tecnico?.name || '',
+    providerName: extra.providerName || '',
+    expired: Boolean(found?.expired),
+    error
+  });
+
+  if (!found || found.expired || !found.tecnico) {
+    return renderErr(found?.expired
+      ? 'Este enlace expiró. Pide a tu empresa que te reenvíe la invitación.'
+      : 'Este enlace no es válido.');
+  }
+
+  const tecnico = found.tecnico;
+  const provider = store.getUserById(tecnico.parentId) || (Array.isArray(tecnico.parentIds) ? store.getUserById(tecnico.parentIds[0]) : null);
+  const password = String(req.body.password || '');
+  if (!password) return renderErr('Ingresa la contraseña que te dio tu empresa.', { providerName: provider?.name });
+
+  const { verifyPassword } = require('../lib/password');
+  const ok = await verifyPassword(password, tecnico.password);
+  if (!ok) {
+    return renderErr('Contraseña incorrecta. Usa la que te compartió tu empresa.', {
+      email: tecnico.email,
+      providerName: provider?.name
+    });
+  }
+
+  const phone = String(req.body.phone || '').trim();
+  if (phone) {
+    tecnico.phone = phone.slice(0, 32);
+    try { await require('../models/repository').saveUser(tecnico); } catch (_) { /* ignore */ }
+  }
+
+  if (!store.isEmailVerified(tecnico)) {
+    await store.forceVerifyEmail(tecnico.id, { actorId: tecnico.id });
+  }
+  store.clearTechnicianInviteToken(tecnico.id);
+
+  req.session.user = {
+    id: tecnico.id,
+    email: tecnico.email,
+    name: tecnico.name,
+    role: 'tecnico'
+  };
+  store.logSecurityEvent('technician_invite_activated', tecnico.email, req);
+  return res.redirect('/tecnico?completar=1');
+});
+
 module.exports = router;

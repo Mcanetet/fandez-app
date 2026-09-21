@@ -3942,6 +3942,36 @@ async function createTechnician(socioId, { name, email, password, phone, special
   return { success: true, linked: false, tecnico };
 }
 
+function issueTechnicianInviteToken(tecnicoId) {
+  const tecnico = getUserById(tecnicoId);
+  if (!tecnico || tecnico.role !== 'tecnico') return null;
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(24).toString('hex');
+  tecnico.inviteToken = token;
+  tecnico.inviteTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  repository.saveUser(tecnico).catch((err) => console.error('[invite-token] save:', err.message));
+  return token;
+}
+
+function getTechnicianByInviteToken(token) {
+  const raw = String(token || '').trim();
+  if (!raw || raw.length < 16) return null;
+  const tecnico = USERS.find((u) => u.role === 'tecnico' && u.inviteToken === raw);
+  if (!tecnico) return null;
+  if (tecnico.inviteTokenExpiresAt && new Date(tecnico.inviteTokenExpiresAt).getTime() < Date.now()) {
+    return { expired: true, tecnico: null };
+  }
+  return { expired: false, tecnico };
+}
+
+function clearTechnicianInviteToken(tecnicoId) {
+  const tecnico = getUserById(tecnicoId);
+  if (!tecnico) return;
+  tecnico.inviteToken = null;
+  tecnico.inviteTokenExpiresAt = null;
+  repository.saveUser(tecnico).catch((err) => console.error('[invite-token] clear:', err.message));
+}
+
 function formatProviderRutLabel(provider) {
   if (!provider) return '';
   const raw = provider.billing?.rut
@@ -8850,6 +8880,9 @@ module.exports = {
   resetPasswordWithToken,
   registerUser,
   createTechnician,
+  issueTechnicianInviteToken,
+  getTechnicianByInviteToken,
+  clearTechnicianInviteToken,
   enableSelfOperator,
   getSelfOperator,
   getTechniciansByProvider,
