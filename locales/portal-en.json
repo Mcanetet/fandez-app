@@ -685,7 +685,7 @@
   "provider.js.job_details_sub": "Review photos and description before taking it",
   "provider.js.new_request_sub": "Also on the wall · first to take it wins",
   "tecnico.js.gps_active": "GPS active",
-  "tecnico.js.enable_gps": "Enable GPS to share your location",
+  "tecnico.js.enable_gps": "Turn on location to work",
   "tecnico.js.arrived_link": "Log arrival",
   "tecnico.js.continue_visit": "Continue visit",
   "tecnico.js.confirm_or_reevaluate": "Confirm or re-evaluate",
