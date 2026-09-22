@@ -263,8 +263,8 @@
     </section>
 
     <section class="zilo-card-premium rounded-2xl p-5">
-      <p class="zilo-label mb-3">Crear técnico nuevo</p>
-      <p class="text-xs text-zilo-muted mb-3">Si el correo ya existe como técnico, no se crea otra cuenta: se enlaza al RUT de tu empresa.</p>
+      <p class="zilo-label mb-3">Invitar técnico nuevo</p>
+      <p class="text-xs text-zilo-muted mb-3">Ingresa su correo: le mandamos un enlace para que cree su contraseña y se registre. Si el correo ya existe como técnico, se enlaza a tu empresa.</p>
       <form method="POST" action="/proveedor/equipo" class="space-y-3">
         <div>
           <label class="text-xs text-zilo-muted">Nombre completo</label>
@@ -275,12 +275,8 @@
           <input type="email" name="email" required class="zilo-input w-full mt-1" placeholder="tecnico@correo.cl">
         </div>
         <div>
-          <label class="text-xs text-zilo-muted">Teléfono <span class="opacity-60">(opcional)</span></label>
+          <label class="text-xs text-zilo-muted">Teléfono <span class="opacity-60">(opcional — lo completa al registrarse)</span></label>
           <input type="tel" name="phone" class="zilo-input w-full mt-1" placeholder="+56 9 ...">
-        </div>
-        <div>
-          <label class="text-xs text-zilo-muted">Contraseña <span class="opacity-60">(solo si es cuenta nueva)</span></label>
-          <input type="password" name="password" minlength="10" class="zilo-input w-full mt-1" placeholder="Mínimo 10 caracteres si es nuevo">
         </div>
         <div>
           <span class="text-xs text-zilo-muted block mb-2">Especialidades del técnico</span>
@@ -304,9 +300,9 @@
           showByService: true,
           servicesForPay: companyServices || []
         }) %>
-        <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary" <%= companyServices.length ? '' : 'disabled' %>>Crear técnico</button>
+        <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary" <%= companyServices.length ? '' : 'disabled' %>>Enviar invitación</button>
       </form>
-      <p class="text-[11px] text-zilo-muted mt-3">Comparte con el técnico el correo y la contraseña. Él sube el carnet; tú el certificado de antecedentes (en Editar o Expediente).</p>
+      <p class="text-[11px] text-zilo-muted mt-3">El técnico recibe un correo, crea su contraseña y sube el carnet. Tú cargas el certificado de antecedentes (en Editar o Expediente).</p>
     </section>
     </div>
   </main>

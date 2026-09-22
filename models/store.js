@@ -3960,10 +3960,18 @@ async function createTechnician(socioId, { name, email, password, phone, special
     };
   }
 
-  if (!password) return { error: 'Completa nombre, correo y contraseña.' };
-  if (password.length < 10) return { error: 'La contraseña debe tener al menos 10 caracteres.' };
+  const providedPassword = String(password || '').trim();
+  let invitePending = false;
+  let passwordToHash = providedPassword;
+  if (!providedPassword) {
+    // Invitación por correo: el técnico elige su contraseña al abrir el link.
+    invitePending = true;
+    passwordToHash = require('crypto').randomBytes(32).toString('hex');
+  } else if (providedPassword.length < 10) {
+    return { error: 'La contraseña debe tener al menos 10 caracteres.' };
+  }
 
-  const hashedPassword = await hashPassword(password);
+  const hashedPassword = await hashPassword(passwordToHash);
   const tecnico = {
     id: `tecnico-${uuidv4().slice(0, 8)}`,
     email,
@@ -3994,6 +4002,7 @@ async function createTechnician(socioId, { name, email, password, phone, special
     locationShare: defaultLocationShare(),
     active: true,
     memberSince: new Date().toISOString().slice(0, 10),
+    invitePending: invitePending || undefined,
     emailVerifiedAt: null,
     emailVerificationCodeHash: null,
     emailVerificationExpiresAt: null,
@@ -4016,26 +4025,51 @@ async function createTechnician(socioId, { name, email, password, phone, special
       console.warn('payTerms al crear técnico:', pay.error);
     }
   }
-  return { success: true, linked: false, tecnico };
+  return { success: true, linked: false, tecnico, invitePending };
 }
 
 function issueTechnicianInviteToken(tecnicoId) {
   const tecnico = getUserById(tecnicoId);
   if (!tecnico || tecnico.role !== 'tecnico') return null;
+  ensureTechnicianDossier(tecnico);
   const crypto = require('crypto');
   const token = crypto.randomBytes(24).toString('hex');
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  // Persistir en verification (JSON en DB); el top-level es solo espejo en memoria.
+  tecnico.verification.inviteToken = token;
+  tecnico.verification.inviteTokenExpiresAt = expiresAt;
+  tecnico.verification.invitePending = true;
   tecnico.inviteToken = token;
-  tecnico.inviteTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  tecnico.inviteTokenExpiresAt = expiresAt;
+  tecnico.invitePending = true;
   repository.saveUser(tecnico).catch((err) => console.error('[invite-token] save:', err.message));
   return token;
+}
+
+function technicianInviteFields(tecnico) {
+  if (!tecnico || tecnico.role !== 'tecnico') return { token: null, expiresAt: null, pending: false };
+  ensureTechnicianDossier(tecnico);
+  const token = tecnico.verification.inviteToken || tecnico.inviteToken || null;
+  const expiresAt = tecnico.verification.inviteTokenExpiresAt || tecnico.inviteTokenExpiresAt || null;
+  const pending = Boolean(
+    tecnico.verification.invitePending
+    || tecnico.invitePending
+    || token
+  );
+  return { token, expiresAt, pending };
 }
 
 function getTechnicianByInviteToken(token) {
   const raw = String(token || '').trim();
   if (!raw || raw.length < 16) return null;
-  const tecnico = USERS.find((u) => u.role === 'tecnico' && u.inviteToken === raw);
+  const tecnico = USERS.find((u) => {
+    if (u.role !== 'tecnico') return false;
+    const fields = technicianInviteFields(u);
+    return fields.token === raw;
+  });
   if (!tecnico) return null;
-  if (tecnico.inviteTokenExpiresAt && new Date(tecnico.inviteTokenExpiresAt).getTime() < Date.now()) {
+  const { expiresAt } = technicianInviteFields(tecnico);
+  if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
     return { expired: true, tecnico: null };
   }
   return { expired: false, tecnico };
@@ -4044,9 +4078,60 @@ function getTechnicianByInviteToken(token) {
 function clearTechnicianInviteToken(tecnicoId) {
   const tecnico = getUserById(tecnicoId);
   if (!tecnico) return;
+  ensureTechnicianDossier(tecnico);
+  tecnico.verification.inviteToken = null;
+  tecnico.verification.inviteTokenExpiresAt = null;
+  tecnico.verification.invitePending = false;
   tecnico.inviteToken = null;
   tecnico.inviteTokenExpiresAt = null;
+  tecnico.invitePending = false;
   repository.saveUser(tecnico).catch((err) => console.error('[invite-token] clear:', err.message));
+}
+
+/**
+ * El técnico abre el link del correo y define su contraseña + teléfono.
+ */
+async function activateTechnicianInvite(token, { password, phone, name } = {}) {
+  const found = getTechnicianByInviteToken(token);
+  if (!found) return { error: 'Este enlace no es válido. Pide a tu empresa una nueva invitación.' };
+  if (found.expired || !found.tecnico) {
+    return { error: 'Este enlace expiró. Pide a tu empresa que te reenvíe la invitación.', expired: true };
+  }
+
+  const tecnico = found.tecnico;
+  ensureTechnicianDossier(tecnico);
+  const pwd = String(password || '');
+  if (pwd.length < 10) return { error: 'La contraseña debe tener al menos 10 caracteres.', tecnico };
+  const phoneVal = String(phone || '').trim();
+  if (!phoneVal || phoneVal.length < 8) return { error: 'Ingresa tu teléfono.', tecnico };
+
+  const nameVal = String(name || '').trim();
+  if (nameVal.length >= 2) {
+    tecnico.name = nameVal.slice(0, 80);
+    tecnico.avatar = tecnico.name.split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+  }
+
+  tecnico.password = await hashPassword(pwd);
+  tecnico.phone = phoneVal.slice(0, 32);
+  tecnico.invitePending = false;
+  tecnico.inviteToken = null;
+  tecnico.inviteTokenExpiresAt = null;
+  tecnico.verification.invitePending = false;
+  tecnico.verification.inviteToken = null;
+  tecnico.verification.inviteTokenExpiresAt = null;
+
+  try {
+    await repository.saveUser(tecnico);
+  } catch (err) {
+    console.error('[activate-invite] save:', err.message);
+    return { error: 'No pudimos activar la cuenta. Intenta de nuevo.', tecnico };
+  }
+
+  if (!isEmailVerified(tecnico)) {
+    await forceVerifyEmail(tecnico.id, { actorId: tecnico.id });
+  }
+
+  return { success: true, tecnico };
 }
 
 function formatProviderRutLabel(provider) {
@@ -9138,6 +9223,7 @@ module.exports = {
   issueTechnicianInviteToken,
   getTechnicianByInviteToken,
   clearTechnicianInviteToken,
+  activateTechnicianInvite,
   enableSelfOperator,
   getSelfOperator,
   getTechniciansByProvider,

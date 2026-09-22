@@ -1066,9 +1066,9 @@ router.post('/activar-tecnico/:token', rateLimitLogin(10), async (req, res) => {
     token: req.params.token,
     email: extra.email || found?.tecnico?.email || '',
     phone: req.body.phone || found?.tecnico?.phone || '',
-    tecnicoName: found?.tecnico?.name || '',
+    tecnicoName: req.body.name || found?.tecnico?.name || '',
     providerName: extra.providerName || '',
-    expired: Boolean(found?.expired),
+    expired: Boolean(found?.expired || extra.expired),
     error
   });
 
@@ -1080,40 +1080,38 @@ router.post('/activar-tecnico/:token', rateLimitLogin(10), async (req, res) => {
 
   const tecnico = found.tecnico;
   const provider = store.getUserById(tecnico.parentId) || (Array.isArray(tecnico.parentIds) ? store.getUserById(tecnico.parentIds[0]) : null);
+
   const password = String(req.body.password || '');
-  if (!password) return renderErr('Ingresa la contraseña que te dio tu empresa.', { providerName: provider?.name });
+  const passwordConfirm = String(req.body.password_confirm || req.body.passwordConfirm || '');
+  if (password.length < 10) {
+    return renderErr('La contraseña debe tener al menos 10 caracteres.', { providerName: provider?.name });
+  }
+  if (password !== passwordConfirm) {
+    return renderErr('Las contraseñas no coinciden.', { providerName: provider?.name });
+  }
 
-  const { verifyPassword } = require('../lib/password');
-  const ok = await verifyPassword(password, tecnico.password);
-  if (!ok) {
-    return renderErr('Contraseña incorrecta. Usa la que te compartió tu empresa.', {
+  const result = await store.activateTechnicianInvite(req.params.token, {
+    password,
+    phone: req.body.phone,
+    name: req.body.name || tecnico.name
+  });
+
+  if (result.error) {
+    return renderErr(result.error, {
       email: tecnico.email,
-      providerName: provider?.name
+      providerName: provider?.name,
+      expired: Boolean(result.expired)
     });
   }
 
-  const phone = String(req.body.phone || '').trim();
-  if (!phone || phone.length < 8) {
-    return renderErr('Ingresa tu teléfono.', {
-      email: tecnico.email,
-      providerName: provider?.name
-    });
-  }
-  tecnico.phone = phone.slice(0, 32);
-  try { await require('../models/repository').saveUser(tecnico); } catch (_) { /* ignore */ }
-
-  if (!store.isEmailVerified(tecnico)) {
-    await store.forceVerifyEmail(tecnico.id, { actorId: tecnico.id });
-  }
-  store.clearTechnicianInviteToken(tecnico.id);
-
+  const user = result.tecnico;
   req.session.user = {
-    id: tecnico.id,
-    email: tecnico.email,
-    name: tecnico.name,
+    id: user.id,
+    email: user.email,
+    name: user.name,
     role: 'tecnico'
   };
-  store.logSecurityEvent('technician_invite_activated', tecnico.email, req);
+  store.logSecurityEvent('technician_invite_activated', user.email, req);
   return res.redirect('/tecnico?completar=1');
 });
 

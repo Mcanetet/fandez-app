@@ -826,7 +826,7 @@ router.post('/equipo', requireRole('provider'), requireModule('provider_equipo')
     );
   }
   res.redirect(
-    `/proveedor/equipo?ok=invited&msg=${encodeURIComponent(`Invitación enviada a ${result.tecnico.email}. Comparte también la contraseña que definiste.`)}`
+    `/proveedor/equipo?ok=invited&msg=${encodeURIComponent(`Invitación enviada a ${result.tecnico.email}. El técnico debe abrir el correo, crear su contraseña y completar su registro.`)}`
   );
 });
 

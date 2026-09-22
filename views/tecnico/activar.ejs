@@ -13,11 +13,11 @@
         <%- include('../partials/logo', { className: 'w-14 h-14 mx-auto mb-3', logoId: 'tech-activate' }) %>
         <p class="zilo-label mb-2">Invitación a equipo</p>
         <h1 class="zilo-display text-[1.75rem] leading-tight mb-2">
-          <%= techName ? `Hola, ${techName}` : 'Activa tu cuenta' %>
+          <%= techName ? `Hola, ${techName}` : 'Crea tu cuenta' %>
         </h1>
         <p class="text-sm text-zilo-muted leading-relaxed">
-          <strong class="text-zilo-text"><%= companyName %></strong> te sumó como técnico en Fandez.
-          Entra con tu contraseña y teléfono; el carnet lo subes dentro de tu sesión.
+          <strong class="text-zilo-text"><%= companyName %></strong> te invitó como técnico en Fandez.
+          Define tu contraseña y teléfono para entrar.
         </p>
       </div>
 
@@ -28,7 +28,7 @@
         </li>
         <li class="verify-step verify-step--current">
           <span class="verify-step__dot" aria-hidden="true"></span>
-          <span>Activar cuenta</span>
+          <span>Crear contraseña</span>
         </li>
         <li class="verify-step">
           <span class="verify-step__dot" aria-hidden="true"></span>
@@ -48,13 +48,34 @@
         <div class="mb-4 p-3 rounded-xl border border-zilo-border bg-zilo-bg/40 space-y-1.5">
           <p class="text-[11px] text-zilo-muted uppercase tracking-wide font-semibold">Tu correo</p>
           <p class="text-sm font-semibold text-zilo-accent break-all"><%= email %></p>
-          <p class="text-[11px] text-zilo-muted">Usa la contraseña que te dio <%= companyName %>.</p>
+          <p class="text-[11px] text-zilo-muted">Con este correo entrarás después a Fandez.</p>
         </div>
 
         <form method="POST" action="/activar-tecnico/<%= token %>" class="space-y-4">
+          <% if (!(typeof tecnicoName !== 'undefined' && tecnicoName)) { %>
+            <div>
+              <label for="name" class="zilo-label block mb-1.5">Nombre completo</label>
+              <input type="text" id="name" name="name" required maxlength="80" autocomplete="name" class="zilo-input" placeholder="Tu nombre">
+            </div>
+          <% } else { %>
+            <input type="hidden" name="name" value="<%= tecnicoName %>">
+          <% } %>
+
           <div>
-            <label for="password" class="zilo-label block mb-1.5">Contraseña</label>
-            <input type="password" id="password" name="password" required minlength="10" autocomplete="current-password" class="zilo-input" placeholder="La que te compartió tu empresa">
+            <%- include('../partials/password-field', {
+              id: 'password',
+              name: 'password',
+              label: 'Crea tu contraseña',
+              hint: '(mín. 10)',
+              autocomplete: 'new-password',
+              required: true,
+              minlength: 10
+            }) %>
+          </div>
+
+          <div>
+            <label for="password_confirm" class="zilo-label block mb-1.5">Repite la contraseña</label>
+            <input type="password" id="password_confirm" name="password_confirm" required minlength="10" autocomplete="new-password" class="zilo-input" placeholder="••••••••">
           </div>
 
           <div>
@@ -66,7 +87,7 @@
             Al entrar subirás tu carnet (frente y reverso). El certificado de antecedentes lo carga tu empresa.
           </p>
 
-          <button type="submit" class="zilo-btn-primary">Entrar a mi sesión</button>
+          <button type="submit" class="zilo-btn-primary">Crear cuenta y entrar</button>
         </form>
 
         <p class="text-center text-xs text-zilo-muted mt-5">
