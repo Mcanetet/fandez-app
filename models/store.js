@@ -4327,7 +4327,12 @@ function linkTechnicianToProvider(socioId, { email, specialties, payTerms } = {}
     };
   }
   const tecnico = USERS.find((u) => u.role === 'tecnico' && String(u.email || '').toLowerCase() === normalized);
-  if (!tecnico) return { error: 'No existe un técnico con ese correo. Créalo o pídele que se registre con otro socio primero.' };
+  if (!tecnico) {
+    return {
+      error: 'No existe un técnico con ese correo.',
+      code: 'not_found'
+    };
+  }
   if (technicianBelongsToProvider(tecnico, socioId)) {
     return { error: 'Este técnico ya forma parte de tu equipo.' };
   }

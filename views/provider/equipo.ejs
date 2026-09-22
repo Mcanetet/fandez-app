@@ -174,7 +174,9 @@
                           : 'Pago: sin definir — edítalo' %>
                       </span>
                       <span class="text-[10px] <%= t.emailVerified ? 'text-zilo-success' : 'text-amber-600' %> block">
-                        <%= t.emailVerified ? 'Email verificado' : 'Email pendiente' %>
+                        <%= t.invitePending
+                          ? 'Invitación pendiente — debe abrir el correo'
+                          : (t.emailVerified ? 'Email verificado' : 'Email pendiente') %>
                       </span>
                       <span class="text-[10px] <%= t.dossierCheck.ok ? 'text-zilo-success' : 'text-amber-600' %> block" data-role="tech-dossier">
                         <%= t.dossierCheck.ok
@@ -214,6 +216,9 @@
               <div class="tech-list-card__actions">
                 <a href="/proveedor/equipo/<%= t.id %>/expediente" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-center">Expediente</a>
                 <% if (!t.isSelfOperator) { %>
+                  <% if (t.invitePending) { %>
+                    <button type="button" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-xs tech-resend-invite-btn" data-id="<%= t.id %>" data-email="<%= t.email %>">Reenviar invitación</button>
+                  <% } %>
                   <button type="button" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-xs tech-edit-btn" data-id="<%= t.id %>">Editar</button>
                   <button type="button" class="flex-1 py-2.5 rounded-xl border border-red-200 text-red-700 !text-xs font-semibold tech-unlink-btn" data-id="<%= t.id %>">Quitar</button>
                 <% } %>
@@ -228,43 +233,15 @@
     <div data-equipo-panel="agregar" class="equipo-panel hidden space-y-6">
     <section class="zilo-card-premium rounded-2xl p-5 mb-6 border border-zilo-accent/20">
       <p class="zilo-label mb-1">¿Eres tú el técnico?</p>
-      <p class="text-xs text-zilo-muted mb-3">No uses tu correo en el formulario de abajo: usa el botón de arriba «Agregarme como técnico con mi cuenta de socio». Si igual pones tu mismo correo al crear, también te agregamos como técnico sin duplicar cuenta.</p>
-    </section>
-
-    <section class="zilo-card-premium rounded-2xl p-5 mb-6">
-      <p class="zilo-label mb-1">Vincular técnico existente</p>
-      <p class="text-xs text-zilo-muted mb-3">Un técnico puede trabajar con varios socios. Si ya tiene cuenta, se enlaza al RUT de tu empresa (no se duplica).</p>
-      <form method="POST" action="/proveedor/equipo/vincular" class="space-y-3">
-        <div>
-          <label class="text-xs text-zilo-muted">Correo del técnico</label>
-          <input type="email" name="email" required class="zilo-input w-full mt-1" placeholder="tecnico@correo.cl">
-        </div>
-        <% const companyServicesLink = (typeof serviceStatus !== 'undefined' ? serviceStatus : []).filter(s => s.enabled); %>
-        <% if (companyServicesLink.length) { %>
-          <div>
-            <span class="text-xs text-zilo-muted block mb-2">Especialidades en tu empresa</span>
-            <div class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-1">
-              <% companyServicesLink.forEach(s => { %>
-                <label class="flex items-center gap-2 text-sm p-2 rounded-lg border border-zilo-border">
-                  <input type="checkbox" name="specialties" value="<%= s.id %>" class="rounded accent-[#C45C14] shrink-0" checked>
-                  <span class="truncate"><%= s.name %></span>
-                </label>
-              <% }); %>
-            </div>
-          </div>
-        <% } %>
-        <%- include('../partials/technician-pay-terms', {
-          payIdPrefix: 'link',
-          showByService: true,
-          servicesForPay: companyServicesLink || []
-        }) %>
-        <button type="submit" class="w-full py-3 rounded-xl zilo-btn-ghost">Vincular a mi equipo</button>
-      </form>
+      <p class="text-xs text-zilo-muted mb-3">No uses tu correo abajo: usa el botón de arriba «Agregarme como técnico con mi cuenta de socio».</p>
     </section>
 
     <section class="zilo-card-premium rounded-2xl p-5">
-      <p class="zilo-label mb-3">Invitar técnico nuevo</p>
-      <p class="text-xs text-zilo-muted mb-3">Ingresa su correo: le mandamos un enlace para que cree su contraseña y se registre. Si el correo ya existe como técnico, se enlaza a tu empresa.</p>
+      <p class="zilo-label mb-3">Agregar técnico</p>
+      <p class="text-xs text-zilo-muted mb-3">
+        Pon su correo y datos. Si es <strong>nuevo</strong>, le mandamos invitación para que cree su cuenta.
+        Si ya tiene cuenta de técnico, lo vinculamos a tu empresa y le avisamos por correo.
+      </p>
       <form method="POST" action="/proveedor/equipo" class="space-y-3">
         <div>
           <label class="text-xs text-zilo-muted">Nombre completo</label>
@@ -275,20 +252,20 @@
           <input type="email" name="email" required class="zilo-input w-full mt-1" placeholder="tecnico@correo.cl">
         </div>
         <div>
-          <label class="text-xs text-zilo-muted">Teléfono <span class="opacity-60">(opcional — lo completa al registrarse)</span></label>
+          <label class="text-xs text-zilo-muted">Teléfono <span class="opacity-60">(opcional)</span></label>
           <input type="tel" name="phone" class="zilo-input w-full mt-1" placeholder="+56 9 ...">
         </div>
         <div>
           <span class="text-xs text-zilo-muted block mb-2">Especialidades del técnico</span>
-          <p class="text-[10px] text-zilo-muted mb-2">Solo puedes asignar servicios que la empresa ya activó arriba. Un técnico puede tener varios (eléctrico, gasfitería, etc.).</p>
+          <p class="text-[10px] text-zilo-muted mb-2">Solo servicios que tu empresa ya activó.</p>
           <% const companyServices = (typeof serviceStatus !== 'undefined' ? serviceStatus : []).filter(s => s.enabled); %>
           <% if (!companyServices.length) { %>
-            <p class="text-xs text-amber-600 p-3 rounded-xl border border-amber-200 bg-amber-50">Activa primero los servicios de la empresa para poder asignárselos al técnico.</p>
+            <p class="text-xs text-amber-600 p-3 rounded-xl border border-amber-200 bg-amber-50">Activa primero los servicios de la empresa para poder agregarlo.</p>
           <% } else { %>
             <div class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
               <% companyServices.forEach(s => { %>
                 <label class="flex items-center gap-2 text-sm p-2 rounded-lg border border-zilo-border">
-                  <input type="checkbox" name="specialties" value="<%= s.id %>" class="rounded accent-[#C45C14] shrink-0">
+                  <input type="checkbox" name="specialties" value="<%= s.id %>" class="rounded accent-[#C45C14] shrink-0" checked>
                   <span class="truncate"><%= s.name %></span>
                 </label>
               <% }); %>
@@ -300,9 +277,9 @@
           showByService: true,
           servicesForPay: companyServices || []
         }) %>
-        <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary" <%= companyServices.length ? '' : 'disabled' %>>Enviar invitación</button>
+        <button type="submit" class="w-full py-3 rounded-xl zilo-btn-primary" <%= companyServices.length ? '' : 'disabled' %>>Agregar y enviar invitación</button>
       </form>
-      <p class="text-[11px] text-zilo-muted mt-3">El técnico recibe un correo, crea su contraseña y sube el carnet. Tú cargas el certificado de antecedentes (en Editar o Expediente).</p>
+      <p class="text-[11px] text-zilo-muted mt-3">El técnico nuevo recibe el correo, crea su contraseña y sube el carnet. Tú cargas el certificado de antecedentes.</p>
     </section>
     </div>
   </main>

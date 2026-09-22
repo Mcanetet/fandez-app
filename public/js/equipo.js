@@ -498,4 +498,31 @@
       }
     });
   });
+
+  document.querySelectorAll('.tech-resend-invite-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const email = btn.dataset.email || 'el técnico';
+      if (!id) return;
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = 'Enviando…';
+      try {
+        const res = await fetch(`/proveedor/equipo/${id}/reenviar-invitacion`, {
+          method: 'POST',
+          headers: { Accept: 'application/json' }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'No se pudo reenviar la invitación');
+        }
+        notify(`Invitación reenviada a ${data.email || email}`, 'success');
+      } catch (err) {
+        notify(err.message || 'No se pudo reenviar', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = original || 'Reenviar invitación';
+      }
+    });
+  });
 })();

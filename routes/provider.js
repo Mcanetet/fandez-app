@@ -130,12 +130,21 @@ function equipoViewLocals(req, provider, extra = {}) {
       const hasDoc = (val) => Boolean(val && val !== 'self-operator-via-provider' && val !== 'self-operator');
       const payTerms = store.getTechnicianPayTermsForProvider(tecnico, provider.id);
       const paySummary = store.serializePayTermsSummary(payTerms);
+      const invitePending = Boolean(
+        !tecnico.isSelfOperator && (
+          v.invitePending
+          || tecnico.invitePending
+          || v.inviteToken
+          || tecnico.inviteToken
+        )
+      );
       return {
         ...tecnico,
         displayEmail: tecnico.isSelfOperator ? provider.email : tecnico.email,
         emailVerified: tecnico.isSelfOperator
           ? store.isEmailVerified(provider)
           : store.isEmailVerified(tecnico),
+        invitePending,
         dossierCheck: store.canTechnicianOperate(tecnico),
         canClaimWall: store.technicianCanClaimWallForProvider(tecnico, provider.id),
         payTerms,
@@ -713,33 +722,92 @@ router.post('/equipo/vincular', requireRole('provider'), requireModule('provider
       error: 'Define cuánto le pagas al técnico (% o monto fijo).'
     }));
   }
-  const result = store.linkTechnicianToProvider(req.session.user.id, {
+
+  let result = store.linkTechnicianToProvider(req.session.user.id, {
     email: req.body.email,
     specialties: req.body.specialties,
     payTerms
   });
+
+  // Correo nuevo: crear invitación (misma ruta que «Agregar») y mandar el mail.
+  if (result.error && result.code === 'not_found') {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const local = email.split('@')[0] || 'Técnico';
+    const name = String(req.body.name || '').trim()
+      || local.replace(/[._-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    result = await store.createTechnician(req.session.user.id, {
+      name,
+      email,
+      phone: req.body.phone,
+      specialties: req.body.specialties,
+      payTerms
+    });
+  }
+
   if (result.error) {
     const provider = store.getUserById(req.session.user.id);
     return res.status(400).render('provider/equipo', equipoViewLocals(req, provider, { error: result.error }));
   }
-  store.logSecurityEvent('tecnico_vinculado', result.tecnico.email, req);
+
+  if (result.selfOperator) {
+    store.logSecurityEvent('self_operator_enabled', result.tecnico.id, req);
+    return res.redirect('/proveedor/equipo?ok=self');
+  }
+
+  const linked = Boolean(result.linked);
+  store.logSecurityEvent(linked ? 'tecnico_vinculado' : 'tecnico_creado', result.tecnico.email, req);
   const provider = store.getUserById(req.session.user.id);
   const invite = await require('../lib/technicianInvite').sendTechnicianInvite({
     store,
     tecnico: result.tecnico,
     provider,
-    linked: true,
+    linked,
     locale: req.locale || 'es'
   });
-  const baseMsg = result.message || 'Técnico enlazado';
-  if (!invite.ok) {
+
+  if (linked) {
+    const baseMsg = result.message || 'Técnico enlazado';
+    if (!invite.ok) {
+      return res.redirect(
+        `/proveedor/equipo?ok=linked&msg=${encodeURIComponent(baseMsg)}&warn=${encodeURIComponent('No pudimos enviar el correo de aviso al técnico. Revisa el correo o pide que revise spam.')}`
+      );
+    }
     return res.redirect(
-      `/proveedor/equipo?ok=linked&msg=${encodeURIComponent(baseMsg)}&warn=${encodeURIComponent('No pudimos enviar el correo de aviso al técnico. Revisa el correo o pide que revise spam.')}`
+      `/proveedor/equipo?ok=linked&msg=${encodeURIComponent(`${baseMsg} Se envió un aviso a ${result.tecnico.email}.`)}`
     );
   }
-  res.redirect(
-    `/proveedor/equipo?ok=linked&msg=${encodeURIComponent(`${baseMsg} Se envió un aviso a ${result.tecnico.email}.`)}`
+
+  if (!invite.ok) {
+    return res.redirect(
+      `/proveedor/equipo?ok=invited&msg=${encodeURIComponent(`Técnico creado (${result.tecnico.email}), pero el correo de invitación no salió. Pídele que revise spam o vuelve a intentar.`)}&warn=${encodeURIComponent(invite.error || 'mail_failed')}`
+    );
+  }
+  return res.redirect(
+    `/proveedor/equipo?ok=invited&msg=${encodeURIComponent(`Invitación enviada a ${result.tecnico.email}. El técnico debe abrir el correo, crear su contraseña y completar su registro.`)}`
   );
+});
+
+router.post('/equipo/:id/reenviar-invitacion', requireRole('provider'), requireModule('provider_equipo'), async (req, res) => {
+  const provider = store.getUserById(req.session.user.id);
+  const tecnico = store.getTechnicianForProvider(req.session.user.id, req.params.id);
+  if (!tecnico || tecnico.isSelfOperator) {
+    return res.status(404).json({ success: false, error: 'Técnico no encontrado' });
+  }
+  const invite = await require('../lib/technicianInvite').sendTechnicianInvite({
+    store,
+    tecnico,
+    provider,
+    linked: !Boolean(tecnico.verification?.invitePending || tecnico.invitePending || tecnico.verification?.inviteToken),
+    locale: req.locale || 'es'
+  });
+  if (!invite.ok) {
+    return res.status(502).json({
+      success: false,
+      error: invite.error || 'No se pudo enviar el correo. Intenta de nuevo.'
+    });
+  }
+  store.logSecurityEvent('tecnico_invite_resent', tecnico.email, req);
+  return res.json({ success: true, email: tecnico.email });
 });
 
 router.post('/equipo', requireRole('provider'), requireModule('provider_equipo'), async (req, res) => {
