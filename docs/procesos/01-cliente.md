@@ -53,6 +53,20 @@ Rutas base: `/registro` · `/cliente` · `/pagos` · `/aland` · `/seguimiento/:
 4. Pagar (tarjeta / transferencia / créditos-promo si aplica).
 5. Pago OK → solicitud en búsqueda / programada → tracking.
 
+### Jardinería y paisajismo (Valle Parraguez) — hitos
+
+Línea de tiempo en tracking del cliente:
+
+1. **Evaluación pagada** — cobro inicial de evaluación técnica (~$40.000).  
+2. **Equipo asignado** — socio/técnico toma el pedido.  
+3. **En camino** — técnico rumbo a la evaluación.  
+4. **Evaluación en terreno** — código de seguridad + levantamiento (plano o visita).  
+5. **Ejecución / diseño** — según Diseño, Construcción y/o Mantención (desde 100 m²).  
+6. **Entregables** — el técnico sube planimetría, proyectos especiales, evidencia de obra o informe.  
+7. **Proyecto cerrado** — cliente ve entregables y califica.
+
+Intake obligatorio del cliente: tipo(s) de servicio, comuna/sector, m², tipo de propiedad, plano digital o visita de levantamiento, alcance y aceptación de pagos.
+
 ### Problemas
 
 | Problema | Actuación |
@@ -61,6 +75,7 @@ Rutas base: `/registro` · `/cliente` · `/pagos` · `/aland` · `/seguimiento/:
 | No puede pagar | Revisar pasarela; transfer pendiente = espera aprobación; no inventar “ya cobró” |
 | Quiere cotizar fuera de la app | Explicar que el pedido y el pago van en la app (respaldo) |
 | Módulo solicitar off / servicio disabled | “Ese servicio no está disponible ahora”; ofrecer otro o lista de espera vía soporte |
+| Jardinería: “¿dónde están los planos?” | En cerrados, sección Entregables del resumen; si aún está en visita, el técnico los carga en el cierre |
 
 **Etiqueta Sofía:** dudas de precio/cobertura = DO. Disputa de cobro = `[DERIVAR_PAGOS]`.
 

@@ -656,13 +656,23 @@
           <p class="zilo-label"><%= t('client.service.tracking') %></p>
           <span id="tripEta" class="text-xs text-zilo-success font-medium"><%= t('client.service.eta') %></span>
         </div>
-        <div class="trip-timeline">
+        <div class="trip-timeline" id="tripTimeline" data-garden="<%= isGarden ? '1' : '0' %>">
+          <% if (isGarden) { %>
+          <div class="trip-step done" data-step="paid"><span class="trip-dot"></span><div><strong class="text-xs">Evaluación pagada</strong><p class="text-[10px] text-zilo-muted">Anticipo de evaluación técnica</p></div></div>
+          <div class="trip-step active" data-step="assigned"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.assigned') %></strong><p class="text-[10px] text-zilo-muted" id="tripProviderLabel"><%= t('client.service.connecting_dots') %></p></div></div>
+          <div class="trip-step" data-step="enroute"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_way') %></strong><p class="text-[10px] text-zilo-muted">Rumbo a la evaluación en terreno</p></div></div>
+          <div class="trip-step" data-step="arrived"><span class="trip-dot"></span><div><strong class="text-xs">Evaluación en terreno</strong><p class="text-[10px] text-zilo-muted">Levantamiento y alcance del proyecto</p></div></div>
+          <div class="trip-step" data-step="working"><span class="trip-dot"></span><div><strong class="text-xs">Ejecución / diseño</strong><p class="text-[10px] text-zilo-muted">Según Diseño, Construcción o Mantención</p></div></div>
+          <div class="trip-step" data-step="deliverables"><span class="trip-dot"></span><div><strong class="text-xs">Entregables</strong><p class="text-[10px] text-zilo-muted" id="tripDeliverablesSub">El técnico sube planimetría, evidencia u obras</p></div></div>
+          <div class="trip-step" data-step="done"><span class="trip-dot"></span><div><strong class="text-xs">Proyecto cerrado</strong><p class="text-[10px] text-zilo-muted">Entregables listos · califica la visita</p></div></div>
+          <% } else { %>
           <div class="trip-step done" data-step="paid"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_paid') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.paid_sub') %></p></div></div>
           <div class="trip-step active" data-step="assigned"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.assigned') %></strong><p class="text-[10px] text-zilo-muted" id="tripProviderLabel"><%= t('client.service.connecting_dots') %></p></div></div>
           <div class="trip-step" data-step="enroute"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_way') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.enroute_sub') %></p></div></div>
           <div class="trip-step" data-step="arrived"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_site') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.onsite_sub') %></p></div></div>
           <div class="trip-step" data-step="working"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_working') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.working_sub') %></p></div></div>
           <div class="trip-step" data-step="done"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_done') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.done_sub') %></p></div></div>
+          <% } %>
         </div>
       </div>
 

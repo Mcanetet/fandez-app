@@ -8756,6 +8756,20 @@ function getAdminRequestCase(requestId) {
   pushTimeline(timeline, request.assignedAt, 'Socio asignado', provider?.name || null);
   pushTimeline(timeline, request.technicianAcceptedAt || request.techAcceptedAt, 'Técnico aceptó', technician?.name || null);
   pushTimeline(timeline, request.inProgressAt || request.startedAt, 'En progreso');
+  if (request.gardenIntake) {
+    pushTimeline(
+      timeline,
+      request.paidAt || request.createdAt,
+      'Intake jardinería',
+      (request.gardenIntake.serviceTypeLabels || []).join(', ') || null
+    );
+    const deliverables = Array.isArray(request.gardenDeliverables) ? request.gardenDeliverables : [];
+    deliverables
+      .filter((d) => d.status === 'uploaded' && d.uploadedAt)
+      .forEach((d) => {
+        pushTimeline(timeline, d.uploadedAt, `Entregable: ${d.label || d.id}`, d.fileName || null);
+      });
+  }
   pushTimeline(timeline, request.completedAt, 'Completada');
   pushTimeline(timeline, request.cancelledAt, 'Cancelada', request.cancelReasonLabel || request.cancelReason || null);
   pushTimeline(timeline, request.refundRequestedAt, 'Devolución solicitada', request.refundStatus || null);

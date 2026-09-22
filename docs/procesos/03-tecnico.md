@@ -80,7 +80,31 @@ Enviar presupuesto o cambio → cliente responde en app → si hay cargo, pago d
 
 ---
 
-## TE-06 · SOS en terreno
+## TE-06 · Jardinería — entregables (Valle Parraguez)
+
+### Happy path
+1. Revisar intake del cliente (tipo Diseño/Construcción/Mantención, m² ≥ 100, plano o visita).  
+2. Evaluación en terreno con código de llegada.  
+3. En el **cierre**, subir cada entregable obligatorio (barra de progreso).  
+4. Solo entonces “Trabajo listo”.  
+
+| Tipo | Entregables típicos |
+|------|---------------------|
+| Diseño | Planimetría (+ riego / iluminación / renders si el cliente los pidió) |
+| Construcción | Evidencia de avance/plantación + entrega final |
+| Mantención | Informe + fotos del área |
+
+### Problemas
+
+| Problema | Actuación |
+|----------|-----------|
+| No deja cerrar | Faltan entregables; subirlos en el panel del cierre |
+| Cliente pide DWG | PDF en app; DWG/CAD se puede coordinar por chat tras evaluación |
+| Socio observa | Ve progreso; solo el técnico asignado carga archivos |
+
+---
+
+## TE-07 · SOS en terreno
 
 ### Happy path
 Ícono alerta → categoría + nota → opcional “me retiro del domicilio” → 133 si aplica → incidente admin.
@@ -90,7 +114,7 @@ Seguridad personal primero. No continuar trabajo bajo amenaza. Detalle: `docs/SE
 
 ---
 
-## TE-07 · Volver a panel socio
+## TE-08 · Volver a panel socio
 
 Si es self-operator: botón volver a socio tras/durante operación según UI.
 
@@ -101,4 +125,4 @@ Sesión/rol confuso → logout/login o soporte; no mezclar chats de roles.
 
 ## Script cierre técnico
 
-> “En terreno el orden es: en camino → código en la puerta → diagnóstico → lo que el cliente apruebe en la app → completar con fotos. Si hay materiales caros o peligro, no improvisés: app + 133 si hace falta.”
+> “En terreno el orden es: en camino → código en la puerta → diagnóstico → lo que el cliente apruebe en la app → completar con fotos. En jardinería, además sube los entregables del intake antes de cerrar. Si hay materiales caros o peligro, no improvisés: app + 133 si hace falta.”

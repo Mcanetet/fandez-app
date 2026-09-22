@@ -560,6 +560,18 @@ router.post('/trabajo/:requestId/entregables', requireRole('tecnico'), (req, res
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
+  try {
+    const progress = result.progress;
+    const { notifyClientJourney } = require('../lib/aland/journey');
+    notifyClientJourney(result.request, {
+      type: 'garden_deliverable',
+      force: true,
+      label: result.deliverable?.label,
+      progress: progress?.total
+        ? `${progress.done}/${progress.total}`
+        : undefined
+    }).catch(() => {});
+  } catch (_) { /* journey opcional */ }
   res.json({
     success: true,
     deliverable: result.deliverable,

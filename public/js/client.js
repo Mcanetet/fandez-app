@@ -1754,11 +1754,18 @@
     }
   }
 
+  function isGardenTracking() {
+    return page?.dataset?.gardenIntake === '1' || page?.dataset?.serviceId === 'jardineria'
+      || document.getElementById('tripTimeline')?.dataset?.garden === '1';
+  }
+
   function advanceTripStep(step) {
     document.querySelectorAll('.trip-step').forEach(el => {
       el.classList.remove('active', 'done');
     });
-    const order = ['paid', 'assigned', 'enroute', 'arrived', 'working', 'done'];
+    const order = isGardenTracking()
+      ? ['paid', 'assigned', 'enroute', 'arrived', 'working', 'deliverables', 'done']
+      : ['paid', 'assigned', 'enroute', 'arrived', 'working', 'done'];
     const idx = order.indexOf(step);
     order.forEach((s, i) => {
       const el = document.querySelector(`.trip-step[data-step="${s}"]`);
@@ -1769,8 +1776,9 @@
     const etaEl = document.getElementById('tripEta');
     if (!etaEl) return;
     if (step === 'enroute') etaEl.textContent = t('client.js.enroute_home');
-    if (step === 'arrived') etaEl.textContent = t('client.js.arrived');
-    if (step === 'working') etaEl.textContent = 'En trabajo';
+    if (step === 'arrived') etaEl.textContent = isGardenTracking() ? 'Evaluación' : t('client.js.arrived');
+    if (step === 'working') etaEl.textContent = isGardenTracking() ? 'En ejecución' : 'En trabajo';
+    if (step === 'deliverables') etaEl.textContent = 'Entregables';
     if (step === 'done') etaEl.textContent = 'Completado';
   }
 
@@ -1856,7 +1864,41 @@
     if (!title || !sub) return;
     const tech = request?.technicianName || 'Tu técnico';
     const reassigning = Boolean(request?.awaitingProviderReassign && !request?.technicianId);
-    const map = {
+    const garden = isGardenTracking();
+    const progress = request?.gardenDeliverablesProgress;
+    const deliverablesSub = document.getElementById('tripDeliverablesSub');
+    if (deliverablesSub && progress && progress.total) {
+      deliverablesSub.textContent = progress.complete
+        ? 'Todos los entregables cargados'
+        : `${progress.done || 0}/${progress.total} entregables listos`;
+    }
+    const map = garden ? {
+      paid: ['Evaluación pagada', 'Buscamos un socio de jardinería y paisajismo para tu proyecto.', 'Buscando equipo'],
+      assigned: [
+        reassigning
+          ? 'El socio está asignando otro técnico'
+          : (request?.techStatus === 'asignado' ? 'Esperando aceptación del técnico' : 'Equipo asignado'),
+        reassigning
+          ? 'El técnico anterior no aceptó a tiempo. El socio debe elegir a otra persona.'
+          : (request?.etaLabel
+            ? `${tech} · llegada estimada ${request.etaLabel}`
+            : 'Te avisamos cuando acepte y salga a la evaluación.'),
+        reassigning ? 'Reasignando' : (request?.techStatus === 'asignado' ? 'Esperando técnico' : 'Equipo listo')
+      ],
+      enroute: [`${tech} va en camino`, request?.etaLabel ? `ETA ${request.etaLabel}. Muéstrale el código al llegar a la evaluación.` : 'Muéstrale el código de seguridad cuando llegue.', 'En camino'],
+      arrived: [`Evaluación en terreno`, 'Dale el código de seguridad para iniciar el levantamiento del proyecto.', 'En evaluación'],
+      working: ['Ejecución / diseño', 'Avance según Diseño, Construcción o Mantención acordados.', 'En ejecución'],
+      deliverables: [
+        progress?.complete ? 'Entregables listos' : 'Carga de entregables',
+        progress?.total
+          ? (progress.complete
+            ? 'El técnico ya subió planimetría, evidencia u obras de tu proyecto.'
+            : `Progreso ${progress.done || 0}/${progress.total}. Los verás al cerrar la visita.`)
+          : 'El técnico sube planimetría, evidencia de obra o informe de mantención.',
+        'Entregables'
+      ],
+      done: ['Proyecto cerrado', 'Revisa tus entregables y califica la experiencia.', 'Completado']
+    } : {
       paid: ['Pago confirmado', 'Estamos conectándote con un equipo Fandez.', 'Buscando equipo'],
       assigned: [
         reassigning
@@ -2052,10 +2094,15 @@
     lastTrackedRequest = request;
     if (request.urgencyTier) page.dataset.urgencyTier = request.urgencyTier;
     const ts = request.techStatus;
+    const garden = isGardenTracking() || Boolean(request.gardenIntake);
+    const progress = request.gardenDeliverablesProgress;
     let step = 'assigned';
     if (request.status === 'completed' || ts === 'completado') {
       step = 'done';
-    } else if (['diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado'].includes(ts)) {
+    } else if (garden && ['reparando', 'comprando', 'presupuesto_aprobado'].includes(ts)
+      && progress && progress.total > 0) {
+      step = 'deliverables';
+    } else if (['diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado', 'materiales_pendiente'].includes(ts)) {
       step = 'working';
     } else if (ts === 'en_sitio') {
       step = 'arrived';
