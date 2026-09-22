@@ -991,54 +991,36 @@
 
   roleInputs.forEach((r) => r.addEventListener('change', syncAddressCopy));
 
-  form.addEventListener('submit', (e) => {
-    resolveTypedCommune();
+  function showRegisterError(message, { emailExists = false } = {}) {
+    const box = document.getElementById('registerError');
+    const text = document.getElementById('registerErrorText');
+    const hint = document.getElementById('registerErrorLoginHint');
+    if (text) text.textContent = message || t('register.error_generic') || 'No pudimos crear la cuenta.';
+    if (hint) hint.classList.toggle('hidden', !emailExists);
+    if (box) {
+      box.hidden = false;
+      box.classList.remove('hidden');
+      if (box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (box.focus) box.focus();
+    }
+    if (typeof FandezNotify !== 'undefined') {
+      FandezNotify.show(message || t('register.error_generic'), 'error');
+    }
+  }
 
-    if (!getRegionCode()) {
-      e.preventDefault();
-      if (regionSelect) {
-        regionSelect.setCustomValidity(t('register.validation_region_required'));
-        regionSelect.reportValidity();
-      }
-      return;
+  function clearRegisterError() {
+    const box = document.getElementById('registerError');
+    const text = document.getElementById('registerErrorText');
+    const hint = document.getElementById('registerErrorLoginHint');
+    if (text) text.textContent = '';
+    if (hint) hint.classList.add('hidden');
+    if (box) {
+      box.hidden = true;
+      box.classList.add('hidden');
     }
-    if (!getCommuneCode()) {
-      e.preventDefault();
-      if (communeSelect) {
-        communeSelect.disabled = false;
-      }
-      if (communeSearch) {
-        communeSearch.disabled = false;
-        communeSearch.setCustomValidity(t('register.validation_commune_required'));
-        communeSearch.reportValidity();
-        communeSearch.focus();
-      } else if (communeSelect) {
-        communeSelect.setCustomValidity(t('register.validation_commune_required'));
-        communeSelect.reportValidity();
-      }
-      return;
-    }
-    if (!addressConfirmed || !latInput.value || !lngInput.value) {
-      e.preventDefault();
-      if (parseStreetAndNumber(addressInput.value) && !addressConfirmed) {
-        setMapStatus(t('register.address_manual_hint'));
-        syncConfirmButton();
-        if (confirmBtn) {
-          confirmBtn.hidden = false;
-          confirmBtn.disabled = false;
-          confirmBtn.focus();
-        }
-      }
-      addressInput.setCustomValidity(t('register.validation_address_select'));
-      addressInput.reportValidity();
-      return;
-    }
-    if (!isProviderRole() && unitInput && unitInput.value.trim().length < 2) {
-      e.preventDefault();
-      unitInput.setCustomValidity(t('register.error_address_unit_required'));
-      unitInput.reportValidity();
-      return;
-    }
+  }
+
+  function unlockSubmitFields() {
     if (regionSelect) {
       regionSelect.disabled = false;
       regionSelect.setCustomValidity('');
@@ -1054,23 +1036,132 @@
     addressInput.disabled = false;
     addressInput.setCustomValidity('');
     if (unitInput) unitInput.setCustomValidity('');
+  }
 
+  function setSubmitting(isSubmitting) {
     const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn && !submitBtn.dataset.submitting) {
+    if (!submitBtn) return null;
+    if (isSubmitting) {
+      if (submitBtn.dataset.submitting) return submitBtn;
       submitBtn.dataset.submitting = '1';
       submitBtn.dataset.originalLabel = submitBtn.textContent || '';
       submitBtn.disabled = true;
       submitBtn.textContent = t('register.submitting') || 'Creando cuenta…';
-      setTimeout(() => {
-        if (!submitBtn.dataset.submitting) return;
-        submitBtn.disabled = false;
-        submitBtn.textContent = submitBtn.dataset.originalLabel || t('register.submit') || 'Crear cuenta';
-        delete submitBtn.dataset.submitting;
-        setMapStatus(t('register.error_address_timeout') || 'La creación está tardando. Intenta de nuevo.');
-        if (typeof FandezNotify !== 'undefined') {
-          FandezNotify.show(t('register.error_address_timeout') || 'La creación está tardando. Intenta de nuevo.', 'warning');
+      return submitBtn;
+    }
+    submitBtn.disabled = false;
+    submitBtn.textContent = submitBtn.dataset.originalLabel || t('register.submit') || 'Crear cuenta';
+    delete submitBtn.dataset.submitting;
+    delete submitBtn.dataset.originalLabel;
+    return submitBtn;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    // Otros scripts (RUT / especialidades) pueden haber cancelado el envío.
+    if (e.defaultPrevented) return;
+    e.preventDefault();
+    clearRegisterError();
+    resolveTypedCommune();
+
+    if (!getRegionCode()) {
+      if (regionSelect) {
+        regionSelect.setCustomValidity(t('register.validation_region_required'));
+        regionSelect.reportValidity();
+      }
+      return;
+    }
+    if (!getCommuneCode()) {
+      if (communeSelect) communeSelect.disabled = false;
+      if (communeSearch) {
+        communeSearch.disabled = false;
+        communeSearch.setCustomValidity(t('register.validation_commune_required'));
+        communeSearch.reportValidity();
+        communeSearch.focus();
+      } else if (communeSelect) {
+        communeSelect.setCustomValidity(t('register.validation_commune_required'));
+        communeSelect.reportValidity();
+      }
+      return;
+    }
+
+    // Si eligió comuna solo tipándola, cargar centro/coords antes de confirmar dirección.
+    if (!selectedCommune || selectedCommune.code !== getCommuneCode() || selectedCommune.lat == null) {
+      try {
+        await loadCommune(getCommuneCode(), { preserveAddress: true });
+      } catch (_) { /* loadCommune ya deja estado usable */ }
+    }
+
+    if ((!addressConfirmed || !latInput.value || !lngInput.value)
+      && parseStreetAndNumber(addressInput.value)
+      && selectedCommune) {
+      await confirmManualAddress();
+    }
+
+    if (!addressConfirmed || !latInput.value || !lngInput.value) {
+      if (parseStreetAndNumber(addressInput.value) && !addressConfirmed) {
+        setMapStatus(t('register.address_manual_hint'));
+        syncConfirmButton();
+        if (confirmBtn) {
+          confirmBtn.hidden = false;
+          confirmBtn.disabled = false;
+          confirmBtn.focus();
         }
-      }, 20000);
+      }
+      addressInput.setCustomValidity(t('register.validation_address_select'));
+      addressInput.reportValidity();
+      return;
+    }
+    if (!isProviderRole() && unitInput && unitInput.value.trim().length < 2) {
+      unitInput.setCustomValidity(t('register.error_address_unit_required'));
+      unitInput.reportValidity();
+      return;
+    }
+
+    unlockSubmitFields();
+
+    const submitBtn = setSubmitting(true);
+    if (!submitBtn) return;
+
+    const watchdog = setTimeout(() => {
+      if (!submitBtn.dataset.submitting) return;
+      setSubmitting(false);
+      setMapStatus(t('register.error_address_timeout') || 'La creación está tardando. Intenta de nuevo.');
+      showRegisterError(t('register.error_address_timeout') || 'La creación está tardando. Intenta de nuevo.');
+    }, 20000);
+
+    try {
+      const body = new URLSearchParams(new FormData(form));
+      const res = await fetch('/registro', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+        },
+        body,
+        credentials: 'same-origin'
+      });
+      const data = await res.json().catch(() => ({}));
+      clearTimeout(watchdog);
+
+      if (res.ok && (data.success || data.redirect)) {
+        window.location.href = data.redirect || '/verificar-email?welcome=1';
+        return;
+      }
+
+      if (data.redirect && (res.status === 409 || data.needsVerification)) {
+        window.location.href = data.redirect;
+        return;
+      }
+
+      setSubmitting(false);
+      showRegisterError(
+        data.error || t('register.error_generic') || 'No pudimos crear la cuenta.',
+        { emailExists: Boolean(data.emailExists) }
+      );
+    } catch (_) {
+      clearTimeout(watchdog);
+      setSubmitting(false);
+      showRegisterError(t('register.error_generic') || 'No pudimos crear la cuenta. Intenta de nuevo.');
     }
   });
 

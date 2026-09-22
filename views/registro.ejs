@@ -26,16 +26,14 @@
       </div>
     <% } %>
 
+    <div id="registerError" class="mb-4 p-3 rounded-xl bg-zilo-danger/10 border border-zilo-danger/30 text-zilo-danger text-sm text-center <%= error ? '' : 'hidden' %>" role="alert" tabindex="-1" <%= error ? '' : 'hidden' %>>
+      <p id="registerErrorText"><%= error || '' %></p>
+      <p id="registerErrorLoginHint" class="mt-2 text-zilo-text text-xs <%= (typeof emailExists !== 'undefined' && emailExists) ? '' : 'hidden' %>">
+        <%= t('register.error_email_exists_hint') %>
+        <a href="/login" class="text-zilo-accent font-semibold hover:underline"><%= t('auth.login_link') %></a>
+      </p>
+    </div>
     <% if (error) { %>
-      <div id="registerError" class="mb-4 p-3 rounded-xl bg-zilo-danger/10 border border-zilo-danger/30 text-zilo-danger text-sm text-center" role="alert" tabindex="-1">
-        <p><%= error %></p>
-        <% if (typeof emailExists !== 'undefined' && emailExists) { %>
-          <p class="mt-2 text-zilo-text text-xs">
-            <%= t('register.error_email_exists_hint') %>
-            <a href="/login" class="text-zilo-accent font-semibold hover:underline"><%= t('auth.login_link') %></a>
-          </p>
-        <% } %>
-      </div>
       <script>
         (function () {
           var el = document.getElementById('registerError');

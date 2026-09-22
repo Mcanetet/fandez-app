@@ -129,6 +129,7 @@ const {
 } = require('../lib/consent-policy');
 const emailVerification = require('../lib/emailVerification');
 const passwordReset = require('../lib/passwordReset');
+const { isPreOperations } = require('../lib/launchNotice');
 
 let SERVICES = [];
 let MODULES = [];
@@ -3676,9 +3677,11 @@ async function registerUser({
 
   const coverage = buildCoverageResult(communeMeta, coverageMap);
   if (!coverage.covered) {
-    // Clientes: sin cobertura no pueden registrarse en esa comuna.
-    // Socios: sí pueden (expansión / piloto); no bloquear creación ni verificación por email.
-    if (role !== 'provider') {
+    // Socios: siempre pueden registrarse fuera de cobertura (expansión / piloto).
+    // Clientes en prelanzamiento: también (alta libre hasta octubre; la visita se habilita después).
+    // Clientes en operación: solo comunas con cobertura activa.
+    const allowOutsideCoverage = role === 'provider' || isPreOperations();
+    if (!allowOutsideCoverage) {
       return {
         errorKey: coverage.messageKey || 'coverage.not_available',
         code: 'coverage',
@@ -3686,7 +3689,7 @@ async function registerUser({
       };
     }
     console.warn(
-      `[registro] socio fuera de cobertura operativa: ${communeMeta.name} (${communeMeta.regionCode}/${communeMeta.code})`
+      `[registro] ${role} fuera de cobertura operativa: ${communeMeta.name} (${communeMeta.regionCode}/${communeMeta.code})`
     );
   }
 
