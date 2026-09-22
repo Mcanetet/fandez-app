@@ -1,0 +1,145 @@
+<%#
+  Intake Valle Parraguez Paisajismo — solo servicio jardineria.
+%>
+<section id="gardenIntake" class="space-y-4 p-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/40" data-garden-intake="1">
+  <div>
+    <p class="zilo-label mb-1">Requerimientos · Valle Parraguez Paisajismo</p>
+    <p class="text-[11px] text-zilo-muted leading-relaxed">
+      Completa estos datos para procesar tu solicitud. El cobro inicial corresponde a la
+      <strong class="font-medium text-zilo-text">evaluación técnica en terreno</strong>;
+      el proyecto se cotiza según el alcance acordado.
+    </p>
+  </div>
+
+  <div>
+    <p class="zilo-label mb-2">1. Tipo de servicio requerido *</p>
+    <p class="text-[11px] text-zilo-muted mb-2">Puedes marcar una o más opciones (desde 100 m²).</p>
+    <div class="space-y-2">
+      <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+        <input type="checkbox" class="mt-0.5 accent-emerald-600 shrink-0 js-garden-type" value="diseno" data-activity="jard-diseno">
+        <span class="min-w-0">
+          <span class="text-sm font-medium block">Diseño de Jardines</span>
+          <span class="text-[11px] text-zilo-muted">Proyectos nuevos o remodelación desde 100 m²</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+        <input type="checkbox" class="mt-0.5 accent-emerald-600 shrink-0 js-garden-type" value="construccion" data-activity="jard-construccion">
+        <span class="min-w-0">
+          <span class="text-sm font-medium block">Construcción de Jardines</span>
+          <span class="text-[11px] text-zilo-muted">Ejecución, nuevas obras o remodelaciones desde 100 m²</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+        <input type="checkbox" class="mt-0.5 accent-emerald-600 shrink-0 js-garden-type" value="mantencion" data-activity="jard-mantencion" id="gardenTypeMantencion">
+        <span class="min-w-0">
+          <span class="text-sm font-medium block">Mantención de Jardines</span>
+          <span class="text-[11px] text-zilo-muted">Condominios, edificios o espacios comunes desde 100 m²</span>
+        </span>
+      </label>
+    </div>
+    <input type="hidden" id="activityId" name="activityId" value="">
+  </div>
+
+  <div class="space-y-3 pt-1 border-t border-emerald-200/70">
+    <p class="zilo-label mb-0">2. Ubicación y espacio *</p>
+    <div>
+      <label for="gardenLocationSector" class="zilo-label block mb-1.5">Comuna / sector del terreno</label>
+      <input type="text" id="gardenLocationSector" class="zilo-input" placeholder="Ej: Chicureo, Vitacura, Lo Barnechea" maxlength="120" autocomplete="address-level2">
+    </div>
+    <div>
+      <label for="squareMeters" class="zilo-label block mb-1.5">Superficie estimada del jardín (m²)</label>
+      <input type="number" id="squareMeters" name="squareMeters" min="100" step="1" inputmode="numeric" class="zilo-input" placeholder="Mínimo 100">
+      <p class="text-[11px] text-zilo-muted mt-1" id="gardenAreaHint">Mínimo 100 m² para diseño, construcción o mantención.</p>
+    </div>
+    <div>
+      <label for="gardenPropertyType" class="zilo-label block mb-1.5">Tipo de propiedad</label>
+      <select id="gardenPropertyType" class="zilo-input">
+        <option value="">Selecciona…</option>
+        <option value="residencial">Residencial particular</option>
+        <option value="condominio">Condominio</option>
+        <option value="comercial">Edificio comercial o corporativo</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="space-y-3 pt-1 border-t border-emerald-200/70">
+    <p class="zilo-label mb-0">3. Información técnica de entrada *</p>
+    <div>
+      <p class="text-sm font-medium mb-2">¿Cuentas con plano digital base del terreno?</p>
+      <div class="flex flex-wrap gap-3">
+        <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+          <input type="radio" name="gardenHasPlan" value="si" class="accent-emerald-600 js-garden-has-plan"> Sí
+        </label>
+        <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+          <input type="radio" name="gardenHasPlan" value="no" class="accent-emerald-600 js-garden-has-plan"> No
+        </label>
+      </div>
+    </div>
+    <div id="gardenPlanUpload" class="hidden space-y-2">
+      <label class="zilo-label block">Adjuntar plano digital (PDF)</label>
+      <%- include('media-pick', {
+        id: 'gardenPlanFile',
+        accept: 'application/pdf,.pdf',
+        allowCamera: false,
+        hint: 'PDF preferido. Si tienes DWG/CAD, puedes compartirlo con el socio tras la evaluación.'
+      }) %>
+      <p id="gardenPlanStatus" class="text-[11px] text-zilo-muted hidden"></p>
+    </div>
+    <div id="gardenSiteVisitConfirm" class="hidden">
+      <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+        <input type="checkbox" id="gardenSiteVisitOk" class="mt-0.5 accent-emerald-600 shrink-0">
+        <span class="text-sm leading-snug">Confirmo disponibilidad para coordinar visita técnica presencial de levantamiento.</span>
+      </label>
+    </div>
+    <div id="gardenFrequencyBlock" class="hidden">
+      <label for="gardenMaintenanceFrequency" class="zilo-label block mb-1.5">Frecuencia de mantención deseada</label>
+      <select id="gardenMaintenanceFrequency" class="zilo-input">
+        <option value="">Selecciona…</option>
+        <option value="semanal">Semanal</option>
+        <option value="quincenal">Quincenal</option>
+        <option value="mensual">Mensual</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="space-y-3 pt-1 border-t border-emerald-200/70">
+    <p class="zilo-label mb-0">4. Alcance y entregables</p>
+    <p class="text-[11px] text-zilo-muted leading-relaxed">
+      Indica lo que necesitas. El técnico asociado subirá cada entregable en el cierre de la visita
+      (planimetría, proyectos especiales, evidencia de obra o mantención).
+    </p>
+    <div id="gardenDesignAddons" class="hidden space-y-2">
+      <p class="text-[11px] text-zilo-muted">Para Diseño: ¿requieres complementos fuera del alcance base?</p>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="accent-emerald-600 js-garden-addon" value="riego"> Proyecto de Riego</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="accent-emerald-600 js-garden-addon" value="iluminacion"> Proyecto de Iluminación</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="accent-emerald-600 js-garden-addon" value="renders"> Renders e imágenes 3D</label>
+    </div>
+    <div id="gardenConstructionScope" class="hidden">
+      <label for="gardenConstructionScopeSelect" class="zilo-label block mb-1.5">Para Construcción</label>
+      <select id="gardenConstructionScopeSelect" class="zilo-input">
+        <option value="">Selecciona…</option>
+        <option value="con_diseno">Ya cuento con propuesta / diseño previo aprobado</option>
+        <option value="desde_cero">Requiero evaluación técnica desde cero</option>
+      </select>
+    </div>
+    <p id="gardenScopeHint" class="text-[11px] text-zilo-muted">Selecciona Diseño y/o Construcción arriba para ver opciones de alcance.</p>
+  </div>
+
+  <div class="space-y-3 pt-1 border-t border-emerald-200/70">
+    <p class="zilo-label mb-1">5. Condiciones y pagos *</p>
+    <p class="text-[11px] text-zilo-muted leading-relaxed mb-2">
+      Modalidades según servicio:
+      <br>· <strong class="font-medium text-zilo-text">Diseño:</strong> 50% anticipo + 50% contra entrega de planimetría.
+      <br>· <strong class="font-medium text-zilo-text">Construcción:</strong> 3 abonos (Anticipo / Plantación / Saldo contra entrega).
+      <br>· <strong class="font-medium text-zilo-text">Mantención:</strong> Facturación a 30 días.
+    </p>
+    <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+      <input type="checkbox" id="gardenAcceptEval" class="mt-0.5 accent-emerald-600 shrink-0">
+      <span class="text-sm leading-snug">Acepto la evaluación técnica en terreno post-solicitud.</span>
+    </label>
+    <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+      <input type="checkbox" id="gardenAcceptPayments" class="mt-0.5 accent-emerald-600 shrink-0">
+      <span class="text-sm leading-snug">Acepto las modalidades de pago según el (los) servicio(s) seleccionado(s).</span>
+    </label>
+  </div>
+</section>

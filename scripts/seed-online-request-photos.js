@@ -109,7 +109,7 @@ async function main() {
   // Pedido jardinería con foto (queda searching tras demo pay)
   const gardenBody = {
     serviceId: 'jardineria',
-    activityId: 'jard-cesped',
+    activityId: 'jard-mantencion',
     address: 'Av. Providencia 1200, Providencia',
     notes: 'Pasto alto · pedido demo con foto para socios',
     lat: -33.4265,

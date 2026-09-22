@@ -38,6 +38,137 @@
   if (photoStart) photoStart.addEventListener('change', () => previewFile(photoStart, document.getElementById('photoStartPreview')));
   if (photoEnd) photoEnd.addEventListener('change', () => previewFile(photoEnd, document.getElementById('photoEndPreview')));
 
+  const hasGardenDeliverables = page.dataset.gardenDeliverables === '1';
+  const gardenDeliverablesEditable = page.dataset.observer !== '1';
+
+  function updateGardenDeliverablesUi(progress) {
+    const panel = document.querySelector('#stepCierre #gardenDeliverablesPanel');
+    if (!panel || !progress) return;
+    const count = document.getElementById('gardenDeliverablesCount');
+    const bar = document.getElementById('gardenDeliverablesBar');
+    const hint = document.getElementById('gardenDeliverablesHint');
+    const btn = document.getElementById('btnCompletar');
+    if (count) count.textContent = `${progress.done}/${progress.total}`;
+    if (bar && progress.total) {
+      bar.style.width = `${Math.round((progress.done / progress.total) * 100)}%`;
+    }
+    panel.dataset.done = String(progress.done);
+    panel.dataset.total = String(progress.total);
+    if (hint) {
+      if (progress.complete) {
+        hint.className = 'text-[11px] text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 leading-relaxed';
+        hint.textContent = 'Entregables completos. Ya puedes cerrar la visita.';
+      } else {
+        hint.className = 'text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed';
+        hint.textContent = `Para marcar “Trabajo listo” debes subir los ${progress.total} entregables obligatorios.`;
+      }
+    }
+    if (btn && hasGardenDeliverables && gardenDeliverablesEditable) {
+      btn.disabled = !progress.complete;
+    }
+  }
+
+  function markDeliverableCardDone(card, deliverable) {
+    if (!card) return;
+    card.dataset.status = 'uploaded';
+    card.classList.remove('border-zilo-border', 'bg-white');
+    card.classList.add('border-emerald-200', 'bg-emerald-50/60');
+    const check = card.querySelector('[data-role="deliverable-check"]');
+    if (check) {
+      check.textContent = '✓';
+      check.className = 'mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold bg-emerald-600 text-white';
+    }
+    const pick = card.querySelector('.fandez-media-pick');
+    if (pick) pick.classList.add('hidden');
+    let fileLine = card.querySelector('[data-role="deliverable-file"]');
+    if (!fileLine) {
+      fileLine = document.createElement('p');
+      fileLine.className = 'text-[11px] text-emerald-800 mt-1.5';
+      fileLine.dataset.role = 'deliverable-file';
+      card.querySelector('.min-w-0')?.appendChild(fileLine);
+    }
+    const name = deliverable?.fileName || 'Ver archivo';
+    if (deliverable?.fileUrl) {
+      fileLine.innerHTML = '';
+      const a = document.createElement('a');
+      a.href = deliverable.fileUrl;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.className = 'underline font-medium';
+      a.textContent = name;
+      fileLine.appendChild(a);
+    } else {
+      fileLine.textContent = 'Archivo cargado';
+    }
+  }
+
+  async function uploadGardenDeliverable(deliverableId, input) {
+    const card = document.querySelector(`#stepCierre [data-deliverable-id="${deliverableId}"]`);
+    const statusEl = card?.querySelector('[data-role="deliverable-status"]');
+    if (statusEl) {
+      statusEl.textContent = 'Subiendo…';
+      statusEl.classList.remove('hidden');
+    }
+    try {
+      const file = input?.files?.[0];
+      if (!file) throw new Error('Selecciona un archivo');
+      const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+      let fileData;
+      if (isPdf) {
+        if (file.size > 8 * 1024 * 1024) throw new Error('El PDF supera 8 MB');
+        fileData = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+          reader.readAsDataURL(file);
+        });
+      } else {
+        fileData = await fileToBase64(input);
+      }
+      const res = await fetch(`/tecnico/trabajo/${requestId}/entregables`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          deliverableId,
+          file: fileData,
+          fileName: file.name,
+          mimeType: file.type || (isPdf ? 'application/pdf' : 'image/jpeg')
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo subir');
+      markDeliverableCardDone(card, data.deliverable);
+      updateGardenDeliverablesUi(data.progress);
+      notify('Entregable cargado', 'success');
+      if (statusEl) statusEl.classList.add('hidden');
+    } catch (err) {
+      if (statusEl) {
+        statusEl.textContent = err.message || 'Error al subir';
+        statusEl.classList.remove('hidden');
+      }
+      notify(err.message || 'Error al subir entregable', 'error');
+      if (input) input.value = '';
+    }
+  }
+
+  if (hasGardenDeliverables && gardenDeliverablesEditable) {
+    document.querySelectorAll('#stepCierre [data-deliverable-input]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const id = input.getAttribute('data-deliverable-input');
+        if (id && input.files?.length) uploadGardenDeliverable(id, input);
+      });
+    });
+    const panel = document.querySelector('#stepCierre #gardenDeliverablesPanel');
+    if (panel) {
+      updateGardenDeliverablesUi({
+        done: Number(panel.dataset.done || 0),
+        total: Number(panel.dataset.total || 0),
+        complete: Number(panel.dataset.done || 0) > 0
+          && Number(panel.dataset.done) === Number(panel.dataset.total)
+      });
+    }
+  }
+
   document.querySelectorAll('.diagnosis-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
       chip.classList.toggle('is-selected');
@@ -716,6 +847,14 @@
 
   document.getElementById('btnCompletar')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnCompletar');
+    if (hasGardenDeliverables) {
+      const panel = document.querySelector('#stepCierre #gardenDeliverablesPanel');
+      const done = Number(panel?.dataset?.done || 0);
+      const total = Number(panel?.dataset?.total || 0);
+      if (total > 0 && done < total) {
+        return notify(`Faltan entregables (${done}/${total}). Súbelos antes de cerrar.`, 'warning');
+      }
+    }
     const workNotes = document.getElementById('workNotes').value.trim();
     if (!workNotes) return notify('Escribe el resumen del trabajo', 'warning');
 

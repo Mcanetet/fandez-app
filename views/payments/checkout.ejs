@@ -31,7 +31,27 @@
       <% if (request.squareMeters) { %>
         <p class="text-xs text-zilo-muted mt-1"><%= request.squareMeters %> m² · <%= request.activityName || service.name %></p>
       <% } %>
-      <% if (request.landscapeProject && request.landscapeProject.standardLabel) { %>
+      <% if (request.gardenIntake && request.gardenIntake.serviceTypeLabels) { %>
+        <div class="text-xs text-zilo-muted mt-2 leading-relaxed space-y-1">
+          <p><strong class="text-zilo-text">Valle Parraguez Paisajismo</strong> · <%= request.gardenIntake.serviceTypeLabels.join(', ') %></p>
+          <p><%= request.gardenIntake.locationSector %> · <%= request.gardenIntake.propertyTypeLabel %></p>
+          <% if (request.gardenIntake.hasDigitalPlan) { %>
+            <p>Con plano digital<% if (request.gardenIntake.planFileUrl) { %> · <a href="<%= request.gardenIntake.planFileUrl %>" class="text-zilo-accent underline" target="_blank" rel="noopener">Ver PDF</a><% } %></p>
+          <% } else { %>
+            <p>Sin plano · visita de levantamiento confirmada</p>
+          <% } %>
+          <% if (request.gardenIntake.maintenanceFrequencyLabel) { %>
+            <p>Mantención: <%= request.gardenIntake.maintenanceFrequencyLabel %></p>
+          <% } %>
+          <% if (request.gardenIntake.designAddonLabels && request.gardenIntake.designAddonLabels.length) { %>
+            <p>Complementos diseño: <%= request.gardenIntake.designAddonLabels.join(', ') %></p>
+          <% } %>
+          <% if (request.gardenIntake.constructionScopeLabel) { %>
+            <p><%= request.gardenIntake.constructionScopeLabel %></p>
+          <% } %>
+          <p class="text-[11px]">Pago inicial: evaluación técnica. Modalidades de obra según servicio aceptadas.</p>
+        </div>
+      <% } else if (request.landscapeProject && request.landscapeProject.standardLabel) { %>
         <p class="text-xs text-zilo-muted mt-1 leading-relaxed">
           <%= request.landscapeProject.standardLabel %>
           · <%= request.landscapeProject.terrainLabel %>

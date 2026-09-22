@@ -163,7 +163,7 @@
     }
 
     const lp = draft.landscapeProject;
-    if (lp) {
+    if (lp && !draft.gardenIntake) {
       const setSel = (id, val) => {
         const el = document.getElementById(id);
         if (el && val != null && val !== '') el.value = val;
@@ -180,6 +180,10 @@
       setChk('landscapeEarthwork', lp.includesEarthwork ?? lp.includes?.earthwork);
       setChk('landscapeLighting', lp.includesLighting ?? lp.includes?.lighting);
       toggleLandscapeFields();
+    }
+
+    if (draft.gardenIntake) {
+      applyGardenIntakeDraft(draft.gardenIntake);
     }
 
     const cf = draft.cleaningFactors;
@@ -312,12 +316,147 @@
   const landscapeFactorsEl = document.getElementById('landscapeFactors');
   const gardenAreaHint = document.getElementById('gardenAreaHint');
   const notesInput = document.getElementById('notes');
-  const LANDSCAPE_MIN_M2 = 20;
-  const LANDSCAPE_MIN_JOB = 400000;
+  const gardenIntakeEl = document.getElementById('gardenIntake');
+  const GARDEN_INTAKE_MIN_M2 = 100;
+  let cachedGardenPlan = null;
+  let resumeKeepGardenPlan = false;
+
+  function isGardenIntakeService() {
+    return page?.dataset?.gardenIntake === '1' || page?.dataset?.serviceId === 'jardineria';
+  }
 
   function isLandscapeSelected() {
+    if (isGardenIntakeService()) return false;
     const opt = activitySelect?.selectedOptions?.[0];
     return opt?.dataset?.quoteMode === 'landscape' || opt?.value === 'jard-paisajismo';
+  }
+
+  function syncGardenActivityId() {
+    if (!isGardenIntakeService()) return;
+    const checked = [...document.querySelectorAll('.js-garden-type:checked')];
+    const first = checked[0];
+    const hidden = document.getElementById('activityId');
+    if (hidden) hidden.value = first?.dataset?.activity || first?.value || '';
+  }
+
+  function toggleGardenIntakePanels() {
+    if (!isGardenIntakeService()) return;
+    const types = new Set(
+      [...document.querySelectorAll('.js-garden-type:checked')].map((el) => el.value)
+    );
+    document.getElementById('gardenFrequencyBlock')?.classList.toggle('hidden', !types.has('mantencion'));
+    document.getElementById('gardenDesignAddons')?.classList.toggle('hidden', !types.has('diseno'));
+    document.getElementById('gardenConstructionScope')?.classList.toggle('hidden', !types.has('construccion'));
+    const scopeHint = document.getElementById('gardenScopeHint');
+    if (scopeHint) {
+      scopeHint.classList.toggle('hidden', types.has('diseno') || types.has('construccion'));
+    }
+    syncGardenActivityId();
+  }
+
+  function toggleGardenPlanPanels() {
+    if (!isGardenIntakeService()) return;
+    const val = document.querySelector('input[name="gardenHasPlan"]:checked')?.value;
+    document.getElementById('gardenPlanUpload')?.classList.toggle('hidden', val !== 'si');
+    document.getElementById('gardenSiteVisitConfirm')?.classList.toggle('hidden', val !== 'no');
+  }
+
+  function readGardenIntake() {
+    const serviceTypes = [...document.querySelectorAll('.js-garden-type:checked')].map((el) => el.value);
+    const hasPlan = document.querySelector('input[name="gardenHasPlan"]:checked')?.value;
+    return {
+      serviceTypes,
+      locationSector: document.getElementById('gardenLocationSector')?.value.trim() || '',
+      propertyType: document.getElementById('gardenPropertyType')?.value || '',
+      hasDigitalPlan: hasPlan === 'si',
+      siteVisitOk: Boolean(document.getElementById('gardenSiteVisitOk')?.checked),
+      maintenanceFrequency: document.getElementById('gardenMaintenanceFrequency')?.value || '',
+      designAddons: [...document.querySelectorAll('.js-garden-addon:checked')].map((el) => el.value),
+      constructionScope: document.getElementById('gardenConstructionScopeSelect')?.value || '',
+      acceptTechnicalVisit: Boolean(document.getElementById('gardenAcceptEval')?.checked),
+      acceptPaymentTerms: Boolean(document.getElementById('gardenAcceptPayments')?.checked)
+    };
+  }
+
+  function validateGardenIntakeClient(intake, squareMeters) {
+    if (!intake.serviceTypes.length) {
+      return 'Selecciona al menos un tipo de servicio (Diseño, Construcción o Mantención).';
+    }
+    if (!intake.locationSector || intake.locationSector.length < 2) {
+      return 'Indica la comuna o sector del terreno.';
+    }
+    if (!Number.isFinite(squareMeters) || squareMeters < GARDEN_INTAKE_MIN_M2) {
+      return `Indica la superficie estimada (mínimo ${GARDEN_INTAKE_MIN_M2} m²).`;
+    }
+    if (!intake.propertyType) return 'Selecciona el tipo de propiedad.';
+    const hasPlan = document.querySelector('input[name="gardenHasPlan"]:checked')?.value;
+    if (!hasPlan) return 'Indica si cuentas con plano digital del terreno.';
+    if (hasPlan === 'si' && !cachedGardenPlan && !resumeKeepGardenPlan) {
+      return 'Adjunta el plano digital en PDF.';
+    }
+    if (hasPlan === 'no' && !intake.siteVisitOk) {
+      return 'Confirma disponibilidad para la visita técnica de levantamiento.';
+    }
+    if (intake.serviceTypes.includes('mantencion') && !intake.maintenanceFrequency) {
+      return 'Indica la frecuencia de mantención deseada.';
+    }
+    if (intake.serviceTypes.includes('construccion') && !intake.constructionScope) {
+      return 'Indica si ya tienes diseño aprobado o necesitas evaluación desde cero.';
+    }
+    if (!intake.acceptTechnicalVisit) {
+      return 'Debes aceptar la evaluación técnica en terreno.';
+    }
+    if (!intake.acceptPaymentTerms) {
+      return 'Debes aceptar las modalidades de pago.';
+    }
+    return null;
+  }
+
+  function applyGardenIntakeDraft(gi) {
+    if (!gi || !isGardenIntakeService()) return;
+    const types = Array.isArray(gi.serviceTypes) ? gi.serviceTypes : [];
+    document.querySelectorAll('.js-garden-type').forEach((el) => {
+      el.checked = types.includes(el.value);
+    });
+    const sector = document.getElementById('gardenLocationSector');
+    if (sector && gi.locationSector) sector.value = gi.locationSector;
+    const prop = document.getElementById('gardenPropertyType');
+    if (prop && gi.propertyType) prop.value = gi.propertyType;
+    const planVal = gi.hasDigitalPlan ? 'si' : (gi.hasDigitalPlan === false ? 'no' : '');
+    if (planVal) {
+      const radio = document.querySelector(`input[name="gardenHasPlan"][value="${planVal}"]`);
+      if (radio) radio.checked = true;
+    }
+    if (gi.siteVisitOk) {
+      const visit = document.getElementById('gardenSiteVisitOk');
+      if (visit) visit.checked = true;
+    }
+    const freq = document.getElementById('gardenMaintenanceFrequency');
+    if (freq && gi.maintenanceFrequency) freq.value = gi.maintenanceFrequency;
+    const addons = Array.isArray(gi.designAddons) ? gi.designAddons : [];
+    document.querySelectorAll('.js-garden-addon').forEach((el) => {
+      el.checked = addons.includes(el.value);
+    });
+    const scope = document.getElementById('gardenConstructionScopeSelect');
+    if (scope && gi.constructionScope) scope.value = gi.constructionScope;
+    if (gi.acceptTechnicalVisit) {
+      const ev = document.getElementById('gardenAcceptEval');
+      if (ev) ev.checked = true;
+    }
+    if (gi.acceptPaymentTerms) {
+      const pay = document.getElementById('gardenAcceptPayments');
+      if (pay) pay.checked = true;
+    }
+    if (gi.planFileUrl) {
+      resumeKeepGardenPlan = true;
+      const st = document.getElementById('gardenPlanStatus');
+      if (st) {
+        st.textContent = 'Plano guardado en el borrador.';
+        st.classList.remove('hidden');
+      }
+    }
+    toggleGardenIntakePanels();
+    toggleGardenPlanPanels();
   }
 
   function readLandscapeProject() {
@@ -340,7 +479,7 @@
     const terrainOpt = terrainEl?.selectedOptions?.[0];
     const speciesOpt = speciesEl?.selectedOptions?.[0];
     const rate = parseInt(stdOpt?.dataset?.rate || '0', 10);
-    if (!rate || !Number.isFinite(m2) || m2 < LANDSCAPE_MIN_M2) return null;
+    if (!rate || !Number.isFinite(m2) || m2 < 20) return null;
     const terrainMult = parseFloat(terrainOpt?.dataset?.mult || '1') || 1;
     const speciesMult = parseFloat(speciesOpt?.dataset?.mult || '1') || 1;
     let total = rate * m2 * terrainMult * speciesMult;
@@ -350,7 +489,7 @@
     if (document.getElementById('landscapeDesign')?.checked) {
       total += Math.max(150000, Math.round(total * 0.05));
     }
-    return Math.max(LANDSCAPE_MIN_JOB, Math.round(total));
+    return Math.max(400000, Math.round(total));
   }
 
   function toggleClientOtherFields() {
@@ -359,11 +498,12 @@
   }
 
   function toggleLandscapeFields() {
+    if (isGardenIntakeService()) return;
     const landscape = isLandscapeSelected();
     landscapeFactorsEl?.classList.toggle('hidden', !landscape);
     const m2Input = document.getElementById('squareMeters');
     if (m2Input) {
-      m2Input.min = landscape ? String(LANDSCAPE_MIN_M2) : '10';
+      m2Input.min = landscape ? '20' : '10';
     }
     if (gardenAreaHint) {
       gardenAreaHint.textContent = landscape
@@ -401,14 +541,19 @@
   }
 
   function selectedActivityBase() {
+    if (isGardenIntakeService()) {
+      const fromAttr = page?.dataset?.fromPrice || page?.dataset?.visitPrice;
+      const from = fromAttr ? parseInt(fromAttr, 10) : NaN;
+      return Number.isFinite(from) && from > 0 ? from : 40000;
+    }
     const opt = activitySelect?.selectedOptions?.[0];
     const perM2 = page?.dataset?.pricingUnit === 'm2' || opt?.dataset?.unit === 'm2';
     const minM2 = parseInt(page?.dataset?.minM2 || '10', 10) || 10;
     if (isLandscapeSelected()) {
       const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
-      const m2 = Number.isFinite(typed) && typed >= LANDSCAPE_MIN_M2 ? typed : LANDSCAPE_MIN_M2;
+      const m2 = Number.isFinite(typed) && typed >= 20 ? typed : 20;
       const quote = computeLandscapeQuote(m2);
-      return quote != null ? quote : LANDSCAPE_MIN_JOB;
+      return quote != null ? quote : 400000;
     }
     if (perM2) {
       const rate = parseInt(opt?.dataset?.perM2 || opt?.dataset?.base || page?.dataset?.fromPrice, 10);
@@ -441,8 +586,59 @@
   ['cleaningHasPets', 'cleaningPostEvent'].forEach((id) => {
     document.getElementById(id)?.addEventListener('change', () => updatePricePreview());
   });
+  document.querySelectorAll('.js-garden-type').forEach((el) => {
+    el.addEventListener('change', () => {
+      toggleGardenIntakePanels();
+      updatePricePreview();
+    });
+  });
+  document.querySelectorAll('.js-garden-has-plan').forEach((el) => {
+    el.addEventListener('change', toggleGardenPlanPanels);
+  });
+  document.getElementById('gardenPlanFile')?.addEventListener('change', async (ev) => {
+    const file = ev.target?.files?.[0];
+    const st = document.getElementById('gardenPlanStatus');
+    cachedGardenPlan = null;
+    resumeKeepGardenPlan = false;
+    if (!file) {
+      if (st) {
+        st.textContent = '';
+        st.classList.add('hidden');
+      }
+      return;
+    }
+    const name = String(file.name || '').toLowerCase();
+    const isPdf = file.type === 'application/pdf' || name.endsWith('.pdf');
+    if (!isPdf) {
+      FandezNotify.show('Sube el plano en PDF (DWG/CAD se pueden compartir después con el socio).', 'warning');
+      ev.target.value = '';
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      FandezNotify.show('El plano supera 8 MB. Usa un PDF más liviano.', 'warning');
+      ev.target.value = '';
+      return;
+    }
+    const dataUrl = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+    if (!dataUrl) {
+      FandezNotify.show('No se pudo leer el plano. Intenta otro PDF.', 'warning');
+      return;
+    }
+    cachedGardenPlan = dataUrl;
+    if (st) {
+      st.textContent = `Plano listo: ${file.name}`;
+      st.classList.remove('hidden');
+    }
+  });
   toggleClientOtherFields();
   toggleLandscapeFields();
+  toggleGardenIntakePanels();
+  toggleGardenPlanPanels();
 
   function deviceLocalClock() {
     const now = new Date();
@@ -1924,6 +2120,31 @@
     document.getElementById('finalMaterials').textContent = fmtCLP(totals.materialsTotal || 0);
     document.getElementById('finalGrandTotal').textContent = fmtCLP(totals.grandTotal || 0);
 
+    const gardenBox = document.getElementById('finalGardenDeliverables');
+    const gardenList = document.getElementById('finalGardenDeliverablesList');
+    const gardenItems = Array.isArray(request?.gardenDeliverables) ? request.gardenDeliverables : [];
+    if (gardenBox && gardenList) {
+      gardenList.replaceChildren();
+      gardenItems.forEach((item) => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start justify-between gap-2';
+        const label = document.createElement('span');
+        label.textContent = item.label || 'Entregable';
+        li.appendChild(label);
+        if (item.fileUrl) {
+          const a = document.createElement('a');
+          a.href = item.fileUrl;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.className = 'text-zilo-accent underline shrink-0';
+          a.textContent = item.kind === 'photo' ? 'Ver foto' : 'Abrir';
+          li.appendChild(a);
+        }
+        gardenList.appendChild(li);
+      });
+      gardenBox.classList.toggle('hidden', !gardenItems.length);
+    }
+
     const materialsBlock = document.getElementById('finalMaterialsBlock');
     const list = document.getElementById('finalMaterialsList');
     const materials = Array.isArray(totals.materials) ? totals.materials : [];
@@ -2862,15 +3083,25 @@
     const activityId = document.getElementById('activityId')?.value || '';
     const customName = document.getElementById('customActivityName')?.value.trim() || '';
     const notes = document.getElementById('notes')?.value.trim() || '';
-    const gardenJob = page?.dataset?.pricingUnit === 'm2';
-    const landscapeJob = gardenJob && isLandscapeSelected();
+    const gardenIntakeJob = isGardenIntakeService();
+    const gardenJob = page?.dataset?.pricingUnit === 'm2' || gardenIntakeJob;
+    const landscapeJob = !gardenIntakeJob && gardenJob && isLandscapeSelected();
     const landscapeProject = landscapeJob ? readLandscapeProject() : null;
+    const gardenIntake = gardenIntakeJob ? readGardenIntake() : null;
     const cleaningJob = isCleaningService();
     const cleaningFactors = cleaningJob ? readCleaningFactors() : null;
     const minM2 = parseInt(page?.dataset?.minM2 || '10', 10) || 10;
     const squareMetersRaw = document.getElementById('squareMeters')?.value;
     const squareMeters = gardenJob ? parseFloat(squareMetersRaw) : undefined;
-    if (document.getElementById('activityId') && !activityId) {
+
+    if (gardenIntakeJob) {
+      syncGardenActivityId();
+      const gardenErr = validateGardenIntakeClient(gardenIntake, squareMeters);
+      if (gardenErr) {
+        FandezNotify.show(gardenErr, 'warning');
+        return;
+      }
+    } else if (document.getElementById('activityId') && !activityId) {
       FandezNotify.show(t('client.js.need_subservice'), 'warning');
       document.getElementById('activityId')?.focus();
       return;
@@ -2881,7 +3112,7 @@
       return;
     }
     if (landscapeJob) {
-      if (!Number.isFinite(squareMeters) || squareMeters < LANDSCAPE_MIN_M2) {
+      if (!Number.isFinite(squareMeters) || squareMeters < 20) {
         FandezNotify.show(t('client.js.need_m2_landscape'), 'warning');
         document.getElementById('squareMeters')?.focus();
         return;
@@ -2891,7 +3122,7 @@
         document.getElementById('landscapeStandard')?.focus();
         return;
       }
-    } else if (gardenJob && (!Number.isFinite(squareMeters) || squareMeters < minM2)) {
+    } else if (!gardenIntakeJob && gardenJob && (!Number.isFinite(squareMeters) || squareMeters < minM2)) {
       FandezNotify.show(
         cleaningJob
           ? `Indica los m² a limpiar (mínimo ${minM2})`
@@ -2980,10 +3211,15 @@
           clientBrandPhoto,
           brandNotVisible,
           urgencyTier: selectedUrgencyTier,
-          activityId,
+          activityId: gardenIntakeJob
+            ? (document.getElementById('activityId')?.value || activityId)
+            : activityId,
           customName: activityId === 'otro' ? customName : undefined,
           squareMeters: gardenJob ? squareMeters : undefined,
           landscapeProject: landscapeJob ? landscapeProject : undefined,
+          gardenIntake: gardenIntakeJob ? gardenIntake : undefined,
+          gardenPlanFile: gardenIntakeJob && cachedGardenPlan ? cachedGardenPlan : undefined,
+          keepGardenPlan: Boolean(gardenIntakeJob && resumeRequestId && resumeKeepGardenPlan && !cachedGardenPlan),
           cleaningFactors: cleaningJob ? cleaningFactors : undefined,
           localTime: clock.localTime,
           timeZone: clock.timeZone,

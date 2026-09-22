@@ -539,6 +539,36 @@ router.post('/trabajo/:requestId/material', requireRole('tecnico'), async (req, 
   });
 });
 
+router.post('/trabajo/:requestId/entregables', requireRole('tecnico'), (req, res) => {
+  let fileUrl = null;
+  if (req.body.file) {
+    try {
+      fileUrl = saveRequestFile(req.params.requestId, 'entregable', req.body.file);
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        error: err.message || 'No se pudo guardar el entregable'
+      });
+    }
+  }
+  const result = store.saveGardenDeliverable(req.params.requestId, req.session.user.id, {
+    deliverableId: req.body.deliverableId,
+    fileUrl,
+    fileName: req.body.fileName,
+    mimeType: req.body.mimeType,
+    note: req.body.note
+  });
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
+  res.json({
+    success: true,
+    deliverable: result.deliverable,
+    progress: result.progress,
+    gardenDeliverables: result.gardenDeliverables,
+    request: serializeJob(result.request)
+  });
+});
+
 router.post('/trabajo/:requestId/completar', requireRole('tecnico'), (req, res) => {
   let photoUrl = null;
   if (req.body.photoEnd) {

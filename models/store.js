@@ -66,6 +66,22 @@ const {
   CLEANING_MIN_M2,
   LANDSCAPE_MIN_M2
 } = require('../lib/pricing');
+const {
+  isGardenIntakeService,
+  normalizeGardenIntake,
+  primaryActivityFromIntake,
+  formatGardenIntakeSummary,
+  GARDEN_INTAKE_MIN_M2,
+  GARDEN_EVAL_VISIT_CLP
+} = require('../lib/gardenIntake');
+const {
+  buildGardenDeliverablesChecklist,
+  ensureGardenDeliverables,
+  applyGardenDeliverableUpload,
+  assertGardenDeliverablesReady,
+  gardenDeliverablesProgress,
+  serializeGardenDeliverablesForClient
+} = require('../lib/gardenDeliverables');
 const technicianPay = require('../lib/technicianPay');
 const {
   defaultProviderContract,
@@ -312,10 +328,13 @@ async function createRequest({
   timeZone,
   squareMeters,
   landscapeProject,
+  gardenIntake,
+  gardenPlanFileUrl,
   cleaningFactors,
   resumeRequestId = null,
   keepClientPhoto = false,
-  keepBrandPhoto = false
+  keepBrandPhoto = false,
+  keepGardenPlan = false
 }) {
   const service = getServiceById(serviceId);
   const client = getUserById(clientId);
@@ -338,12 +357,16 @@ async function createRequest({
     }
     if (keepClientPhoto && !clientPhotoUrl) clientPhotoUrl = existing.clientPhotoUrl || null;
     if (keepBrandPhoto && !clientBrandPhotoUrl) clientBrandPhotoUrl = existing.clientBrandPhotoUrl || null;
+    if (keepGardenPlan && !gardenPlanFileUrl) {
+      gardenPlanFileUrl = existing.gardenIntake?.planFileUrl || null;
+    }
   }
 
   notes = (notes || '').trim();
-  const gardenJob = isPerM2Service(serviceId);
+  const gardenIntakeJob = isGardenIntakeService(serviceId);
+  const gardenJob = isPerM2Service(serviceId) || gardenIntakeJob;
   const cleaningJob = isCleaningService(serviceId);
-  const minM2 = cleaningJob ? CLEANING_MIN_M2 : 10;
+  const minM2 = gardenIntakeJob ? GARDEN_INTAKE_MIN_M2 : (cleaningJob ? CLEANING_MIN_M2 : 10);
   if (gardenJob && !clientPhotoUrl) {
     return Promise.reject(new Error(
       cleaningJob
@@ -364,40 +387,66 @@ async function createRequest({
   if (!activities.length) {
     return Promise.reject(new Error('Este servicio aún no tiene subservicios configurados.'));
   }
-  if (!activityId) {
-    return Promise.reject(new Error('Selecciona el tipo de trabajo (subservicio).'));
-  }
 
-  const isManualOther = activityId === 'otro' || activityId === '__other__';
+  let normalizedGarden = null;
   let activityMatch;
 
-  if (isManualOther) {
-    const name = String(customName || '').trim();
-    if (name.length < 4) {
-      return Promise.reject(new Error('En "Otro", indica qué servicio necesitas (mín. 4 caracteres).'));
+  if (gardenIntakeJob) {
+    const intakeResult = normalizeGardenIntake(gardenIntake, {
+      squareMeters: parsedM2,
+      planFileUrl: gardenPlanFileUrl || null
+    });
+    if (!intakeResult.ok) {
+      return Promise.reject(new Error(intakeResult.error));
     }
-    activityMatch = {
-      id: `otro-${Date.now()}`,
-      name: `Otro: ${name}`,
-      kind: 'correctiva',
-      basePrice: gardenJob ? (cleaningJob ? CLEANING_OTHER_RATE_M2 : GARDEN_OTHER_RATE_M2) : MIN_WORK_BASE_CLP,
-      pricePerM2: gardenJob ? (cleaningJob ? CLEANING_OTHER_RATE_M2 : GARDEN_OTHER_RATE_M2) : null,
-      pricingUnit: gardenJob ? 'm2' : 'job',
-      minM2: gardenJob ? (cleaningJob ? CLEANING_MIN_M2 : 15) : null,
-      manual: true
-    };
+    normalizedGarden = intakeResult.intake;
+    activityMatch = primaryActivityFromIntake(normalizedGarden);
+    if (activityId) {
+      const picked = activities.find((a) => a.id === activityId);
+      if (picked) {
+        activityMatch = {
+          ...activityMatch,
+          id: picked.id,
+          kind: picked.kind || activityMatch.kind
+        };
+      }
+    }
   } else {
-    activityMatch = activities.find((a) => a.id === activityId);
-    if (!activityMatch) {
-      return Promise.reject(new Error('El subservicio seleccionado no corresponde a esta especialidad.'));
+    if (!activityId) {
+      return Promise.reject(new Error('Selecciona el tipo de trabajo (subservicio).'));
+    }
+
+    const isManualOther = activityId === 'otro' || activityId === '__other__';
+
+    if (isManualOther) {
+      const name = String(customName || '').trim();
+      if (name.length < 4) {
+        return Promise.reject(new Error('En "Otro", indica qué servicio necesitas (mín. 4 caracteres).'));
+      }
+      activityMatch = {
+        id: `otro-${Date.now()}`,
+        name: `Otro: ${name}`,
+        kind: 'correctiva',
+        basePrice: gardenJob ? (cleaningJob ? CLEANING_OTHER_RATE_M2 : GARDEN_OTHER_RATE_M2) : MIN_WORK_BASE_CLP,
+        pricePerM2: gardenJob ? (cleaningJob ? CLEANING_OTHER_RATE_M2 : GARDEN_OTHER_RATE_M2) : null,
+        pricingUnit: gardenJob ? 'm2' : 'job',
+        minM2: gardenJob ? (cleaningJob ? CLEANING_MIN_M2 : 15) : null,
+        manual: true
+      };
+    } else {
+      activityMatch = activities.find((a) => a.id === activityId);
+      if (!activityMatch) {
+        return Promise.reject(new Error('El subservicio seleccionado no corresponde a esta especialidad.'));
+      }
     }
   }
 
+  const isManualOther = Boolean(activityMatch?.manual);
   const resolvedLocalTime = /^\d{1,2}:\d{2}$/.test(String(localTime || '').trim())
     ? String(localTime).trim()
     : new Date();
-  const perM2 = gardenJob || isPerM2Activity(activityMatch);
-  const landscape = !isManualOther && isLandscapeActivity(activityMatch);
+  const perM2 = !gardenIntakeJob && (gardenJob || isPerM2Activity(activityMatch));
+  const landscape = !gardenIntakeJob && !isManualOther && isLandscapeActivity(activityMatch);
   let landscapeFactors = null;
   if (landscape) {
     if (!Number.isFinite(parsedM2) || parsedM2 < LANDSCAPE_MIN_M2) {
@@ -414,20 +463,22 @@ async function createRequest({
     cleaningOpts = normalizeCleaningFactors(cleaningFactors);
   }
 
-  let quoteBase = landscape
-    ? resolveLandscapeQuoteBase(landscapeFactors)
-    : (perM2
-      ? resolveM2QuoteBase(activityMatch, parsedM2, { serviceId })
-      : activityMatch.basePrice);
+  let quoteBase = gardenIntakeJob
+    ? (Number(normalizedGarden.evalVisitPrice) || GARDEN_EVAL_VISIT_CLP)
+    : (landscape
+      ? resolveLandscapeQuoteBase(landscapeFactors)
+      : (perM2
+        ? resolveM2QuoteBase(activityMatch, parsedM2, { serviceId })
+        : activityMatch.basePrice));
   if (cleaningOpts) {
     quoteBase = applyCleaningSurcharge(quoteBase, cleaningOpts);
   }
-  const visitCalc = landscape || isManualOther || cleaningJob
+  const visitCalc = gardenIntakeJob || landscape || isManualOther || cleaningJob
     ? calculateVisitPricing(pricing, urgencyTier, {
       horaSolicitud: resolvedLocalTime,
       valorBase: quoteBase,
       timeZone,
-      skipWorkFloor: perM2 || landscape
+      skipWorkFloor: gardenIntakeJob || perM2 || landscape
     })
     : (quoteActivityForRequest(pricing, activityId, {
       horaSolicitud: resolvedLocalTime,
@@ -468,8 +519,12 @@ async function createRequest({
   const beneficiaryPhone = isGift ? (gift.phone || client.phone) : client.phone;
 
   const landscapeSummary = landscape ? formatLandscapeSummary(landscapeFactors) : '';
+  const gardenSummary = normalizedGarden ? formatGardenIntakeSummary(normalizedGarden) : '';
   const cleaningSummary = cleaningOpts ? formatCleaningSummary(cleaningOpts, parsedM2) : '';
   let notesAugmented = notes;
+  if (gardenSummary && !notes.includes('Requerimiento jardinería:')) {
+    notesAugmented = `${notesAugmented}\n\n${gardenSummary}`.trim();
+  }
   if (landscapeSummary && !notes.includes('Proyecto paisajismo:')) {
     notesAugmented = `${notesAugmented}\n\n${landscapeSummary}`.trim();
   }
@@ -495,15 +550,22 @@ async function createRequest({
     activityKind: activityMatch.kind,
     activityBasePrice: activityMatch.basePrice,
     activityManual: Boolean(activityMatch.manual),
-    pricingUnit: (perM2 || landscape) ? 'm2' : 'job',
-    pricePerM2: landscape
-      ? Number(landscapeFactors.ratePerM2) || null
-      : (perM2 ? Number(activityMatch.pricePerM2 || activityMatch.basePrice) || null : null),
-    squareMeters: (perM2 || landscape) ? Math.max(10, parsedM2) : null,
+    activityIds: normalizedGarden?.activityIds || [activityMatch.id],
+    pricingUnit: gardenIntakeJob ? 'job' : ((perM2 || landscape) ? 'm2' : 'job'),
+    pricePerM2: gardenIntakeJob
+      ? null
+      : (landscape
+        ? Number(landscapeFactors.ratePerM2) || null
+        : (perM2 ? Number(activityMatch.pricePerM2 || activityMatch.basePrice) || null : null)),
+    squareMeters: (gardenIntakeJob || perM2 || landscape) ? Math.max(minM2, parsedM2) : null,
     landscapeProject: landscape ? {
       ...landscapeFactors,
       quoteTotal: quoteBase
     } : null,
+    gardenIntake: normalizedGarden || null,
+    gardenDeliverables: normalizedGarden
+      ? buildGardenDeliverablesChecklist(normalizedGarden)
+      : null,
     cleaningFactors: cleaningOpts ? {
       hasPets: cleaningOpts.hasPets,
       postEvent: cleaningOpts.postEvent,
@@ -625,7 +687,10 @@ function getCheckoutDraftForClient(clientId, serviceId, resumeId = null) {
     id: request.id,
     serviceId: request.serviceId,
     address: request.address || '',
-    notes: String(request.notes || '').replace(/\n\nProyecto paisajismo:[\s\S]*$/i, '').trim(),
+    notes: String(request.notes || '')
+      .replace(/\n\nProyecto paisajismo:[\s\S]*$/i, '')
+      .replace(/\n\nRequerimiento jardinería:[\s\S]*$/i, '')
+      .trim(),
     lat: request.coords?.lat ?? null,
     lng: request.coords?.lng ?? null,
     urgencyTier: request.urgencyTier || 'today',
@@ -633,6 +698,7 @@ function getCheckoutDraftForClient(clientId, serviceId, resumeId = null) {
     customName,
     squareMeters: request.squareMeters || null,
     landscapeProject: request.landscapeProject || null,
+    gardenIntake: request.gardenIntake || null,
     cleaningFactors: request.cleaningFactors || null,
     brandNotVisible: Boolean(request.brandNotVisible),
     clientPhotoUrl: request.clientPhotoUrl || null,
@@ -6938,6 +7004,40 @@ function resolveSiteMaterialReview(requestId, materialId, { decision, reason, ac
   return { success: true, request, material };
 }
 
+function saveGardenDeliverable(requestId, technicianId, payload = {}) {
+  const request = getRequestForTechnician(requestId, technicianId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (!request.gardenIntake) {
+    return { error: 'Este pedido no es de jardinería con entregables.' };
+  }
+  const allowed = [
+    'en_sitio', 'diagnostico', 'reparando', 'comprando',
+    'presupuesto_aprobado', 'presupuesto_pendiente', 'materiales_pendiente'
+  ];
+  if (!allowed.includes(request.techStatus) && request.techStatus !== 'completado') {
+    return { error: 'Aún no puedes subir entregables en este estado.' };
+  }
+  ensureGardenDeliverables(request);
+  const result = applyGardenDeliverableUpload(request, {
+    deliverableId: payload.deliverableId,
+    fileUrl: payload.fileUrl,
+    fileName: payload.fileName,
+    mimeType: payload.mimeType,
+    note: payload.note,
+    uploadedBy: technicianId
+  });
+  if (result.error) return result;
+  request.updatedAt = new Date().toISOString();
+  repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
+  return {
+    success: true,
+    request,
+    deliverable: result.deliverable,
+    progress: result.progress,
+    gardenDeliverables: request.gardenDeliverables
+  };
+}
+
 function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attentionChecklist } = {}) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
@@ -6950,6 +7050,13 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
   workNotes = (workNotes || '').trim();
   if (!workNotes) return { error: 'Escribe el resumen de lo realizado.' };
   if (!photoEnd) return { error: 'Sube la foto final de la visita.' };
+
+  if (request.gardenIntake) {
+    const deliverablesGate = assertGardenDeliverablesReady(request);
+    if (!deliverablesGate.ok) {
+      return { error: deliverablesGate.error };
+    }
+  }
 
   if (request.additionalCharge?.status === 'pending') {
     return { error: 'Hay un ajuste pendiente de pago del cliente. Espera a que pague antes de cerrar.' };
@@ -7426,6 +7533,17 @@ function enrichRequestForClient(request, locale = 'es') {
     statusLabel: getRequestStatusLabel(request, locale),
     arrivalDisplay: getArrivalDisplay(request, null, locale),
     clientTotals: clientTotals.completed ? clientTotals : null,
+    gardenDeliverables: request.gardenIntake
+      ? serializeGardenDeliverablesForClient(
+        (ensureGardenDeliverables(request) || []).map((d) => ({
+          ...d,
+          fileUrl: d.fileUrl ? (toServingUrl(d.fileUrl) || d.fileUrl) : null
+        }))
+      )
+      : null,
+    gardenDeliverablesProgress: request.gardenIntake
+      ? gardenDeliverablesProgress(ensureGardenDeliverables(request))
+      : null,
     providerInvoicePlan,
     visitRetentionFeeClp: getVisitRetentionFeeClp(request),
     cancellationFeePreview: getCancellationFeeClp(getPricingConfig(), request),
@@ -9101,6 +9219,7 @@ module.exports = {
   addSiteMaterial,
   resolveSiteMaterialReview,
   completeSiteWork,
+  saveGardenDeliverable,
   getRequestsByTechnician,
   updateTechnicianLocation,
   computeEtaMinutes,

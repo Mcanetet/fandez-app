@@ -494,7 +494,8 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   const {
     serviceId, address, notes, lat, lng, gift, clientPhoto, clientBrandPhoto,
     brandNotVisible, urgencyTier, activityId, customName, localTime, timeZone,
-    squareMeters, landscapeProject, cleaningFactors, resumeRequestId, keepClientPhoto, keepBrandPhoto
+    squareMeters, landscapeProject, gardenIntake, gardenPlanFile, keepGardenPlan,
+    cleaningFactors, resumeRequestId, keepClientPhoto, keepBrandPhoto
   } = req.body;
   const service = store.getServiceById(serviceId);
   if (!service || !service.enabled) {
@@ -516,8 +517,10 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
 
   const keepPhoto = keepClientPhoto === true || keepClientPhoto === 'true' || keepClientPhoto === 1;
   const keepBrand = keepBrandPhoto === true || keepBrandPhoto === 'true' || keepBrandPhoto === 1;
+  const keepPlan = keepGardenPlan === true || keepGardenPlan === 'true' || keepGardenPlan === 1;
   const hasExistingPhoto = Boolean(resumeDraft?.clientPhotoUrl);
   const hasExistingBrand = Boolean(resumeDraft?.clientBrandPhotoUrl);
+  const hasExistingPlan = Boolean(resumeDraft?.gardenIntake?.planFileUrl);
 
   if ((service.id === 'jardineria' || service.id === 'limpieza') && !clientPhoto && !(keepPhoto && hasExistingPhoto)) {
     return res.status(400).json({
@@ -536,6 +539,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
 
   let clientPhotoUrl = null;
   let clientBrandPhotoUrl = null;
+  let gardenPlanFileUrl = null;
   try {
     const tempId = resumeId || `tmp-${Date.now()}`;
     if (clientPhoto) {
@@ -544,9 +548,14 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
     if (!skipBrand && clientBrandPhoto) {
       clientBrandPhotoUrl = saveRequestFile(tempId, 'marca', clientBrandPhoto);
     }
+    if (gardenPlanFile && service.id === 'jardineria') {
+      gardenPlanFileUrl = saveRequestFile(tempId, 'plano', gardenPlanFile);
+    } else if (keepPlan && hasExistingPlan) {
+      gardenPlanFileUrl = resumeDraft.gardenIntake.planFileUrl;
+    }
   } catch (err) {
-    console.error('Error guardando foto cliente:', err.message);
-    return res.status(400).json({ error: 'No se pudo guardar la foto. Intenta con otra imagen.' });
+    console.error('Error guardando archivo cliente:', err.message);
+    return res.status(400).json({ error: err.message || 'No se pudo guardar el archivo. Intenta con otra imagen o PDF.' });
   }
 
   try {
@@ -567,10 +576,13 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
       timeZone,
       squareMeters,
       landscapeProject: landscapeProject && typeof landscapeProject === 'object' ? landscapeProject : null,
+      gardenIntake: gardenIntake && typeof gardenIntake === 'object' ? gardenIntake : null,
+      gardenPlanFileUrl,
       cleaningFactors: cleaningFactors && typeof cleaningFactors === 'object' ? cleaningFactors : null,
       resumeRequestId: resumeId,
       keepClientPhoto: keepPhoto && !clientPhotoUrl,
-      keepBrandPhoto: keepBrand && !clientBrandPhotoUrl
+      keepBrandPhoto: keepBrand && !clientBrandPhotoUrl,
+      keepGardenPlan: keepPlan && !gardenPlanFile
     });
 
     if (clientPhotoUrl && !resumeId) {
@@ -579,7 +591,15 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
     if (clientBrandPhotoUrl && !resumeId) {
       request.clientBrandPhotoUrl = moveRequestPhoto(clientBrandPhotoUrl, request.id, 'marca');
     }
-    if (!resumeId && (request.clientPhotoUrl !== clientPhotoUrl || request.clientBrandPhotoUrl !== clientBrandPhotoUrl)) {
+    if (gardenPlanFileUrl && !resumeId && request.gardenIntake) {
+      const movedPlan = moveRequestPhoto(gardenPlanFileUrl, request.id, 'plano');
+      request.gardenIntake = { ...request.gardenIntake, planFileUrl: movedPlan };
+    }
+    if (!resumeId && (
+      request.clientPhotoUrl !== clientPhotoUrl
+      || request.clientBrandPhotoUrl !== clientBrandPhotoUrl
+      || (gardenPlanFile && request.gardenIntake?.planFileUrl)
+    )) {
       await require('../models/repository').saveRequest(request);
     }
 
@@ -587,7 +607,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   } catch (err) {
     console.error('Error creando solicitud:', err.message);
     const isCoverage = /operamos|comuna|trabajando/i.test(err.message || '');
-    const isUserError = /Describe|foto|marca|subservicio|urgencia|dirección|cobertura|Opción|Selecciona|mínimo|metros|jardín|espacio|limpi|pedido|actualizar/i.test(err.message || '');
+    const isUserError = /Describe|foto|marca|subservicio|urgencia|dirección|cobertura|Opción|Selecciona|mínimo|metros|jardín|espacio|limpi|pedido|actualizar|plano|propiedad|frecuencia|evaluación|modalidades|Diseño|Construcción|Mantención|disponible/i.test(err.message || '');
     res.status(isCoverage || isUserError ? 400 : 500).json({
       error: (isCoverage || isUserError)
         ? (err.message || 'No se pudo crear la solicitud')

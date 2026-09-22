@@ -2,8 +2,9 @@
 
 <% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria', 'limpieza']; %>
 <% const brandOptional = brandOptionalServices.indexOf(String(service.id || '').toLowerCase()) !== -1; %>
-<% const perM2 = String(service.id || '') === 'jardineria' || String(service.id || '') === 'limpieza' || service.pricingUnit === 'm2'; %>
+<% const isGarden = String(service.id || '') === 'jardineria'; %>
 <% const isCleaning = String(service.id || '') === 'limpieza'; %>
+<% const perM2 = isCleaning || (!isGarden && service.pricingUnit === 'm2'); %>
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="servicePage"
   data-service-id="<%= service.id %>"
   data-service-name="<%= service.name %>"
@@ -12,7 +13,8 @@
   data-from-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
   data-pricing-unit="<%= perM2 ? 'm2' : 'job' %>"
   data-cleaning="<%= isCleaning ? '1' : '0' %>"
-  data-min-m2="<%= isCleaning ? 20 : 10 %>"
+  data-garden-intake="<%= isGarden ? '1' : '0' %>"
+  data-min-m2="<%= isGarden ? 100 : (isCleaning ? 20 : 10) %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
   data-resume-id="<%= typeof checkoutDraft !== 'undefined' && checkoutDraft ? checkoutDraft.id : '' %>"
   data-whatsapp="<%= company.whatsapp %>"
@@ -52,7 +54,7 @@
       <p class="zilo-label mb-4"><%= t('client.service.rates') %></p>
       <% const displayFrom = typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice); %>
       <div class="flex justify-between py-3 border-b border-zilo-border">
-        <span class="text-zilo-muted text-sm"><%= perM2 ? t('client.service.work_base_m2') : t('client.service.work_base') %></span>
+        <span class="text-zilo-muted text-sm"><%= isGarden ? 'Evaluación técnica' : (perM2 ? t('client.service.work_base_m2') : t('client.service.work_base')) %></span>
         <strong class="text-zilo-accent font-semibold" id="displayVisitPrice"><%= formatCLP(displayFrom) %><% if (perM2) { %> / m²<% } %></strong>
       </div>
       <div id="scheduleAdjustmentRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
@@ -71,7 +73,9 @@
         <span class="text-zilo-muted text-sm font-medium"><%= t('client.service.total_est') %></span>
         <strong class="text-zilo-accent font-semibold" id="displayTotalPrice"><%= perM2 ? '—' : formatCLP(displayFrom) %></strong>
       </div>
-      <p class="text-[11px] text-zilo-muted/70 mt-3"><%= t('client.service.pay_hint_dynamic') %></p>
+      <p class="text-[11px] text-zilo-muted/70 mt-3"><%= isGarden
+        ? 'Pagas la evaluación técnica ahora. Diseño, construcción o mantención se cotizan con Valle Parraguez según el alcance acordado.'
+        : t('client.service.pay_hint_dynamic') %></p>
       <details class="mt-3 text-left">
         <summary class="text-xs text-zilo-accent font-medium cursor-pointer select-none"><%= t('client.service.guarantees') %></summary>
         <ul class="mt-2 space-y-1.5 text-[11px] text-zilo-muted leading-relaxed pl-1">
@@ -203,20 +207,20 @@
       </div>
       <% } %>
 
-      <% if (typeof activities !== 'undefined' && activities.length) { %>
+      <% if (isGarden) { %>
+        <%- include('../partials/garden-intake') %>
+      <% } else if (typeof activities !== 'undefined' && activities.length) { %>
       <div>
         <label for="activityId" class="zilo-label block mb-1.5"><%= t('client.service.subservice') %> *</label>
         <select id="activityId" name="activityId" required class="zilo-input">
           <option value=""><%= t('client.service.subservice_ph') %></option>
           <% activities.forEach(function(act) { %>
             <option value="<%= act.id %>" data-base="<%= act.basePrice %>" data-unit="<%= act.pricingUnit || 'job' %>" data-per-m2="<%= act.pricePerM2 || act.basePrice %>" data-min-m2="<%= act.minM2 || 15 %>" data-quote-mode="<%= act.quoteMode || '' %>">
-              <%= act.name %> — <%= act.quoteMode === 'landscape'
-                ? ('desde ' + formatCLP(act.pricePerM2 || act.basePrice) + ' / m²')
-                : (act.pricingUnit === 'm2' ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m²') : formatCLP(act.basePrice)) %>
+              <%= act.name %> — <%= act.pricingUnit === 'm2' ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m²') : formatCLP(act.basePrice) %>
             </option>
           <% }); %>
-          <option value="otro" data-base="<%= isCleaning ? 1500 : (perM2 ? 5500 : 100000) %>" data-unit="<%= perM2 ? 'm2' : 'job' %>" data-per-m2="<%= isCleaning ? 1500 : (perM2 ? 5500 : '') %>" data-min-m2="<%= isCleaning ? 20 : 15 %>">
-            <%= isCleaning ? 'Otro — describir (desde $1.500 / m²)' : (perM2 ? 'Otro — describir (desde $5.500 / m²)' : 'Otro — describir (desde $100.000)') %>
+          <option value="otro" data-base="<%= isCleaning ? 1500 : 100000 %>" data-unit="<%= perM2 ? 'm2' : 'job' %>" data-per-m2="<%= isCleaning ? 1500 : '' %>" data-min-m2="<%= isCleaning ? 20 : 15 %>">
+            <%= isCleaning ? 'Otro — describir (desde $1.500 / m²)' : 'Otro — describir (desde $100.000)' %>
           </option>
         </select>
         <p class="text-[11px] text-zilo-muted mt-1"><%= t('client.service.subservice_hint') %></p>
@@ -261,50 +265,6 @@
         </label>
       </div>
       <% } %>
-
-      <div id="landscapeFactors" class="hidden space-y-3 p-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/40">
-        <div>
-          <p class="zilo-label mb-1"><%= t('client.service.landscape_title') %></p>
-          <p class="text-[11px] text-zilo-muted"><%= t('client.service.landscape_hint') %></p>
-        </div>
-        <div>
-          <label for="landscapeStandard" class="zilo-label block mb-1.5"><%= t('client.service.landscape_standard') %> *</label>
-          <select id="landscapeStandard" class="zilo-input">
-            <option value=""><%= t('client.service.landscape_standard_ph') %></option>
-            <option value="basico" data-rate="25000"><%= t('client.service.landscape_std_basic') %></option>
-            <option value="intermedio" data-rate="45000"><%= t('client.service.landscape_std_mid') %></option>
-            <option value="alto" data-rate="70000"><%= t('client.service.landscape_std_high') %></option>
-          </select>
-        </div>
-        <div>
-          <label for="landscapeTerrain" class="zilo-label block mb-1.5"><%= t('client.service.landscape_terrain') %> *</label>
-          <select id="landscapeTerrain" class="zilo-input">
-            <option value=""><%= t('client.service.landscape_terrain_ph') %></option>
-            <option value="plano" data-mult="1"><%= t('client.service.landscape_terrain_flat') %></option>
-            <option value="pendiente" data-mult="1.15"><%= t('client.service.landscape_terrain_slope') %></option>
-            <option value="acceso_dificil" data-mult="1.25"><%= t('client.service.landscape_terrain_hard') %></option>
-          </select>
-        </div>
-        <div>
-          <label for="landscapeSpecies" class="zilo-label block mb-1.5"><%= t('client.service.landscape_species') %> *</label>
-          <select id="landscapeSpecies" class="zilo-input">
-            <option value=""><%= t('client.service.landscape_species_ph') %></option>
-            <option value="economicas" data-mult="1"><%= t('client.service.landscape_species_eco') %></option>
-            <option value="mixtas" data-mult="1.1"><%= t('client.service.landscape_species_mix') %></option>
-            <option value="premium" data-mult="1.2"><%= t('client.service.landscape_species_premium') %></option>
-          </select>
-        </div>
-        <div>
-          <p class="zilo-label mb-2"><%= t('client.service.landscape_includes') %></p>
-          <div class="space-y-2 text-sm">
-            <label class="flex items-center gap-2"><input type="checkbox" id="landscapeDesign" class="accent-zilo-accent"> <%= t('client.service.landscape_inc_design') %></label>
-            <label class="flex items-center gap-2"><input type="checkbox" id="landscapeIrrigation" class="accent-zilo-accent"> <%= t('client.service.landscape_inc_irrigation') %></label>
-            <label class="flex items-center gap-2"><input type="checkbox" id="landscapeEarthwork" class="accent-zilo-accent"> <%= t('client.service.landscape_inc_earthwork') %></label>
-            <label class="flex items-center gap-2"><input type="checkbox" id="landscapeLighting" class="accent-zilo-accent"> <%= t('client.service.landscape_inc_lighting') %></label>
-          </div>
-          <p class="text-[11px] text-zilo-muted mt-2"><%= t('client.service.landscape_materials_note') %></p>
-        </div>
-      </div>
       <% } %>
       <button type="button" class="zilo-btn-primary w-full" data-co-next="2"><%= t('client.service.checkout_next') %></button>
       </div>
@@ -326,13 +286,13 @@
 
       <div>
         <label for="notes" class="zilo-label block mb-1.5"><%= t('client.service.detail') %> <span class="font-normal text-zilo-muted"><%= t('client.service.detail_opt') %></span></label>
-        <textarea id="notes" rows="3" placeholder="<%= perM2 ? t('client.service.detail_garden_ph') : t('client.service.detail_ph') %>" class="zilo-input resize-none"></textarea>
+        <textarea id="notes" rows="3" placeholder="<%= isGarden ? 'Objetivo, estilo deseado, plazos u observaciones adicionales…' : (perM2 ? t('client.service.detail_garden_ph') : t('client.service.detail_ph')) %>" class="zilo-input resize-none"></textarea>
       </div>
 
       <div class="space-y-4">
         <div>
-          <label class="zilo-label block mb-1.5"><%= perM2 ? t('client.service.photo_garden') : t('client.service.photo') %> <% if (!perM2) { %><span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span><% } else { %><span class="font-normal text-zilo-muted">*</span><% } %></label>
-          <p class="text-[11px] text-zilo-muted mb-2"><%= perM2 ? t('client.service.photo_garden_hint') : t('client.service.photo_optional_hint') %></p>
+          <label class="zilo-label block mb-1.5"><%= (perM2 || isGarden) ? t('client.service.photo_garden') : t('client.service.photo') %> <% if (!(perM2 || isGarden)) { %><span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span><% } else { %><span class="font-normal text-zilo-muted">*</span><% } %></label>
+          <p class="text-[11px] text-zilo-muted mb-2"><%= (perM2 || isGarden) ? t('client.service.photo_garden_hint') : t('client.service.photo_optional_hint') %></p>
           <button type="button" id="btnPhotoHelp" class="w-full mb-3 py-2.5 px-3 rounded-xl border border-zilo-accent/30 bg-zilo-accent/10 text-zilo-accent text-xs font-semibold text-left flex items-center gap-2">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <span><%= t('client.service.photo_help_link') %></span>
@@ -625,6 +585,10 @@
       <section id="completionSummary" class="hidden p-5 rounded-2xl border border-zilo-success/30 bg-zilo-success/5">
         <p class="zilo-label mb-1">Servicio completado</p>
         <h2 class="text-base font-semibold mb-4">Total final del servicio</h2>
+        <div id="finalGardenDeliverables" class="hidden mb-4 p-3 rounded-xl border border-emerald-200 bg-white space-y-2">
+          <p class="text-xs font-semibold text-emerald-900">Entregables de tu proyecto</p>
+          <ul id="finalGardenDeliverablesList" class="space-y-1.5 text-xs text-zilo-muted"></ul>
+        </div>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between">
             <span class="text-zilo-muted">Visita</span>

@@ -8,12 +8,20 @@
   const brandPhotoSrc = request.id
     ? ('/media/request/' + request.id + '/kind/brand')
     : (request.clientBrandPhotoUrl || '');
+  const gardenDeliverables = Array.isArray(request.gardenDeliverables) ? request.gardenDeliverables : [];
+  const gardenProgress = request.gardenDeliverablesProgress || {
+    done: gardenDeliverables.filter(function(d) { return d.status === 'uploaded' && d.fileUrl; }).length,
+    total: gardenDeliverables.filter(function(d) { return d.required; }).length,
+    complete: false
+  };
+  if (gardenProgress.total && gardenProgress.done === gardenProgress.total) gardenProgress.complete = true;
 %>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="trabajoPage"
   data-request-id="<%= request.id %>"
   data-tech-status="<%= request.techStatus %>"
   data-service-id="<%= request.serviceId || '' %>"
+  data-garden-deliverables="<%= gardenDeliverables.length ? '1' : '0' %>"
   data-cleaning="<%= request.serviceId === 'limpieza' ? '1' : '0' %>"
   data-square-meters="<%= request.squareMeters != null ? request.squareMeters : '' %>"
   data-cleaning-pets="<%= request.cleaningFactors && request.cleaningFactors.hasPets ? '1' : '0' %>"
@@ -198,7 +206,46 @@
           </div>
           <div id="fieldMap" class="w-full h-40 rounded-xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
         </div>
-        <% if (request.landscapeProject && request.landscapeProject.standardLabel) { %>
+        <% if (request.gardenIntake && request.gardenIntake.serviceTypeLabels) { %>
+          <div class="text-xs p-2.5 rounded-lg bg-emerald-50 border border-emerald-200/80 space-y-1">
+            <p class="font-semibold text-emerald-900">Valle Parraguez Paisajismo</p>
+            <p class="text-zilo-muted"><%= request.gardenIntake.serviceTypeLabels.join(' · ') %></p>
+            <p class="text-zilo-muted"><%= request.squareMeters %> m² · <%= request.gardenIntake.locationSector %> · <%= request.gardenIntake.propertyTypeLabel %></p>
+            <% if (request.gardenIntake.hasDigitalPlan) { %>
+              <p class="text-zilo-muted">Con plano digital<% if (request.gardenIntake.planFileUrl) { %> · <a class="text-zilo-accent underline" href="<%= request.gardenIntake.planFileUrl %>" target="_blank" rel="noopener">Abrir</a><% } %></p>
+            <% } else { %>
+              <p class="text-zilo-muted">Sin plano · coordinar levantamiento</p>
+            <% } %>
+            <% if (request.gardenIntake.maintenanceFrequencyLabel) { %>
+              <p class="text-zilo-muted">Frecuencia: <%= request.gardenIntake.maintenanceFrequencyLabel %></p>
+            <% } %>
+            <% if (request.gardenIntake.designAddonLabels && request.gardenIntake.designAddonLabels.length) { %>
+              <p class="text-zilo-muted">Diseño +: <%= request.gardenIntake.designAddonLabels.join(', ') %></p>
+            <% } %>
+            <% if (request.gardenIntake.constructionScopeLabel) { %>
+              <p class="text-zilo-muted"><%= request.gardenIntake.constructionScopeLabel %></p>
+            <% } %>
+          </div>
+          <% if (gardenDeliverables.length) { %>
+            <div class="mt-2 p-3 rounded-xl border border-emerald-200/80 bg-white space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-[11px] font-semibold text-emerald-900">Entregables a subir</p>
+                <span class="text-[11px] tabular-nums text-emerald-800 font-semibold"><%= gardenProgress.done %>/<%= gardenProgress.total %></span>
+              </div>
+              <ul class="space-y-1">
+                <% gardenDeliverables.forEach(function(item) {
+                  const done = item.status === 'uploaded' && item.fileUrl;
+                %>
+                  <li class="text-[11px] flex items-start gap-1.5 <%= done ? 'text-emerald-800' : 'text-zilo-muted' %>">
+                    <span class="shrink-0"><%= done ? '✓' : '○' %></span>
+                    <span><%= item.label %></span>
+                  </li>
+                <% }); %>
+              </ul>
+              <p class="text-[10px] text-zilo-muted">Se cargan en el cierre de la visita.</p>
+            </div>
+          <% } %>
+        <% } else if (request.landscapeProject && request.landscapeProject.standardLabel) { %>
           <div class="text-xs p-2.5 rounded-lg bg-emerald-50 border border-emerald-200/80 space-y-1">
             <p class="font-semibold text-emerald-900">Proyecto de paisajismo</p>
             <p class="text-zilo-muted"><%= request.squareMeters %> m² · <%= request.landscapeProject.standardLabel %> · <%= request.landscapeProject.terrainLabel %> · <%= request.landscapeProject.speciesLabel %></p>
@@ -737,6 +784,16 @@
       <p class="zilo-label mb-1">Ahora · Cierre</p>
       <h2 class="text-sm font-semibold mb-3">Resumen de la visita</h2>
       <div class="space-y-3">
+        <% if (gardenDeliverables.length) { %>
+          <div class="p-3 rounded-2xl border border-emerald-200 bg-emerald-50/40">
+            <%- include('../partials/garden-deliverables', {
+              gardenDeliverables: gardenDeliverables,
+              gardenProgress: gardenProgress,
+              isObserver: isObserver,
+              editable: !isObserver
+            }) %>
+          </div>
+        <% } %>
         <details id="attentionChecklistBox" class="rounded-xl border border-zilo-border bg-zilo-bg/60 p-3">
           <summary class="text-sm font-semibold cursor-pointer text-zilo-accent">Checklist rápido de atención</summary>
           <p class="text-[11px] text-zilo-muted mt-2 mb-2">4 puntos clave. No bloquea el cierre.</p>
@@ -751,7 +808,7 @@
         </details>
         <div>
           <label class="text-xs text-zilo-muted">Trabajo realizado *</label>
-          <textarea id="workNotes" rows="4" class="zilo-input w-full mt-1 resize-none" placeholder="Qué hiciste, qué quedó funcionando, recomendaciones..."></textarea>
+          <textarea id="workNotes" rows="4" class="zilo-input w-full mt-1 resize-none" placeholder="<%= gardenDeliverables.length ? 'Cómo quedó el jardín, pendientes y recomendaciones para el cliente…' : 'Qué hiciste, qué quedó funcionando, recomendaciones...' %>"></textarea>
         </div>
         <div>
           <label class="text-xs text-zilo-muted">Foto final de la visita *</label>
@@ -761,7 +818,7 @@
           </div>
         </div>
         <button type="button" id="btnBackToMaterials" class="<%= request.techStatus === 'comprando' || request.techStatus === 'reparando' || request.techStatus === 'presupuesto_aprobado' ? '' : 'hidden' %> w-full py-2.5 rounded-xl zilo-btn-ghost !text-xs">Volver a materiales</button>
-        <button type="button" id="btnCompletar" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Trabajo listo</button>
+        <button type="button" id="btnCompletar" class="w-full py-4 rounded-xl zilo-btn-primary text-base" <%= (gardenDeliverables.length && !gardenProgress.complete && !isObserver) ? 'disabled' : '' %>>Trabajo listo</button>
       </div>
     </section>
 

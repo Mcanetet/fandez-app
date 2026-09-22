@@ -1,0 +1,100 @@
+<%#
+  Entregables Valle Parraguez — sube el técnico asociado.
+  Locals: gardenDeliverables, gardenProgress, isObserver, editable
+%>
+<%
+  const _items = Array.isArray(gardenDeliverables) ? gardenDeliverables : [];
+  const _progress = gardenProgress || { done: 0, total: 0, complete: false };
+  const _editable = typeof editable !== 'undefined' ? Boolean(editable) : !isObserver;
+  const _groups = {};
+  _items.forEach(function(item) {
+    const key = item.serviceTypeLabel || item.serviceType || 'General';
+    if (!_groups[key]) _groups[key] = [];
+    _groups[key].push(item);
+  });
+  const _groupKeys = Object.keys(_groups);
+%>
+<% if (_items.length) { %>
+<section id="gardenDeliverablesPanel" class="space-y-3" data-garden-deliverables="1"
+  data-done="<%= _progress.done %>" data-total="<%= _progress.total %>">
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <p class="zilo-label mb-0.5">Entregables del servicio</p>
+      <p class="text-[11px] text-zilo-muted leading-relaxed">
+        Articulados con lo que pidió el cliente. <%= _editable ? 'Súbelos aquí antes de cerrar la visita.' : 'Estado de carga del técnico.' %>
+      </p>
+    </div>
+    <div class="shrink-0 text-right">
+      <p class="text-sm font-semibold text-emerald-800 tabular-nums" id="gardenDeliverablesCount">
+        <%= _progress.done %>/<%= _progress.total %>
+      </p>
+      <p class="text-[10px] text-zilo-muted uppercase tracking-wide">listos</p>
+    </div>
+  </div>
+
+  <div class="h-1.5 rounded-full bg-emerald-100 overflow-hidden" aria-hidden="true">
+    <div id="gardenDeliverablesBar" class="h-full bg-emerald-600 transition-all duration-300"
+      style="width: <%= _progress.total ? Math.round((_progress.done / _progress.total) * 100) : 0 %>%"></div>
+  </div>
+
+  <div class="space-y-4" id="gardenDeliverablesList">
+    <% _groupKeys.forEach(function(group) { %>
+      <div class="space-y-2">
+        <p class="text-[11px] font-semibold text-emerald-900/80"><%= group %></p>
+        <% _groups[group].forEach(function(item) {
+          const done = item.status === 'uploaded' && item.fileUrl;
+        %>
+          <article class="rounded-xl border <%= done ? 'border-emerald-200 bg-emerald-50/60' : 'border-zilo-border bg-white' %> p-3"
+            data-deliverable-id="<%= item.id %>" data-status="<%= done ? 'uploaded' : 'pending' %>">
+            <div class="flex items-start gap-2.5">
+              <span class="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold
+                <%= done ? 'bg-emerald-600 text-white' : 'bg-zilo-bg text-zilo-muted border border-zilo-border' %>"
+                data-role="deliverable-check"><%= done ? '✓' : '' %></span>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium text-zilo-text leading-snug"><%= item.label %></p>
+                <p class="text-[11px] text-zilo-muted mt-0.5 leading-relaxed"><%= item.hint %></p>
+                <% if (done) { %>
+                  <p class="text-[11px] text-emerald-800 mt-1.5" data-role="deliverable-file">
+                    <% if (item.fileUrl) { %>
+                      <a href="<%= item.fileUrl %>" target="_blank" rel="noopener" class="underline font-medium">
+                        <%= item.fileName || 'Ver archivo' %>
+                      </a>
+                    <% } else { %>
+                      Archivo cargado
+                    <% } %>
+                  </p>
+                <% } else if (_editable) { %>
+                  <div class="mt-2">
+                    <%- include('media-pick', {
+                      id: 'deliverable_' + item.id,
+                      accept: item.accept || 'image/*,application/pdf',
+                      allowCamera: /image/i.test(String(item.accept || 'image')),
+                      hint: item.kind === 'photo' ? 'Toma o sube una foto clara.' : 'PDF o imagen.',
+                      dataAttrs: 'data-deliverable-input="' + item.id + '"'
+                    }) %>
+                    <p class="text-[10px] text-zilo-muted mt-1 hidden" data-role="deliverable-status"></p>
+                  </div>
+                <% } else { %>
+                  <p class="text-[11px] text-amber-800 mt-1.5">Pendiente de carga</p>
+                <% } %>
+              </div>
+            </div>
+          </article>
+        <% }); %>
+      </div>
+    <% }); %>
+  </div>
+
+  <% if (_editable && !_progress.complete) { %>
+    <p id="gardenDeliverablesHint" class="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed">
+      Para marcar “Trabajo listo” debes subir los <%= _progress.total %> entregables obligatorios.
+    </p>
+  <% } else if (_editable) { %>
+    <p id="gardenDeliverablesHint" class="text-[11px] text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 leading-relaxed">
+      Entregables completos. Ya puedes cerrar la visita.
+    </p>
+  <% } else { %>
+    <p id="gardenDeliverablesHint" class="hidden"></p>
+  <% } %>
+</section>
+<% } %>

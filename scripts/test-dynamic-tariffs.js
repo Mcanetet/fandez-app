@@ -188,14 +188,34 @@ function run() {
   const {
     resolveM2QuoteBase,
     GARDEN_MIN_JOB_CLP,
-    isPerM2Service
+    isPerM2Service,
+    isGardenService
   } = require('../lib/serviceCatalogData');
   const { getServiceFromPrice, quoteActivityForRequest } = require('../lib/pricing');
+  const {
+    normalizeGardenIntake,
+    GARDEN_EVAL_VISIT_CLP,
+    GARDEN_INTAKE_MIN_M2
+  } = require('../lib/gardenIntake');
 
-  if (!isPerM2Service('jardineria')) throw new Error('jardineria debe cobrarse por m²');
-  assertEqual(getServiceFromPrice({}, 'jardineria'), 3500, 'Desde jardinería = $3.500 / m²');
-  assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 40), 140000, '40 m² corte césped');
+  if (isPerM2Service('jardineria')) throw new Error('jardineria ya no se cobra por m² online');
+  if (!isGardenService('jardineria')) throw new Error('jardineria debe ser servicio de jardín');
+  assertEqual(getServiceFromPrice({}, 'jardineria'), GARDEN_EVAL_VISIT_CLP, 'Desde jardinería = evaluación técnica');
+  assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 40), 140000, '40 m² con tarifa legacy');
   assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 10), GARDEN_MIN_JOB_CLP, '10 m² aplica mínimo de salida $40.000');
+
+  const gardenIntakeOk = normalizeGardenIntake({
+    serviceTypes: ['diseno', 'mantencion'],
+    locationSector: 'Vitacura',
+    propertyType: 'residencial',
+    hasDigitalPlan: false,
+    siteVisitOk: true,
+    maintenanceFrequency: 'quincenal',
+    acceptTechnicalVisit: true,
+    acceptPaymentTerms: true
+  }, { squareMeters: GARDEN_INTAKE_MIN_M2 });
+  if (!gardenIntakeOk.ok) throw new Error(gardenIntakeOk.error);
+  assertEqual(gardenIntakeOk.intake.evalVisitPrice, GARDEN_EVAL_VISIT_CLP, 'Intake fija evaluación');
 
   const {
     isLandscapeActivity,
@@ -223,12 +243,11 @@ function run() {
     includes: {}
   }), LANDSCAPE_MIN_JOB_CLP, 'Paisajismo aplica mínimo de proyecto');
 
-  const gardenQuote = quoteActivityForRequest({}, 'jard-cesped', {
+  const gardenQuote = quoteActivityForRequest({}, 'jard-diseno', {
     horaSolicitud: '14:00',
-    tierId: 'today',
-    squareMeters: 40
+    tierId: 'today'
   });
-  assertEqual(gardenQuote.visitTotal, 140000, 'Cotización 40 m² corte en horario normal');
+  assertEqual(gardenQuote.visitTotal, GARDEN_EVAL_VISIT_CLP, 'Cotización evaluación diseño en horario normal');
 
   const gardenFloor = calculateDynamicTariff({
     valorBase: 40000,
