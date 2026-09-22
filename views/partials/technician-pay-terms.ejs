@@ -14,7 +14,7 @@
 <div class="rounded-xl border border-zilo-border bg-zilo-bg/50 p-3 space-y-3" data-pay-terms-block="<%= idPrefix || 'form' %>">
   <div>
     <p class="text-xs font-semibold text-zilo-text">Pago al técnico *</p>
-    <p class="text-[10px] text-zilo-muted mt-0.5">Sobre el neto que recibe tu empresa (después de comisión Fandez). Él lo verá al cerrar cada visita.</p>
+    <p class="text-[10px] text-zilo-muted mt-0.5">Sobre el neto que recibe tu empresa (después de comisión Fandez).</p>
   </div>
   <div class="grid grid-cols-2 gap-2">
     <div>
@@ -30,6 +30,13 @@
       <p class="text-[10px] text-zilo-muted mt-1" data-pay-hint>Ej: 50 = 50% del neto</p>
     </div>
   </div>
+  <label class="flex items-start gap-2.5 p-2.5 rounded-lg border border-zilo-border bg-white/70 cursor-pointer">
+    <input type="checkbox" name="payHideFromTechnician" value="on" class="rounded accent-[#C45C14] shrink-0 mt-0.5" data-pay-hide-from-tech>
+    <span class="min-w-0">
+      <span class="text-xs font-semibold text-zilo-text block">No mostrar pago al técnico</span>
+      <span class="text-[10px] text-zilo-muted block">Él no verá montos ni % en la app al cerrar la visita. Tú sí los ves en tu panel.</span>
+    </span>
+  </label>
   <% if (showSvc && svcList.length) { %>
   <details class="rounded-lg border border-zilo-border/80 bg-white/60">
     <summary class="text-[11px] font-semibold cursor-pointer px-2.5 py-2 text-zilo-accent">Por oficio (opcional)</summary>

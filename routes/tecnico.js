@@ -598,10 +598,31 @@ router.post('/trabajo/:requestId/completar', requireRole('tecnico'), (req, res) 
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
   const enriched = store.enrichRequestForProvider(result.request);
+  let settlement = enriched.financialsVisible;
+  if (settlement?.technicianPay) {
+    settlement = {
+      ...settlement,
+      technicianPay: require('../lib/technicianPay').redactPaySnapshotForTechnician(settlement.technicianPay),
+      technicianPayout: undefined,
+      technicianPayLabel: undefined,
+      providerKeepAfterTech: undefined
+    };
+    if (settlement.technicianPay?.hidden) {
+      settlement = {
+        ...settlement,
+        providerPayout: null,
+        cardFee: null,
+        laborCommission: null,
+        ivaOnFees: null,
+        materialsTotal: settlement.materialsTotal || 0,
+        payHiddenFromTechnician: true
+      };
+    }
+  }
   res.json({
     success: true,
     request: serializeJob(result.request),
-    settlement: enriched.financialsVisible,
+    settlement,
     additionalCharge: result.additionalCharge || null
   });
 });

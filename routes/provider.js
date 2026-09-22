@@ -114,7 +114,14 @@ function parsePayTermsFromBody(body = {}) {
   return {
     mode,
     value,
-    byService
+    byService,
+    hideFromTechnician: Boolean(
+      body.payHideFromTechnician === 'on'
+      || body.payHideFromTechnician === true
+      || body.pay_hide_from_technician === 'on'
+      || body.pay_hide_from_technician === true
+      || (body.payTerms && body.payTerms.hideFromTechnician)
+    )
   };
 }
 

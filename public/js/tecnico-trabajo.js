@@ -906,17 +906,18 @@
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
     const techPay = s.technicianPay || null;
-    const heroAmount = techPay && techPay.technicianPayout != null
-      ? techPay.technicianPayout
-      : s.providerPayout;
+    const payHidden = Boolean(s.payHiddenFromTechnician || techPay?.hidden || techPay?.hideFromTechnician);
     const isSelf = Boolean(techPay?.selfOperator);
     const configured = techPay?.configured !== false;
+    const heroAmount = (!payHidden && techPay && techPay.technicianPayout != null)
+      ? techPay.technicianPayout
+      : (!payHidden ? s.providerPayout : null);
 
     set('setCharged', fmt(s.grandTotal));
     set('setCardLabel', `Mercado Pago valor presente ${s.merchantCardFeePercent || 0}%`);
-    set('setCard', `−${fmt(s.cardFee)}`);
+    set('setCard', s.cardFee != null ? `−${fmt(s.cardFee)}` : '—');
     set('setAppLabel', `Comisión Fandez ${Math.round((s.laborCommissionRate || 0) * 100)}% IVA incl.`);
-    set('setApp', `−${fmt(s.laborCommission)}`);
+    set('setApp', s.laborCommission != null ? `−${fmt(s.laborCommission)}` : '—');
     if (s.materialsTotal) {
       set('setMaterialsKeep', fmt(s.materialsTotal));
     } else {
@@ -924,16 +925,25 @@
     }
     document.getElementById('setMaterialsRow')?.classList.add('hidden');
     set('setIvaLabel', `IVA incluido en comisión y MP (desglose)`);
-    set('setIva', fmt(s.ivaOnFees));
-    set('setCompanyNet', fmt(s.providerPayout));
-    set('setPayout', fmt(heroAmount));
-    set('setPayoutHero', fmt(heroAmount));
+    set('setIva', s.ivaOnFees != null ? fmt(s.ivaOnFees) : '—');
+    set('setCompanyNet', s.providerPayout != null ? fmt(s.providerPayout) : '—');
+    set('setPayout', heroAmount != null ? fmt(heroAmount) : '—');
+    set('setPayoutHero', heroAmount != null ? fmt(heroAmount) : '—');
 
     const titleEl = document.getElementById('setPayoutTitle');
     const lineLabel = document.getElementById('setPayoutLineLabel');
     const labelEl = document.getElementById('setTechPayLabel');
     const noteEl = document.getElementById('setSettlementNote');
-    if (isSelf) {
+    if (payHidden) {
+      if (titleEl) titleEl.textContent = 'Visita completada';
+      if (lineLabel) lineLabel.textContent = 'Tu pago';
+      if (labelEl) labelEl.textContent = 'Tu socio no muestra el pago en la app.';
+      if (noteEl) {
+        noteEl.textContent = 'Coordina el pago directamente con tu empresa. En Fandez no verás montos de tu retribución.';
+      }
+      document.getElementById('setPayoutHero')?.classList.add('hidden');
+      document.getElementById('setCompanyNet')?.closest('div')?.classList.add('opacity-50');
+    } else if (isSelf) {
       if (titleEl) titleEl.textContent = 'Tu ganancia';
       if (lineLabel) lineLabel.textContent = 'Tu neto';
       if (labelEl) labelEl.textContent = 'Eres el socio: recibes el neto de la empresa.';

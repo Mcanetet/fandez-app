@@ -168,6 +168,7 @@
     if (!root) return null;
     const modeEl = root.querySelector('[data-pay-mode]');
     const valueEl = root.querySelector('[data-pay-value]');
+    const hideEl = root.querySelector('[data-pay-hide-from-tech]');
     const mode = (modeEl?.value || 'percent') === 'fixed' ? 'fixed' : 'percent';
     const value = mode === 'fixed'
       ? parseInt(valueEl?.value, 10)
@@ -186,7 +187,12 @@
       if (!Number.isFinite(sVal)) return;
       byService[serviceId] = { mode: sMode, value: sVal };
     });
-    return { mode, value, byService };
+    return {
+      mode,
+      value,
+      byService,
+      hideFromTechnician: Boolean(hideEl?.checked)
+    };
   }
 
   function syncPayHint(root) {
@@ -200,12 +206,14 @@
     }
   }
 
-  function fillPayTermsBlock(root, { mode, value, byService } = {}) {
+  function fillPayTermsBlock(root, { mode, value, byService, hideFromTechnician } = {}) {
     if (!root) return;
     const modeEl = root.querySelector('[data-pay-mode]');
     const valueEl = root.querySelector('[data-pay-value]');
+    const hideEl = root.querySelector('[data-pay-hide-from-tech]');
     if (modeEl) modeEl.value = mode === 'fixed' ? 'fixed' : 'percent';
     if (valueEl) valueEl.value = value != null && value !== '' ? String(value) : (mode === 'fixed' ? '' : '50');
+    if (hideEl) hideEl.checked = Boolean(hideFromTechnician);
     const map = byService && typeof byService === 'object' ? byService : {};
     root.querySelectorAll('[data-pay-service-mode]').forEach((sel) => {
       const serviceId = sel.getAttribute('data-pay-service-mode');
@@ -380,7 +388,8 @@
       fillPayTermsBlock(document.querySelector('#techEditPayWrap [data-pay-terms-block]'), {
         mode: card.dataset.payMode || 'percent',
         value: card.dataset.payValue || '50',
-        byService
+        byService,
+        hideFromTechnician: card.dataset.payHide === '1'
       });
       editModal.classList.remove('hidden');
     });
@@ -424,6 +433,7 @@
         if (data.tecnico.paySummary) {
           card.dataset.payMode = data.tecnico.paySummary.mode || '';
           card.dataset.payValue = data.tecnico.paySummary.value != null ? String(data.tecnico.paySummary.value) : '';
+          card.dataset.payHide = data.tecnico.paySummary.hideFromTechnician ? '1' : '0';
           card.dataset.payByService = data.tecnico.paySummary.byService
             ? encodeURIComponent(JSON.stringify(data.tecnico.paySummary.byService))
             : '';

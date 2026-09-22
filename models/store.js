@@ -4223,16 +4223,26 @@ function setTechnicianPayTermsForProvider(socioId, tecnicoId, rawTerms) {
 
 function serializePayTermsSummary(terms, formatMoney = formatCLP) {
   if (!terms?.default) {
-    return { configured: false, label: 'Sin acuerdo de pago', mode: null, value: null, byServiceCount: 0 };
+    return {
+      configured: false,
+      label: 'Sin acuerdo de pago',
+      mode: null,
+      value: null,
+      byServiceCount: 0,
+      hideFromTechnician: false
+    };
   }
   const serviceCount = Object.keys(terms.byService || {}).length;
+  const hide = Boolean(terms.hideFromTechnician);
   return {
     configured: true,
     mode: terms.default.mode,
     value: terms.default.value,
-    label: technicianPay.formatPayRuleLabel(terms.default, formatMoney),
+    label: technicianPay.formatPayRuleLabel(terms.default, formatMoney)
+      + (hide ? ' · oculto al técnico' : ''),
     byServiceCount: serviceCount,
-    byService: terms.byService || {}
+    byService: terms.byService || {},
+    hideFromTechnician: hide
   };
 }
 
@@ -4245,6 +4255,7 @@ function buildTechnicianPaySnapshot(request, financials) {
     return {
       selfOperator: true,
       configured: true,
+      hideFromTechnician: false,
       mode: 'percent',
       value: 100,
       label: 'Tú eres el socio (100% del neto)',
@@ -4261,6 +4272,7 @@ function buildTechnicianPaySnapshot(request, financials) {
   return {
     selfOperator: false,
     configured: computed.configured,
+    hideFromTechnician: Boolean(terms?.hideFromTechnician),
     mode: computed.mode,
     value: computed.value,
     label: computed.configured
