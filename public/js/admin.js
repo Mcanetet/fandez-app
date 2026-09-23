@@ -850,6 +850,43 @@
       reviewContract(btn.dataset.id, 'suspend');
     });
   });
+
+  document.querySelectorAll('.btn-offer-commission').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const card = btn.closest('.contract-review-card') || btn.closest('[data-provider-id]');
+      const input = card?.querySelector('.commission-percent-input')
+        || document.querySelector(`.commission-percent-input[data-id="${id}"]`);
+      const percent = parseFloat(input?.value);
+      if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+        FandezNotify.show('Indica un porcentaje entre 0 y 100', 'warning');
+        input?.focus();
+        return;
+      }
+      const bankFee = btn.dataset.bankFee || '—';
+      if (!confirm(
+        `¿Enviar contrato de comisión al ${percent}% IVA incluido?\n` +
+        `El sistema agrega ~${bankFee}% de entidad de pago (0% si el cliente paga por transferencia).`
+      )) return;
+      try {
+        const res = await adminFetch(`/contratos/${id}/comision`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ laborCommissionPercent: percent })
+        });
+        const data = await res.json();
+        if (data.success) {
+          FandezNotify.show('Contrato de comisión enviado al socio', 'success');
+          setTimeout(() => location.reload(), 700);
+        } else {
+          FandezNotify.show(data.error || 'Error', 'error');
+        }
+      } catch (_) {
+        FandezNotify.show('Error de conexión', 'error');
+      }
+    });
+  });
+
   document.querySelectorAll('.btn-doc-approve').forEach((btn) => {
     btn.addEventListener('click', () => reviewContractDocument(btn.closest('.contract-doc-row'), 'approved'));
   });

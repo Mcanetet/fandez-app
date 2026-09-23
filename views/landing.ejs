@@ -63,6 +63,7 @@
         <svg class="w-5 h-5 shrink-0 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l4-4m-4 4l-4-4"/><path d="M5 19h14"/></svg>
         <%= t('landing.install_cta') %>
       </button>
+      <p class="text-center text-[11px] text-zilo-muted mt-1.5 px-2"><%= t('landing.install_hint') %></p>
       <% } %>
     </div>
     <p class="text-center text-sm text-zilo-muted <%= typeof launchNoticeActive !== 'undefined' && launchNoticeActive ? 'mb-3' : 'mb-10' %>">

@@ -28,6 +28,39 @@
         <p class="text-sm font-semibold text-emerald-600 mb-2">Contrato aprobado — puedes operar en Fandez</p>
         <p class="text-xs text-zilo-muted">Vigente hasta <%= contract.expiresAt ? new Date(contract.expiresAt).toLocaleDateString('es-CL') : '—' %></p>
       </div>
+
+      <% if (commissionSummary && commissionSummary.status === 'offered') { %>
+        <div class="p-5 rounded-2xl border border-blue-500/30 bg-blue-500/10 space-y-3" id="commissionOfferCard">
+          <p class="text-sm font-semibold text-blue-800">Contrato de comisión pendiente</p>
+          <p class="text-xs text-zilo-muted">
+            Comisión plataforma: <strong><%= commissionSummary.laborPercent %>%</strong> IVA incluido sobre mano de obra.
+            Entidad de pago (tarjeta): ~<strong><%= commissionAgreement.merchantCardFeePercent != null ? commissionAgreement.merchantCardFeePercent : bankFeePercent %>%</strong>.
+            Transferencia: <strong>0%</strong> de entidad.
+          </p>
+          <p class="mt-1">
+            <a href="/proveedor/contrato/comision" target="_blank" rel="noopener" class="text-xs font-semibold text-zilo-accent hover:underline">Leer / imprimir acuerdo de comisión</a>
+          </p>
+          <label class="block text-[10px] text-zilo-muted uppercase mt-2">Nombre completo (firma)</label>
+          <input type="text" id="commissionSignName" class="zilo-input mt-1" value="<%= provider.name || '' %>" autocomplete="name">
+          <label class="flex items-start gap-2 mt-2 cursor-pointer">
+            <input type="checkbox" id="commissionAcceptCheck" class="mt-1">
+            <span class="text-xs text-zilo-muted">Acepto el acuerdo de comisión individual v<%= commissionTemplateVersion %> con las condiciones indicadas.</span>
+          </label>
+          <button type="button" id="btnAcceptCommission" class="zilo-btn-primary w-full !py-3 mt-2">Firmar y aceptar comisión</button>
+        </div>
+      <% } else if (commissionSummary && commissionSummary.status === 'accepted') { %>
+        <div class="p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10">
+          <p class="text-sm font-semibold text-emerald-700">Comisión individual activa</p>
+          <p class="text-xs text-zilo-muted mt-1">
+            <%= commissionSummary.laborPercent %>% IVA incl. + entidad de pago en tarjeta · 0% en transferencia.
+            <a href="/proveedor/contrato/comision" target="_blank" rel="noopener" class="text-zilo-accent font-semibold hover:underline ml-1">Ver acuerdo</a>
+          </p>
+        </div>
+      <% } else { %>
+        <div class="p-4 rounded-2xl border border-zilo-border bg-zilo-surface/40">
+          <p class="text-xs text-zilo-muted">Cuando el equipo te envíe el contrato de comisión individual, aparecerá aquí para firmarlo.</p>
+        </div>
+      <% } %>
     <% } else if (summary.status === 'pending_review') { %>
       <div class="p-5 rounded-2xl zilo-card-premium">
         <p class="text-sm font-semibold text-amber-600 text-center">Expediente en revisión</p>

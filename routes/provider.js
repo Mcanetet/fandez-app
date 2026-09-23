@@ -16,8 +16,11 @@ const {
   LEGAL_DECLARATIONS,
   CONTRACT_CLAUSES,
   TEMPLATE_VERSION,
+  COMMISSION_AGREEMENT_VERSION,
   getDocumentsForEntity,
-  getContractSummary
+  getContractSummary,
+  getCommissionAgreementSummary,
+  buildCommissionAgreementDocument
 } = require('../lib/contracts');
 const company = require('../config/company');
 const { reviewIdentityDocument } = require('../lib/documentReview');
@@ -1183,21 +1186,76 @@ router.get('/contrato', requireRole('provider'), requireModule('provider_contrat
   const provider = store.getUserById(req.session.user.id);
   const contract = store.getProviderContract(provider.id);
   const summary = getContractSummary(contract);
+  store.ensureProviderFields(provider);
+  const commissionAgreement = provider.commissionAgreement;
+  const commissionSummary = getCommissionAgreementSummary(commissionAgreement);
+  const pricing = store.getPricingConfig();
   res.render('provider/contrato', {
     title: 'Contrato de socio — Fandez',
     user: req.session.user,
     provider,
     contract,
     summary,
+    commissionAgreement,
+    commissionSummary,
+    bankFeePercent: pricing.merchantCardFeePercent || 0,
     entityTypes: ENTITY_TYPES,
     documentCatalog: DOCUMENT_CATALOG,
     bankAccountTypes: BANK_ACCOUNT_TYPES,
     legalDeclarations: LEGAL_DECLARATIONS,
     contractClauses: CONTRACT_CLAUSES,
     templateVersion: TEMPLATE_VERSION,
+    commissionTemplateVersion: COMMISSION_AGREEMENT_VERSION,
     company,
     documentsForEntity: contract.entityType ? getDocumentsForEntity(contract.entityType) : []
   });
+});
+
+router.get('/contrato/comision', requireRole('provider'), requireModule('provider_contrato'), (req, res) => {
+  const provider = store.getUserById(req.session.user.id);
+  store.ensureProviderFields(provider);
+  const ca = provider.commissionAgreement;
+  if (!ca || ca.status === 'none' || ca.laborCommissionRate == null) {
+    return res.status(404).send('Aún no tienes un contrato de comisión ofrecido.');
+  }
+  const pricing = store.getPricingConfig();
+  const doc = buildCommissionAgreementDocument({
+    companyName: company.legalName || company.name,
+    companyRut: company.rut,
+    companyAddress: company.address,
+    partnerName: provider.providerContract?.legalEntity?.legalName || provider.name,
+    partnerRut: provider.providerContract?.legalEntity?.rut || '',
+    laborCommissionRate: ca.laborCommissionRate,
+    merchantCardFeePercent: ca.merchantCardFeePercent != null
+      ? ca.merchantCardFeePercent
+      : (pricing.merchantCardFeePercent || 0)
+  });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader(
+    'Content-Disposition',
+    `inline; filename="Acuerdo-Comision-Fandez-v${COMMISSION_AGREEMENT_VERSION}.html"`
+  );
+  res.send(doc.html);
+});
+
+router.post('/contrato/comision/aceptar', requireRole('provider'), requireModule('provider_contrato'), (req, res) => {
+  const result = store.acceptCommissionAgreement(req.session.user.id, {
+    signature: {
+      fullName: req.body?.fullName || req.body?.signature?.fullName || req.session.user.name
+    },
+    ip: getClientIp(req),
+    userAgent: req.get('user-agent')
+  });
+  if (result.error) return res.status(400).json({ error: result.error });
+  store.logSecurityEvent('comision_aceptada', req.session.user.email, req);
+  store.recordConsent({
+    userId: req.session.user.id,
+    type: 'contrato_comision',
+    granted: true,
+    version: COMMISSION_AGREEMENT_VERSION,
+    ip: getClientIp(req)
+  });
+  res.json(result);
 });
 
 router.get('/contrato/descargar', requireRole('provider'), requireModule('provider_contrato'), (req, res) => {

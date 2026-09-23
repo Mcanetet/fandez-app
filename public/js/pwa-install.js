@@ -211,10 +211,44 @@
     hide();
   }
 
+  const SW_URL = '/service-worker.js?v=40';
+  let swReady = null;
+
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) {
+      swReady = Promise.resolve(null);
+      return swReady;
+    }
+    const register = () => {
+      swReady = navigator.serviceWorker
+        .register(SW_URL, { scope: '/' })
+        .then((reg) => {
+          try { reg.update(); } catch (_) { /* ignore */ }
+          return navigator.serviceWorker.ready.then(() => reg).catch(() => reg);
+        })
+        .catch((err) => {
+          console.warn('[pwa] SW register failed', err && err.message);
+          // Fallback por si el CDN aún sirve /sw.js viejo
+          return navigator.serviceWorker
+            .register('/sw.js?v=40', { scope: '/' })
+            .then((reg) => navigator.serviceWorker.ready.then(() => reg).catch(() => reg))
+            .catch(() => null);
+        });
+      return swReady;
+    };
+    if (document.readyState === 'complete') return register();
+    window.addEventListener('load', register);
+    return swReady || Promise.resolve(null);
+  }
+
+  function waitForSw(ms) {
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), ms || 4000));
+    return Promise.race([swReady || Promise.resolve(null), timeout]);
+  }
+
   function promptNativeOrGuide() {
     const mode = bannerEl?.dataset.mode;
     if (mode === 'ios' || mode === 'inapp') {
-      // En iOS solo hay guía; el CTA cierra para que el usuario siga los pasos.
       dismiss();
       return;
     }
@@ -226,17 +260,21 @@
         return;
       }
     }
-    if (!deferredPrompt) {
-      const steps = bannerEl?.querySelector('[data-install-ios-steps]');
-      if (steps) steps.classList.remove('hidden');
-      fillSteps('android');
-      return;
-    }
-    deferredPrompt.prompt();
-    Promise.resolve(deferredPrompt.userChoice).catch(() => {}).finally(() => {
-      deferredPrompt = null;
-      dismiss();
-    });
+    const runPrompt = () => {
+      if (!deferredPrompt) {
+        const steps = bannerEl?.querySelector('[data-install-ios-steps]');
+        if (steps) steps.classList.remove('hidden');
+        fillSteps('android');
+        setCopy('android');
+        return;
+      }
+      deferredPrompt.prompt();
+      Promise.resolve(deferredPrompt.userChoice).catch(() => {}).finally(() => {
+        deferredPrompt = null;
+        dismiss();
+      });
+    };
+    waitForSw(3500).finally(runPrompt);
   }
 
   function ensureBanner() {
@@ -297,7 +335,19 @@
             return;
           }
         }
-        show({ force: true });
+        const cta = btn;
+        const prev = cta.textContent;
+        cta.disabled = true;
+        cta.textContent = t('pwa.install_preparing', 'Preparando…');
+        waitForSw(4000).finally(() => {
+          cta.disabled = false;
+          cta.textContent = prev;
+          show({ force: true });
+          // Si Chrome ya ofreció el prompt nativo, lanzarlo al toque.
+          if (!isIos() && !isInAppBrowser() && deferredPrompt) {
+            promptNativeOrGuide();
+          }
+        });
       });
     });
   }
@@ -319,19 +369,6 @@
       obs.disconnect();
       cb();
     }, 25000);
-  }
-
-  function registerServiceWorker() {
-    if (!('serviceWorker' in navigator)) return;
-    const register = () => {
-      navigator.serviceWorker.register('/sw.js?v=38', { scope: '/' })
-        .then((reg) => {
-          try { reg.update(); } catch (_) { /* ignore */ }
-        })
-        .catch(() => {});
-    };
-    if (document.readyState === 'complete') register();
-    else window.addEventListener('load', register);
   }
 
   function init() {

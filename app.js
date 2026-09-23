@@ -255,12 +255,19 @@ function sendBrandAsset(res, relativePath) {
   app.get(route, (req, res) => sendBrandAsset(res, file));
 });
 
-app.get('/sw.js', (req, res) => {
+function sendServiceWorker(res) {
   res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Surrogate-Control', 'no-store');
   res.setHeader('Service-Worker-Allowed', '/');
-  res.sendFile(path.join(__dirname, 'public', 'sw.js'));
-});
+  res.sendFile(path.join(__dirname, 'pwa', 'sw.js'));
+}
+
+/** Ruta canónica (no está en /public → no la intercepta el CDN estático). */
+app.get('/service-worker.js', (req, res) => sendServiceWorker(res));
+/** Compatibilidad con registros antiguos /sw.js */
+app.get('/sw.js', (req, res) => sendServiceWorker(res));
 
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 app.use(express.json({ limit: appMode.isProductionMode() ? '12mb' : '25mb' }));

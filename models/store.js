@@ -97,6 +97,11 @@ const {
   CONTRACT_CLAUSES,
   ENTITY_TYPES,
   TEMPLATE_VERSION,
+  COMMISSION_AGREEMENT_VERSION,
+  defaultCommissionAgreement,
+  normalizeCommissionAgreement,
+  getCommissionAgreementSummary,
+  buildCommissionAgreementDocument,
   normalizeDocumentRecord,
   defaultDocumentMeta,
   getContractDocumentEntries,
@@ -2622,8 +2627,10 @@ function ensureProviderFields(provider) {
   });
   if (!provider.locationShare) provider.locationShare = defaultLocationShare();
   if (!provider.providerContract) provider.providerContract = defaultProviderContract();
+  if (!provider.commissionAgreement) provider.commissionAgreement = defaultCommissionAgreement();
   if (!provider.wallDismissed || typeof provider.wallDismissed !== 'object') provider.wallDismissed = {};
   provider.providerContract = normalizeProviderContract(provider.providerContract);
+  provider.commissionAgreement = normalizeCommissionAgreement(provider.commissionAgreement);
   provider.verification.status = computeVerificationStatus(provider);
   provider.providerContract.status = computeContractStatus(provider.providerContract);
   if (provider.jobsTakenCount == null) provider.jobsTakenCount = 0;
@@ -3255,13 +3262,150 @@ function getAllProviderContracts() {
         online: Boolean(u.online),
         verification: u.verification,
         contract: u.providerContract,
-        summary: getContractSummary(u.providerContract)
+        summary: getContractSummary(u.providerContract),
+        commissionAgreement: u.commissionAgreement,
+        commissionSummary: getCommissionAgreementSummary(u.commissionAgreement)
       };
     })
     .sort((a, b) => {
       const order = { pending_review: 0, needs_info: 1, incomplete: 2, unsigned: 3, rejected: 4, approved: 5, expired: 6 };
       return (order[a.summary.status] ?? 9) - (order[b.summary.status] ?? 9);
     });
+}
+
+/**
+ * Pricing efectivo para liquidar una solicitud: % individual del socio si aceptó el acuerdo.
+ * El fee de entidad de pago sigue las tarifas globales vigentes (0 en transferencia).
+ */
+function getPricingForRequest(request) {
+  const base = getPricingConfig();
+  if (!request?.providerId) return base;
+  const provider = getUserById(request.providerId);
+  if (!provider || provider.role !== 'provider') return base;
+  ensureProviderFields(provider);
+  const ca = provider.commissionAgreement;
+  if (ca?.status === 'accepted' && Number.isFinite(ca.laborCommissionRate) && ca.laborCommissionRate >= 0) {
+    return normalizePricing({
+      ...base,
+      laborCommissionRate: ca.laborCommissionRate
+    });
+  }
+  return base;
+}
+
+function getProviderCommissionAgreement(providerId) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') return null;
+  ensureProviderFields(provider);
+  return provider.commissionAgreement;
+}
+
+/**
+ * Admin envía (u oferta) el contrato de comisión individual tras aprobar el expediente legal.
+ * @param {string} laborCommissionPercent — ej. 15 (no 0.15)
+ */
+function offerCommissionAgreement(providerId, { laborCommissionPercent, notes } = {}, adminEmail) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+
+  const legal = getContractSummary(provider.providerContract);
+  if (!legal.canOperate && legal.status !== 'approved') {
+    return { error: 'Primero aprueba el contrato legal del socio.' };
+  }
+
+  const pct = parseFloat(laborCommissionPercent);
+  if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+    return { error: 'Indica un porcentaje de comisión válido (0–100).' };
+  }
+  const laborCommissionRate = Math.round(pct * 1000) / 100000;
+  const pricing = getPricingConfig();
+  const merchantCardFeePercent = Number(pricing.merchantCardFeePercent) || 0;
+  const now = new Date().toISOString();
+  const prev = normalizeCommissionAgreement(provider.commissionAgreement);
+  const history = [...(prev.history || [])];
+  if (prev.status === 'accepted') {
+    history.push({ at: now, action: 'superseded', by: adminEmail, notes: 'Reemplazado por nueva oferta' });
+  }
+
+  const agreement = normalizeCommissionAgreement({
+    status: 'offered',
+    laborCommissionRate,
+    merchantCardFeePercent,
+    transferCardFeePercent: 0,
+    commissionIvaIncluded: true,
+    templateVersion: COMMISSION_AGREEMENT_VERSION,
+    offeredAt: now,
+    offeredBy: adminEmail || null,
+    acceptedAt: null,
+    expiresAt: null,
+    notes: String(notes || '').slice(0, 500),
+    signature: null,
+    history: [
+      ...history,
+      {
+        at: now,
+        action: 'offered',
+        by: adminEmail,
+        laborCommissionRate,
+        merchantCardFeePercent
+      }
+    ].slice(-40)
+  });
+
+  provider.commissionAgreement = agreement;
+  repository.persist(() => repository.saveUser(provider), `comisión oferta ${providerId}`);
+  return {
+    success: true,
+    agreement,
+    summary: getCommissionAgreementSummary(agreement),
+    document: buildCommissionAgreementDocument({
+      laborCommissionRate,
+      merchantCardFeePercent,
+      partnerName: provider.providerContract?.legalEntity?.legalName || provider.name,
+      partnerRut: provider.providerContract?.legalEntity?.rut || ''
+    })
+  };
+}
+
+function acceptCommissionAgreement(providerId, { signature, ip, userAgent } = {}) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+  const a = normalizeCommissionAgreement(provider.commissionAgreement);
+  if (a.status !== 'offered' || a.laborCommissionRate == null) {
+    return { error: 'No tienes un contrato de comisión pendiente de firma.' };
+  }
+
+  const now = new Date().toISOString();
+  const fullName = String(signature?.fullName || provider.name || '').trim();
+  if (fullName.length < 3) return { error: 'Indica tu nombre completo para firmar.' };
+
+  a.status = 'accepted';
+  a.acceptedAt = now;
+  a.signature = {
+    fullName,
+    accepted: true,
+    signedAt: now,
+    signedIp: ip || null,
+    userAgent: userAgent || null,
+    method: 'electronic_acceptance',
+    templateVersion: a.templateVersion || COMMISSION_AGREEMENT_VERSION,
+    laborCommissionRate: a.laborCommissionRate,
+    merchantCardFeePercent: a.merchantCardFeePercent
+  };
+  a.history = [
+    ...(a.history || []),
+    { at: now, action: 'accepted', by: provider.email, laborCommissionRate: a.laborCommissionRate }
+  ].slice(-40);
+
+  provider.commissionAgreement = normalizeCommissionAgreement(a);
+  repository.persist(() => repository.saveUser(provider), `comisión aceptada ${providerId}`);
+  return {
+    success: true,
+    agreement: provider.commissionAgreement,
+    summary: getCommissionAgreementSummary(provider.commissionAgreement)
+  };
 }
 
 function reviewProviderContract(providerId, { action, notes, rejectionReason, requestedDocs }, adminEmail) {
@@ -5812,7 +5956,7 @@ function assignPayoutSchedule(request) {
 function buildProviderInvoicePlan(request, financials) {
   const client = getUserById(request.clientId);
   const billing = request.billingSnapshot || {};
-  const fin = financials || computeRequestFinancials(request, getPricingConfig());
+  const fin = financials || computeRequestFinancials(request, getPricingForRequest(request));
   request.providerInvoicePlan = {
     status: request.providerInvoicePlan?.status === 'issued' ? 'issued' : 'pending',
     // El socio factura al cliente por el total pagado (mano de obra + materiales).
@@ -5849,7 +5993,7 @@ function buildProviderInvoicePlan(request, financials) {
 /** Asegura plan de factura en trabajos completados (monto = total cliente). */
 function ensureProviderInvoicePlan(request) {
   if (!request || request.status !== 'completed') return null;
-  const fin = computeRequestFinancials(request, getPricingConfig());
+  const fin = computeRequestFinancials(request, getPricingForRequest(request));
   const existing = request.providerInvoicePlan;
   const amountMismatch = existing
     && existing.status !== 'issued'
@@ -7240,7 +7384,7 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
   request.status = 'completed';
   request.completedAt = new Date().toISOString();
   assignPayoutSchedule(request);
-  request.financials = computeRequestFinancials(request, getPricingConfig());
+  request.financials = computeRequestFinancials(request, getPricingForRequest(request));
   request.technicianPay = buildTechnicianPaySnapshot(request, request.financials);
   buildProviderInvoicePlan(request, request.financials);
   addLogbookEntryFromRequest(request);
@@ -7781,7 +7925,7 @@ function getTechStatusLabel(techStatus, locale = 'es') {
 
 function enrichRequestForProvider(request, locale = 'es') {
   if (!request) return null;
-  const pricing = getPricingConfig();
+  const pricing = getPricingForRequest(request);
   const visible = attachTechnicianPayToVisible(request, getProviderVisibleFinancials(request, pricing));
   const safe = sanitizeRequestForWorker(request, pricing);
   const providerInvoicePlan = request.status === 'completed'
@@ -7860,7 +8004,7 @@ function getProviderDashboardStats(providerId) {
   const nextPayDate = scheduled[0]?.payoutScheduledDate || null;
   const nextPayAmount = scheduled
     .filter((r) => r.payoutScheduledDate === nextPayDate)
-    .reduce((sum, r) => sum + computeRequestFinancials(r, getPricingConfig()).providerTotal, 0);
+    .reduce((sum, r) => sum + computeRequestFinancials(r, getPricingForRequest(r)).providerTotal, 0);
 
   const adherence = getProviderAdherenceStats(provider);
   return {
@@ -7885,13 +8029,12 @@ function getProviderDashboardStats(providerId) {
 
 /** Libro de finanzas del socio: trabajos completados con liquidación. */
 function getProviderFinanceLedger(providerId, { limit = 60 } = {}) {
-  const pricing = getPricingConfig();
   const rows = requests
     .filter((r) => r.providerId === providerId && r.status === 'completed')
     .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt))
     .slice(0, Math.max(1, Math.min(200, Number(limit) || 60)))
     .map((r) => {
-      const fin = computeRequestFinancials(r, pricing);
+      const fin = computeRequestFinancials(r, getPricingForRequest(r));
       const payoutStatus = r.payoutStatus === 'pagado' ? 'pagado' : 'programado';
       const providerInvoicePlan = serializeProviderInvoicePlan(ensureProviderInvoicePlan(r));
       return {
@@ -8519,13 +8662,12 @@ async function anonymizeUserAccount(userId, { reason = '', actorEmail = null, ac
 }
 
 function getPayments() {
-  const pricing = getPricingConfig();
   return requests
     .filter(r => r.paymentStatus === 'approved')
     .map(r => {
       const fin = r.status === 'completed' && r.financials
         ? r.financials
-        : computeRequestFinancials(r, pricing);
+        : computeRequestFinancials(r, getPricingForRequest(r));
       const provider = r.providerId ? getUserById(r.providerId) : null;
       return {
         id: r.id,
@@ -8848,7 +8990,7 @@ function getAdminRequestCase(requestId) {
   const client = request.clientId ? getUserById(request.clientId) : null;
   const provider = request.providerId ? getUserById(request.providerId) : null;
   const technician = request.technicianId ? getUserById(request.technicianId) : null;
-  const pricing = getPricingConfig();
+  const pricing = getPricingForRequest(request);
   const financials = request.status === 'completed' || request.financials
     ? (request.financials || computeRequestFinancials(request, pricing))
     : null;
@@ -9460,6 +9602,10 @@ module.exports = {
   getAllProviderContracts,
   reviewProviderContract,
   getContractStats,
+  getPricingForRequest,
+  getProviderCommissionAgreement,
+  offerCommissionAgreement,
+  acceptCommissionAgreement,
   getPublicProviderProfile,
   getClientVisitTeam,
   getClientServiceCallContact,

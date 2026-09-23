@@ -1,0 +1,26 @@
+ACUERDO DE COMISIÓN INDIVIDUAL — SOCIO FANDEZ
+Versión 1.0 · Gestión Integral y Servicios Fandez SpA
+RUT 78.494.038-1 · Santiago, Región Metropolitana, Chile
+Emitido: 23 de septiembre de 2026
+
+Comisión plataforma: 15% IVA incluido sobre mano de obra.
+Entidad de pago (tarjeta): ~3.8% IVA incluido a valor presente (referencia al emitir).
+Transferencia bancaria: 0% comisión de entidad de pago.
+
+1. Objeto
+El presente Acuerdo de Comisión Individual complementa el Contrato de Prestación de Servicios vigente entre Gestión Integral y Servicios Fandez SpA (“Fandez”) y el Socio identificado en la plataforma (“el Socio”). Fija las condiciones económicas de intermediación aplicables a las operaciones que el Socio ejecute a través de la plataforma.
+
+2. Comisión de plataforma (mano de obra)
+Fandez retendrá una comisión del 15% (IVA incluido) sobre la mano de obra cobrada al cliente (visita diagnóstica + trabajo / presupuesto aprobado). Esta comisión no se suma al precio que ve el cliente: se descuenta de la liquidación del Socio. Los materiales cobrados al cliente se liquidan al Socio al 100%, sin comisión de plataforma.
+
+3. Comisión de la entidad de pago (tarjeta / pasarela)
+Cuando el cliente pague con tarjeta u otra pasarela digital (p. ej. Mercado Pago, Transbank), se descontará además el costo de la entidad de pago a valor presente. Al momento de emitir este acuerdo, dicho costo referencial es aproximadamente 3.8% IVA incluido sobre la mano de obra (puede ajustarse según cuotas y tarifas vigentes de la entidad). Ese costo tampoco se suma al cliente: se descuenta de la liquidación del Socio.
+
+4. Pago por transferencia bancaria
+Si el cliente paga mediante transferencia bancaria a la cuenta informada por Fandez, no se cobra la comisión de la entidad de pago descrita en la cláusula 3 (0%). Sí aplica la comisión de plataforma de la cláusula 2.
+
+5. Vigencia y estabilidad
+La tasa de comisión de plataforma (15% IVA incluido) se mantiene fija durante 12 (doce) meses desde la aceptación de este acuerdo, sin perjuicio de lo dispuesto en el contrato marco sobre reajuste por IPC y trabajos en curso. El costo de la entidad de pago se calcula con las tarifas vigentes al momento de cada operación.
+
+6. Aceptación
+Al aceptar este acuerdo en la plataforma (/proveedor/contrato), el Socio declara haber leído y aceptado estas condiciones económicas individuales. Este documento no sustituye el contrato marco ni la documentación legal ya aprobada.

@@ -1257,6 +1257,52 @@ router.post('/contratos/:providerId/review', requireRole('admin'), requireAdminP
   res.json({ success: true, provider: result.provider });
 });
 
+router.post('/contratos/:providerId/comision', requireRole('admin'), requireAdminPermission('contratos.review'), (req, res) => {
+  const { laborCommissionPercent, notes } = req.body || {};
+  const result = store.offerCommissionAgreement(
+    req.params.providerId,
+    { laborCommissionPercent, notes },
+    req.session.user.email
+  );
+  if (result.error) return res.status(400).json({ error: result.error });
+  store.logSecurityEvent(
+    'comision_oferta',
+    `${req.params.providerId}=${laborCommissionPercent}%`,
+    req
+  );
+  res.json({
+    success: true,
+    agreement: result.agreement,
+    summary: result.summary
+  });
+});
+
+router.get('/contratos/:providerId/comision/preview', requireRole('admin'), requireAdminPermission('contratos.review'), (req, res) => {
+  const provider = store.getUserById(req.params.providerId);
+  if (!provider || provider.role !== 'provider') return res.status(404).send('Socio no encontrado');
+  store.ensureProviderFields(provider);
+  const { buildCommissionAgreementDocument, DEFAULT_LABOR_COMMISSION_RATE } = require('../lib/contracts');
+  const pricing = store.getPricingConfig();
+  const ca = provider.commissionAgreement || {};
+  const labor = ca.laborCommissionRate != null
+    ? ca.laborCommissionRate
+    : (parseFloat(req.query.percent) / 100 || DEFAULT_LABOR_COMMISSION_RATE);
+  const merchant = ca.merchantCardFeePercent != null
+    ? ca.merchantCardFeePercent
+    : (pricing.merchantCardFeePercent || 0);
+  const doc = buildCommissionAgreementDocument({
+    companyName: company.legalName || company.name,
+    companyRut: company.rut,
+    companyAddress: company.address,
+    partnerName: provider.providerContract?.legalEntity?.legalName || provider.name,
+    partnerRut: provider.providerContract?.legalEntity?.rut || '',
+    laborCommissionRate: labor,
+    merchantCardFeePercent: merchant
+  });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(doc.html);
+});
+
 router.post('/contratos/:providerId/documentos/review', requireRole('admin'), requireAdminPermission('contratos.review'), (req, res) => {
   const { docKey, status, notes } = req.body || {};
   if (!['approved', 'rejected', 'needs_info'].includes(status)) {

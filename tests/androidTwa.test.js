@@ -38,7 +38,12 @@ describe('androidTwa', () => {
     delete process.env.PLAY_STORE_LISTING_LIVE;
     expect(getPlayStoreUrl()).toContain('cl.fandez.app');
     expect(isPlayStoreListingLive()).toBe(false);
+    process.env.PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=cl.fandez.app';
+    // Tener URL no implica ficha publicada
+    expect(isPlayStoreListingLive()).toBe(false);
     process.env.PLAY_STORE_LISTING_LIVE = 'true';
     expect(isPlayStoreListingLive()).toBe(true);
+    process.env.PLAY_STORE_LISTING_LIVE = 'false';
+    expect(isPlayStoreListingLive()).toBe(false);
   });
 });

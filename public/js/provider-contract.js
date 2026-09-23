@@ -217,4 +217,41 @@
   });
 
   renderDocuments();
+
+  const btnCommission = document.getElementById('btnAcceptCommission');
+  if (btnCommission) {
+    btnCommission.addEventListener('click', async () => {
+      if (!document.getElementById('commissionAcceptCheck')?.checked) {
+        FandezNotify.show('Marca la casilla de aceptación del acuerdo de comisión', 'error');
+        return;
+      }
+      const fullName = document.getElementById('commissionSignName')?.value?.trim() || '';
+      if (fullName.length < 3) {
+        FandezNotify.show('Escribe tu nombre completo para firmar', 'error');
+        return;
+      }
+      btnCommission.disabled = true;
+      btnCommission.textContent = 'Firmando…';
+      try {
+        const res = await fetch('/proveedor/contrato/comision/aceptar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName })
+        });
+        const data = await res.json();
+        if (data.success) {
+          FandezNotify.show('Contrato de comisión aceptado', 'success');
+          setTimeout(() => location.reload(), 800);
+        } else {
+          FandezNotify.show(data.error || 'No se pudo aceptar', 'error');
+          btnCommission.disabled = false;
+          btnCommission.textContent = 'Firmar y aceptar comisión';
+        }
+      } catch (_) {
+        FandezNotify.show('Error de conexión', 'error');
+        btnCommission.disabled = false;
+        btnCommission.textContent = 'Firmar y aceptar comisión';
+      }
+    });
+  }
 })();

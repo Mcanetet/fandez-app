@@ -106,6 +106,35 @@ router.get('/contrato-socio.txt', (req, res) => {
   res.send(doc.text);
 });
 
+/** Plantilla genérica del acuerdo de comisión (valores por defecto / referencia). */
+router.get('/contrato-comision', (req, res) => {
+  const {
+    buildCommissionAgreementDocument,
+    COMMISSION_AGREEMENT_VERSION,
+    DEFAULT_LABOR_COMMISSION_RATE
+  } = require('../lib/contracts');
+  const store = require('../models/store');
+  const pricing = store.getPricingConfig();
+  const percent = parseFloat(req.query.percent);
+  const labor = Number.isFinite(percent) && percent >= 0 && percent <= 100
+    ? percent / 100
+    : DEFAULT_LABOR_COMMISSION_RATE;
+  const doc = buildCommissionAgreementDocument({
+    companyName: company.legalName || company.name,
+    companyRut: company.rut,
+    companyAddress: company.address,
+    laborCommissionRate: labor,
+    merchantCardFeePercent: pricing.merchantCardFeePercent || 0,
+    version: COMMISSION_AGREEMENT_VERSION
+  });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader(
+    'Content-Disposition',
+    `inline; filename="Acuerdo-Comision-Fandez-v${COMMISSION_AGREEMENT_VERSION}.html"`
+  );
+  res.send(doc.html);
+});
+
 router.get('/mis-datos', requireAuth, (req, res) => {
   const consents = buildConsentDashboard(req.session.user.id);
   res.render('legal/mis-datos', {
