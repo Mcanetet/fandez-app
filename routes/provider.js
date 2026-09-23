@@ -1200,6 +1200,14 @@ router.get('/contrato', requireRole('provider'), requireModule('provider_contrat
   });
 });
 
+router.get('/contrato/descargar', requireRole('provider'), requireModule('provider_contrato'), (req, res) => {
+  res.redirect(302, '/legal/contrato-socio');
+});
+
+router.get('/contrato/descargar.txt', requireRole('provider'), requireModule('provider_contrato'), (req, res) => {
+  res.redirect(302, '/legal/contrato-socio.txt');
+});
+
 router.post('/contrato/draft', requireRole('provider'), requireModule('provider_contrato'), (req, res) => {
   const result = store.updateProviderContractDraft(req.session.user.id, req.body);
   if (result.error) return res.status(400).json({ error: result.error });

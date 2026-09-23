@@ -11,6 +11,10 @@
       <p class="text-sm font-semibold mb-1"><%= summary.label %></p>
       <p class="text-xs text-zilo-muted mt-1">Lo esencial: carnet, escritura y e-RUT (si eres empresa), cuenta para liquidaciones y firma.</p>
       <p class="text-xs text-zilo-muted mt-2">Contrato v<%= templateVersion %> · <%= company.name %></p>
+      <p class="mt-3 flex flex-wrap gap-2">
+        <a href="/legal/contrato-socio" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zilo-accent hover:underline">Descargar / imprimir contrato</a>
+        <a href="/legal/contrato-socio.txt" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zilo-muted hover:underline">Versión texto (.txt)</a>
+      </p>
       <% if (contract.review?.rejectionReason) { %>
         <p class="text-xs text-red-600 mt-2"><strong>Observación:</strong> <%= contract.review.rejectionReason %></p>
       <% } %>

@@ -73,6 +73,39 @@ router.get('/cookies', (req, res) => {
   });
 });
 
+/** Contrato que firman los socios (HTML imprimible / guardar como PDF). */
+router.get('/contrato-socio', (req, res) => {
+  const { buildPartnerContractDocument, TEMPLATE_VERSION } = require('../lib/contracts');
+  const doc = buildPartnerContractDocument({
+    companyName: company.name,
+    companyRut: company.rut,
+    companyAddress: company.address,
+    version: TEMPLATE_VERSION
+  });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader(
+    'Content-Disposition',
+    `inline; filename="Contrato-Socio-Fandez-v${TEMPLATE_VERSION}.html"`
+  );
+  res.send(doc.html);
+});
+
+router.get('/contrato-socio.txt', (req, res) => {
+  const { buildPartnerContractDocument, TEMPLATE_VERSION } = require('../lib/contracts');
+  const doc = buildPartnerContractDocument({
+    companyName: company.name,
+    companyRut: company.rut,
+    companyAddress: company.address,
+    version: TEMPLATE_VERSION
+  });
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="Contrato-Socio-Fandez-v${TEMPLATE_VERSION}.txt"`
+  );
+  res.send(doc.text);
+});
+
 router.get('/mis-datos', requireAuth, (req, res) => {
   const consents = buildConsentDashboard(req.session.user.id);
   res.render('legal/mis-datos', {
