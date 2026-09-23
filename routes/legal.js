@@ -77,7 +77,7 @@ router.get('/cookies', (req, res) => {
 router.get('/contrato-socio', (req, res) => {
   const { buildPartnerContractDocument, TEMPLATE_VERSION } = require('../lib/contracts');
   const doc = buildPartnerContractDocument({
-    companyName: company.name,
+    companyName: company.legalName || company.name,
     companyRut: company.rut,
     companyAddress: company.address,
     version: TEMPLATE_VERSION
@@ -93,7 +93,7 @@ router.get('/contrato-socio', (req, res) => {
 router.get('/contrato-socio.txt', (req, res) => {
   const { buildPartnerContractDocument, TEMPLATE_VERSION } = require('../lib/contracts');
   const doc = buildPartnerContractDocument({
-    companyName: company.name,
+    companyName: company.legalName || company.name,
     companyRut: company.rut,
     companyAddress: company.address,
     version: TEMPLATE_VERSION

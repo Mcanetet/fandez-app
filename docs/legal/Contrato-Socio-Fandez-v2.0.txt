@@ -1,0 +1,55 @@
+CONTRATO DE PRESTACIÓN DE SERVICIOS — SOCIO FANDEZ
+Versión 2.0 · Gestión Integral y Servicios Fandez SpA
+RUT 78.494.038-1 · Santiago, Región Metropolitana, Chile
+Emitido: 22 de septiembre de 2026
+
+El presente instrumento regula la relación entre Fandez y el Socio (prestador independiente) que opera en la plataforma.
+
+1. Partes e intermediación digital
+El presente instrumento regula la relación entre Gestión Integral y Servicios Fandez SpA ("Fandez"), RUT 78.494.038-1, domiciliada en la ciudad de Santiago, Región Metropolitana, Chile, y la persona natural o jurídica que opera como prestador independiente de servicios a través de la plataforma digital (el "Socio"). Fandez opera de manera exclusiva como una plataforma tecnológica de intermediación que conecta usuarios/clientes finales con prestadores autónomos de servicios para el hogar. Las partes declaran que Fandez no es empleador, subcontratista principal, mandatario comercial ni garante de la ejecución material de las prestaciones, limitándose su rol al soporte tecnológico y procesamiento de datos.
+
+2. Naturaleza independiente y ausencia de subordinación
+El Socio presta servicios por su propia cuenta, costo y riesgo. Define libremente sus horarios, medios materiales, herramientas, movilidad y metodología de trabajo, manteniendo la facultad irrestricta de aceptar o rechazar solicitudes. No existe entre las partes relación de exclusividad, jornada laboral, subordinación, ni dependencia económica o administrativa. El Socio declara poseer una organización empresarial/técnica autónoma.
+
+3. Dependientes, técnicos y subcontratados (indemnidad laboral y previsional)
+Todo personal, técnico, empleado o contratista que el Socio inscriba o autorice para prestar servicios vinculados a su cuenta en la plataforma actuará bajo la exclusiva dirección y responsabilidad del Socio. Cumplimiento de Obligaciones: El Socio certifica que todo su personal cuenta con sus contratos de trabajo, cotizaciones previsionales, seguros de accidentes del trabajo (Ley N° 16.744) e impuestos al día, actuando en pleno cumplimiento del Código del Trabajo chileno. Responsabilidad y Solidaridad: El Socio responderá directamente por los daños materiales, lesiones, fraude, mala praxis, faltas a la seguridad, filtraciones o incumplimientos normativos generados por sus dependientes o técnicos. Indemnidad Laboral: El Socio se obliga a mantener a Fandez completamente indemne ante cualquier reclamo, fiscalización, demanda laboral, previsional, tributaria o sanción administrativa interpuesta por sus técnicos o por la Dirección del Trabajo. Fandez queda facultada para descontar o retener fondos de la cuenta del Socio ante eventuales reclamos judiciales de su personal.
+
+4. Documentación, habilitación y enrolamiento biométrico
+El Socio debe mantener vigentes sus certificaciones profesionales (SEC, licencias sanitarias o según corresponda), seguro de responsabilidad civil, inicio de actividades ante el SII y documentos constitutivos o de identificación personal. Enrolamiento de Terceros: Prohibida la atención presencial de técnicos no registrados ni validados previamente en la plataforma Fandez. Falsedad Documental: La falta de veracidad o caducidad documental faculta a Fandez para suspender o congelar la cuenta de forma inmediata y remitir los antecedentes a las autoridades competentes.
+
+5. Seguro de responsabilidad civil
+El Socio declara y garantiza contar con una póliza de responsabilidad civil vigente con cobertura idónea para los daños a terceros derivados de su actividad profesional. Ante cualquier siniestro, el Socio gestionará el reclamo de forma directa con su aseguradora. En caso de indemnizaciones asumidas preventivamente por Fandez para resguardar su reputación, Fandez ejercerá las acciones de repetición correspondientes.
+
+6. Relación directa con el cliente y Ley del Consumidor
+El Socio ostenta la calidad de proveedor directo e independiente frente al usuario o cliente final para efectos de garantías legales, calidad técnica, idoneidad de los materiales, presupuesto de ejecución y atención postventa conforme a la Ley N° 19.496 sobre Protección de los Derechos de los Consumidores. Fandez no responde por pactos, trabajos adicionales ni pagos en efectivo acordados al margen de la plataforma.
+
+7. Esquema de pagos, facturación y liquidaciones
+El modelo de liquidación de fondos al Socio se estructurará formalmente de acuerdo con la tipología del servicio ejecutado. A. Servicios Spot (trabajos directos / inmediatos): Periodicidad semanal. Para recibir la liquidación el día viernes, el Socio deberá haber emitido y subido a la plataforma la factura o documento tributario equivalente antes del día miércoles a las 12:00 PM (mediodía). Las facturas ingresadas después de ese plazo se procesarán el viernes de la semana siguiente. B. Proyectos por hitos: Las liquidaciones parciales o finales se realizarán los días viernes, sujeto a (i) que el flujo pagado por el cliente haya ingresado y quedado disponible antes del miércoles a las 12:00 PM, y (ii) que el Socio haya subido la factura del hito finalizado y aprobado. C. Comisiones, descuentos y retenciones: La comisión aplicable será individualizada para cada Socio y se informará en su panel al recibir o aceptar cada operación, considerando costos de pasarela de pago (Mercado Pago) e impuestos aplicables. El Socio autoriza a Fandez a efectuar retenciones preventivas o descuentos por contracargos, devoluciones fundadas, ajustes auditables o daños acreditados antes de liquidar. Los materiales cobrados directamente al cliente se liquidan en un 100% al Socio.
+
+8. Reajuste anual y condiciones económicas
+Estabilidad Inicial y Reajuste por IPC: Durante los primeros 12 (doce) meses contados desde la aceptación de este contrato, la tasa de comisión informada individualmente al Socio se mantendrá fija. Transcurrido ese año, las condiciones económicas podrán actualizarse anualmente con un tope máximo equivalente a la variación acumulada del Índice de Precios al Consumidor (IPC) publicado por el INE en los últimos 12 meses. Plazo de Notificación: Cualquier actualización se informará por correo registrado o notificación en la plataforma con al menos 30 (treinta) días de anticipación a su vigencia. Resguardo de Trabajos en Curso: Las operaciones, servicios o proyectos presupuestados, aceptados o iniciados antes de la vigencia de una actualización mantendrán la comisión convenida al momento de su aceptación previa.
+
+9. Prohibición de desintermediación y pactos directos con clientes (cláusula penal)
+Prohibición de Contratación Directa: El Socio reconoce que la relación con los clientes presentados o contactados a través de Fandez se originó gracias a la tecnología, marketing e infraestructura de la plataforma. Queda estrictamente prohibido al Socio —y a sus dependientes, técnicos o colaboradores— ofrecer, cotizar, acordar, ejecutar o cobrar servicios, ampliaciones de obra o trabajos adicionales de forma directa con dichos clientes fuera del sistema Fandez, así como incitar, sugerir o aceptar pagos en efectivo o transferencias bancarias directas no procesadas mediante la aplicación. Período de Restricción: Durante toda la relación contractual y hasta 12 (doce) meses posteriores al término o cancelación de la cuenta, respecto de clientes contactados a través de Fandez. Multa y Cláusula Penal: Ante incumplimiento acreditado, Fandez podrá (i) exigir una multa o pena convencional equivalente a 30 UF por cada infracción o cliente desviado; (ii) compensar y descontar dicho monto de saldos o liquidaciones pendientes; y (iii) desconectar, bloquear y suspender de manera definitiva e inmediata la cuenta del Socio, sin derecho a indemnización. Reserva de Acciones Legales: La multa no limita el derecho de Fandez SpA a ejercer acciones civiles y penales por competencia desleal (Ley N° 20.169), indemnización de perjuicios superiores a la pena y/o daños reputacionales ante los Tribunales Ordinarios de Justicia.
+
+10. Protección de datos personales
+Las partes darán estricto cumplimiento a la Ley N° 19.628 y sus modificaciones sobre protección de la vida privada. El Socio actuará como mero Encargado del Tratamiento respecto de los datos de contacto y domicilio de los clientes, comprometiéndose a: utilizarlos exclusivamente para ejecutar el trabajo asignado; no almacenar, copiar ni transferir los datos fuera del entorno de la aplicación; y eliminar de sus registros cualquier dato de clientes una vez concluido el servicio.
+
+11. Propiedad intelectual y marca
+El software, las marcas registradas, los logotipos y el diseño de la plataforma Fandez son propiedad exclusiva de Gestión Integral y Servicios Fandez SpA. Se prohíbe al Socio utilizar la marca fuera de la plataforma o presentarse ante terceros como empleado, representante o franquiciado de Fandez.
+
+12. Suspensión y terminación del contrato
+Por parte de Fandez: podrá suspender o rescindir el acceso al panel en cualquier momento ante incumplimientos del Socio, vencimiento de documentación, reclamos graves de usuarios, sospecha de fraude o riesgo legal/reputacional. Por parte del Socio: podrá dar de baja su cuenta voluntariamente previa liquidación de los trabajos o proyectos en curso pendientes.
+
+13. Limitación de responsabilidad de Fandez
+En la máxima medida permitida por las leyes de Chile, la responsabilidad total de Fandez frente al Socio por cualquier controversia se limita a las comisiones efectivamente percibidas por Fandez respecto del servicio puntual reclamado dentro de los últimos 3 (tres) meses. Fandez no responderá por lucro cesante, pérdida de oportunidad ni daños indirectos.
+
+14. Jurisdicción y legislación aplicable
+El presente contrato se rige por las leyes de la República de Chile. Para todos los efectos legales, las partes fijan domicilio en la ciudad y comuna de Santiago y se someten a la jurisdicción de sus Tribunales Ordinarios de Justicia.
+
+DECLARACIONES EXPLÍCITAS DEL SOCIO
+1. Presto servicios por mi propia cuenta y riesgo. Declaro explícitamente que no soy empleado ni dependiente de Fandez SpA.
+2. Asumo la plena responsabilidad legal, tributaria y previsional por el trabajo ejecutado por mi persona y por los técnicos que inscriba bajo mi cuenta.
+3. Declaro que toda la documentación e inicio de actividades adjuntados son reales, verídicos y vigentes.
+
+Al firmar electrónicamente en la plataforma (o al aceptar en /proveedor/contrato), el Socio declara haber leído y aceptado íntegramente este contrato.

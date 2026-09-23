@@ -3,7 +3,8 @@ const DPO_EMAIL = process.env.DPO_EMAIL || 'privacidad@fandez.cl';
 
 module.exports = {
   name: 'Fandez SpA',
-  rut: '77.777.777-7',
+  legalName: 'Gestión Integral y Servicios Fandez SpA',
+  rut: process.env.FANDEZ_RUT || '78.494.038-1',
   supportEmail: SUPPORT_EMAIL,
   email: SUPPORT_EMAIL,
   address: 'Santiago, Región Metropolitana, Chile',
