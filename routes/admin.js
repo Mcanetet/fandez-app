@@ -273,9 +273,15 @@ router.get('/login', (req, res) => {
     });
   }
   const expired = req.query.expired === '1';
+  const needAdmin = req.query.need_admin === '1';
+  let loginError = null;
+  if (expired) loginError = 'La verificación MFA expiró. Ingresa nuevamente.';
+  else if (needAdmin) {
+    loginError = 'Entra con la cuenta admin (no la de cliente/socio). Si estabas en la app normal, ya se cerró esa sesión aquí.';
+  }
   res.render('admin/login', {
     title: 'Admin — Fandez',
-    error: expired ? 'La verificación MFA expiró. Ingresa nuevamente.' : null,
+    error: loginError,
     csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
     nextPath: req.session.adminNext || ''
   });

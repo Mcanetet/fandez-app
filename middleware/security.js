@@ -164,6 +164,12 @@ function adminIpAllowlist() {
       || process.env.ADMIN_IP_ALLOWLIST_ENFORCE === 'true';
     if (!enforce) return next();
 
+    const p = String(req.path || '');
+    // Manifest PWA debe ser público (Chrome lo pide sin cookies / desde otra IP).
+    if (req.method === 'GET' && (p === '/app.webmanifest' || p.endsWith('/app.webmanifest'))) {
+      return next();
+    }
+
     const ip = getClientIp(req);
     if (allowed.includes(ip) || allowed.includes('*')) return next();
 
@@ -172,14 +178,14 @@ function adminIpAllowlist() {
       store.logSecurityEvent('admin_ip_blocked', ip, req);
     } catch (_) { /* store no listo */ }
 
-    // Login GET: página clara (no 403 genérico de hosting)
-    const p = String(req.path || '');
-    if (req.method === 'GET' && (p === '/login' || p === '/' || p === '')) {
+    // GET: página clara con la IP (útil en celular / 4G)
+    if (req.method === 'GET') {
       return res.status(403).render('admin/login', {
         title: 'Admin — Fandez',
-        error: `IP no autorizada (${ip}). En Hostinger quita o actualiza ADMIN_IP_ALLOWLIST, o añade esta IP.`,
+        error: `IP no autorizada (${ip}). Para usar Fandez Admin en el celular: en Hostinger borra ADMIN_IP_ALLOWLIST (deja vacío) o añade esta IP, y redeploya. MFA sigue activo.`,
         csrfToken: null,
-        ipBlocked: true
+        ipBlocked: true,
+        nextPath: ''
       });
     }
 

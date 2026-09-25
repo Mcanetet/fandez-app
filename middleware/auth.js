@@ -42,16 +42,23 @@ function requireRole(...roles) {
     if (!req.session.user) {
       if (wantsJson(req)) return res.status(401).json({ success: false, error: 'Sesión expirada. Vuelve a iniciar sesión.' });
       if (roles.includes('admin')) {
-        const nextQ = req.originalUrl && String(req.originalUrl).includes('/app')
-          ? `?next=${encodeURIComponent('/app')}`
-          : '';
-        return res.redirect(absoluteAdminUrl(`/login${nextQ}`));
+        return res.redirect(absoluteAdminUrl(`/login${adminNextQuery(req)}`));
       }
       return res.redirect('/login');
     }
     if (rejectBlockedSession(req, res)) return;
     if (!roles.includes(req.session.user.role)) {
       if (wantsJson(req)) return res.status(403).json({ success: false, error: 'No tienes permisos para esta acción.' });
+      // Sesión de cliente/socio/técnico en el mismo dominio no debe dar 403 en el panel admin.
+      if (roles.includes('admin')) {
+        try {
+          delete req.session.user;
+          delete req.session.adminAccess;
+          delete req.session.adminMfaVerified;
+          delete req.session.pendingAdminMfa;
+        } catch (_) { /* ignore */ }
+        return res.redirect(absoluteAdminUrl(`/login${adminNextQuery(req, { needAdmin: true })}`));
+      }
       return res.status(403).render('error', {
         title: 'Acceso denegado',
         message: 'No tienes permisos para acceder a esta sección.',
@@ -83,6 +90,19 @@ function requireRole(...roles) {
     }
     next();
   };
+}
+
+/** next seguro tras login admin: /app o /instalar-admin */
+function adminNextQuery(req, { needAdmin = false } = {}) {
+  const raw = String(req.originalUrl || req.path || '');
+  let next = '';
+  if (raw.includes('/instalar-admin')) next = '/instalar-admin';
+  else if (raw.includes('/app')) next = '/app';
+  const params = new URLSearchParams();
+  if (next) params.set('next', next);
+  if (needAdmin) params.set('need_admin', '1');
+  const q = params.toString();
+  return q ? `?${q}` : '';
 }
 
 function requireVerifiedEmail(req, res, next) {
