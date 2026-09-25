@@ -51,6 +51,7 @@
       cursor: pointer;
     }
     .btn.secondary { background: #27272a; color: #f4f4f5; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
     .note { font-size: 12px; color: #71717a; margin-top: 14px; }
     .warn {
       text-align: left;
@@ -75,28 +76,43 @@
       color: #bbf7d0;
       line-height: 1.45;
     }
+    .status {
+      display: none;
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .status.show { display: block; }
+    .status.ok { background: #052e16; border: 1px solid #166534; color: #bbf7d0; }
+    .status.info { background: #1e1b4b; border: 1px solid #4338ca; color: #c7d2fe; }
   </style>
 </head>
 <body>
   <div class="card">
     <img src="/icons/fandez-admin-512.png?v=2" alt="Fandez Admin">
-    <h1>Fandez Admin</h1>
-    <p>Acceso privado a alertas. <strong>No uses “Instalar app”</strong> si Play Protect la bloquea.</p>
+    <h1>Instalar Fandez Admin</h1>
+    <p>No es una descarga de Play Store. Se instala como <strong>acceso directo</strong> (PWA) en tu celular.</p>
+
+    <div id="statusBox" class="status"></div>
 
     <div class="warn">
-      <strong>Si viste “Se bloqueó la app no segura”:</strong>
-      toca <em>Entendido</em>. Eso pasa con el instalador automático de Chrome.
-      Usa el método de abajo (añadir a inicio), que no genera ese APK.
+      <strong>Importante:</strong>
+      Si Chrome ofrece “Instalar app” y Play Protect la bloquea, cancela y usa
+      <em>Añadir a la pantalla de inicio</em> (pasos de abajo).
     </div>
 
+    <button type="button" class="btn" id="btnInstallChrome" style="display:none;width:calc(100% - 8px)">Instalar en este celular</button>
+
     <div class="ok-box" id="androidBox">
-      <strong>Android · forma que sí funciona</strong>
+      <strong>Android · Chrome (recomendado)</strong>
       <ol style="margin:8px 0 0;padding-left:1.1rem;color:#bbf7d0">
-        <li>Abre esta página en <strong>Chrome</strong>.</li>
-        <li>Menú <strong>⋮</strong> (arriba a la derecha).</li>
-        <li>Elige <strong>Añadir a la pantalla de inicio</strong> (no “Instalar app”).</li>
-        <li>Confirma. Queda el ícono negro <strong>Fandez Admin</strong>.</li>
-        <li>Ábrelo y toca <strong>Activar avisos</strong>.</li>
+        <li>Quédate en esta pantalla (ya iniciaste sesión).</li>
+        <li>Menú <strong>⋮</strong> arriba a la derecha.</li>
+        <li><strong>Añadir a la pantalla de inicio</strong> / Crear acceso directo.</li>
+        <li>Confirma. Aparece el ícono negro <strong>Fandez Admin</strong>.</li>
+        <li>Ábrelo → <strong>Activar avisos</strong>.</li>
       </ol>
     </div>
 
@@ -109,21 +125,64 @@
       </ol>
     </div>
 
-    <a class="btn" href="<%= installUrl %>">Abrir bandeja ahora</a>
+    <a class="btn secondary" href="<%= installUrl %>">Abrir bandeja ahora</a>
     <a class="btn secondary" href="<%= adminBase %>">Ir al panel completo</a>
 
-    <p class="note">Si Chrome solo muestra “Instalar app” y Play Protect la bloquea: en ⋮ busca “Añadir a la pantalla de inicio” o “Crear acceso directo”.</p>
+    <p class="note">Si no ves el menú de instalar: abre este mismo enlace otra vez en Chrome (no en Instagram/WhatsApp in-app browser).</p>
   </div>
 
   <script>
   (function () {
+    var statusBox = document.getElementById('statusBox');
+    function setStatus(msg, kind) {
+      if (!statusBox) return;
+      statusBox.textContent = msg;
+      statusBox.className = 'status show ' + (kind || 'info');
+    }
+
     var isIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
       || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     if (isIos) {
       document.getElementById('iosBox').style.display = 'block';
       document.getElementById('androidBox').style.display = 'none';
+      setStatus('En iPhone usa Safari → Compartir → Añadir a pantalla de inicio.', 'info');
     }
-    // No llamar beforeinstallprompt: genera WebAPK y Play Protect lo bloquea en varios Android.
+
+    var standalone = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone;
+    if (standalone) {
+      setStatus('Ya está instalada. Abre la bandeja y activa avisos.', 'ok');
+    }
+
+    // Solo mostrar botón nativo si Chrome lo ofrece (no forzar WebAPK siempre).
+    var deferredPrompt = null;
+    var btn = document.getElementById('btnInstallChrome');
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (btn) btn.style.display = 'inline-block';
+      setStatus('Chrome puede instalarla con el botón naranja.', 'info');
+    });
+    btn?.addEventListener('click', async function () {
+      if (!deferredPrompt) {
+        setStatus('Usa el menú ⋮ → Añadir a la pantalla de inicio.', 'info');
+        return;
+      }
+      deferredPrompt.prompt();
+      try {
+        var choice = await deferredPrompt.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          setStatus('Instalada. Busca el ícono negro Fandez Admin.', 'ok');
+        } else {
+          setStatus('Cancelado. Prueba ⋮ → Añadir a la pantalla de inicio.', 'info');
+        }
+      } catch (_) {
+        setStatus('Usa ⋮ → Añadir a la pantalla de inicio.', 'info');
+      }
+      deferredPrompt = null;
+      btn.style.display = 'none';
+    });
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js?v=41', { scope: '/' }).catch(function () {
         navigator.serviceWorker.register('/sw.js?v=41', { scope: '/' }).catch(function () {});

@@ -176,6 +176,8 @@ const ADMIN_SESSION_MS = 4 * 60 * 60 * 1000;
 const MFA_PENDING_MS = 5 * 60 * 1000;
 
 function completeAdminSession(req, user, done) {
+  // session.regenerate borra adminNext; hay que restaurarlo (p. ej. volver a instalar-admin).
+  const savedNext = req.session?.adminNext || null;
   const finish = () => {
     // Admin no usa correo activo: marcar verificado al entrar (solo MFA / Authenticator)
     if (user && user.role === 'admin' && !user.emailVerifiedAt) {
@@ -191,6 +193,7 @@ function completeAdminSession(req, user, done) {
     req.session.isAdminSession = true;
     req.session.adminMfaVerified = true;
     delete req.session.pendingAdminMfa;
+    if (savedNext) req.session.adminNext = savedNext;
     if (req.session.cookie) {
       req.session.cookie.maxAge = ADMIN_SESSION_MS;
     }
@@ -347,6 +350,7 @@ router.post('/login', rateLimitLogin(8), async (req, res) => {
   const mustSetupMfa = isProductionMode() && !mfaEnabled;
 
   if (mfaEnabled) {
+    rememberAdminNext(req, req.body?.next || req.query?.next);
     req.session.pendingAdminMfa = {
       userId: user.id,
       email: user.email,
@@ -384,11 +388,13 @@ router.get('/mfa', (req, res) => {
     title: 'Verificación MFA — Fandez',
     email: pending.email,
     error: null,
+    nextPath: req.session.adminNext || '',
     csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
   });
 });
 
 router.post('/mfa', rateLimitLogin(6), async (req, res) => {
+  rememberAdminNext(req, req.body?.next || req.query?.next);
   const pending = getPendingMfa(req);
   if (!pending) {
     return res.redirect(adminUrl('/login') + '?expired=1');
@@ -401,6 +407,7 @@ router.post('/mfa', rateLimitLogin(6), async (req, res) => {
       title: 'Verificación MFA — Fandez',
       email: pending.email,
       error: 'Código incorrecto o expirado.',
+      nextPath: req.session.adminNext || '',
       csrfToken: require('../middleware/csrf').ensureCsrfToken(req)
     });
   }
@@ -512,7 +519,11 @@ router.get('/app', requireRole('admin'), (req, res) => {
   });
 });
 
-router.get('/instalar-admin', requireRole('admin'), (req, res) => {
+router.get('/instalar-admin', (req, res, next) => {
+  // Guardar destino aunque aún no haya sesión (sobrevive al login + MFA).
+  req.session.adminNext = adminUrl('/instalar-admin');
+  requireRole('admin')(req, res, next);
+}, (req, res) => {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   const base = adminUrl();
   const origin = String(process.env.APP_URL || company.appUrl || 'https://www.fandez.cl').replace(/\/$/, '');
