@@ -1954,12 +1954,18 @@ router.delete('/backups/:id', requireRole('admin'), requireAdminPermission('back
 router.get('/precios', requireRole('admin'), requireAdminPermission('precios.view', 'precios.manage'), (req, res) => {
   const pricing = store.getPricingConfig();
   const gateways = require('../lib/payments/gateways');
+  const marketRm = require('../lib/marketReferenceRm');
+  const serviceCatalog = marketRm.enrichServiceCatalog(store.getServiceCatalog(), pricing);
+  const materialsGrouped = marketRm.groupMaterialsBySpecialty(pricing.materialsCatalog);
   res.render('admin/precios', {
     title: 'Configuración de precios — Fandez Admin',
     user: req.session.user,
     pricing,
-    serviceCatalog: store.getServiceCatalog(),
+    serviceCatalog,
     catalogRows: store.getCatalogPriceRows(),
+    materialsGrouped,
+    marketRegion: marketRm.REGION,
+    marketUpdated: marketRm.UPDATED,
     gatewayStatus: gateways.getGatewayStatus(pricing),
     query: req.query,
     formatCLP: store.formatCLP
@@ -2040,39 +2046,72 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
   }
 
   const catalogPrices = {};
+  const catalogMarketRefs = {};
   const catalogIds = Array.isArray(body.catalogActivityId)
     ? body.catalogActivityId
     : (body.catalogActivityId ? [body.catalogActivityId] : []);
   const catalogBasePrices = Array.isArray(body.catalogBasePrice)
     ? body.catalogBasePrice
     : (body.catalogBasePrice ? [body.catalogBasePrice] : []);
+  const catalogMarketLows = Array.isArray(body.catalogMarketLow)
+    ? body.catalogMarketLow
+    : (body.catalogMarketLow ? [body.catalogMarketLow] : []);
+  const catalogMarketMids = Array.isArray(body.catalogMarketMid)
+    ? body.catalogMarketMid
+    : (body.catalogMarketMid ? [body.catalogMarketMid] : []);
+  const catalogMarketHighs = Array.isArray(body.catalogMarketHigh)
+    ? body.catalogMarketHigh
+    : (body.catalogMarketHigh ? [body.catalogMarketHigh] : []);
   for (let i = 0; i < catalogIds.length; i++) {
     const id = catalogIds[i];
     const price = parseInt(catalogBasePrices[i], 10);
     if (id && Number.isFinite(price) && price > 0) catalogPrices[id] = price;
+    if (id) {
+      const mid = parseInt(catalogMarketMids[i], 10);
+      const low = parseInt(catalogMarketLows[i], 10);
+      const high = parseInt(catalogMarketHighs[i], 10);
+      if (Number.isFinite(mid) && mid > 0) {
+        catalogMarketRefs[id] = {
+          low: Number.isFinite(low) && low >= 0 ? low : Math.round(mid * 0.85),
+          mid,
+          high: Number.isFinite(high) && high >= 0 ? high : Math.round(mid * 1.3),
+          region: 'RM',
+          updatedAt: new Date().toISOString().slice(0, 7)
+        };
+      }
+    }
   }
 
   const matIds = Array.isArray(body.matId) ? body.matId : (body.matId ? [body.matId] : []);
   const matNames = Array.isArray(body.matName) ? body.matName : (body.matName ? [body.matName] : []);
   const matUnits = Array.isArray(body.matUnit) ? body.matUnit : (body.matUnit ? [body.matUnit] : []);
   const matPrices = Array.isArray(body.matPrice) ? body.matPrice : (body.matPrice ? [body.matPrice] : []);
+  const matLows = Array.isArray(body.matMarketLow) ? body.matMarketLow : (body.matMarketLow ? [body.matMarketLow] : []);
+  const matHighs = Array.isArray(body.matMarketHigh) ? body.matMarketHigh : (body.matMarketHigh ? [body.matMarketHigh] : []);
   const matEnabledRaw = body.matEnabled;
   const matEnabledSet = new Set(Array.isArray(matEnabledRaw) ? matEnabledRaw : (matEnabledRaw ? [matEnabledRaw] : []));
   const materialsCatalog = [];
+  const seenMatIds = new Set();
   for (let i = 0; i < matIds.length; i++) {
     const id = String(matIds[i] || '').trim();
     const name = String(matNames[i] || '').trim();
-    if (!name) continue;
+    if (!name || !id || seenMatIds.has(id)) continue;
+    seenMatIds.add(id);
     const specKey = `matSpec_${id}`;
     const specRaw = body[specKey];
     const specialtyIds = Array.isArray(specRaw)
       ? specRaw.map(String).filter(Boolean)
       : (specRaw ? [String(specRaw)] : []);
+    const marketPrice = parseInt(matPrices[i], 10) || 0;
+    const marketLow = parseInt(matLows[i], 10);
+    const marketHigh = parseInt(matHighs[i], 10);
     materialsCatalog.push({
-      id: id || undefined,
+      id,
       name,
       unit: String(matUnits[i] || 'unidad').trim() || 'unidad',
-      marketPrice: parseInt(matPrices[i], 10) || 0,
+      marketPrice,
+      marketLow: Number.isFinite(marketLow) && marketLow >= 0 ? marketLow : Math.round(marketPrice * 0.9),
+      marketHigh: Number.isFinite(marketHigh) && marketHigh >= 0 ? marketHigh : Math.round(marketPrice * 1.25),
       specialtyIds,
       enabled: matEnabledSet.has(id)
     });
@@ -2121,7 +2160,9 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
     },
     urgencyTiers: tiers.length ? tiers : undefined,
     catalogPrices,
+    catalogMarketRefs,
     materialsCatalog: materialsCatalog.length ? materialsCatalog : undefined,
+    materialsIncludedThresholdClp: parseInt(body.materialsIncludedThresholdClp, 10),
     materialsAutoApproveMaxClp: parseInt(body.materialsAutoApproveMaxClp, 10),
     materialsFounderReviewMinClp: parseInt(body.materialsFounderReviewMinClp, 10),
     materialsAutoApproveMinConfidence: parseFloat(body.materialsAutoApproveMinConfidence)

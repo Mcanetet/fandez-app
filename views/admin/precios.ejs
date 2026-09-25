@@ -1,6 +1,6 @@
 <%- include('../partials/head', { bodyClass: 'admin-page' }) %>
 
-<div class="max-w-2xl mx-auto min-h-screen flex flex-col zilo-page-enter">
+<div class="max-w-5xl mx-auto min-h-screen flex flex-col zilo-page-enter">
   <header class="sticky top-0 z-50 bg-zilo-bg/95 backdrop-blur-xl border-b border-zilo-border px-5 py-4">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -275,39 +275,59 @@
       </section>
 
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
-        <div class="flex justify-between items-center mb-2 gap-2">
-          <h2 class="text-sm font-semibold">Catálogo de precios base por tipo de servicio</h2>
+        <div class="flex justify-between items-start mb-2 gap-2 flex-wrap">
+          <div>
+            <h2 class="text-sm font-semibold">Servicios · precios base por tipo</h2>
+            <p class="text-xs text-gray-500 mt-1">
+              Despliega cada especialidad. Precio Fandez = total cliente (IVA incl.). Comparativo = mercado
+              <strong>Región Metropolitana</strong> (<%= typeof marketRegion !== 'undefined' ? marketRegion : 'RM' %>, ref. <%= typeof marketUpdated !== 'undefined' ? marketUpdated : '2026-09' %>).
+            </p>
+          </div>
           <span class="text-[10px] text-gray-500"><%= (typeof catalogRows !== 'undefined' ? catalogRows.length : 0) %> actividades</span>
         </div>
-        <p class="text-xs text-gray-500 mb-4">
-          Precio base en horario normal (CLP) = <strong>total al cliente (IVA incluido)</strong>.
-          Luego se aplica recargo por horario × urgencia. Mínimo técnico <strong>$55.000</strong> por actividad (Plan A soft launch).
+        <p class="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+          Δ vs mercado: verde ≈ al mercado (±5%), azul = Fandez más bajo, ámbar = Fandez más alto. Los rangos bajo/medio/alto son editables.
         </p>
 
         <% if (typeof serviceCatalog !== 'undefined' && serviceCatalog.length) { %>
-          <div class="space-y-5">
-            <% serviceCatalog.forEach(function(specialty) { %>
-              <div class="rounded-xl border border-gray-200 overflow-hidden">
-                <div class="px-3 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                  <strong class="text-sm"><%= specialty.name %></strong>
-                  <span class="text-[10px] font-mono text-gray-400"><%= specialty.id %></span>
-                </div>
-                <div class="overflow-x-auto">
-                  <table class="w-full text-left text-sm min-w-[520px]">
+          <div class="space-y-2" id="serviceCatalogAccordions">
+            <% serviceCatalog.forEach(function(specialty, sIdx) { %>
+              <details class="rounded-xl border border-gray-200 overflow-hidden bg-white" <%= sIdx === 0 ? 'open' : '' %>>
+                <summary class="px-3 py-3 bg-gray-50 cursor-pointer list-none flex items-center justify-between gap-3 select-none">
+                  <span class="min-w-0">
+                    <strong class="text-sm text-gray-900"><%= specialty.name %></strong>
+                    <span class="text-[10px] font-mono text-gray-400 ml-2"><%= specialty.id %></span>
+                  </span>
+                  <span class="shrink-0 text-[11px] text-gray-600">
+                    <%= specialty.activities.length %> ·
+                    <span class="<%= Math.abs(specialty.marketSummary && specialty.marketSummary.avgPct || 0) <= 5 ? 'text-emerald-700' : ((specialty.marketSummary && specialty.marketSummary.avgPct) < 0 ? 'text-blue-700' : 'text-amber-700') %>">
+                      <%= specialty.marketSummary ? specialty.marketSummary.label : '—' %>
+                    </span>
+                  </span>
+                </summary>
+                <div class="overflow-x-auto border-t border-gray-100">
+                  <table class="w-full text-left text-sm min-w-[760px]">
                     <thead>
-                      <tr class="text-[10px] uppercase tracking-wide text-gray-500 border-b border-gray-100">
+                      <tr class="text-[10px] uppercase tracking-wide text-gray-500 border-b border-gray-100 bg-white">
                         <th class="px-3 py-2 font-medium">Actividad</th>
                         <th class="px-3 py-2 font-medium w-24">Tipo</th>
-                        <th class="px-3 py-2 font-medium w-40">Precio base (CLP)</th>
+                        <th class="px-3 py-2 font-medium w-28">Precio Fandez</th>
+                        <th class="px-3 py-2 font-medium w-24">Mercado bajo</th>
+                        <th class="px-3 py-2 font-medium w-24">Mercado mid</th>
+                        <th class="px-3 py-2 font-medium w-24">Mercado alto</th>
+                        <th class="px-3 py-2 font-medium w-36">Δ vs RM</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <% specialty.activities.forEach(function(activity) { %>
-                        <tr class="border-b border-gray-50 last:border-0">
+                      <% specialty.activities.forEach(function(activity) {
+                        const d = activity.delta || {};
+                        const tone = d.tone === 'ok' ? 'text-emerald-700 bg-emerald-50' : (d.tone === 'low' ? 'text-blue-700 bg-blue-50' : (d.tone === 'high' ? 'text-amber-800 bg-amber-50' : 'text-gray-500 bg-gray-50'));
+                      %>
+                        <tr class="border-b border-gray-50 last:border-0 align-top">
                           <td class="px-3 py-2.5">
                             <input type="hidden" name="catalogActivityId" value="<%= activity.id %>">
-                            <p class="font-medium text-gray-800"><%= activity.name %></p>
-                            <p class="text-[10px] font-mono text-gray-400"><%= activity.id %><% if (activity.pricingUnit === 'm2') { %> · cobro por m²<% } %></p>
+                            <p class="font-medium text-gray-800 leading-snug"><%= activity.name %></p>
+                            <p class="text-[10px] font-mono text-gray-400"><%= activity.id %><% if (activity.pricingUnit === 'm2') { %> · / m²<% } %></p>
                           </td>
                           <td class="px-3 py-2.5">
                             <span class="text-[10px] px-2 py-0.5 rounded-full <%= activity.kind === 'correctiva' ? 'bg-orange-50 text-orange-700' : 'bg-emerald-50 text-emerald-700' %>">
@@ -315,24 +335,34 @@
                             </span>
                           </td>
                           <td class="px-3 py-2.5">
-                            <input
-                              type="number"
-                              name="catalogBasePrice"
-                              value="<%= activity.basePrice %>"
+                            <input type="number" name="catalogBasePrice" value="<%= activity.basePrice %>"
                               min="<%= activity.pricingUnit === 'm2' ? 1000 : 55000 %>"
                               step="<%= activity.pricingUnit === 'm2' ? 100 : 1000 %>"
-                              class="zilo-input !py-2 text-sm w-full"
-                              required
-                            >
-                            <% if (activity.pricingUnit === 'm2') { %><p class="text-[10px] text-gray-500 mt-1">CLP / m²</p><% } %>
+                              class="zilo-input !py-1.5 text-sm w-full js-fandez-price" required>
+                          </td>
+                          <td class="px-3 py-2.5">
+                            <input type="number" name="catalogMarketLow" value="<%= activity.market.low %>" min="0" step="1000" class="zilo-input !py-1.5 text-sm w-full">
+                          </td>
+                          <td class="px-3 py-2.5">
+                            <input type="number" name="catalogMarketMid" value="<%= activity.market.mid %>" min="0" step="1000" class="zilo-input !py-1.5 text-sm w-full js-market-mid">
+                          </td>
+                          <td class="px-3 py-2.5">
+                            <input type="number" name="catalogMarketHigh" value="<%= activity.market.high %>" min="0" step="1000" class="zilo-input !py-1.5 text-sm w-full">
+                          </td>
+                          <td class="px-3 py-2.5">
+                            <span class="inline-block text-[10px] font-semibold px-2 py-1 rounded-full <%= tone %> js-delta-badge"><%= d.label || '—' %></span>
                           </td>
                         </tr>
                       <% }); %>
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </details>
             <% }); %>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button type="button" id="btnExpandAllServices" class="text-xs font-medium text-zilo-accent hover:underline">Expandir todos</button>
+            <button type="button" id="btnCollapseAllServices" class="text-xs font-medium text-gray-500 hover:underline">Colapsar todos</button>
           </div>
         <% } else { %>
           <p class="text-xs text-red-600">No hay catálogo cargado.</p>
@@ -344,7 +374,12 @@
         <p class="text-xs text-gray-500 mb-4">
           Umbrales para auto-aprobación IA vs revisión del founder. Por defecto $15.000 CLP.
         </p>
-        <div class="grid sm:grid-cols-3 gap-3">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <label class="text-[11px] font-semibold text-gray-600">Incluido en servicio hasta (CLP)</label>
+            <input type="number" name="materialsIncludedThresholdClp" value="<%= pricing.materialsIncludedThresholdClp != null ? pricing.materialsIncludedThresholdClp : 10000 %>" min="0" step="500" class="zilo-input w-full mt-1">
+            <p class="text-[10px] text-gray-400 mt-1">Bajo este monto no se cobra aparte.</p>
+          </div>
           <div>
             <label class="text-[11px] font-semibold text-gray-600">Auto-aprobar hasta (CLP)</label>
             <input type="number" name="materialsAutoApproveMaxClp" value="<%= pricing.materialsAutoApproveMaxClp != null ? pricing.materialsAutoApproveMaxClp : 15000 %>" min="0" step="500" class="zilo-input w-full mt-1">
@@ -361,69 +396,107 @@
       </section>
 
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
-        <h2 class="text-sm font-semibold mb-1">Materiales y productos (base de datos)</h2>
-        <p class="text-xs text-gray-500 mb-4">
-          Catálogo con precios de mercado por servicio. El técnico <strong>solo puede elegir de esta lista</strong>
-          al proponer adicionales. Se cobran a costo (0% comisión Fandez). Especialidades vacío = todos los servicios.
-          Al guardar o reiniciar la app se fusionan productos nuevos del catálogo oficial.
-        </p>
-        <% const matCatalog = Array.isArray(pricing.materialsCatalog) ? pricing.materialsCatalog : []; %>
-        <% const appServices = [
-          { id: 'gasfiter', name: 'Gasfitería' },
-          { id: 'electrico', name: 'Electricidad' },
-          { id: 'aires', name: 'Aire acondicionado' },
-          { id: 'termos', name: 'Termos' },
-          { id: 'cerrajero', name: 'Cerrajería' },
-          { id: 'calderas', name: 'Calderas' },
-          { id: 'generadores', name: 'Generadores' },
-          { id: 'pintura', name: 'Pintura' },
-          { id: 'jardineria', name: 'Jardinería y paisajismo' },
-          { id: 'limpieza', name: 'Limpieza' },
-          { id: 'otros', name: 'Otros' }
-        ]; %>
-        <div class="overflow-x-auto rounded-xl border border-gray-100 mb-3">
-          <table class="w-full text-sm min-w-[720px]">
-            <thead>
-              <tr class="text-[10px] uppercase tracking-wide text-gray-500 border-b border-gray-100 bg-gray-50/80">
-                <th class="px-3 py-2 font-medium text-left">Material</th>
-                <th class="px-3 py-2 font-medium w-24">Unidad</th>
-                <th class="px-3 py-2 font-medium w-32">Precio mercado</th>
-                <th class="px-3 py-2 font-medium">Especialidades</th>
-                <th class="px-3 py-2 font-medium w-16 text-center">Activo</th>
-              </tr>
-            </thead>
-            <tbody id="materialsCatalogBody">
-              <% matCatalog.forEach(function(m) { %>
-                <tr class="border-b border-gray-50 align-top">
-                  <td class="px-3 py-2">
-                    <input type="hidden" name="matId" value="<%= m.id %>">
-                    <input type="text" name="matName" value="<%= m.name %>" class="zilo-input !py-1.5 text-sm w-full" required>
-                  </td>
-                  <td class="px-3 py-2">
-                    <input type="text" name="matUnit" value="<%= m.unit || 'unidad' %>" class="zilo-input !py-1.5 text-sm w-full" required>
-                  </td>
-                  <td class="px-3 py-2">
-                    <input type="number" name="matPrice" value="<%= m.marketPrice %>" min="0" step="100" class="zilo-input !py-1.5 text-sm w-full" required>
-                  </td>
-                  <td class="px-3 py-2">
-                    <div class="flex flex-wrap gap-x-2 gap-y-1">
-                      <% appServices.forEach(function(s) { %>
-                        <label class="inline-flex items-center gap-1 text-[11px] text-gray-600 cursor-pointer">
-                          <input type="checkbox" name="matSpec_<%= m.id %>" value="<%= s.id %>" <%= (m.specialtyIds || []).includes(s.id) ? 'checked' : '' %> class="rounded accent-zilo-accent">
-                          <%= s.name %>
-                        </label>
-                      <% }); %>
-                    </div>
-                  </td>
-                  <td class="px-3 py-2 text-center">
-                    <input type="checkbox" name="matEnabled" value="<%= m.id %>" <%= m.enabled !== false ? 'checked' : '' %> class="rounded accent-zilo-accent">
-                  </td>
-                </tr>
-              <% }); %>
-            </tbody>
-          </table>
+        <div class="flex justify-between items-start gap-2 flex-wrap mb-2">
+          <div>
+            <h2 class="text-sm font-semibold">Materiales y productos · por servicio</h2>
+            <p class="text-xs text-gray-500 mt-1">
+              Despliega por tipo. Precio Fandez = costo al cliente (0% comisión). Comparativo retail RM (bajo / mid / alto).
+            </p>
+          </div>
+        </div>
+        <%
+          const matGroups = (typeof materialsGrouped !== 'undefined' && materialsGrouped)
+            ? materialsGrouped
+            : { appServices: [], groups: [], all: [] };
+          const appServices = matGroups.appServices && matGroups.appServices.length
+            ? matGroups.appServices
+            : [
+              { id: 'gasfiter', name: 'Gasfitería' },
+              { id: 'electrico', name: 'Electricidad' },
+              { id: 'aires', name: 'Aire acondicionado' },
+              { id: 'termos', name: 'Termos' },
+              { id: 'cerrajero', name: 'Cerrajería' },
+              { id: 'calderas', name: 'Calderas' },
+              { id: 'generadores', name: 'Generadores' },
+              { id: 'pintura', name: 'Pintura' },
+              { id: 'jardineria', name: 'Jardinería y paisajismo' },
+              { id: 'limpieza', name: 'Limpieza' },
+              { id: 'otros', name: 'Otros' }
+            ];
+        %>
+        <div class="space-y-2 mb-3" id="materialsAccordions">
+          <% (matGroups.groups || []).forEach(function(group, gIdx) { %>
+            <details class="rounded-xl border border-gray-200 overflow-hidden bg-white" <%= gIdx === 0 ? 'open' : '' %>>
+              <summary class="px-3 py-3 bg-gray-50 cursor-pointer list-none flex items-center justify-between gap-3 select-none">
+                <strong class="text-sm"><%= group.name %></strong>
+                <span class="text-[11px] text-gray-500"><%= group.materials.length %> ítems</span>
+              </summary>
+              <div class="overflow-x-auto border-t border-gray-100">
+                <table class="w-full text-sm min-w-[820px]">
+                  <thead>
+                    <tr class="text-[10px] uppercase tracking-wide text-gray-500 border-b border-gray-100">
+                      <th class="px-3 py-2 font-medium text-left">Material</th>
+                      <th class="px-3 py-2 font-medium w-20">Unidad</th>
+                      <th class="px-3 py-2 font-medium w-28">Precio Fandez</th>
+                      <th class="px-3 py-2 font-medium w-24">Mercado bajo</th>
+                      <th class="px-3 py-2 font-medium w-24">Mercado alto</th>
+                      <th class="px-3 py-2 font-medium w-32">Vs retail RM</th>
+                      <th class="px-3 py-2 font-medium">Especialidades</th>
+                      <th class="px-3 py-2 font-medium w-16 text-center">Activo</th>
+                    </tr>
+                  </thead>
+                  <tbody class="materialsCatalogBody">
+                    <% group.materials.forEach(function(m) {
+                      const md = m.delta || {};
+                      const mtone = md.tone === 'ok' ? 'text-emerald-700 bg-emerald-50' : (md.tone === 'low' ? 'text-blue-700 bg-blue-50' : (md.tone === 'high' ? 'text-amber-800 bg-amber-50' : 'text-gray-500 bg-gray-50'));
+                    %>
+                      <tr class="border-b border-gray-50 align-top">
+                        <td class="px-3 py-2">
+                          <input type="hidden" name="matId" value="<%= m.id %>">
+                          <input type="text" name="matName" value="<%= m.name %>" class="zilo-input !py-1.5 text-sm w-full" required>
+                          <p class="text-[10px] font-mono text-gray-400 mt-0.5"><%= m.id %></p>
+                        </td>
+                        <td class="px-3 py-2">
+                          <input type="text" name="matUnit" value="<%= m.unit || 'unidad' %>" class="zilo-input !py-1.5 text-sm w-full" required>
+                        </td>
+                        <td class="px-3 py-2">
+                          <input type="number" name="matPrice" value="<%= m.marketPrice %>" min="0" step="100" class="zilo-input !py-1.5 text-sm w-full" required>
+                        </td>
+                        <td class="px-3 py-2">
+                          <input type="number" name="matMarketLow" value="<%= m.marketLow != null ? m.marketLow : m.market.low %>" min="0" step="100" class="zilo-input !py-1.5 text-sm w-full">
+                        </td>
+                        <td class="px-3 py-2">
+                          <input type="number" name="matMarketHigh" value="<%= m.marketHigh != null ? m.marketHigh : m.market.high %>" min="0" step="100" class="zilo-input !py-1.5 text-sm w-full">
+                        </td>
+                        <td class="px-3 py-2">
+                          <span class="inline-block text-[10px] font-semibold px-2 py-1 rounded-full <%= mtone %>"><%= md.label || '—' %></span>
+                        </td>
+                        <td class="px-3 py-2">
+                          <div class="flex flex-wrap gap-x-2 gap-y-1">
+                            <% appServices.forEach(function(s) { %>
+                              <label class="inline-flex items-center gap-1 text-[11px] text-gray-600 cursor-pointer">
+                                <input type="checkbox" name="matSpec_<%= m.id %>" value="<%= s.id %>" <%= (m.specialtyIds || []).includes(s.id) ? 'checked' : '' %> class="rounded accent-zilo-accent">
+                                <%= s.name %>
+                              </label>
+                            <% }); %>
+                          </div>
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                          <input type="checkbox" name="matEnabled" value="<%= m.id %>" <%= m.enabled !== false ? 'checked' : '' %> class="rounded accent-zilo-accent">
+                        </td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          <% }); %>
         </div>
         <button type="button" id="btnAddMaterialRow" class="text-xs font-medium text-zilo-accent hover:underline">+ Agregar material</button>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <button type="button" id="btnExpandAllMats" class="text-xs font-medium text-zilo-accent hover:underline">Expandir materiales</button>
+          <button type="button" id="btnCollapseAllMats" class="text-xs font-medium text-gray-500 hover:underline">Colapsar materiales</button>
+        </div>
         <template id="matRowTemplate">
           <tr class="border-b border-gray-50 align-top">
             <td class="px-3 py-2">
@@ -435,6 +508,12 @@
             </td>
             <td class="px-3 py-2">
               <input type="number" name="matPrice" value="0" min="0" step="100" class="zilo-input !py-1.5 text-sm w-full" required>
+            </td>
+            <td class="px-3 py-2">
+              <input type="number" name="matMarketLow" value="0" min="0" step="100" class="zilo-input !py-1.5 text-sm w-full">
+            </td>
+            <td class="px-3 py-2">
+              <input type="number" name="matMarketHigh" value="0" min="0" step="100" class="zilo-input !py-1.5 text-sm w-full">
             </td>
             <td class="px-3 py-2">
               <div class="flex flex-wrap gap-x-2 gap-y-1 mat-spec-wrap" data-new="1">
@@ -453,11 +532,32 @@
         </template>
         <script>
           (function () {
-            const body = document.getElementById('materialsCatalogBody');
+            function toggleAll(rootId, open) {
+              document.querySelectorAll('#' + rootId + ' details').forEach(function (d) {
+                d.open = open;
+              });
+            }
+            document.getElementById('btnExpandAllServices')?.addEventListener('click', function () {
+              toggleAll('serviceCatalogAccordions', true);
+            });
+            document.getElementById('btnCollapseAllServices')?.addEventListener('click', function () {
+              toggleAll('serviceCatalogAccordions', false);
+            });
+            document.getElementById('btnExpandAllMats')?.addEventListener('click', function () {
+              toggleAll('materialsAccordions', true);
+            });
+            document.getElementById('btnCollapseAllMats')?.addEventListener('click', function () {
+              toggleAll('materialsAccordions', false);
+            });
+
+            const bodies = document.querySelectorAll('.materialsCatalogBody');
+            const body = bodies[bodies.length - 1] || document.querySelector('.materialsCatalogBody');
             const tpl = document.getElementById('matRowTemplate');
             let newIdx = 0;
             document.getElementById('btnAddMaterialRow')?.addEventListener('click', function () {
               if (!body || !tpl) return;
+              const parentDetails = body.closest('details');
+              if (parentDetails) parentDetails.open = true;
               const node = tpl.content.cloneNode(true);
               const id = 'mat-new-' + Date.now().toString(36) + '-' + (newIdx++);
               const idInput = node.querySelector('input[name="matId"]');
@@ -471,6 +571,31 @@
                 en.value = id;
               }
               body.appendChild(node);
+            });
+
+            function refreshDelta(row) {
+              const f = Number(row.querySelector('.js-fandez-price')?.value);
+              const m = Number(row.querySelector('.js-market-mid')?.value);
+              const badge = row.querySelector('.js-delta-badge');
+              if (!badge || !Number.isFinite(f) || !Number.isFinite(m) || m <= 0) return;
+              const pct = Math.round(((f - m) / m) * 1000) / 10;
+              let label; let cls;
+              if (Math.abs(pct) <= 5) {
+                label = (pct > 0 ? '+' : '') + pct + '% · al mercado';
+                cls = 'inline-block text-[10px] font-semibold px-2 py-1 rounded-full text-emerald-700 bg-emerald-50 js-delta-badge';
+              } else if (pct < -5) {
+                label = pct + '% · bajo mercado';
+                cls = 'inline-block text-[10px] font-semibold px-2 py-1 rounded-full text-blue-700 bg-blue-50 js-delta-badge';
+              } else {
+                label = '+' + pct + '% · sobre mercado';
+                cls = 'inline-block text-[10px] font-semibold px-2 py-1 rounded-full text-amber-800 bg-amber-50 js-delta-badge';
+              }
+              badge.textContent = label;
+              badge.className = cls;
+            }
+            document.getElementById('serviceCatalogAccordions')?.addEventListener('input', function (ev) {
+              const row = ev.target.closest('tr');
+              if (row) refreshDelta(row);
             });
           })();
         </script>
