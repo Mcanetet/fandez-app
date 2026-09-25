@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Funcionamiento Fandez — Mirada inversionista</title>
+  <style>
+    :root {
+      --ink: #141210;
+      --muted: #5c564c;
+      --line: #e8e2d8;
+      --soft: #f6f2ec;
+      --accent: #C45C14;
+      --accent-deep: #9a4510;
+      --ok: #1f6b3a;
+      --blue: #1e4d8c;
+      --paper: #fffcf8;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: #d8d2c8;
+      font-size: 11pt;
+      line-height: 1.4;
+    }
+
+    .slide {
+      width: 297mm;
+      height: 210mm;
+      margin: 10mm auto;
+      padding: 12mm 14mm 11mm;
+      background: var(--paper);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 28px rgba(0,0,0,.12);
+      page-break-after: always;
+      break-after: page;
+    }
+    .slide:last-child { page-break-after: auto; }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 6px;
+      background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8mm;
+    }
+    .brand-row img { height: 28px; width: auto; }
+    .eyebrow {
+      font-size: 8.5pt;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .slide-num {
+      font-size: 9pt;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    h1 {
+      font-size: 28pt;
+      letter-spacing: -0.03em;
+      margin: 0 0 4mm;
+      line-height: 1.1;
+      max-width: 22ch;
+    }
+    h2 {
+      font-size: 18pt;
+      letter-spacing: -0.02em;
+      margin: 0 0 3mm;
+      line-height: 1.15;
+    }
+    h3 {
+      font-size: 12pt;
+      margin: 0 0 2mm;
+      color: var(--accent-deep);
+    }
+    .lead {
+      font-size: 12.5pt;
+      color: var(--muted);
+      max-width: 46ch;
+      margin: 0 0 6mm;
+    }
+    p { margin: 0 0 2.5mm; }
+    ul { margin: 0 0 3mm; padding-left: 1.1rem; }
+    li { margin-bottom: 1.2mm; }
+
+    .who {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 8pt;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 999px;
+      vertical-align: middle;
+      margin-right: 3px;
+    }
+    .who-c { background: #e8f0fa; color: var(--blue); }
+    .who-s { background: #fde8d8; color: var(--accent); }
+    .who-t { background: #e4f2ea; color: var(--ok); }
+    .who-f { background: #efe8df; color: var(--muted); }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 8mm;
+      align-items: start;
+      height: calc(100% - 28mm);
+    }
+    .grid-2-rev { grid-template-columns: 0.95fr 1.05fr; }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 5mm;
+    }
+    .grid-journey {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 3mm;
+      margin-top: 4mm;
+    }
+
+    .phone {
+      background: #111;
+      border-radius: 22px;
+      padding: 8px;
+      box-shadow: 0 14px 36px rgba(20,18,16,.22);
+      max-width: 118mm;
+      margin: 0 auto;
+    }
+    .phone img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      background: #222;
+    }
+    .phone-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      align-items: end;
+    }
+    .phone-pair .phone { max-width: none; }
+
+    .card {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 4.5mm 5mm;
+    }
+    .card strong { display: block; margin-bottom: 1.5mm; font-size: 11pt; }
+
+    .step {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 3mm;
+      margin-bottom: 3.5mm;
+    }
+    .step .n {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 800;
+      font-size: 11pt;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step p { margin: 0; color: var(--muted); font-size: 10pt; }
+    .step strong { color: var(--ink); font-size: 11pt; display: block; margin-bottom: 0.5mm; }
+
+    .insight {
+      margin-top: 4mm;
+      border-left: 4px solid var(--accent);
+      background: #fff8f2;
+      padding: 3.5mm 4.5mm;
+      border-radius: 0 10px 10px 0;
+      font-size: 10.5pt;
+    }
+    .insight em { font-style: normal; color: var(--accent-deep); font-weight: 700; }
+
+    .pill-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2.5mm;
+      align-items: center;
+      margin: 3mm 0 5mm;
+    }
+    .pill-flow .arrow { color: var(--muted); font-weight: 700; }
+    .pill {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2.5mm 4mm;
+      font-size: 9.5pt;
+      font-weight: 600;
+    }
+
+    .hero-slide {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        radial-gradient(900px 420px at 88% 10%, rgba(196,92,20,.16), transparent 55%),
+        radial-gradient(700px 380px at 8% 90%, rgba(30,77,140,.08), transparent 50%),
+        var(--paper);
+    }
+    .hero-slide h1 { font-size: 36pt; max-width: 16ch; }
+    .hero-meta { color: var(--muted); font-size: 11pt; }
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4mm;
+      margin-top: 8mm;
+    }
+    .kpi {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 4mm;
+    }
+    .kpi .k { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+    .kpi .v { font-size: 14pt; font-weight: 800; margin-top: 1.5mm; letter-spacing: -0.02em; }
+
+    .journey-cell {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 3.5mm;
+      min-height: 38mm;
+    }
+    .journey-cell .idx {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      font-size: 10pt; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 2mm;
+    }
+    .journey-cell strong { display: block; font-size: 10pt; margin-bottom: 1mm; }
+    .journey-cell span { font-size: 8.5pt; color: var(--muted); display: block; line-height: 1.35; }
+
+    .footer-bar {
+      position: absolute;
+      left: 14mm; right: 14mm; bottom: 7mm;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8pt;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      padding-top: 2.5mm;
+    }
+
+    .caption {
+      text-align: center;
+      font-size: 8.5pt;
+      color: var(--muted);
+      margin-top: 2mm;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .slide {
+        margin: 0;
+        box-shadow: none;
+        width: 297mm;
+        height: 210mm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1 PORTADA -->
+  <section class="slide hero-slide">
+    <div class="brand-row">
+      <img src="../inapi/fandez-horizontal-negro.png" alt="Fandez">
+      <span class="eyebrow">Documento operativo · Inversionistas</span>
+    </div>
+    <div>
+      <p class="eyebrow" style="margin-bottom:3mm">Marketplace de servicios técnicos a domicilio</p>
+      <h1>Funcionamiento Fandez</h1>
+      <p class="lead">Cómo se genera, acepta, ejecuta y cierra un pedido — desde la mirada del cliente, el socio y el técnico — con evidencia en app.</p>
+      <div class="pill-flow">
+        <span class="pill"><span class="who who-c">Cliente</span> pide y paga</span>
+        <span class="arrow">→</span>
+        <span class="pill"><span class="who who-s">Socio</span> toma en el muro</span>
+        <span class="arrow">→</span>
+        <span class="pill"><span class="who who-t">Técnico</span> ejecuta en terreno</span>
+        <span class="arrow">→</span>
+        <span class="pill"><span class="who who-f">App</span> cierra y liquida</span>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="k">Modelo</div><div class="v">Marketplace 3 lados</div></div>
+        <div class="kpi"><div class="k">Pago</div><div class="v">Antes de despachar</div></div>
+        <div class="kpi"><div class="k">Control</div><div class="v">GPS · código · fotos</div></div>
+        <div class="kpi"><div class="k">Monetización</div><div class="v">15% app + fee MP</div></div>
+      </div>
+    </div>
+    <p class="hero-meta">Chile · Región Metropolitana primero · Septiembre 2026</p>
+    <div class="footer-bar"><span>Fandez — Funcionamiento del sistema</span><span>01 / 10</span></div>
+  </section>
+
+  <!-- 2 TESIS -->
+  <section class="slide">
+    <div class="brand-row">
+      <span class="eyebrow">Por qué importa el flujo</span>
+      <span class="slide-num">02 / 10</span>
+    </div>
+    <h2>Un pedido = un ciclo cerrado con evidencia</h2>
+    <p class="lead">El valor no está solo en “conectar oferta y demanda”: está en que cada etapa deja rastro digital (pago, muro, GPS, código, fotos, calificación).</p>
+    <div class="grid-journey">
+      <div class="journey-cell"><div class="idx">1</div><strong>Solicitud</strong><span>Cliente elige oficio, urgencia, fotos y paga.</span></div>
+      <div class="journey-cell"><div class="idx">2</div><strong>Muro</strong><span>Socios en línea ven pedidos pagados en su zona.</span></div>
+      <div class="journey-cell"><div class="idx">3</div><strong>Asignación</strong><span>Socio acepta y elige técnico; técnico confirma ETA.</span></div>
+      <div class="journey-cell"><div class="idx">4</div><strong>Trayecto</strong><span>GPS en vivo: el cliente ve al técnico en camino.</span></div>
+      <div class="journey-cell"><div class="idx">5</div><strong>Terreno</strong><span>Código de llegada + diagnóstico + acción.</span></div>
+      <div class="journey-cell"><div class="idx">6</div><strong>Cierre</strong><span>Fotos, resumen, calificación y liquidación.</span></div>
+    </div>
+    <div class="insight" style="margin-top:7mm">
+      <em>Lectura inversionista:</em> el pago anticipado reduce no-shows; el muro concentra oferta; el GPS y el código bajan disputa;
+      la comisión se descuenta al liquidar al socio (el cliente ve un solo precio).
+    </div>
+    <div class="footer-bar"><span>Fandez — Funcionamiento del sistema</span><span>02 / 10</span></div>
+  </section>
+
+  <!-- 3 CLIENTE SOLICITUD -->
+  <section class="slide">
+    <div class="brand-row">
+      <span class="eyebrow"><span class="who who-c">Cliente</span> Origen de la demanda</span>
+      <span class="slide-num">03 / 10</span>
+    </div>
+    <div class="grid-2">
+      <div>
+        <h2>Así se genera la solicitud</h2>
+        <div class="step"><div class="n">1</div><div><strong>Home de servicios</strong><p>Gasfitería, electricidad, AC, cerrajería, jardinería, limpieza…</p></div></div>
+        <div class="step"><div class="n">2</div><div><strong>Detalle + evidencia</strong><p>Urgencia / llegada, fotos del problema, dirección y notas.</p></div></div>
+        <div class="step"><div class="n">3</div><div><strong>Checkout</strong><p>Precio transparente (IVA incl.). Tarjeta o transferencia.</p></div></div>
+        <div class="step"><div class="n">4</div><div><strong>Pedido pagado</strong><p>Entra al marketplace. El cliente pasa a tracking en vivo.</p></div></div>
+        <div class="insight">
+          <em>Por qué escala:</em> el cliente no negocia por WhatsApp. La app estandariza el ticket y habilita matching automático.
+        </div>
+      </div>
+      <div>
+        <div class="phone"><img src="../capturas-home/01-cliente-home-viewport.png" alt="Home cliente Fandez"></div>
+        <p class="caption">Home cliente — catálogo de oficios</p>
+      </div>
+    </div>
+    <div class="footer-bar"><span>Fandez — Funcionamiento del sistema</span><span>03 / 10</span></div>
+  </section>
+
+  <!-- 4 TRACKING ESPERA -->
+  <section class="slide">
+    <div class="brand-row">
+      <span class="eyebrow"><span class="who who-c">Cliente</span> Experiencia post-pago</span>
+      <span class="slide-num">04 / 10</span>
+    </div>
+    <div class="grid-2 grid-2-rev">
+      <div>
+        <div class="phone-pair">
+          <div>
+            <div class="phone"><img src="../capturas-mobile/01-esperando-aceptacion-tecnico.png" alt="Esperando aceptación"></div>
+            <p class="caption">Buscando socio / técnico</p>
+          </div>
+          <div>
+            <div class="phone"><img src="../capturas-mobile/02-tecnico-aceptado-eta.png" alt="Técnico aceptado con ETA"></div>
+            <p class="caption">Aceptado · ETA visible</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2>El cliente nunca queda a ciegas</h2>
+        <p class="lead">Tras pagar, el tracking muestra el estado del pedido en lenguaje humano.</p>
+        <div class="card" style="margin-bottom:3mm">
+          <strong>Estados que ve</strong>
+          Buscando · Socio asignado · Técnico en camino · En domicilio · En trabajo · Listo para calificar
+        </div>
+        <div class="card">
+          <strong>Confianza operativa</strong>
+          ETA, nombre del técnico, mapa y chat. Menos ansiedad = menos cancelaciones y mejor NPS.
+        </div>
+        <div class="insight">
+          <em>Métrica:</em> tiempo a primera aceptación y % de pedidos con ETA cumplida son KPIs naturales del marketplace.
+        </div>
+      </div>
+    </div>
+    <div class="footer-bar"><span>Fandez — Funcionamiento del sistema</span><span>04 / 10</span></div>
+  </section>
+
+  <!-- 5 SOCIO MURO -->
+  <section class="slide">
+    <div class="brand-row">
+      <span class="eyebrow"><span class="who who-s">Socio</span> Oferta y mando</span>
+      <span class="slide-num">05 / 10</span>
+    </div>
+    <div class="grid-2">
+      <div>
+        <h2>El muro: cómo llegan los pedidos</h2>
+        <p class="lead">El socio se pone <strong>en línea</strong> y ve solo pedidos <strong>ya pagados</strong> compatibles con su zona y oficios.</p>
+        <div class="step"><div class="n">1</div><div><strong>Muro en vivo</strong><p>Tarjetas con servicio, comuna, urgencia y valor.</p></div></div>
+        <div class="step"><div class="n">2</div><div><strong>Aceptar</strong><p>Compromiso del socio con el pedido.</p></div></div>
+        <div class="step"><div class="n">3</div><div><strong>Asignar técnico</strong><p>Elige a alguien de su equipo (o se asigna a sí mismo).</p></div></div>
+        <div class="step"><div class="n">4</div><div><strong>Supervisar</strong><p>Sigue el terreno, chat y liquidación posterior.</p></div></div>
+        <div class="insight">
+          <em>Por qué es defensible:</em> el socio no “busca clientes”; Fandez le trae demanda calificada. El muro es el motor de utilización de la red.
+        </div>
+      </div>
+      <div>
+        <div class="phone"><img src="../capturas-home/02-socio-home-viewport.png" alt="Home socio / muro"></div>
+        <p class="caption">Panel socio — muro y operación</p>
+      </div>
+    </div>
+    <div class="footer-bar"><span>Fandez — Funcionamiento del sistema</span><span>05 / 10</span></div>
+  </section>
+
+  <!-- 6 TECNICO -->
+  <section class="slide">
+    <div class="brand-row">
+      <span class="eyebrow"><span class="who who-t">Técnico</span> Ejecución en terreno</span>
+      <span class="slide-num">06 / 10</span>
+    </div>
+    <div class="grid-2 grid-2-rev">
+      <div>
+        <div class="phone"><img src="../capturas-home/03-tecnico-home-viewport.png" alt="Home técnico"></div>
+        <p class="caption">Home técnico — pedidos asignados</p>
+      </div>
+      <div>
+        <h2>El técnico acepta y se mueve</h2>
+        <p class="lead">Recibe la asignación, confirma con ETA y arranca el wizard de visita.</p>
+        <div class="grid-3" style="margin-top:3mm">
+          <div class="card"><strong>Aceptar</strong>Confirma el trabajo (~10 min de ventana típica).</div>
+          <div class="card"><strong>Salí hacia el cliente</strong>Activa tracking GPS para el cliente.</div>
+          <div class="card"><strong>En sitio</strong>Código de 6 dígitos valida presencia real.</div>
+        </div>
+        <div class="insight">
+          <em>Antifraude operativo:</em> sin código no hay “llegué”. Reduce reclamos de visitas inventadas y mejora la calidad del dato.
+        </div>
+      </div>
+    </div>
+    <div class="footer-bar"><span>Fandez — Funcionamiento del sistema</span><span>06 / 10</span></div>
+  </section>
+
+  <!-- 7 EN CAMINO + MAPA -->
+  <section class="slide">
+    <div class="brand-row">
+      <span class="eyebrow">Trayecto con evidencia</span>
+      <span class="slide-num">07 / 10</span>
+    </div>
+    <h2>Del mapa del técnico al mapa del cliente</h2>
+    <p class="lead" style="max-width:60ch">Misma verdad operativa en dos pantallas: el técnico marca el trayecto; el cliente lo ve en vivo.</p>
+    <div class="phone-pair" style="margin-top:3mm">
+      <div>
+        <div class="phone"><img src="../capturas-home/06-tecnico-en-camino-viewport.png" alt="Técnico en camino"></div>
+        <p class="caption"><span class="who who-t">Técnico</span> Wizard · trayecto / mapa</p>
+      </div>
+      <div>
+        <div class="phone"><img src="../capturas-mobile/04-mapa-en-vivo.png" alt="Mapa en vivo cliente"></div>
+        <p class="caption"><span class="who who-c">Cliente</span> Tracking · ubicación en vivo</p>
+      </div>
+    </div>
+    <div class="footer-bar"><span>Fandez — Funcionamiento del sistema</span><span>07 / 10</span></div>
+  </section>
+
+  <!-- 8 DIAGNOSTICO -->
+  <section class="slide">
+    <div class="brand-row">
+      <span class="eyebrow">En el domicilio</span>
+      <span class="slide-num">08 / 10</span>
+    </div>
+    <div class="grid-2">
+      <div>
+        <h2>Diagnóstico → acción</h2>
+        <p class="lead">Con el código validado, el técnico documenta qué encontró y cómo resolverá.</p>
+        <ul>
+          <li>Diagnóstico guiado por oficio (chips / checklist).</li>
+          <li>Reparar en sitio, comprar materiales o pedir presupuesto adicional.</li>
+          <li>Materiales del catálogo con precio de mercado (transparencia).</li>
+          <li>El cliente aprueba ajustes desde el celular cuando aplica.</li>
+        </ul>
+        <div class="insight">
+          <em>Upsell controlado:</em> el adicional no es “sorpresa en efectivo”; pasa por la app, con trazabilidad y comisión clara.
+        </div>
+      </div>
+      <div>
+        <div class="phone"><img src="../capturas-home/07-tecnico-diagnostico-viewport.png" alt="Diagnóstico técnico"></div>
+        <p class="caption">Pantalla de diagnóstico en terreno</p>
+      </div>
+    </div>
+    <div class="footer-bar"><span>Fandez — Funcionamiento del sistema</span><span>08 / 10</span></div>
+  </section>
+
+  <!-- 9 CIERRE -->
+  <section class="slide">
+    <div class="brand-row">
+      <span class="eyebrow">Cierre del ciclo</span>
+      <span class="slide-num">09 / 10</span>
+    </div>
+    <div class="grid-2 grid-2-rev">
+      <div>
+        <div class="phone"><img src="../capturas-home/08-tecnico-cierre-viewport.png" alt="Cierre de servicio"></div>
+        <p class="caption">Cierre · foto final y resumen</p>
+      </div>
+      <div>
+        <h2>Así se finaliza el servicio</h2>
+        <div class="step"><div class="n">1</div><div><strong>Evidencia de salida</strong><p>Foto final + notas de lo realizado.</p></div></div>
+        <div class="step"><div class="n">2</div><div><strong>Trabajo listo</strong><p>El pedido pasa a completado.</p></div></div>
+        <div class="step"><div class="n">3</div><div><strong>Cliente califica</strong><p>Feedback que alimenta reputación de la red.</p></div></div>
+        <div class="step"><div class="n">4</div><div><strong>Liquidación al socio</strong><p>Fandez retiene 15% (IVA incl.) + costo MP; materiales a costo.</p></div></div>
+        <div class="insight">
+          <em>Unit economics visibles por pedido:</em> GMV, take rate efectivo, fee pasarela y neto socio — todo reconstruible desde el mismo ciclo.
+        </div>
+      </div>
+    </div>
+    <div class="footer-bar"><span>Fandez — Funcionamiento del sistema</span><span>09 / 10</span></div>
+  </section>
+
+  <!-- 10 RESUMEN INVERSIONISTA -->
+  <section class="slide">
+    <div class="brand-row">
+      <span class="eyebrow">Síntesis para inversión</span>
+      <span class="slide-num">10 / 10</span>
+    </div>
+    <h2>Qué ve un inversionista en este sistema</h2>
+    <div class="grid-3" style="margin-top:4mm">
+      <div class="card">
+        <strong>1. Demanda con ticket pagado</strong>
+        El muro solo muestra pedidos financiados. Baja riesgo de trabajo gratis y mejora conversión de la oferta.
+      </div>
+      <div class="card">
+        <strong>2. Oferta organizada por socios</strong>
+        El socio aporta red de técnicos, cobertura geográfica y mando. Fandez aporta demanda y software.
+      </div>
+      <div class="card">
+        <strong>3. Operación auditable</strong>
+        GPS, código de llegada, fotos, chat y calificación = menos disputa y más datos propietarios.
+      </div>
+      <div class="card">
+        <strong>4. Monetización embebida</strong>
+        Comisión de app + fee de pasarela descontados en liquidación. Un precio al cliente.
+      </div>
+      <div class="card">
+        <strong>5. Extensible por vertical</strong>
+        Jardinería/paisajismo añade bitácora de hitos y abonos validados por el cliente.
+      </div>
+      <div class="card">
+        <strong>6. Loop de mejora</strong>
+        Cada pedido entrena matching, ETA, pricing y calidad de la red local.
+      </div>
+    </div>
+    <div class="insight" style="margin-top:6mm">
+      <em>Funcionamiento Fandez en una frase:</em> un marketplace de servicios técnicos donde el dinero, el trayecto y la evidencia viajan juntos en la misma app — del pedido al cobro del socio.
+    </div>
+    <div class="footer-bar"><span>Fandez — Gestión Integral y Servicios Fandez SpA · Uso interno / inversionistas</span><span>10 / 10</span></div>
+  </section>
+
+</body>
+</html>

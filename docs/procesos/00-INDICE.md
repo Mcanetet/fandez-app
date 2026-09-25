@@ -9,6 +9,7 @@ Fuente de verdad de producto: código en `routes/`, `models/store.js`, `lib/agen
 | [02-socio.md](02-socio.md) | Socio · Soporte | Activación, muro, equipo, liquidación |
 | [03-tecnico.md](03-tecnico.md) | Técnico · Socio · Soporte | Wizard de visita + entregables de jardinería |
 | [07-paisajismo-entregables-validacion.html](07-paisajismo-entregables-validacion.html) · [PDF](07-paisajismo-cliente-socio-tecnico.pdf) | Producto · Socio · Técnico · Cliente | Procedimiento vigente: bitácora de hitos, roles y validación del cliente |
+| [Funcionamiento Fandez](../presentaciones/funcionamiento-fandez.html) · [PDF](../presentaciones/Funcionamiento-Fandez.pdf) | Inversionistas · Comercial | Presentación del ciclo completo del marketplace con capturas de app |
 | [04-admin-soporte.md](04-admin-soporte.md) | Admin · Soporte | Colas, pagos, reclamos, MFA, DSAR |
 | [05-agentes.md](05-agentes.md) | Sofía · Clara · Florencia | Cómo actuar, derivar y qué nunca hacer |
 | [06-reunion-nuevo-servicio.md](06-reunion-nuevo-servicio.md) | Comercial · Producto | Reunión con proveedor: intake + fórmula + prompt para crear el servicio |
