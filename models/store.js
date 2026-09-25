@@ -78,9 +78,16 @@ const {
   buildGardenDeliverablesChecklist,
   ensureGardenDeliverables,
   applyGardenDeliverableUpload,
+  partnerReviewDeliverable,
+  clientReviewDeliverable,
   assertGardenDeliverablesReady,
   gardenDeliverablesProgress,
-  serializeGardenDeliverablesForClient
+  serializeGardenDeliverablesForClient,
+  buildGardenBitacoraDocument,
+  listDeliverablesNeedingClientNudge,
+  listDeliverablesNeedingTechNudge,
+  CLIENT_STATUS,
+  PARTNER_STATUS
 } = require('../lib/gardenDeliverables');
 const technicianPay = require('../lib/technicianPay');
 const {
@@ -7267,16 +7274,100 @@ function saveGardenDeliverable(requestId, technicianId, payload = {}) {
     return { error: 'Aún no puedes subir entregables en este estado.' };
   }
   ensureGardenDeliverables(request);
+  const requirePartnerReview = payload.requirePartnerReview === true
+    || payload.requirePartnerReview === 'true'
+    || payload.requirePartnerReview === 1;
   const result = applyGardenDeliverableUpload(request, {
     deliverableId: payload.deliverableId,
     fileUrl: payload.fileUrl,
     fileName: payload.fileName,
     mimeType: payload.mimeType,
     note: payload.note,
-    uploadedBy: technicianId
+    uploadedBy: technicianId,
+    lat: payload.lat,
+    lng: payload.lng,
+    capturedAt: payload.capturedAt,
+    requirePartnerReview
   });
   if (result.error) return result;
   request.updatedAt = new Date().toISOString();
+  if (result.deliverable?.partnerStatus === 'awaiting_partner' && request.providerId) {
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `Vista previa pendiente del socio: «${result.deliverable.clientLabel || result.deliverable.label}».`
+    });
+    try {
+      const webPush = require('../lib/webPush');
+      webPush.notifyUsers([request.providerId], {
+        title: 'Revisa un avance antes del cliente',
+        body: result.deliverable.label || 'Hito de paisajismo',
+        url: `/proveedor/trabajo/${request.id}`
+      }).catch(() => {});
+    } catch (_) { /* optional */ }
+  }
+  repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
+  return {
+    success: true,
+    request,
+    deliverable: result.deliverable,
+    progress: result.progress,
+    awaitingMoreFiles: result.awaitingMoreFiles,
+    gardenDeliverables: request.gardenDeliverables
+  };
+}
+
+function reviewGardenDeliverableAsPartner(requestId, providerId, payload = {}) {
+  const request = requests.find((r) => r.id === requestId);
+  if (!request || request.providerId !== providerId) {
+    return { error: 'Solicitud no encontrada.' };
+  }
+  if (!request.gardenIntake) return { error: 'Sin entregables de jardinería.' };
+  ensureGardenDeliverables(request);
+  const result = partnerReviewDeliverable(request, {
+    deliverableId: payload.deliverableId,
+    approve: payload.approve !== false && payload.approve !== 'false',
+    note: payload.note,
+    reviewedBy: providerId
+  });
+  if (result.error) return result;
+  request.updatedAt = new Date().toISOString();
+  const approved = result.deliverable?.partnerStatus === 'approved_for_client'
+    || result.deliverable?.clientStatus === 'awaiting_client';
+  if (approved && payload.approve !== false && payload.approve !== 'false') {
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `El socio aprobó «${result.deliverable.clientLabel || result.deliverable.label}» para validación del cliente.`
+    });
+    try {
+      const webPush = require('../lib/webPush');
+      if (request.clientId) {
+        webPush.notifyUsers([request.clientId], {
+          title: 'Valida un avance de tu jardín',
+          body: result.deliverable.clientLabel || result.deliverable.label,
+          url: `/cliente/servicio/${request.serviceId || 'jardineria'}?tracking=${request.id}`
+        }).catch(() => {});
+      }
+    } catch (_) { /* optional */ }
+  } else if (result.deliverable?.partnerStatus === 'rejected_by_partner' && request.technicianId) {
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `El socio devolvió «${result.deliverable.label}»: ${payload.note || 'corregir antes de enviar al cliente'}.`
+    });
+    try {
+      const webPush = require('../lib/webPush');
+      webPush.notifyUsers([request.technicianId], {
+        title: 'Socio pidió corrección',
+        body: result.deliverable.label || 'Hito',
+        url: `/tecnico/trabajo/${request.id}`
+      }).catch(() => {});
+    } catch (_) { /* optional */ }
+  }
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   return {
     success: true,
@@ -7285,6 +7376,93 @@ function saveGardenDeliverable(requestId, technicianId, payload = {}) {
     progress: result.progress,
     gardenDeliverables: request.gardenDeliverables
   };
+}
+
+function reviewGardenDeliverableAsClient(requestId, clientId, payload = {}) {
+  const request = requests.find((r) => r.id === requestId);
+  if (!request || request.clientId !== clientId) {
+    return { error: 'Solicitud no encontrada.' };
+  }
+  if (!request.gardenIntake) return { error: 'Sin entregables de jardinería.' };
+  ensureGardenDeliverables(request);
+  const accept = payload.accept === true || payload.accept === 'true' || payload.accept === 1;
+  const result = clientReviewDeliverable(request, {
+    deliverableId: payload.deliverableId,
+    accept,
+    note: payload.note
+  });
+  if (result.error) return result;
+  request.updatedAt = new Date().toISOString();
+  if (result.paymentUnlocked) {
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `Hito aceptado: ${result.deliverable.clientLabel || result.deliverable.label}. Queda habilitado el abono «${result.deliverable.paymentPhase}» según el esquema del proyecto.`
+    });
+  } else if (accept) {
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `Cliente aceptó el hito «${result.deliverable.clientLabel || result.deliverable.label}».`
+    });
+  } else if (!accept) {
+    appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `El cliente pidió corrección en «${result.deliverable.clientLabel || result.deliverable.label}»: ${payload.note || ''}`
+    });
+    if (result.escalate) {
+      appendChatMessage(request, {
+        senderType: 'system',
+        senderId: null,
+        senderName: 'Fandez',
+        body: `Atención: «${result.deliverable.label}» lleva 3 o más rondas de corrección. Revisar con soporte si no se resuelve.`
+      });
+    }
+  }
+  try {
+    const webPush = require('../lib/webPush');
+    const targets = [request.technicianId, request.providerId].filter(Boolean);
+    if (targets.length) {
+      webPush.notifyUsers(targets, {
+        title: accept ? 'Cliente aceptó un hito' : 'Cliente pidió corrección',
+        body: result.deliverable.clientLabel || result.deliverable.label,
+        url: request.technicianId
+          ? `/tecnico/trabajo/${request.id}`
+          : `/proveedor/trabajo/${request.id}`
+      }).catch(() => {});
+    }
+  } catch (_) { /* optional */ }
+  repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
+  return {
+    success: true,
+    request,
+    deliverable: result.deliverable,
+    progress: result.progress,
+    paymentUnlocked: result.paymentUnlocked,
+    gardenDeliverables: request.gardenDeliverables,
+    gardenPaymentUnlocks: request.gardenPaymentUnlocks || []
+  };
+}
+
+function getGardenBitacora(requestId, actor = {}) {
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  const ok = request.clientId === actor.userId
+    || request.providerId === actor.userId
+    || request.technicianId === actor.userId
+    || actor.role === 'admin';
+  if (!ok) return { error: 'No autorizado.' };
+  if (!request.gardenIntake) return { error: 'Este pedido no tiene bitácora de paisajismo.' };
+  ensureGardenDeliverables(request);
+  const company = require('../config/company');
+  const doc = buildGardenBitacoraDocument(request, {
+    companyName: company.legalName || company.name || 'Fandez'
+  });
+  return { success: true, request, ...doc };
 }
 
 function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attentionChecklist } = {}) {
@@ -7786,13 +7964,22 @@ function enrichRequestForClient(request, locale = 'es') {
       ? serializeGardenDeliverablesForClient(
         (ensureGardenDeliverables(request) || []).map((d) => ({
           ...d,
-          fileUrl: d.fileUrl ? (toServingUrl(d.fileUrl) || d.fileUrl) : null
+          fileUrl: d.fileUrl ? (toServingUrl(d.fileUrl) || d.fileUrl) : null,
+          files: Array.isArray(d.files)
+            ? d.files.map((f) => ({
+              ...f,
+              url: f.url ? (toServingUrl(f.url) || f.url) : null
+            }))
+            : []
         }))
       )
       : null,
     gardenDeliverablesProgress: request.gardenIntake
       ? gardenDeliverablesProgress(ensureGardenDeliverables(request))
       : null,
+    gardenPaymentUnlocks: Array.isArray(request.gardenPaymentUnlocks)
+      ? request.gardenPaymentUnlocks
+      : [],
     providerInvoicePlan,
     visitRetentionFeeClp: getVisitRetentionFeeClp(request),
     cancellationFeePreview: getCancellationFeeClp(getPricingConfig(), request),
@@ -9482,6 +9669,9 @@ module.exports = {
   resolveSiteMaterialReview,
   completeSiteWork,
   saveGardenDeliverable,
+  reviewGardenDeliverableAsPartner,
+  reviewGardenDeliverableAsClient,
+  getGardenBitacora,
   getRequestsByTechnician,
   updateTechnicianLocation,
   computeEtaMinutes,

@@ -211,7 +211,7 @@
     hide();
   }
 
-  const SW_URL = '/service-worker.js?v=40';
+  const SW_URL = '/service-worker.js?v=41';
   let swReady = null;
 
   function registerServiceWorker() {
@@ -230,7 +230,7 @@
           console.warn('[pwa] SW register failed', err && err.message);
           // Fallback por si el CDN aún sirve /sw.js viejo
           return navigator.serviceWorker
-            .register('/sw.js?v=40', { scope: '/' })
+            .register('/sw.js?v=41', { scope: '/' })
             .then((reg) => navigator.serviceWorker.ready.then(() => reg).catch(() => reg))
             .catch(() => null);
         });

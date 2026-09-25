@@ -10,10 +10,11 @@
     : (request.clientBrandPhotoUrl || '');
   const gardenDeliverables = Array.isArray(request.gardenDeliverables) ? request.gardenDeliverables : [];
   const gardenProgress = request.gardenDeliverablesProgress || {
-    done: gardenDeliverables.filter(function(d) { return d.status === 'uploaded' && d.fileUrl; }).length,
+    done: gardenDeliverables.filter(function(d) { return d.clientStatus === 'accepted'; }).length,
     total: gardenDeliverables.filter(function(d) { return d.required; }).length,
     complete: false
   };
+  gardenProgress.complete = gardenProgress.total > 0 && gardenProgress.done === gardenProgress.total;
   if (gardenProgress.total && gardenProgress.done === gardenProgress.total) gardenProgress.complete = true;
 %>
 
@@ -302,6 +303,18 @@
         <% } %>
       </div>
     </details>
+
+    <% if (gardenDeliverables.length) { %>
+    <section id="gardenBitacoraSection" class="zilo-card-premium rounded-2xl p-5 mb-3">
+      <%- include('../partials/garden-deliverables', {
+        gardenDeliverables: gardenDeliverables,
+        gardenProgress: gardenProgress,
+        isObserver: isObserver,
+        editable: !isObserver,
+        request: request
+      }) %>
+    </section>
+    <% } %>
 
     <section id="stepTrayecto" data-wizard-panel="trayecto" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'trayecto' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Trayecto</p>
@@ -785,14 +798,10 @@
       <h2 class="text-sm font-semibold mb-3">Resumen de la visita</h2>
       <div class="space-y-3">
         <% if (gardenDeliverables.length) { %>
-          <div class="p-3 rounded-2xl border border-emerald-200 bg-emerald-50/40">
-            <%- include('../partials/garden-deliverables', {
-              gardenDeliverables: gardenDeliverables,
-              gardenProgress: gardenProgress,
-              isObserver: isObserver,
-              editable: !isObserver
-            }) %>
-          </div>
+          <p class="text-[11px] text-zilo-muted rounded-lg border border-zilo-border bg-zilo-bg/60 px-3 py-2">
+            Los hitos de paisajismo se cargan arriba en la bitácora. El cierre requiere que el cliente haya aceptado todos los obligatorios
+            (<%= gardenProgress.done %>/<%= gardenProgress.total %> aceptados).
+          </p>
         <% } %>
         <details id="attentionChecklistBox" class="rounded-xl border border-zilo-border bg-zilo-bg/60 p-3">
           <summary class="text-sm font-semibold cursor-pointer text-zilo-accent">Checklist rápido de atención</summary>

@@ -4,8 +4,11 @@ const assert = require('assert');
 const {
   buildGardenDeliverablesChecklist,
   applyGardenDeliverableUpload,
+  clientReviewDeliverable,
+  partnerReviewDeliverable,
   assertGardenDeliverablesReady,
-  gardenDeliverablesProgress
+  gardenDeliverablesProgress,
+  CLIENT_STATUS
 } = require('../lib/gardenDeliverables');
 
 function ok(label) {
@@ -17,12 +20,14 @@ function ok(label) {
     serviceTypes: ['diseno'],
     designAddons: ['riego', 'renders']
   });
+  assert.ok(list.some((d) => d.id === 'diseno_levantamiento'));
+  assert.ok(list.some((d) => d.id === 'diseno_anteproyecto'));
   assert.ok(list.some((d) => d.id === 'diseno_planimetria'));
   assert.ok(list.some((d) => d.id === 'diseno_riego'));
   assert.ok(list.some((d) => d.id === 'diseno_renders'));
   assert.ok(!list.some((d) => d.id === 'diseno_iluminacion'));
   assert.ok(!list.some((d) => d.id === 'construccion_avance'));
-  ok('checklist diseño + addons');
+  ok('checklist diseño + addons + hitos');
 }
 
 {
@@ -30,6 +35,7 @@ function ok(label) {
     serviceTypes: ['construccion', 'mantencion'],
     designAddons: []
   });
+  assert.ok(list.some((d) => d.id === 'construccion_inicio'));
   assert.ok(list.some((d) => d.id === 'construccion_avance'));
   assert.ok(list.some((d) => d.id === 'construccion_entrega'));
   assert.ok(list.some((d) => d.id === 'mantencion_informe'));
@@ -45,17 +51,81 @@ function ok(label) {
       designAddons: []
     })
   };
-  const gate = assertGardenDeliverablesReady(request);
-  assert.strictEqual(gate.ok, false);
-  const up = applyGardenDeliverableUpload(request, {
+  assert.strictEqual(assertGardenDeliverablesReady(request).ok, false);
+
+  // Levantamiento requiere 2 archivos
+  applyGardenDeliverableUpload(request, {
+    deliverableId: 'diseno_levantamiento',
+    fileUrl: '/u/1.jpg',
+    fileName: '1.jpg'
+  });
+  let item = request.gardenDeliverables.find((d) => d.id === 'diseno_levantamiento');
+  assert.strictEqual(item.clientStatus, CLIENT_STATUS.none);
+  applyGardenDeliverableUpload(request, {
+    deliverableId: 'diseno_levantamiento',
+    fileUrl: '/u/2.jpg',
+    fileName: '2.jpg'
+  });
+  item = request.gardenDeliverables.find((d) => d.id === 'diseno_levantamiento');
+  assert.strictEqual(item.clientStatus, CLIENT_STATUS.awaiting);
+  assert.strictEqual(item.files.length, 2);
+
+  let rev = clientReviewDeliverable(request, {
+    deliverableId: 'diseno_levantamiento',
+    accept: true
+  });
+  assert.strictEqual(rev.success, true);
+  item = request.gardenDeliverables.find((d) => d.id === 'diseno_levantamiento');
+  assert.strictEqual(item.clientStatus, CLIENT_STATUS.accepted);
+
+  // Anteproyecto bloqueado hasta aceptar levantamiento — ya aceptado
+  applyGardenDeliverableUpload(request, {
+    deliverableId: 'diseno_anteproyecto',
+    fileUrl: '/u/ant.pdf',
+    fileName: 'ant.pdf'
+  });
+  clientReviewDeliverable(request, { deliverableId: 'diseno_anteproyecto', accept: true });
+
+  applyGardenDeliverableUpload(request, {
     deliverableId: 'diseno_planimetria',
-    fileUrl: '/uploads/requests/x/plano.pdf',
+    fileUrl: '/u/plano.pdf',
     fileName: 'plano.pdf'
   });
-  assert.strictEqual(up.success, true);
-  assert.strictEqual(up.progress.complete, true);
+  clientReviewDeliverable(request, { deliverableId: 'diseno_planimetria', accept: true });
+
   assert.strictEqual(assertGardenDeliverablesReady(request).ok, true);
-  ok('bloqueo y carga de planimetría');
+  ok('flujo validación cliente + multi-archivo + unlock');
+}
+
+{
+  const request = {
+    gardenIntake: { serviceTypes: ['construccion'], designAddons: [] },
+    gardenDeliverables: buildGardenDeliverablesChecklist({
+      serviceTypes: ['construccion'],
+      designAddons: []
+    })
+  };
+  applyGardenDeliverableUpload(request, {
+    deliverableId: 'construccion_inicio',
+    fileUrl: '/a.jpg',
+    requirePartnerReview: true
+  });
+  applyGardenDeliverableUpload(request, {
+    deliverableId: 'construccion_inicio',
+    fileUrl: '/b.jpg',
+    requirePartnerReview: true
+  });
+  const item = request.gardenDeliverables.find((d) => d.id === 'construccion_inicio');
+  assert.strictEqual(item.partnerStatus, 'awaiting_partner');
+  partnerReviewDeliverable(request, {
+    deliverableId: 'construccion_inicio',
+    approve: true
+  });
+  const after = request.gardenDeliverables.find((d) => d.id === 'construccion_inicio');
+  assert.strictEqual(after.clientStatus, CLIENT_STATUS.awaiting);
+  const p = gardenDeliverablesProgress(request.gardenDeliverables);
+  assert.strictEqual(p.done, 0);
+  ok('vista previa socio antes del cliente');
 }
 
 {

@@ -1116,6 +1116,32 @@ router.post('/asignar/:requestId', requireRole('provider'), requireModule('provi
   });
 });
 
+router.post('/trabajo/:requestId/entregables/revisar', requireRole('provider'), (req, res) => {
+  const result = store.reviewGardenDeliverableAsPartner(req.params.requestId, req.session.user.id, {
+    deliverableId: req.body?.deliverableId,
+    approve: req.body?.approve,
+    note: req.body?.note
+  });
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
+  res.json({
+    success: true,
+    deliverable: result.deliverable,
+    progress: result.progress,
+    gardenDeliverables: result.gardenDeliverables
+  });
+});
+
+router.get('/trabajo/:requestId/bitacora', requireRole('provider'), (req, res) => {
+  const result = store.getGardenBitacora(req.params.requestId, {
+    userId: req.session.user.id,
+    role: 'provider'
+  });
+  if (result.error) return res.status(400).send(result.error);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(result.html);
+});
+
 router.get('/chat/:requestId', requireRole('provider'), (req, res) => {
   const result = store.getRequestChat(req.params.requestId, req.session.user);
   if (result.error) return res.status(result.error === 'No autorizado' ? 403 : 404).json(result);

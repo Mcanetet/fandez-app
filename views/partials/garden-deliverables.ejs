@@ -1,11 +1,12 @@
 <%#
-  Entregables Valle Parraguez — sube el técnico asociado.
+  Entregables paisajismo — bitácora de hitos.
   Locals: gardenDeliverables, gardenProgress, isObserver, editable
 %>
 <%
   const _items = Array.isArray(gardenDeliverables) ? gardenDeliverables : [];
-  const _progress = gardenProgress || { done: 0, total: 0, complete: false };
+  const _progress = gardenProgress || { done: 0, total: 0, complete: false, uploaded: 0 };
   const _editable = typeof editable !== 'undefined' ? Boolean(editable) : !isObserver;
+  const _isObserver = typeof isObserver !== 'undefined' ? Boolean(isObserver) : false;
   const _groups = {};
   _items.forEach(function(item) {
     const key = item.serviceTypeLabel || item.serviceType || 'General';
@@ -13,69 +14,110 @@
     _groups[key].push(item);
   });
   const _groupKeys = Object.keys(_groups);
+  function _clientLabel(st) {
+    if (st === 'accepted') return 'Cliente aceptó';
+    if (st === 'awaiting_client') return 'Esperando cliente';
+    if (st === 'needs_correction') return 'Corrección pedida';
+    return 'Pendiente';
+  }
 %>
 <% if (_items.length) { %>
 <section id="gardenDeliverablesPanel" class="space-y-3" data-garden-deliverables="1"
-  data-done="<%= _progress.done %>" data-total="<%= _progress.total %>">
+  data-done="<%= _progress.done || 0 %>" data-total="<%= _progress.total || 0 %>"
+  data-uploaded="<%= _progress.uploaded || 0 %>">
   <div class="flex items-start justify-between gap-3">
     <div class="min-w-0">
-      <p class="zilo-label mb-0.5">Entregables del servicio</p>
+      <p class="zilo-label mb-0.5">Bitácora de avances</p>
       <p class="text-[11px] text-zilo-muted leading-relaxed">
-        Articulados con lo que pidió el cliente. <%= _editable ? 'Súbelos aquí antes de cerrar la visita.' : 'Estado de carga del técnico.' %>
+        Sube fotos y planos por hito. El cliente debe validar cada uno.
+        <%= _editable ? 'Puedes cargar durante la obra, no solo al cierre.' : 'Vista del socio.' %>
       </p>
     </div>
     <div class="shrink-0 text-right">
       <p class="text-sm font-semibold text-emerald-800 tabular-nums" id="gardenDeliverablesCount">
-        <%= _progress.done %>/<%= _progress.total %>
+        <%= _progress.done || 0 %>/<%= _progress.total || 0 %>
       </p>
-      <p class="text-[10px] text-zilo-muted uppercase tracking-wide">listos</p>
+      <p class="text-[10px] text-zilo-muted uppercase tracking-wide">aceptados</p>
     </div>
   </div>
 
   <div class="h-1.5 rounded-full bg-emerald-100 overflow-hidden" aria-hidden="true">
     <div id="gardenDeliverablesBar" class="h-full bg-emerald-600 transition-all duration-300"
-      style="width: <%= _progress.total ? Math.round((_progress.done / _progress.total) * 100) : 0 %>%"></div>
+      style="width: <%= _progress.total ? Math.round(((_progress.done || 0) / _progress.total) * 100) : 0 %>%"></div>
   </div>
+  <p class="text-[11px] text-zilo-muted" id="gardenDeliverablesHint">
+    Subidos: <%= _progress.uploaded || 0 %>/<%= _progress.total || 0 %>.
+    Para cerrar, el cliente debe aceptar todos los hitos obligatorios.
+  </p>
 
   <div class="space-y-4" id="gardenDeliverablesList">
     <% _groupKeys.forEach(function(group) { %>
       <div class="space-y-2">
         <p class="text-[11px] font-semibold text-emerald-900/80"><%= group %></p>
         <% _groups[group].forEach(function(item) {
-          const done = item.status === 'uploaded' && item.fileUrl;
+          const files = Array.isArray(item.files) ? item.files.filter(function(f) { return f && f.url; }) : [];
+          const enough = files.length >= (item.minFiles || 1) || (item.fileUrl && (item.minFiles || 1) <= 1);
+          const accepted = item.clientStatus === 'accepted';
+          const awaiting = item.clientStatus === 'awaiting_client';
+          const correction = item.clientStatus === 'needs_correction';
+          const partnerAwait = item.partnerStatus === 'awaiting_partner';
         %>
-          <article class="rounded-xl border <%= done ? 'border-emerald-200 bg-emerald-50/60' : 'border-zilo-border bg-white' %> p-3"
-            data-deliverable-id="<%= item.id %>" data-status="<%= done ? 'uploaded' : 'pending' %>">
+          <article class="rounded-xl border <%= accepted ? 'border-emerald-200 bg-emerald-50/60' : correction ? 'border-amber-200 bg-amber-50/50' : 'border-zilo-border bg-white' %> p-3"
+            data-deliverable-id="<%= item.id %>"
+            data-status="<%= item.status || 'pending' %>"
+            data-client-status="<%= item.clientStatus || 'none' %>"
+            data-min-files="<%= item.minFiles || 1 %>"
+            data-file-count="<%= files.length || (item.fileUrl ? 1 : 0) %>">
             <div class="flex items-start gap-2.5">
               <span class="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold
-                <%= done ? 'bg-emerald-600 text-white' : 'bg-zilo-bg text-zilo-muted border border-zilo-border' %>"
-                data-role="deliverable-check"><%= done ? '✓' : '' %></span>
+                <%= accepted ? 'bg-emerald-600 text-white' : enough ? 'bg-blue-600 text-white' : 'bg-zilo-bg text-zilo-muted border border-zilo-border' %>"
+                data-role="deliverable-check"><%= accepted ? '✓' : enough ? '↑' : '' %></span>
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-zilo-text leading-snug"><%= item.label %></p>
+                <p class="text-sm font-medium text-zilo-text leading-snug"><%= item.label %><% if (!item.required) { %> <span class="text-[10px] text-zilo-muted">(opc.)</span><% } %></p>
                 <p class="text-[11px] text-zilo-muted mt-0.5 leading-relaxed"><%= item.hint %></p>
-                <% if (done) { %>
-                  <p class="text-[11px] text-emerald-800 mt-1.5" data-role="deliverable-file">
-                    <% if (item.fileUrl) { %>
-                      <a href="<%= item.fileUrl %>" target="_blank" rel="noopener" class="underline font-medium">
-                        <%= item.fileName || 'Ver archivo' %>
-                      </a>
-                    <% } else { %>
-                      Archivo cargado
-                    <% } %>
-                  </p>
-                <% } else if (_editable) { %>
+                <p class="text-[10px] mt-1 font-semibold <%= accepted ? 'text-emerald-800' : correction ? 'text-amber-800' : awaiting ? 'text-blue-800' : 'text-zilo-muted' %>" data-role="deliverable-client-status">
+                  <%= _clientLabel(item.clientStatus) %><% if (item.minFiles > 1) { %> · <%= files.length || 0 %>/<%= item.minFiles %> archivos<% } %>
+                </p>
+                <% if (item.clientNote && correction) { %>
+                  <p class="text-[11px] text-amber-900 mt-1">Cliente: <%= item.clientNote %></p>
+                <% } %>
+                <div class="mt-1.5 space-y-1" data-role="deliverable-files">
+                  <% if (files.length) { %>
+                    <% files.forEach(function(f) { %>
+                      <p class="text-[11px] text-emerald-800">
+                        <a href="<%= f.url %>" target="_blank" rel="noopener" class="underline font-medium"><%= f.fileName || 'Ver archivo' %></a>
+                        <% if (f.stampLabel) { %><span class="text-zilo-muted"> · <%= f.stampLabel %></span><% } %>
+                      </p>
+                    <% }); %>
+                  <% } else if (item.fileUrl) { %>
+                    <p class="text-[11px] text-emerald-800" data-role="deliverable-file">
+                      <a href="<%= item.fileUrl %>" target="_blank" rel="noopener" class="underline font-medium"><%= item.fileName || 'Ver archivo' %></a>
+                    </p>
+                  <% } %>
+                </div>
+                <% if (_editable && !accepted) { %>
                   <div class="mt-2">
                     <%- include('media-pick', {
                       id: 'deliverable_' + item.id,
                       accept: item.accept || 'image/*,application/pdf',
                       allowCamera: /image/i.test(String(item.accept || 'image')),
-                      hint: item.kind === 'photo' ? 'Toma o sube una foto clara.' : 'PDF o imagen.',
+                      hint: (item.minFiles > 1 ? 'Puedes subir varias. Mín. ' + item.minFiles + '.' : (item.kind === 'photo' ? 'Toma o sube una foto clara.' : 'PDF o imagen.')),
                       dataAttrs: 'data-deliverable-input="' + item.id + '"'
                     }) %>
+                    <label class="flex items-center gap-2 mt-2 text-[11px] text-zilo-muted cursor-pointer">
+                      <input type="checkbox" data-partner-review-flag="<%= item.id %>" class="rounded border-zilo-border">
+                      Enviar primero al socio (vista previa) antes del cliente
+                    </label>
                     <p class="text-[10px] text-zilo-muted mt-1 hidden" data-role="deliverable-status"></p>
                   </div>
-                <% } else { %>
+                <% } else if (!_editable && !enough) { %>
                   <p class="text-[11px] text-amber-800 mt-1.5">Pendiente de carga</p>
+                <% } %>
+                <% if (_isObserver && partnerAwait) { %>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <button type="button" class="zilo-btn-primary !py-1.5 !px-3 !text-xs" data-partner-approve="<%= item.id %>">Enviar al cliente</button>
+                    <button type="button" class="zilo-btn-ghost !py-1.5 !px-3 !text-xs" data-partner-reject="<%= item.id %>">Devolver al técnico</button>
+                  </div>
                 <% } %>
               </div>
             </div>
@@ -84,17 +126,20 @@
       </div>
     <% }); %>
   </div>
-
-  <% if (_editable && !_progress.complete) { %>
-    <p id="gardenDeliverablesHint" class="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed">
-      Para marcar “Trabajo listo” debes subir los <%= _progress.total %> entregables obligatorios.
+  <% if (typeof request !== 'undefined' && request && request.id) { %>
+    <p class="text-[11px]">
+      <a href="<%= _isObserver ? '/proveedor/trabajo/' + request.id + '/bitacora' : '/tecnico/trabajo/' + request.id + '/bitacora' %>"
+        target="_blank" rel="noopener" class="text-zilo-accent font-semibold underline">Ver / imprimir bitácora (PDF)</a>
     </p>
-  <% } else if (_editable) { %>
-    <p id="gardenDeliverablesHint" class="text-[11px] text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 leading-relaxed">
-      Entregables completos. Ya puedes cerrar la visita.
+  <% } %>
+  <%
+    const _unlocks = (typeof request !== 'undefined' && request && Array.isArray(request.gardenPaymentUnlocks))
+      ? request.gardenPaymentUnlocks : [];
+  %>
+  <% if (_unlocks.length) { %>
+    <p class="text-[11px] text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+      Abonos listos para cobrar: <%= _unlocks.map(function(u) { return u.label || u.phase; }).join(' · ') %>
     </p>
-  <% } else { %>
-    <p id="gardenDeliverablesHint" class="hidden"></p>
   <% } %>
 </section>
 <% } %>

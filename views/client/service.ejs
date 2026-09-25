@@ -663,7 +663,7 @@
           <div class="trip-step" data-step="enroute"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_way') %></strong><p class="text-[10px] text-zilo-muted">Rumbo a la evaluación en terreno</p></div></div>
           <div class="trip-step" data-step="arrived"><span class="trip-dot"></span><div><strong class="text-xs">Evaluación en terreno</strong><p class="text-[10px] text-zilo-muted">Levantamiento y alcance del proyecto</p></div></div>
           <div class="trip-step" data-step="working"><span class="trip-dot"></span><div><strong class="text-xs">Ejecución / diseño</strong><p class="text-[10px] text-zilo-muted">Según Diseño, Construcción o Mantención</p></div></div>
-          <div class="trip-step" data-step="deliverables"><span class="trip-dot"></span><div><strong class="text-xs">Entregables</strong><p class="text-[10px] text-zilo-muted" id="tripDeliverablesSub">El técnico sube planimetría, evidencia u obras</p></div></div>
+          <div class="trip-step" data-step="deliverables"><span class="trip-dot"></span><div><strong class="text-xs">Entregables</strong><p class="text-[10px] text-zilo-muted" id="tripDeliverablesSub">Valida fotos y planos de cada hito</p></div></div>
           <div class="trip-step" data-step="done"><span class="trip-dot"></span><div><strong class="text-xs">Proyecto cerrado</strong><p class="text-[10px] text-zilo-muted">Entregables listos · califica la visita</p></div></div>
           <% } else { %>
           <div class="trip-step done" data-step="paid"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_paid') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.paid_sub') %></p></div></div>
@@ -674,6 +674,18 @@
           <div class="trip-step" data-step="done"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_done') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.done_sub') %></p></div></div>
           <% } %>
         </div>
+      </div>
+
+      <div id="gardenValidatePanel" class="hidden p-4 rounded-2xl zilo-card-premium border border-emerald-200/80 space-y-3">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <p class="zilo-label mb-0.5">Valida avances del proyecto</p>
+            <p class="text-[11px] text-zilo-muted">Acepta cada hito o pide corrección. Sin tu OK el técnico no puede cerrar.</p>
+          </div>
+          <a id="gardenBitacoraLink" href="#" target="_blank" rel="noopener" class="text-[11px] font-semibold text-zilo-accent underline shrink-0">Bitácora PDF</a>
+        </div>
+        <div id="gardenValidateList" class="space-y-2"></div>
+        <p id="gardenPaymentUnlocks" class="hidden text-[11px] text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"></p>
       </div>
 
       <div class="p-5 rounded-2xl zilo-card-premium" id="providerLiveCard">

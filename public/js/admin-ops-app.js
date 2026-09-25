@@ -127,8 +127,8 @@
   }
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js?v=40', { scope: '/' })
-      .catch(() => navigator.serviceWorker.register('/sw.js?v=40', { scope: '/' }).catch(() => {}));
+    navigator.serviceWorker.register('/service-worker.js?v=41', { scope: '/' })
+      .catch(() => navigator.serviceWorker.register('/sw.js?v=41', { scope: '/' }).catch(() => {}));
   }
 
   load().catch((err) => toast(err.message || 'No se pudo cargar'));

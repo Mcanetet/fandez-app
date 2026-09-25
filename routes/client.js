@@ -1093,4 +1093,34 @@ router.post('/solicitud/:id/seguridad', requireRole('client'), (req, res) => {
   }
 });
 
+router.post('/solicitud/:id/entregables/validar', requireRole('client'), (req, res) => {
+  const result = store.reviewGardenDeliverableAsClient(req.params.id, req.session.user.id, {
+    deliverableId: req.body?.deliverableId,
+    accept: req.body?.accept,
+    note: req.body?.note
+  });
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  emitRequestUpdateToParties(req.app.get('io'), store, result.request, {
+    request: store.enrichRequestForClient(result.request, req.locale || 'es')
+  });
+  res.json({
+    success: true,
+    deliverable: result.deliverable,
+    progress: result.progress,
+    paymentUnlocked: result.paymentUnlocked,
+    gardenDeliverables: store.enrichRequestForClient(result.request, req.locale || 'es').gardenDeliverables,
+    gardenPaymentUnlocks: result.gardenPaymentUnlocks
+  });
+});
+
+router.get('/solicitud/:id/bitacora', requireRole('client'), (req, res) => {
+  const result = store.getGardenBitacora(req.params.id, {
+    userId: req.session.user.id,
+    role: 'client'
+  });
+  if (result.error) return res.status(400).send(result.error);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(result.html);
+});
+
 module.exports = router;

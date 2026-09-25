@@ -556,19 +556,28 @@ router.post('/trabajo/:requestId/entregables', requireRole('tecnico'), (req, res
     fileUrl,
     fileName: req.body.fileName,
     mimeType: req.body.mimeType,
-    note: req.body.note
+    note: req.body.note,
+    lat: req.body.lat,
+    lng: req.body.lng,
+    capturedAt: req.body.capturedAt,
+    requirePartnerReview: req.body.requirePartnerReview
   });
   if (result.error) return res.status(400).json({ success: false, error: result.error });
   emitRequestUpdateToParties(req.app.get('io'), store, result.request, { request: result.request });
   try {
     const progress = result.progress;
     const { notifyClientJourney } = require('../lib/aland/journey');
+    const label = result.awaitingMoreFiles
+      ? `${result.deliverable?.label} (faltan fotos)`
+      : result.deliverable?.clientStatus === 'awaiting_client'
+        ? `${result.deliverable?.label} — valida el avance`
+        : result.deliverable?.label;
     notifyClientJourney(result.request, {
       type: 'garden_deliverable',
       force: true,
-      label: result.deliverable?.label,
+      label,
       progress: progress?.total
-        ? `${progress.done}/${progress.total}`
+        ? `${progress.done}/${progress.total} aceptados`
         : undefined
     }).catch(() => {});
   } catch (_) { /* journey opcional */ }
@@ -576,9 +585,20 @@ router.post('/trabajo/:requestId/entregables', requireRole('tecnico'), (req, res
     success: true,
     deliverable: result.deliverable,
     progress: result.progress,
+    awaitingMoreFiles: result.awaitingMoreFiles,
     gardenDeliverables: result.gardenDeliverables,
     request: serializeJob(result.request)
   });
+});
+
+router.get('/trabajo/:requestId/bitacora', requireRole('tecnico'), (req, res) => {
+  const result = store.getGardenBitacora(req.params.requestId, {
+    userId: req.session.user.id,
+    role: 'tecnico'
+  });
+  if (result.error) return res.status(400).send(result.error);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(result.html);
 });
 
 router.post('/trabajo/:requestId/completar', requireRole('tecnico'), (req, res) => {

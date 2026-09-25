@@ -40,9 +40,10 @@
 
   const hasGardenDeliverables = page.dataset.gardenDeliverables === '1';
   const gardenDeliverablesEditable = page.dataset.observer !== '1';
+  const isGardenObserver = page.dataset.observer === '1';
 
   function updateGardenDeliverablesUi(progress) {
-    const panel = document.querySelector('#stepCierre #gardenDeliverablesPanel');
+    const panel = document.getElementById('gardenDeliverablesPanel');
     if (!panel || !progress) return;
     const count = document.getElementById('gardenDeliverablesCount');
     const bar = document.getElementById('gardenDeliverablesBar');
@@ -57,10 +58,11 @@
     if (hint) {
       if (progress.complete) {
         hint.className = 'text-[11px] text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 leading-relaxed';
-        hint.textContent = 'Entregables completos. Ya puedes cerrar la visita.';
+        hint.textContent = 'Todos los hitos aceptados por el cliente. Ya puedes cerrar la visita.';
       } else {
         hint.className = 'text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed';
-        hint.textContent = `Para marcar “Trabajo listo” debes subir los ${progress.total} entregables obligatorios.`;
+        const up = progress.uploaded != null ? progress.uploaded : progress.done;
+        hint.textContent = `Aceptados ${progress.done}/${progress.total}. Subidos ${up}/${progress.total}. El cliente debe validar cada hito antes del cierre.`;
       }
     }
     if (btn && hasGardenDeliverables && gardenDeliverablesEditable) {
@@ -68,42 +70,71 @@
     }
   }
 
-  function markDeliverableCardDone(card, deliverable) {
-    if (!card) return;
-    card.dataset.status = 'uploaded';
-    card.classList.remove('border-zilo-border', 'bg-white');
-    card.classList.add('border-emerald-200', 'bg-emerald-50/60');
-    const check = card.querySelector('[data-role="deliverable-check"]');
-    if (check) {
-      check.textContent = '✓';
-      check.className = 'mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold bg-emerald-600 text-white';
+  function appendDeliverableFileLine(card, file) {
+    let box = card.querySelector('[data-role="deliverable-files"]');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'mt-1.5 space-y-1';
+      box.dataset.role = 'deliverable-files';
+      card.querySelector('.min-w-0')?.appendChild(box);
     }
-    const pick = card.querySelector('.fandez-media-pick');
-    if (pick) pick.classList.add('hidden');
-    let fileLine = card.querySelector('[data-role="deliverable-file"]');
-    if (!fileLine) {
-      fileLine = document.createElement('p');
-      fileLine.className = 'text-[11px] text-emerald-800 mt-1.5';
-      fileLine.dataset.role = 'deliverable-file';
-      card.querySelector('.min-w-0')?.appendChild(fileLine);
-    }
-    const name = deliverable?.fileName || 'Ver archivo';
-    if (deliverable?.fileUrl) {
-      fileLine.innerHTML = '';
+    const p = document.createElement('p');
+    p.className = 'text-[11px] text-emerald-800';
+    if (file?.url) {
       const a = document.createElement('a');
-      a.href = deliverable.fileUrl;
+      a.href = file.url;
       a.target = '_blank';
       a.rel = 'noopener';
       a.className = 'underline font-medium';
-      a.textContent = name;
-      fileLine.appendChild(a);
+      a.textContent = file.fileName || 'Ver archivo';
+      p.appendChild(a);
+      if (file.stampLabel) {
+        const span = document.createElement('span');
+        span.className = 'text-zilo-muted';
+        span.textContent = ` · ${file.stampLabel}`;
+        p.appendChild(span);
+      }
     } else {
-      fileLine.textContent = 'Archivo cargado';
+      p.textContent = 'Archivo cargado';
+    }
+    box.appendChild(p);
+  }
+
+  function markDeliverableCardDone(card, deliverable) {
+    if (!card) return;
+    card.dataset.status = deliverable?.status || 'uploaded';
+    card.dataset.clientStatus = deliverable?.clientStatus || '';
+    const accepted = deliverable?.clientStatus === 'accepted';
+    const check = card.querySelector('[data-role="deliverable-check"]');
+    if (check) {
+      check.textContent = accepted ? '✓' : '↑';
+      check.className = `mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${accepted ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white'}`;
+    }
+    const st = card.querySelector('[data-role="deliverable-client-status"]');
+    if (st) {
+      const map = {
+        accepted: 'Cliente aceptó',
+        awaiting_client: 'Esperando cliente',
+        needs_correction: 'Corrección pedida',
+        none: 'Pendiente'
+      };
+      st.textContent = map[deliverable?.clientStatus] || 'Subido';
     }
   }
 
+  function readGeoOnce() {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve({});
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve({}),
+        { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
+      );
+    });
+  }
+
   async function uploadGardenDeliverable(deliverableId, input) {
-    const card = document.querySelector(`#stepCierre [data-deliverable-id="${deliverableId}"]`);
+    const card = document.querySelector(`#gardenDeliverablesPanel [data-deliverable-id="${deliverableId}"]`);
     const statusEl = card?.querySelector('[data-role="deliverable-status"]');
     if (statusEl) {
       statusEl.textContent = 'Subiendo…';
@@ -125,6 +156,8 @@
       } else {
         fileData = await fileToBase64(input);
       }
+      const geo = await readGeoOnce();
+      const requirePartnerReview = Boolean(card?.querySelector(`[data-partner-review-flag="${deliverableId}"]`)?.checked);
       const res = await fetch(`/tecnico/trabajo/${requestId}/entregables`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -132,15 +165,29 @@
           deliverableId,
           file: fileData,
           fileName: file.name,
-          mimeType: file.type || (isPdf ? 'application/pdf' : 'image/jpeg')
+          mimeType: file.type || (isPdf ? 'application/pdf' : 'image/jpeg'),
+          lat: geo.lat,
+          lng: geo.lng,
+          capturedAt: new Date().toISOString(),
+          requirePartnerReview
         })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo subir');
+      const lastFile = Array.isArray(data.deliverable?.files)
+        ? data.deliverable.files[data.deliverable.files.length - 1]
+        : { url: data.deliverable?.fileUrl, fileName: data.deliverable?.fileName };
+      appendDeliverableFileLine(card, lastFile);
       markDeliverableCardDone(card, data.deliverable);
       updateGardenDeliverablesUi(data.progress);
-      notify('Entregable cargado', 'success');
-      if (statusEl) statusEl.classList.add('hidden');
+      notify(data.awaitingMoreFiles ? 'Archivo subido — faltan más' : 'Hito actualizado', 'success');
+      if (statusEl) {
+        statusEl.textContent = data.awaitingMoreFiles
+          ? 'Sube más archivos para el mínimo del hito.'
+          : 'OK';
+        if (!data.awaitingMoreFiles) statusEl.classList.add('hidden');
+      }
+      if (input) input.value = '';
     } catch (err) {
       if (statusEl) {
         statusEl.textContent = err.message || 'Error al subir';
@@ -151,18 +198,51 @@
     }
   }
 
+  async function partnerReviewDeliverable(deliverableId, approve) {
+    let note = '';
+    if (!approve) {
+      note = window.prompt('¿Qué debe corregir el técnico?') || '';
+      if (!note.trim()) return notify('Indica el motivo', 'warning');
+    }
+    try {
+      const res = await fetch(`/proveedor/trabajo/${requestId}/entregables/revisar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ deliverableId, approve, note })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo revisar');
+      updateGardenDeliverablesUi(data.progress);
+      notify(approve ? 'Enviado al cliente' : 'Devuelto al técnico', approve ? 'success' : 'warning');
+      setTimeout(() => location.reload(), 700);
+    } catch (err) {
+      notify(err.message || 'Error', 'error');
+    }
+  }
+
   if (hasGardenDeliverables && gardenDeliverablesEditable) {
-    document.querySelectorAll('#stepCierre [data-deliverable-input]').forEach((input) => {
+    document.querySelectorAll('#gardenDeliverablesPanel [data-deliverable-input]').forEach((input) => {
       input.addEventListener('change', () => {
         const id = input.getAttribute('data-deliverable-input');
         if (id && input.files?.length) uploadGardenDeliverable(id, input);
       });
     });
-    const panel = document.querySelector('#stepCierre #gardenDeliverablesPanel');
+  }
+  if (hasGardenDeliverables && isGardenObserver) {
+    document.querySelectorAll('#gardenDeliverablesPanel [data-partner-approve]').forEach((btn) => {
+      btn.addEventListener('click', () => partnerReviewDeliverable(btn.getAttribute('data-partner-approve'), true));
+    });
+    document.querySelectorAll('#gardenDeliverablesPanel [data-partner-reject]').forEach((btn) => {
+      btn.addEventListener('click', () => partnerReviewDeliverable(btn.getAttribute('data-partner-reject'), false));
+    });
+  }
+  if (hasGardenDeliverables) {
+    const panel = document.getElementById('gardenDeliverablesPanel');
     if (panel) {
       updateGardenDeliverablesUi({
         done: Number(panel.dataset.done || 0),
         total: Number(panel.dataset.total || 0),
+        uploaded: Number(panel.dataset.uploaded || 0),
         complete: Number(panel.dataset.done || 0) > 0
           && Number(panel.dataset.done) === Number(panel.dataset.total)
       });
@@ -848,11 +928,11 @@
   document.getElementById('btnCompletar')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnCompletar');
     if (hasGardenDeliverables) {
-      const panel = document.querySelector('#stepCierre #gardenDeliverablesPanel');
+      const panel = document.getElementById('gardenDeliverablesPanel');
       const done = Number(panel?.dataset?.done || 0);
       const total = Number(panel?.dataset?.total || 0);
       if (total > 0 && done < total) {
-        return notify(`Faltan entregables (${done}/${total}). Súbelos antes de cerrar.`, 'warning');
+        return notify(`Faltan hitos aceptados por el cliente (${done}/${total}).`, 'warning');
       }
     }
     const workNotes = document.getElementById('workNotes').value.trim();

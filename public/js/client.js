@@ -1869,8 +1869,8 @@
     const deliverablesSub = document.getElementById('tripDeliverablesSub');
     if (deliverablesSub && progress && progress.total) {
       deliverablesSub.textContent = progress.complete
-        ? 'Todos los entregables cargados'
-        : `${progress.done || 0}/${progress.total} entregables listos`;
+        ? 'Todos los hitos aceptados'
+        : `${progress.done || 0}/${progress.total} hitos aceptados · valida los pendientes`;
     }
     const map = garden ? {
       paid: ['Evaluación pagada', 'Buscamos un socio de jardinería y paisajismo para tu proyecto.', 'Buscando equipo'],
@@ -2116,6 +2116,7 @@
     advanceTripStep(step);
     updateTripStatusHero(request, step);
     updateLiveTrackBanner(request);
+    renderGardenValidatePanel(request);
 
     if (lastTripStepAlert === step) return;
     // Solo alertar en hitos de movimiento (no al asignar, eso ya lo hace showProvider)
@@ -2158,6 +2159,126 @@
     }
   }
 
+  function renderGardenValidatePanel(request) {
+    const panel = document.getElementById('gardenValidatePanel');
+    const list = document.getElementById('gardenValidateList');
+    const unlocksEl = document.getElementById('gardenPaymentUnlocks');
+    const bitacora = document.getElementById('gardenBitacoraLink');
+    if (!panel || !list) return;
+    const items = Array.isArray(request?.gardenDeliverables) ? request.gardenDeliverables : [];
+    const active = items.filter((d) => d.canValidate || d.clientStatus === 'accepted' || d.clientStatus === 'needs_correction' || d.fileUrl || (d.files && d.files.length));
+    if (!items.length || request.status === 'completed') {
+      // still show accepted summary on completed via completion box
+      if (request.status !== 'completed') panel.classList.add('hidden');
+      else panel.classList.toggle('hidden', !active.length);
+    } else {
+      panel.classList.toggle('hidden', !active.length && !(request.gardenDeliverablesProgress?.total > 0));
+    }
+    if (bitacora && request?.id) {
+      bitacora.href = `/cliente/solicitud/${request.id}/bitacora`;
+      bitacora.classList.toggle('hidden', !items.length);
+    }
+    list.replaceChildren();
+    items.forEach((item) => {
+      const card = document.createElement('article');
+      card.className = 'rounded-xl border border-zilo-border bg-white p-3 space-y-2';
+      const title = document.createElement('p');
+      title.className = 'text-sm font-semibold text-zilo-text';
+      title.textContent = item.label || 'Hito';
+      const status = document.createElement('p');
+      status.className = 'text-[11px] text-zilo-muted';
+      const stMap = {
+        awaiting_client: 'Pendiente de tu validación',
+        accepted: 'Aceptado',
+        needs_correction: 'Pediste corrección',
+        none: 'Aún sin archivos'
+      };
+      status.textContent = stMap[item.clientStatus] || item.clientStatus || '';
+      card.append(title, status);
+      const files = Array.isArray(item.files) && item.files.length
+        ? item.files
+        : (item.fileUrl ? [{ url: item.fileUrl, fileName: item.fileName }] : []);
+      files.forEach((f) => {
+        if (!f?.url) return;
+        const a = document.createElement('a');
+        a.href = f.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.className = 'block text-[11px] text-zilo-accent underline';
+        a.textContent = f.fileName || 'Ver archivo';
+        card.appendChild(a);
+        if (f.stampLabel) {
+          const stamp = document.createElement('p');
+          stamp.className = 'text-[10px] text-zilo-muted';
+          stamp.textContent = f.stampLabel;
+          card.appendChild(stamp);
+        }
+      });
+      if (item.canValidate) {
+        const actions = document.createElement('div');
+        actions.className = 'flex flex-wrap gap-2 pt-1';
+        const ok = document.createElement('button');
+        ok.type = 'button';
+        ok.className = 'zilo-btn-primary !py-1.5 !px-3 !text-xs';
+        ok.textContent = 'Aceptar hito';
+        ok.addEventListener('click', () => validateGardenDeliverable(request.id, item.id, true));
+        const no = document.createElement('button');
+        no.type = 'button';
+        no.className = 'zilo-btn-ghost !py-1.5 !px-3 !text-xs';
+        no.textContent = 'Pedir corrección';
+        no.addEventListener('click', () => validateGardenDeliverable(request.id, item.id, false));
+        actions.append(ok, no);
+        card.appendChild(actions);
+      } else if (item.clientNote && item.clientStatus === 'needs_correction') {
+        const note = document.createElement('p');
+        note.className = 'text-[11px] text-amber-800';
+        note.textContent = item.clientNote;
+        card.appendChild(note);
+      }
+      list.appendChild(card);
+    });
+    const unlocks = Array.isArray(request?.gardenPaymentUnlocks) ? request.gardenPaymentUnlocks : [];
+    if (unlocksEl) {
+      if (unlocks.length) {
+        unlocksEl.classList.remove('hidden');
+        unlocksEl.textContent = 'Abonos habilitados: ' + unlocks.map((u) => u.label || u.phase).join(' · ');
+      } else {
+        unlocksEl.classList.add('hidden');
+      }
+    }
+    if (items.length && request.status !== 'completed') panel.classList.remove('hidden');
+  }
+
+  async function validateGardenDeliverable(requestId, deliverableId, accept) {
+    let note = '';
+    if (!accept) {
+      note = window.prompt('¿Qué debe corregir el equipo?') || '';
+      if (!note.trim()) {
+        FandezNotify.show('Indica qué corregir', 'warning');
+        return;
+      }
+    }
+    try {
+      const res = await fetch(`/cliente/solicitud/${requestId}/entregables/validar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ deliverableId, accept, note })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo validar');
+      FandezNotify.show(accept ? 'Hito aceptado' : 'Corrección solicitada', accept ? 'success' : 'info');
+      if (lastTrackedRequest) {
+        lastTrackedRequest.gardenDeliverables = data.gardenDeliverables;
+        lastTrackedRequest.gardenDeliverablesProgress = data.progress;
+        lastTrackedRequest.gardenPaymentUnlocks = data.gardenPaymentUnlocks;
+        renderGardenValidatePanel(lastTrackedRequest);
+        updateTripStatusHero(lastTrackedRequest, 'deliverables');
+      }
+    } catch (err) {
+      FandezNotify.show(err.message || 'Error', 'error');
+    }
+  }
+
   function renderCompletionSummary(totals, vouchers, request) {
     const box = document.getElementById('completionSummary');
     if (!box || !totals?.completed) return;
@@ -2174,22 +2295,42 @@
       gardenList.replaceChildren();
       gardenItems.forEach((item) => {
         const li = document.createElement('li');
-        li.className = 'flex items-start justify-between gap-2';
+        li.className = 'flex flex-col gap-1';
+        const row = document.createElement('div');
+        row.className = 'flex items-start justify-between gap-2';
         const label = document.createElement('span');
-        label.textContent = item.label || 'Entregable';
-        li.appendChild(label);
-        if (item.fileUrl) {
+        label.textContent = `${item.label || 'Entregable'}${item.clientStatus === 'accepted' ? ' ✓' : ''}`;
+        row.appendChild(label);
+        li.appendChild(row);
+        const files = Array.isArray(item.files) && item.files.length
+          ? item.files
+          : (item.fileUrl ? [{ url: item.fileUrl, fileName: item.fileName }] : []);
+        files.forEach((f) => {
+          if (!f?.url) return;
           const a = document.createElement('a');
-          a.href = item.fileUrl;
+          a.href = f.url;
           a.target = '_blank';
           a.rel = 'noopener';
-          a.className = 'text-zilo-accent underline shrink-0';
-          a.textContent = item.kind === 'photo' ? 'Ver foto' : 'Abrir';
+          a.className = 'text-zilo-accent underline text-[11px]';
+          a.textContent = f.fileName || (item.kind === 'photo' ? 'Ver foto' : 'Abrir');
           li.appendChild(a);
-        }
+        });
         gardenList.appendChild(li);
       });
       gardenBox.classList.toggle('hidden', !gardenItems.length);
+      const bitLink = document.createElement('a');
+      if (request?.id && gardenItems.length) {
+        const wrap = document.createElement('p');
+        wrap.className = 'pt-1';
+        const a = document.createElement('a');
+        a.href = `/cliente/solicitud/${request.id}/bitacora`;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.className = 'text-[11px] font-semibold text-zilo-accent underline';
+        a.textContent = 'Descargar bitácora / acta PDF';
+        wrap.appendChild(a);
+        gardenList.appendChild(wrap);
+      }
     }
 
     const materialsBlock = document.getElementById('finalMaterialsBlock');

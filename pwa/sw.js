@@ -1,5 +1,5 @@
 /* Fandez PWA — service worker (install + notificaciones del sistema). */
-const SW_VERSION = 'fandez-sw-v40';
+const SW_VERSION = 'fandez-sw-v41';
 
 /** Ámbar + ventosa Fandez (v11). Subir ICON_VER rompe caché Saturno en Android. */
 const ICON_VER = '13';
@@ -199,24 +199,52 @@ self.addEventListener('notificationclick', (event) => {
     }
   } catch (_) { /* ignore */ }
 
+  function pathOf(href) {
+    try { return new URL(href, self.location.origin).pathname; } catch (_) { return ''; }
+  }
+  /** Panel admin secreto (/ops-…) o legacy /admin — no confundir con /app del cliente. */
+  function isAdminPath(pathname) {
+    return pathname === '/admin'
+      || pathname.startsWith('/admin/')
+      || /^\/ops-[a-zA-Z0-9][a-zA-Z0-9_-]{2,}(\/|$)/.test(pathname);
+  }
+  function isShellPath(pathname) {
+    return isAdminPath(pathname)
+      || pathname.startsWith('/cliente')
+      || pathname.startsWith('/proveedor')
+      || pathname.startsWith('/tecnico')
+      || pathname === '/app'
+      || pathname.startsWith('/app/');
+  }
+
   event.waitUntil((async () => {
     const all = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const targetPath = pathOf(target);
     for (const client of all) {
       try {
         const url = new URL(client.url);
         if (url.origin !== self.location.origin) continue;
         await client.focus();
         const path = url.pathname || '';
-        const onApp = path.startsWith('/cliente')
-          || path.startsWith('/proveedor')
-          || path.startsWith('/tecnico')
-          || path.startsWith('/app');
-        if (!onApp && 'navigate' in client) {
-          await client.navigate(target.startsWith('/app') ? target : '/app?source=pwa');
+        if (!('navigate' in client)) return;
+        // Si ya estamos en admin, NO mandar nunca al /app del cliente.
+        if (isAdminPath(path)) {
+          if (isAdminPath(targetPath)) await client.navigate(target);
+          return;
         }
+        // Cliente/socio/técnico: navegar al destino si no es admin (salvo que el push sea admin).
+        if (isShellPath(path)) {
+          if (isAdminPath(targetPath)) {
+            await clients.openWindow(target);
+            return;
+          }
+          await client.navigate(target);
+          return;
+        }
+        await client.navigate(target);
         return;
       } catch (_) { /* ignore */ }
     }
-    await clients.openWindow('/app?source=pwa');
+    await clients.openWindow(target);
   })());
 });

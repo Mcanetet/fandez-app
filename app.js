@@ -29,6 +29,7 @@ const alandRoutes = require('./routes/aland');
 const aland = require('./lib/aland');
 const unassignedRequestWatcher = require('./lib/unassignedRequestWatcher');
 const sofiaIncompleteNudge = require('./lib/sofia/incompleteProviderNudge');
+const gardenDeliverableNudge = require('./lib/sofia/gardenDeliverableNudge');
 const { getRequestTimeouts } = require('./lib/requestTimeouts');
 const { localizeServices } = require('./lib/i18n-admin');
 const { buildPageMeta, getSiteUrl } = require('./lib/seo');
@@ -805,6 +806,7 @@ async function initDatabase() {
         timeoutMinutes: getRequestTimeouts().unassignedNoticeMinutes
       });
       sofiaIncompleteNudge.start(store);
+      gardenDeliverableNudge.start(store);
       try {
         require('./lib/agents/founderAlerts').startDailyDigestScheduler(store);
         require('./lib/agents/opsInbox').ensureTable().catch(() => {});
