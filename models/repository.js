@@ -21,6 +21,7 @@ const SEED_SERVICES = [
   { id: 'pintura', name: 'Pintura', icon: 'pintura', color: '#C45C14', visitPrice: 100000, basicMin: 100000, basicMax: 220000, description: 'Retoques, habitaciones y preparación de muros.', enabled: true },
   { id: 'termos', name: 'Termos', icon: 'termos', color: '#EF4444', visitPrice: 100000, basicMin: 100000, basicMax: 160000, description: 'Termo sin agua caliente, resistencia o cambio.', enabled: true },
   { id: 'piscinas', name: 'Piscinas', icon: 'piscinas', color: '#0891B2', visitPrice: 75000, basicMin: 75000, basicMax: 220000, description: 'Agua verde, bombas, filtros y mantención.', enabled: true },
+  { id: 'grua', name: 'Grúa de vehículos', icon: 'grua', color: '#475569', visitPrice: 95000, basicMin: 95000, basicMax: 280000, description: 'Remolque y traslado de autos, camionetas y vehículos livianos.', enabled: true },
   { id: 'paisajismo', name: 'Paisajismo', icon: 'paisajismo', color: '#15803D', visitPrice: 40000, basicMin: 40000, basicMax: 180000, description: 'Diseño, construcción o mantención de jardín (proyecto con evaluación).', enabled: true },
   { id: 'fotovoltaico', name: 'Paneles solares', icon: 'fotovoltaico', color: '#EA580C', visitPrice: 49000, basicMin: 49000, basicMax: 49000, description: 'Proyecto FV / Netbilling: evaluación, propuesta e instalación.', enabled: true },
   { id: 'lavavajillas', name: 'Lavavajillas', icon: 'lavavajillas', color: '#06B6D4', visitPrice: 100000, basicMin: 100000, basicMax: 145000, description: 'Integrado en Gasfitería (hidráulica) y Otros (electrónica).', enabled: false },

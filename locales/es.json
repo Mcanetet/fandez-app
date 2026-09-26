@@ -693,6 +693,8 @@
   "services.fotovoltaico.desc": "Baja tu boleta con un proyecto FV / Netbilling. Evaluación + propuesta.",
   "services.piscinas.name": "Piscinas",
   "services.piscinas.desc": "Agua verde, bomba, filtro o un proyecto más grande.",
+  "services.grua.name": "Grúa de vehículos",
+  "services.grua.desc": "Remolque y traslado de autos, camionetas y vehículos livianos.",
   "services.limpieza.name": "Limpieza",
   "services.limpieza.desc": "Limpieza por m². Materiales incluidos.",
   "services.otros.name": "Otros",
