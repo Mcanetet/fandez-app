@@ -42,23 +42,33 @@
 
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
         <h2 class="text-sm font-semibold mb-1">Cancelaciones</h2>
-        <p class="text-xs text-gray-500 mb-4">Monto retenido al cancelar (CLP). El resto se devoluciona al cliente. Escala según avance del servicio.</p>
-        <% const cancelCfg = pricing.cancellations || { beforeAccepted: 0, afterTechAccepted: 20000, enRouteOrOnSite: 20000 }; %>
+        <p class="text-xs text-gray-500 mb-4">Monto retenido al cancelar (CLP). Devolución = visita pagada − retención. Escala según avance del servicio.</p>
+        <% const cancelCfg = pricing.cancellations || { beforeAccepted: 0, afterTechAccepted: 0, enRoute: 10000, onSiteVerified: 15000, afterDiagnosis: 20000 }; %>
         <div class="grid grid-cols-1 gap-3">
           <div>
             <label class="text-xs text-gray-500">Antes de que el técnico acepte</label>
             <input type="number" name="cancelBeforeAccepted" value="<%= cancelCfg.beforeAccepted %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Búsqueda, programada o asignado pendiente. Default $0 (devolución completa).</p>
+            <p class="text-[10px] text-gray-400 mt-1">Búsqueda, programada o asignado pendiente. Default $0.</p>
           </div>
           <div>
             <label class="text-xs text-gray-500">Técnico aceptó (aún no en camino)</label>
             <input type="number" name="cancelAfterTechAccepted" value="<%= cancelCfg.afterTechAccepted %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Socio y técnico ya tomaron el pedido. Default $20.000.</p>
+            <p class="text-[10px] text-gray-400 mt-1">Default $0 — el cargo empieza en camino.</p>
           </div>
           <div>
-            <label class="text-xs text-gray-500">En camino o en el domicilio</label>
-            <input type="number" name="cancelEnRouteOrOnSite" value="<%= cancelCfg.enRouteOrOnSite %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Técnico en camino, en domicilio o post diagnóstico. Default $20.000.</p>
+            <label class="text-xs text-gray-500">Técnico en camino</label>
+            <input type="number" name="cancelEnRoute" value="<%= cancelCfg.enRoute != null ? cancelCfg.enRoute : 10000 %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">También aplica si llegó al domicilio pero aún no validó el código. Default $10.000.</p>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">Llegó y validó código de verificación</label>
+            <input type="number" name="cancelOnSiteVerified" value="<%= cancelCfg.onSiteVerified != null ? cancelCfg.onSiteVerified : 15000 %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Default $15.000.</p>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">Después del diagnóstico</label>
+            <input type="number" name="cancelAfterDiagnosis" value="<%= cancelCfg.afterDiagnosis != null ? cancelCfg.afterDiagnosis : (cancelCfg.enRouteOrOnSite || 20000) %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Diagnóstico, reparación, presupuesto, materiales. Default $20.000.</p>
           </div>
         </div>
       </section>

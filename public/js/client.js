@@ -1574,16 +1574,22 @@
     const fmt = (n) => '$' + Number(n || 0).toLocaleString('es-CL');
     const fee = Number(data?.fee || 0);
     const paid = Number(data?.paid || 0);
-    const refund = Number(data?.refundAmount || 0);
+    const refund = Number(data?.refundAmount != null ? data.refundAmount : Math.max(0, paid - fee));
     const tier = data?.tier || 'beforeAccepted';
     const policy = data?.policy || {};
     const labels = data?.policyLabels || {};
-    const afterLabel = labels.afterTechAccepted || fmt(policy.afterTechAccepted || 15000);
-    const enRouteLabel = labels.enRouteOrOnSite || fmt(policy.enRouteOrOnSite || 30000);
     const beforeLabel = labels.beforeAccepted || fmt(policy.beforeAccepted || 0);
+    const afterLabel = labels.afterTechAccepted || fmt(policy.afterTechAccepted || 0);
+    const enRouteLabel = labels.enRoute || fmt(policy.enRoute || 10000);
+    const verifiedLabel = labels.onSiteVerified || fmt(policy.onSiteVerified || 15000);
+    const diagnosisLabel = labels.afterDiagnosis || labels.enRouteOrOnSite || fmt(policy.afterDiagnosis || policy.enRouteOrOnSite || 20000);
 
     if (hookEl) {
-      if (tier === 'enRouteOrOnSite') {
+      if (tier === 'afterDiagnosis') {
+        hookEl.textContent = t('client.service.cancel_hook_diagnosis', { fee: data.feeLabel || diagnosisLabel });
+      } else if (tier === 'onSiteVerified') {
+        hookEl.textContent = t('client.service.cancel_hook_verified', { fee: data.feeLabel || verifiedLabel });
+      } else if (tier === 'enRoute' || tier === 'enRouteOrOnSite') {
         hookEl.textContent = t('client.service.cancel_hook_onsite', { fee: data.feeLabel || enRouteLabel });
       } else if (tier === 'afterTechAccepted') {
         hookEl.textContent = t('client.service.cancel_hook_accepted', { fee: data.feeLabel || afterLabel });
@@ -1598,13 +1604,17 @@
           <span>${t('client.service.cancel_policy_before')}</span>
           <strong>${beforeLabel}</strong>
         </li>
-        <li class="${tier === 'afterTechAccepted' ? 'is-current' : ''}">
-          <span>${t('client.service.cancel_policy_accepted')}</span>
-          <strong>${afterLabel}</strong>
-        </li>
-        <li class="${tier === 'enRouteOrOnSite' ? 'is-current' : ''}">
+        <li class="${tier === 'enRoute' || tier === 'enRouteOrOnSite' ? 'is-current' : ''}">
           <span>${t('client.service.cancel_policy_enroute')}</span>
           <strong>${enRouteLabel}</strong>
+        </li>
+        <li class="${tier === 'onSiteVerified' ? 'is-current' : ''}">
+          <span>${t('client.service.cancel_policy_verified')}</span>
+          <strong>${verifiedLabel}</strong>
+        </li>
+        <li class="${tier === 'afterDiagnosis' ? 'is-current' : ''}">
+          <span>${t('client.service.cancel_policy_diagnosis')}</span>
+          <strong>${diagnosisLabel}</strong>
         </li>`;
     }
 

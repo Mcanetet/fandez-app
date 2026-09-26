@@ -781,7 +781,10 @@ router.get('/solicitud/:id/cancelacion', requireRole('client'), (req, res) => {
     policyLabels: {
       beforeAccepted: store.formatCLP(policy.beforeAccepted || 0),
       afterTechAccepted: store.formatCLP(policy.afterTechAccepted || 0),
-      enRouteOrOnSite: store.formatCLP(policy.enRouteOrOnSite || 0)
+      enRoute: store.formatCLP(policy.enRoute || 0),
+      onSiteVerified: store.formatCLP(policy.onSiteVerified || 0),
+      afterDiagnosis: store.formatCLP(policy.afterDiagnosis || policy.enRouteOrOnSite || 0),
+      enRouteOrOnSite: store.formatCLP(policy.afterDiagnosis || policy.enRouteOrOnSite || 0)
     }
   });
 });

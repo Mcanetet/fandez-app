@@ -2135,7 +2135,9 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
     cancellations: {
       beforeAccepted: parseInt(body.cancelBeforeAccepted, 10),
       afterTechAccepted: parseInt(body.cancelAfterTechAccepted, 10),
-      enRouteOrOnSite: parseInt(body.cancelEnRouteOrOnSite, 10)
+      enRoute: parseInt(body.cancelEnRoute != null ? body.cancelEnRoute : body.cancelEnRouteOrOnSite, 10),
+      onSiteVerified: parseInt(body.cancelOnSiteVerified, 10),
+      afterDiagnosis: parseInt(body.cancelAfterDiagnosis != null ? body.cancelAfterDiagnosis : body.cancelEnRouteOrOnSite, 10)
     },
     referrals: {
       creditCLP: parseInt(body.referralCreditClp, 10),

@@ -31,7 +31,7 @@
 
     <% const hasActive = activeRequests && activeRequests.length > 0; %>
     <% const isReturning = Boolean((typeof lastCompleted !== 'undefined' && lastCompleted) || (passport && passport.entries && passport.entries.length)); %>
-    <% const cancelFeeLabel = typeof formatCLP === 'function' ? formatCLP(20000) : '$20.000'; %>
+    <% const cancelFeeLabel = typeof formatCLP === 'function' ? formatCLP(10000) : '$10.000'; %>
 
     <% if (hasActive) { %>
     <!-- Solicitudes en curso → luego pedir otro -->

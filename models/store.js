@@ -1828,10 +1828,12 @@ function applyCancellationWithRetention(request, {
   reasonText = null
 } = {}) {
   const now = new Date().toISOString();
+  // Base de cancelación = visita diagnosticada pagada (no materiales ni cargos adicionales).
   const paid = Math.max(0, parseInt(request.visitPricePaid || request.amountDue || request.visitTotal || 0, 10) || 0);
   const tier = resolveCancellationTier(request);
-  const retentionFee = Math.min(paid, getCancellationFeeClp(getPricingConfig(), request));
-  let refundAmount = Math.max(0, paid - retentionFee);
+  const policyFee = getCancellationFeeClp(getPricingConfig(), request);
+  const retentionFee = Math.min(paid, policyFee);
+  const refundAmount = Math.max(0, paid - retentionFee);
 
   request.status = 'cancelled';
   request.cancelledAt = now;
@@ -1839,7 +1841,14 @@ function applyCancellationWithRetention(request, {
   request.cancelledBy = cancelledBy;
   request.cancellationTier = tier;
   request.cancellationFeeCharged = retentionFee;
+  request.cancellationFeePolicy = policyFee;
   request.refundAmount = refundAmount;
+  request.refundBreakdown = {
+    visitPaid: paid,
+    retentionFee,
+    refundAmount,
+    formula: 'visitPaid - retentionFee'
+  };
   if (reasonCode) {
     request.cancelReasonCode = reasonCode;
     request.cancelReasonLabel = getCancellationReasonLabel(reasonCode);
@@ -1860,7 +1869,7 @@ function applyCancellationWithRetention(request, {
     request.refundRequestedAt = now;
     request.refundScheduledDate = null;
   }
-  return { paid, retentionFee, refundAmount, tier };
+  return { paid, retentionFee, refundAmount, tier, policyFee };
 }
 
 function promoteDueScheduledSearches(now = Date.now()) {
