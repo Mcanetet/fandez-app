@@ -2,15 +2,16 @@
   const form = document.getElementById('registrationForm');
   if (!form) return;
 
+  const clientBillingWrap = document.getElementById('clientBillingWrap');
   const clientBillingFields = document.getElementById('clientBillingFields');
-  const clientCompanyFields = document.getElementById('clientCompanyFields');
+  const clientEmpresaToggle = document.getElementById('clientEmpresaToggle');
+  const billingTypeHidden = document.getElementById('clientBillingTypeHidden');
   const clientRut = document.getElementById('client_rut');
   const clientLegalName = document.getElementById('client_legal_name');
   const clientGiro = document.getElementById('client_giro');
   const rutHint = document.getElementById('clientRutHint');
   const nameLabel = document.getElementById('nameLabel');
   const nameInput = document.getElementById('name');
-  const billingTypeInputs = document.querySelectorAll('input[name="client_billing_type"]');
 
   function t(key, fallback) {
     if (typeof FandezI18n !== 'undefined') {
@@ -26,8 +27,7 @@
   }
 
   function isCompanyClient() {
-    const selected = document.querySelector('input[name="client_billing_type"]:checked');
-    return selected && selected.value === 'empresa';
+    return Boolean(clientEmpresaToggle && clientEmpresaToggle.checked && isClientRole());
   }
 
   function showRutError(message) {
@@ -43,21 +43,22 @@
       return true;
     }
 
-    const value = clientRut.value.trim();
     const company = isCompanyClient();
+    const value = clientRut.value.trim();
 
-    if (!value) {
-      if (company) {
-        const msg = t('register.error_client_rut', 'Ingresa el RUT de la empresa.');
-        showRutError(msg);
-        if (showMessage) {
-          clientRut.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          clientRut.reportValidity();
-        }
-        return false;
-      }
+    if (!company) {
       showRutError('');
       return true;
+    }
+
+    if (!value) {
+      const msg = t('register.error_client_rut', 'Ingresa el RUT de la empresa.');
+      showRutError(msg);
+      if (showMessage) {
+        clientRut.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        clientRut.reportValidity();
+      }
+      return false;
     }
 
     if (typeof FandezRut === 'undefined' || !FandezRut.validate(value)) {
@@ -77,28 +78,27 @@
 
   function syncClientBilling() {
     const isClient = isClientRole();
-    const company = isClient && isCompanyClient();
-    if (clientBillingFields) clientBillingFields.classList.toggle('hidden', !isClient);
+    const company = isCompanyClient();
+
+    if (clientBillingWrap) clientBillingWrap.classList.toggle('hidden', !isClient);
+    if (clientBillingFields) clientBillingFields.classList.toggle('hidden', !company);
+    if (billingTypeHidden) billingTypeHidden.value = company ? 'empresa' : 'natural';
 
     if (clientRut) clientRut.required = company;
     if (clientLegalName) clientLegalName.required = company;
     if (clientGiro) clientGiro.required = company;
 
-    if (clientCompanyFields) {
-      clientCompanyFields.classList.toggle('hidden', !company);
-    }
-
     if (rutHint) {
       rutHint.textContent = company
-        ? t('register.client_rut_hint_company', 'Obligatorio para emitir factura a tu empresa.')
-        : t('register.client_rut_hint_optional', 'Opcional ahora. Si lo dejas vacío, lo pediremos al pagar tu primera visita.');
+        ? t('register.client_rut_hint_company', 'Obligatorio para factura.')
+        : t('register.client_rut_hint_optional', 'Opcional ahora; lo pedimos al pagar.');
     }
 
     if (nameLabel) {
       if (isClient) {
         nameLabel.textContent = nameLabel.dataset.labelClient
           || nameLabel.dataset.labelCompany
-          || t('register.contact_name', 'Nombre de quien pide');
+          || t('register.contact_name', 'Tu nombre');
       } else {
         nameLabel.textContent = nameLabel.dataset.labelNatural || t('register.name', 'Nombre completo');
       }
@@ -107,18 +107,18 @@
       if (isClient) {
         nameInput.placeholder = nameInput.dataset.placeholderClient
           || nameInput.dataset.placeholderCompany
-          || t('register.contact_name_placeholder', 'Ej: María González');
+          || t('register.contact_name_placeholder', 'Ej: María López');
       } else {
         nameInput.placeholder = nameInput.dataset.placeholderNatural || t('register.name_placeholder', 'Tu nombre');
       }
     }
 
-    if (!isClient || !company) showRutError('');
+    if (!company) showRutError('');
   }
 
-  billingTypeInputs.forEach((input) => {
-    input.addEventListener('change', syncClientBilling);
-  });
+  if (clientEmpresaToggle) {
+    clientEmpresaToggle.addEventListener('change', syncClientBilling);
+  }
 
   document.querySelectorAll('input[name="role"]').forEach((input) => {
     input.addEventListener('change', syncClientBilling);
@@ -127,7 +127,7 @@
   if (clientRut) {
     clientRut.addEventListener('input', () => showRutError(''));
     clientRut.addEventListener('blur', () => {
-      if (!clientRut.value.trim()) {
+      if (!isCompanyClient() || !clientRut.value.trim()) {
         showRutError('');
         return;
       }

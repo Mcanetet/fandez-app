@@ -1111,11 +1111,7 @@
       addressInput.reportValidity();
       return;
     }
-    if (!isProviderRole() && unitInput && unitInput.value.trim().length < 2) {
-      unitInput.setCustomValidity(t('register.error_address_unit_required'));
-      unitInput.reportValidity();
-      return;
-    }
+    if (unitInput) unitInput.setCustomValidity('');
 
     unlockSubmitFields();
 

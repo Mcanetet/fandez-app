@@ -2303,6 +2303,40 @@ body.session-role--tecnico::before {
   margin-bottom: 0.15rem;
 }
 
+.register-empresa-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  cursor: pointer;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--zilo-border);
+  background: #fff;
+}
+
+.register-empresa-toggle input {
+  margin-top: 0.2rem;
+  accent-color: var(--zilo-accent);
+  flex-shrink: 0;
+}
+
+.register-empresa-toggle strong {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--zilo-text);
+  font-style: normal;
+}
+
+.register-empresa-toggle em {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--zilo-muted);
+  font-style: normal;
+}
+
 .lang-switcher {
   display: inline-flex;
   align-items: stretch;

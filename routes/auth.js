@@ -494,14 +494,18 @@ router.get('/registro', (req, res) => {
     if (user && !store.isEmailVerified(user)) return res.redirect('/verificar-email');
     return res.redirect(getDashboardPath(req.session.user.role));
   }
-  const defaultRole =
-    req.query.role === 'client' || req.query.emergency ? 'client' : 'provider';
+  const defaultRole = req.query.role === 'provider' ? 'provider' : 'client';
   const billingQ = String(req.query.billing || req.query.client_billing_type || '').toLowerCase();
   const clientBillingType = billingQ === 'empresa' ? 'empresa' : 'natural';
   res.render('registro', registerRenderOptions(req, {
     title: 'Crear cuenta',
     error: null,
-    form: { role: defaultRole, specialties: [], clientBillingType }
+    form: {
+      role: defaultRole,
+      specialties: [],
+      clientBillingType,
+      addressRegion: 'region-metropolitana'
+    }
   }));
 });
 

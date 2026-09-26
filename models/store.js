@@ -3850,9 +3850,7 @@ async function registerUser({
         : 'register.error_address_required'
     };
   }
-  if (role !== 'provider' && unit.length < 2) {
-    return { errorKey: 'register.error_address_unit_required' };
-  }
+  // Depto/casa opcional en registro (se puede completar al pedir la visita).
 
   const regionCode = String(addressRegion || '').trim() || 'region-metropolitana';
   const communeMeta = addressCommune ? getCommune(regionCode, addressCommune) : null;

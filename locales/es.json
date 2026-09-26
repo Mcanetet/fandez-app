@@ -3,14 +3,12 @@
   "lang.switch": "Idioma",
   "lang.es": "Español",
   "lang.en": "English",
-
   "nav.home": "Inicio",
   "nav.home_passport": "Hogar",
   "nav.invite": "Invitar",
   "nav.history": "Historial",
   "nav.profile": "Perfil",
   "nav.back": "Volver",
-
   "session.role.client": "Cliente",
   "session.role.client_hint": "Sesión de cuenta cliente",
   "session.role.provider": "Socio",
@@ -26,7 +24,6 @@
   "session.switch.enable_client_cta": "Activar modo cliente",
   "session.switch.aria": "Elegir modo Cliente o Socio",
   "session.switch.hint": "Elige si quieres pedir un servicio o gestionar tu negocio.",
-
   "footer.privacy": "Privacidad",
   "footer.terms": "Términos",
   "footer.cookies": "Cookies",
@@ -35,11 +32,9 @@
   "footer.concierge": "Concierge",
   "footer.app_by": "Una app de",
   "footer.copyright": "© 2026 Fandez SpA · Santiago, Chile",
-
   "cookies.message": "Usamos cookies esenciales para operar Fandez de forma segura.",
   "cookies.essential_only": "Solo esenciales",
   "cookies.accept": "Aceptar",
-
   "landing.tagline": "Arreglos en la casa · Santiago",
   "landing.hero.eyebrow": "Técnicos de confianza en Santiago",
   "landing.hero.title1": "¿Se te echó a perder",
@@ -114,7 +109,6 @@
   "landing.partner_body": "Te llegan pedidos ya pagados de tu zona. Tú pones el equipo y cobras con respaldo.",
   "landing.partner_cta": "Quiero ser socio",
   "landing.client_waitlist": "Soy cliente: me anoto ahora (partimos en octubre)",
-
   "launch.home.kicker": "Septiembre 2026 · Santiago",
   "launch.home.title": "Este mes armamos la red. En octubre partimos a terreno.",
   "launch.home.body": "Ya puedes inscribirte. En septiembre estamos revisando socios; todavía no salimos a las casas.",
@@ -133,7 +127,6 @@
   "launch.client.cta": "Continuar",
   "launch.banner.client_form": "Puedes inscribirte ahora. Las visitas comienzan en octubre.",
   "launch.banner.dashboard": "Cuenta operativa.",
-
   "about.page_title": "Quiénes somos",
   "about.back": "Volver a Fandez",
   "about.eyebrow": "Nuestra historia",
@@ -158,7 +151,6 @@
   "about.cta_label": "Únete a la comunidad Fandez",
   "about.cta_join": "Crear cuenta gratis",
   "about.cta_contact": "¿Tienes preguntas? Escríbenos a",
-
   "auth.welcome": "Bienvenido",
   "auth.login_subtitle": "Accede a tu cuenta",
   "auth.email": "Correo",
@@ -251,39 +243,45 @@
   "auth.referral_code": "Código: {{code}}",
   "auth.referral_credit": "Crédito de bienvenida al ingresar",
   "auth.demo_access": "Acceso demo",
-
   "register.title": "Crear cuenta",
   "register.title_provider": "Únete como socio",
   "register.subtitle": "Únete a Fandez",
-  "register.subtitle_full": "Pide visitas. Tú coordinas; el RUT es solo para boleta o factura.",
+  "register.subtitle_full": "Nombre, correo y dirección. Listo en un minuto.",
   "register.subtitle_provider": "Cuenta, zona y oficios. Carnet después.",
   "register.role_label": "¿Quién eres?",
   "register.role_client": "Cliente",
   "register.role_client_desc": "Pido visitas",
   "register.role_provider": "Socio",
   "register.role_provider_desc": "Ofrezco el servicio",
-  "register.client_tip": "Primero tus datos (quien pide). Después el RUT de persona o empresa para la boleta.",
-  "register.client_person_title": "Quién pide",
-  "register.client_person_hint": "Nombre de quien coordina la visita. El RUT va más abajo.",
+  "register.client_tip": "El RUT y la factura puedes completarlos al pagar. Ahora solo lo esencial.",
+  "register.client_person_title": "Tus datos",
+  "register.client_person_hint": "Quién coordina la visita.",
   "register.name": "Nombre completo",
   "register.name_placeholder": "Tu nombre",
   "register.contact_name": "Tu nombre",
   "register.contact_name_placeholder": "Ej: María López",
-  "register.contact_name_field_hint": "Si pides por una empresa, igual va tu nombre acá.",
-  "register.client_billing_title": "Boleta o factura",
-  "register.client_billing_hint": "Persona natural = tu RUT. Empresa = RUT de la empresa.",
+  "register.contact_name_field_hint": "",
+  "register.client_billing_toggle": "Facturo a una empresa",
+  "register.client_billing_toggle_hint": "Solo si necesitas factura con RUT de empresa. Si no, sáltalo.",
+  "register.client_billing_title": "Datos de la empresa",
+  "register.client_billing_hint": "RUT, razón social y giro para facturar.",
   "register.client_type_natural": "Persona natural",
   "register.client_type_company": "Empresa",
   "register.client_type_natural_hint": "Boleta a tu nombre",
   "register.client_type_company_hint": "Factura a la empresa",
-  "register.client_rut": "RUT",
+  "register.client_rut": "RUT empresa",
   "register.client_rut_hint": "Verificamos el dígito verificador del RUT chileno.",
-  "register.client_rut_hint_optional": "Opcional ahora; si lo dejas vacío, lo pedimos al pagar.",
-  "register.client_rut_hint_company": "RUT de la empresa (obligatorio).",
+  "register.client_rut_hint_optional": "Opcional ahora; lo pedimos al pagar.",
+  "register.client_rut_hint_company": "Obligatorio para factura.",
   "register.client_company_name": "Razón social",
   "register.client_company_name_placeholder": "Nombre legal de la empresa",
   "register.client_giro": "Giro",
   "register.client_giro_placeholder": "Ej: Administración de edificios",
+  "register.address_unit": "Depto / casa (opcional)",
+  "register.address_unit_optional": "Depto / casa (opcional)",
+  "register.address_unit_placeholder": "Ej: Depto 403",
+  "register.submit": "Crear mi cuenta",
+  "register.zone_hint_client": "Comuna y calle. Ajusta el pin en tu entrada.",
   "register.fun_kicker": "Mientras creas tu cuenta…",
   "register.fun_1": "«Amor, ¿lo arreglas tú… o pedimos a alguien que sí sepa?»",
   "register.fun_2": "Eso de «después lo veo» ya es tradición familiar.",
@@ -309,7 +307,6 @@
   "register.address_company": "Dirección de la empresa",
   "register.zone_title": "Zona",
   "register.zone_hint": "Región, comuna y calle. Ajusta el pin.",
-  "register.zone_hint_client": "Región, comuna y calle. Deja el pin en tu puerta.",
   "register.region": "Región",
   "register.region_placeholder": "Selecciona tu región",
   "register.region_hint": "Primero elige la región y después la comuna.",
@@ -337,10 +334,7 @@
   "register.address_gps_loading": "Obteniendo tu ubicación…",
   "register.address_gps_error": "No pudimos obtener tu ubicación. Ajusta el pin manualmente.",
   "register.address_gps_need_confirm": "Primero confirma tu dirección en el mapa (toca la casa correcta) y luego usa GPS.",
-  "register.address_unit": "Casa, depto u oficina",
-  "register.address_unit_optional": "Depto u oficina (opcional)",
-  "register.address_unit_placeholder": "Ej: Depto 403",
-  "register.address_unit_hint": "Este dato identifica la puerta exacta dentro del edificio, condominio o sitio.",
+  "register.address_unit_hint": "Si aplica: depto, casa o oficina. Puedes dejarlo vacío y completarlo al pedir.",
   "register.address_searching": "Buscando direcciones…",
   "register.address_no_results": "Sin resultados. Escribe calle y número completo, o confirma abajo.",
   "register.address_search_fail": "No pudimos buscar direcciones. Intenta de nuevo o confirma manualmente.",
@@ -415,7 +409,6 @@
   "register.doc_file_too_large": "Archivo inválido o mayor a 6 MB.",
   "register.doc_uploaded": "Archivo listo",
   "register.submitting": "Creando cuenta…",
-  "register.submit": "Crear cuenta",
   "register.error_address_timeout": "La validación de dirección tardó demasiado. Intenta de nuevo en unos segundos.",
   "register.has_account": "¿Ya tienes cuenta?",
   "register.referral_credit": "Crédito de bienvenida al registrarte",
@@ -423,10 +416,8 @@
   "register.validation_email": "Ingresa un correo electrónico válido.",
   "register.validation_password": "La contraseña debe tener al menos 10 caracteres.",
   "auth.login_link": "Ingresar",
-
   "common.logout": "Cerrar sesión",
   "common.logout_short": "Salir",
-
   "client.welcome_label": "Bienvenida",
   "client.services": "¿Qué necesitas?",
   "client.from_price": "desde",
@@ -438,7 +429,6 @@
   "client.points_checkout": "= {{amount}} en checkout",
   "client.passport": "Pasaporte Hogar",
   "client.passport_records": "{{count}} registros de mantenimiento",
-
   "provider.status_online_sub": "Trabajos disponibles activos",
   "provider.status_offline_sub": "Actívate para ver trabajos disponibles",
   "provider.rating": "Rating",
@@ -457,7 +447,6 @@
   "provider.mando": "Mis trabajos",
   "provider.team": "Mi equipo",
   "provider.profile": "Mi perfil",
-
   "admin.menu_open": "Abrir menú",
   "admin.login.subtitle": "Contraseña + Google Authenticator. No enviamos códigos por correo.",
   "admin.login.email": "Correo corporativo",
@@ -471,7 +460,6 @@
   "admin.status.off": "OFF",
   "admin.status.active": "ACTIVA",
   "admin.status.inactive": "INACTIVA",
-
   "admin.nav.group.panel": "Panel",
   "admin.nav.group.operations": "Operaciones",
   "admin.nav.group.platform": "Plataforma",
@@ -505,7 +493,6 @@
   "admin.nav.backups": "Backups",
   "admin.nav.equipo": "Equipo y permisos",
   "admin.nav.seguridad": "Seguridad",
-
   "admin.panels.resumen": "Resumen",
   "admin.panels.finanzas": "Finanzas y contabilidad",
   "admin.panels.crm": "CRM socios",
@@ -534,7 +521,6 @@
   "admin.panels.backups": "Backups",
   "admin.panels.equipo": "Equipo y permisos",
   "admin.panels.seguridad": "Seguridad",
-
   "admin.informes.title": "Informes de agentes",
   "admin.informes.subtitle": "Sofía (ops diario), Clara (finanzas semanal) y Florencia (publicidad socios + horarios).",
   "admin.informes.refresh": "Actualizar",
@@ -547,7 +533,6 @@
   "admin.informes.today_content": "Contenido de hoy (copiar y publicar)",
   "admin.informes.copy": "Copiar caption",
   "admin.informes.sept_calendar": "Calendario septiembre · desde el lunes 7",
-
   "admin.alertas.title": "Mensajes alerta",
   "admin.alertas.subtitle": "Avisos a clientes, socios o todos. Activa/desactiva, agrega imagen y previsualiza cómo se verá.",
   "admin.alertas.new": "Nueva alerta",
@@ -568,7 +553,6 @@
   "admin.alertas.reset": "Limpiar formulario",
   "admin.alertas.preview": "Así lo verán los usuarios",
   "admin.alertas.preview_hint": "Vista previa en tiempo real (móvil).",
-
   "admin.resumen.revenue": "Ingresos",
   "admin.resumen.commission": "Comisión Fandez",
   "admin.resumen.provider_debt": "Deuda a socios",
@@ -582,13 +566,11 @@
   "admin.resumen.attention_sub": "{{count}} asunto(s) que requieren acción",
   "admin.resumen.attention_clear": "Nada urgente por ahora",
   "admin.resumen.attention_clear_sub": "Sin transferencias, pedidos trabados ni contratos pendientes en cola",
-
   "admin.modulos.title": "Módulos de la plataforma",
   "admin.modulos.active_count": "{{active}}/{{total}} activos",
   "admin.modulos.hint": "Activa o desactiva funciones para clientes y socios. Los cambios se aplican al instante en toda la app.",
   "admin.modulos.client": "Cliente",
   "admin.modulos.provider": "Socio (proveedor)",
-
   "admin.cobertura.title": "Cobertura territorial",
   "admin.cobertura.active_count": "{{active}}/{{total}} comunas operativas",
   "admin.cobertura.regions_active": "{{active}}/{{total}} regiones activas",
@@ -604,7 +586,6 @@
   "admin.cobertura.interest_recent": "Últimos avisos",
   "admin.cobertura.interest_role_client": "Cliente",
   "admin.cobertura.interest_role_provider": "Socio",
-
   "coverage.not_available": "Estamos trabajando para llegar a tu comuna.",
   "coverage.region_disabled": "Aún no operamos en esta región.",
   "coverage.unknown_commune": "No pudimos confirmar tu comuna.",
@@ -623,11 +604,9 @@
   "coverage.interest_commune_required": "Escribe la comuna donde te gustaría que estemos.",
   "coverage.interest_email_required": "Indica un correo válido para avisarte.",
   "coverage.interest_error": "No pudimos guardar tu interés. Intenta de nuevo.",
-
   "admin.servicios.title": "Control de servicios",
   "admin.servicios.active_count": "{{active}}/{{total}} activos",
   "admin.servicios.visit": "visita",
-
   "admin.js.new_admin": "Nuevo administrador",
   "admin.js.edit_admin": "Editar administrador",
   "admin.js.create_admin": "Crear administrador",
@@ -645,7 +624,6 @@
   "admin.js.aland_error": "Error cargando Aland IA",
   "admin.js.aland_ready": "OpenAI conectado",
   "admin.js.aland_missing": "OPENAI_API_KEY no configurada",
-
   "modules.client_solicitar.name": "Solicitar servicios",
   "modules.client_solicitar.desc": "Grid de servicios y formulario de solicitud",
   "modules.client_pasaporte.name": "Pasaporte Hogar",
@@ -686,7 +664,6 @@
   "modules.provider_contrato.desc": "Firma del contrato de prestación y documentos legales",
   "modules.provider_mensajes.name": "Mensajes Sofía",
   "modules.provider_mensajes.desc": "Consultas derivadas por Sofía desde clientes",
-
   "services.electrico.name": "Eléctrico",
   "services.electrico.desc": "Se te fue la luz, saltó el diferencial o hay un corto. Pedimos y llega un técnico.",
   "services.gasfiter.name": "Gasfitería",
@@ -719,7 +696,6 @@
   "services.limpieza.desc": "Limpieza por m². Materiales incluidos.",
   "services.otros.name": "Otros",
   "services.otros.desc": "Electrodomésticos y oficios que no están en la lista.",
-
   "js.verification_missing": "Completa tu verificación: {{items}}",
   "js.cannot_go_online": "No se pudo activar el modo en línea",
   "js.online_activated": "Modo en línea activado",
@@ -732,7 +708,6 @@
   "error.connecting.message": "Estamos despertando la plataforma. En unos segundos seguimos buscando el mejor socio para ti.",
   "error.internal.title": "Un tropiezo técnico",
   "error.internal.message": "Algo se trabó de nuestro lado. Ya vamos a arreglarlo — tu problema sigue en buenas manos.",
-
   "error.lost.badge": "Ruta no encontrada",
   "error.lost.headline": "¿Te perdiste?",
   "error.lost.punchline": "Si te equivocas, llama a <strong>fandez.cl</strong>",
@@ -750,7 +725,6 @@
   "error.lost.cta_sofia": "Hablar con Sofía",
   "error.lost.cta_signup": "Crear cuenta gratis",
   "error.lost.whatsapp_msg": "Hola Fandez, me equivoqué en la web y necesito ayuda con un servicio en mi hogar.",
-
   "error.system.badge": "Un segundo…",
   "error.system.headline": "Tranqui, ya vamos",
   "error.system.punchline": "Mientras tanto, recuerda: <strong>fandez.cl</strong> no te deja botado.",
@@ -769,17 +743,14 @@
   "error.system.cta_sofia": "Hablar con Sofía",
   "error.system.whatsapp_msg": "Hola Fandez, la app me dio un error y necesito ayuda para continuar con mi servicio.",
   "error.system.autoretry": "Reintentando solos en {seconds}s…",
-
   "error.blocked.badge": "Acceso restringido",
   "error.blocked.headline": "Por acá no es",
   "error.blocked.punchline": "¿Necesitas ayuda? <strong>fandez.cl</strong> te orienta.",
   "error.blocked.hook": "Tu hogar sigue siendo la prioridad.",
-
   "client.welcome": "Hola, {{name}}",
   "client.request_service": "Solicitar servicio",
   "client.credits": "Créditos",
   "client.points": "Puntos",
-
   "provider.welcome": "Socio Fandez",
   "provider.verification_pending": "Activa tu cuenta",
   "provider.verification_hint": "Para ponerse en línea debes completar la verificación en tu perfil (carnet, facial y ubicación) y el contrato con antecedentes legales.",
@@ -789,13 +760,11 @@
   "provider.contract_status": "Estado: {{status}}",
   "provider.online": "En línea",
   "provider.offline": "Fuera de línea",
-
   "admin.title": "Fandez Admin",
   "admin.operations": "Operaciones",
   "admin.panel_title": "Panel de administración",
   "admin.panel_subtitle": "Gestión centralizada de Fandez",
   "admin.logout": "Salir",
-
   "js.error": "Error",
   "js.success": "Listo",
   "js.saved": "Guardado",
@@ -806,6 +775,5 @@
   "js.service_updated": "Servicio actualizado",
   "js.online": "En línea",
   "js.offline": "Desconectado",
-
   "error.back_home": "Volver al inicio"
 }

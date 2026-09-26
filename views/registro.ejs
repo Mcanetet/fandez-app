@@ -85,11 +85,6 @@
         <p id="clientRegisterGuide" class="register-soft-tip <%= form.role === 'client' ? '' : 'hidden' %>" role="note"><%= t('register.client_tip') %></p>
       </div>
 
-      <div id="clientPersonBlock" class="register-form__section <%= form.role === 'client' ? '' : 'hidden' %>">
-        <p class="register-form__section-title"><%= t('register.client_person_title') %></p>
-        <p class="register-form__section-hint"><%= t('register.client_person_hint') %></p>
-      </div>
-
       <div class="register-form__fields">
         <div>
           <label for="name" id="nameLabel" class="register-form__label"
@@ -101,7 +96,6 @@
             data-placeholder-company="<%= t('register.contact_name_placeholder') %>"
             data-placeholder-client="<%= t('register.contact_name_placeholder') %>"
             placeholder="<%= form.role === 'client' ? t('register.contact_name_placeholder') : t('register.name_placeholder') %>" class="zilo-input" value="<%= form.name || '' %>">
-          <p id="clientNameFieldHint" class="register-form__field-hint <%= form.role === 'client' ? '' : 'hidden' %>"><%= t('register.contact_name_field_hint') %></p>
         </div>
         <div>
           <label for="email" class="register-form__label"><%= t('auth.email') %></label>
@@ -126,39 +120,33 @@
         </div>
       </div>
 
-      <div id="clientBillingFields" class="register-form__section register-form__billing <%= form.role === 'client' ? '' : 'hidden' %>">
-        <p class="register-form__section-title"><%= t('register.client_billing_title') %></p>
-        <p class="register-form__section-hint"><%= t('register.client_billing_hint') %></p>
-        <div class="register-billing-type" role="group">
-          <label class="register-billing-type__option">
-            <input type="radio" name="client_billing_type" value="natural" class="sr-only" <%= (form.clientBillingType || 'natural') !== 'empresa' ? 'checked' : '' %>>
-            <span class="register-billing-type__chip">
-              <span class="register-billing-type__name"><%= t('register.client_type_natural') %></span>
-              <span class="register-billing-type__desc"><%= t('register.client_type_natural_hint') %></span>
-            </span>
-          </label>
-          <label class="register-billing-type__option">
-            <input type="radio" name="client_billing_type" value="empresa" class="sr-only" <%= form.clientBillingType === 'empresa' ? 'checked' : '' %>>
-            <span class="register-billing-type__chip">
-              <span class="register-billing-type__name"><%= t('register.client_type_company') %></span>
-              <span class="register-billing-type__desc"><%= t('register.client_type_company_hint') %></span>
-            </span>
-          </label>
-        </div>
-        <div id="clientCompanyFields" class="register-form__fields register-form__fields--tight hidden">
-          <div>
-            <label for="client_legal_name" class="register-form__label"><%= t('register.client_company_name') %></label>
-            <input type="text" id="client_legal_name" name="client_legal_name" placeholder="<%= t('register.client_company_name_placeholder') %>" class="zilo-input" value="<%= form.clientLegalName || '' %>">
+      <div id="clientBillingWrap" class="register-form__section <%= form.role === 'client' ? '' : 'hidden' %>">
+        <label class="register-empresa-toggle">
+          <input type="checkbox" id="clientEmpresaToggle" <%= form.clientBillingType === 'empresa' ? 'checked' : '' %>>
+          <span>
+            <strong><%= t('register.client_billing_toggle') %></strong>
+            <em><%= t('register.client_billing_toggle_hint') %></em>
+          </span>
+        </label>
+        <input type="hidden" name="client_billing_type" id="clientBillingTypeHidden" value="<%= form.clientBillingType === 'empresa' ? 'empresa' : 'natural' %>">
+        <div id="clientBillingFields" class="register-form__billing <%= form.clientBillingType === 'empresa' ? '' : 'hidden' %>">
+          <p class="register-form__section-title mt-3"><%= t('register.client_billing_title') %></p>
+          <p class="register-form__section-hint"><%= t('register.client_billing_hint') %></p>
+          <div class="register-form__fields register-form__fields--tight">
+            <div>
+              <label for="client_legal_name" class="register-form__label"><%= t('register.client_company_name') %></label>
+              <input type="text" id="client_legal_name" name="client_legal_name" placeholder="<%= t('register.client_company_name_placeholder') %>" class="zilo-input" value="<%= form.clientLegalName || '' %>">
+            </div>
+            <div>
+              <label for="client_giro" class="register-form__label"><%= t('register.client_giro') %></label>
+              <input type="text" id="client_giro" name="client_giro" placeholder="<%= t('register.client_giro_placeholder') %>" class="zilo-input" value="<%= form.clientGiro || '' %>">
+            </div>
+            <div>
+              <label for="client_rut" class="register-form__label"><%= t('register.client_rut') %></label>
+              <input type="text" id="client_rut" name="client_rut" placeholder="12.345.678-9" class="zilo-input" value="<%= form.clientRut || '' %>" autocomplete="off">
+              <p id="clientRutHint" class="register-form__field-hint"><%= t('register.client_rut_hint_company') %></p>
+            </div>
           </div>
-          <div>
-            <label for="client_giro" class="register-form__label"><%= t('register.client_giro') %></label>
-            <input type="text" id="client_giro" name="client_giro" placeholder="<%= t('register.client_giro_placeholder') %>" class="zilo-input" value="<%= form.clientGiro || '' %>">
-          </div>
-        </div>
-        <div>
-          <label for="client_rut" class="register-form__label"><%= t('register.client_rut') %></label>
-          <input type="text" id="client_rut" name="client_rut" placeholder="12.345.678-9" class="zilo-input" value="<%= form.clientRut || '' %>" autocomplete="off">
-          <p id="clientRutHint" class="register-form__field-hint"><%= t('register.client_rut_hint_optional') %></p>
         </div>
       </div>
 
@@ -169,8 +157,10 @@
           <label for="address_region" class="zilo-label block mb-1.5"><%= t('register.region') %></label>
           <select id="address_region" name="address_region" required class="zilo-input">
             <option value=""><%= t('register.region_placeholder') %></option>
-            <% (registrationRegions || []).forEach(function(r) { %>
-              <option value="<%= r.code %>" <%= (form.addressRegion || '') === r.code ? 'selected' : '' %>><%= r.name %></option>
+            <% (registrationRegions || []).forEach(function(r) {
+              var selectedRegion = form.addressRegion || 'region-metropolitana';
+            %>
+              <option value="<%= r.code %>" <%= selectedRegion === r.code ? 'selected' : '' %>><%= r.name %></option>
             <% }); %>
           </select>
         </div>
@@ -214,8 +204,8 @@
           <%= t('register.address_confirm_manual') %>
         </button>
         <div>
-          <label for="address_unit" id="addressUnitLabel" class="zilo-label block mb-1.5"><%= form.role === 'client' ? t('register.address_unit') : t('register.address_unit_optional') %></label>
-          <input type="text" id="address_unit" name="address_unit" <%= form.role === 'client' ? 'required' : '' %> autocomplete="address-line2" placeholder="<%= t('register.address_unit_placeholder') %>" class="zilo-input" value="<%= form.addressUnit || '' %>">
+          <label for="address_unit" id="addressUnitLabel" class="zilo-label block mb-1.5"><%= t('register.address_unit') %></label>
+          <input type="text" id="address_unit" name="address_unit" autocomplete="address-line2" placeholder="<%= t('register.address_unit_placeholder') %>" class="zilo-input" value="<%= form.addressUnit || '' %>">
         </div>
         <div id="addressCoverageAlert" class="hidden p-2.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs"></div>
         <div class="space-y-2">
@@ -358,10 +348,8 @@
       if (clientBanner) clientBanner.classList.toggle('hidden', isProvider);
       const clientGuide = document.getElementById('clientRegisterGuide');
       if (clientGuide) clientGuide.classList.toggle('hidden', isProvider);
-      const clientPerson = document.getElementById('clientPersonBlock');
-      if (clientPerson) clientPerson.classList.toggle('hidden', isProvider);
-      const clientNameHint = document.getElementById('clientNameFieldHint');
-      if (clientNameHint) clientNameHint.classList.toggle('hidden', isProvider);
+      const clientBillingWrap = document.getElementById('clientBillingWrap');
+      if (clientBillingWrap) clientBillingWrap.classList.toggle('hidden', isProvider);
       const title = document.getElementById('registerTitle');
       const sub = document.getElementById('registerSub');
       if (title) title.textContent = isProvider ? title.dataset.provider : title.dataset.client;
@@ -370,11 +358,9 @@
       if (phone) phone.required = true;
       const unit = document.getElementById('address_unit');
       const unitLabel = document.getElementById('addressUnitLabel');
-      if (unit) unit.required = !isProvider;
+      if (unit) unit.required = false;
       if (unitLabel) {
-        unitLabel.textContent = isProvider
-          ? <%- JSON.stringify(t('register.address_unit_optional')) %>
-          : <%- JSON.stringify(t('register.address_unit')) %>;
+        unitLabel.textContent = <%- JSON.stringify(t('register.address_unit')) %>;
       }
     }
 
