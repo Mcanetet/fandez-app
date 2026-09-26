@@ -28,7 +28,10 @@ function securityHeaders(req, res, next) {
           'https://www.mercadopago.com',
           'https://sdk.mercadopago.com',
           'https://www.google.com',
-          'https://maps.googleapis.com'
+          'https://maps.googleapis.com',
+          'https://www.googletagmanager.com',
+          'https://www.google-analytics.com',
+          'https://tagmanager.google.com'
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
         styleSrc: [
@@ -57,7 +60,8 @@ function securityHeaders(req, res, next) {
           'https://sdk.mercadopago.com',
           'https://webpay3g.transbank.cl',
           'https://webpay3gint.transbank.cl',
-          'https://www.google.com'
+          'https://www.google.com',
+          'https://www.googletagmanager.com'
         ],
         workerSrc: ["'self'", 'blob:'],
         mediaSrc: ["'self'", 'blob:', 'data:'],
