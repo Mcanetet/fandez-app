@@ -3160,16 +3160,29 @@
     hideNoProviderChoice();
     stopSearchExperience();
     const providerReqId = request?.id || currentRequestId;
-    if (window.FandezAlerts && lastProviderAlertId !== providerReqId) {
-      lastProviderAlertId = providerReqId;
+    if (lastProviderAlertId === providerReqId) return;
+    lastProviderAlertId = providerReqId;
+    const foundTitle = t('client.js.provider_found');
+    const foundBody = provider?.name
+      ? t('client.js.provider_found_body', { name: provider.name })
+      : foundTitle;
+    if (window.FandezAlerts) {
       FandezAlerts.notify({
         type: 'order',
-        title: t('client.js.provider_found'),
-        body: provider?.name ? t('client.js.provider_found_body', { name: provider.name }) : t('client.js.provider_found'),
-        tag: 'fandez-provider-' + providerReqId
+        title: foundTitle,
+        body: foundBody,
+        kicker: 'Tu visita',
+        toast: 'info',
+        tag: 'fandez-provider-' + providerReqId,
+        dedupeKey: 'provider-' + providerReqId
       });
-    } else {
-      FandezNotify.show(t('client.js.provider_found'), 'success');
+    } else if (window.FandezNotify) {
+      FandezNotify.show({
+        title: foundTitle,
+        body: foundBody !== foundTitle ? foundBody : '',
+        type: 'info',
+        kicker: 'Tu visita'
+      });
     }
   }
 

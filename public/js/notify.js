@@ -1,16 +1,23 @@
 window.FandezNotify = {
   container: null,
   DURATION: {
-    info: 3400,
-    success: 3200,
-    warning: 4200,
-    error: 4800
+    info: 3800,
+    success: 3600,
+    warning: 4500,
+    error: 5200
   },
+  KICKER: {
+    success: 'Listo',
+    info: 'Fandez',
+    warning: 'Atención',
+    error: 'Algo falló'
+  },
+  // Íconos propios (no check genérico de Material)
   ICONS: {
-    success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
-    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>',
-    warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>',
-    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>'
+    success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13.5 9.5 18 19 7"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4c-2.8 2.4-7 3.2-7 7.4 0 3.3 2.6 6.1 7 8.6 4.4-2.5 7-5.3 7-8.6C19 7.2 14.8 6.4 12 4z"/></svg>',
+    warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v5"/><path d="M12 17h.01"/><path d="M11 3.6 2.2 18.2A1.6 1.6 0 0 0 3.6 20.5h16.8a1.6 1.6 0 0 0 1.4-2.3L12.9 3.6a1.1 1.1 0 0 0-1.9 0z"/></svg>',
+    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7l10 10"/><path d="M17 7 7 17"/></svg>'
   },
 
   init() {
@@ -23,29 +30,84 @@ window.FandezNotify = {
     }
   },
 
-  show(message, type = 'info') {
+  /**
+   * show(message, type)
+   * show({ title, body, type, kicker })
+   */
+  show(messageOrOpts, type = 'info') {
     this.init();
-    const kind = ['success', 'info', 'warning', 'error'].includes(type) ? type : 'info';
+    let title = '';
+    let body = '';
+    let kind = type;
+    let kicker = '';
+
+    if (messageOrOpts && typeof messageOrOpts === 'object') {
+      title = String(messageOrOpts.title || '').trim();
+      body = String(messageOrOpts.body || messageOrOpts.message || '').trim();
+      kind = messageOrOpts.type || type || 'info';
+      kicker = String(messageOrOpts.kicker || '').trim();
+    } else {
+      body = String(messageOrOpts || '').trim();
+    }
+
+    kind = ['success', 'info', 'warning', 'error'].includes(kind) ? kind : 'info';
+    if (!kicker) kicker = this.KICKER[kind] || 'Fandez';
+
+    // Una sola línea: usarla como título tipográfico
+    if (!title && body) {
+      title = body;
+      body = '';
+    }
+
+    // Evitar dos toasts idénticos apilados
+    const fingerprint = `${kind}|${kicker}|${title}|${body}`;
+    const existing = [...this.container.querySelectorAll('.toast')];
+    if (existing.some((el) => el.dataset.fp === fingerprint)) return;
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${kind}`;
+    toast.dataset.fp = fingerprint;
     toast.setAttribute('role', kind === 'error' || kind === 'warning' ? 'alert' : 'status');
 
     const icon = document.createElement('span');
     icon.className = 'toast-icon';
     icon.innerHTML = this.ICONS[kind];
 
-    const body = document.createElement('div');
-    body.className = 'toast-body';
-    body.textContent = String(message || '');
+    const copy = document.createElement('div');
+    copy.className = 'toast-copy';
+
+    const kickerEl = document.createElement('p');
+    kickerEl.className = 'toast-kicker';
+    kickerEl.textContent = kicker;
+
+    const titleEl = document.createElement('p');
+    titleEl.className = 'toast-title';
+    titleEl.textContent = title;
+
+    const bodyEl = document.createElement('p');
+    bodyEl.className = 'toast-body';
+    bodyEl.textContent = body;
+
+    copy.appendChild(kickerEl);
+    copy.appendChild(titleEl);
+    copy.appendChild(bodyEl);
 
     toast.appendChild(icon);
-    toast.appendChild(body);
+    toast.appendChild(copy);
     this.container.appendChild(toast);
 
-    const ms = this.DURATION[kind] || 3400;
+    // Máximo 2 visibles: saca la más vieja
+    while (this.container.querySelectorAll('.toast:not(.toast-leaving)').length > 2) {
+      const oldest = this.container.querySelector('.toast:not(.toast-leaving)');
+      if (!oldest) break;
+      oldest.classList.add('toast-leaving');
+      setTimeout(() => oldest.remove(), 280);
+    }
+
+    const ms = this.DURATION[kind] || 3800;
     const removeAt = setTimeout(() => {
       toast.classList.add('toast-leaving');
-      setTimeout(() => toast.remove(), 320);
+      setTimeout(() => toast.remove(), 280);
     }, ms);
 
     toast.addEventListener('click', () => {
@@ -93,12 +155,22 @@ window.FandezAlerts = {
 
   TOAST_TYPE: {
     message: 'info',
-    order: 'success',
+    order: 'info',
     payment: 'success',
     alert: 'warning',
     success: 'success',
     update: 'info',
     default: 'info'
+  },
+
+  TOAST_KICKER: {
+    message: 'Mensaje',
+    order: 'Tu visita',
+    payment: 'Pago',
+    alert: 'Atención',
+    success: 'Listo',
+    update: 'Actualización',
+    default: 'Fandez'
   },
 
   init() {
@@ -300,12 +372,21 @@ window.FandezAlerts = {
 
     const key = dedupeKey || (type + '|' + title + '|' + body);
     const nowMs = Date.now();
-    if (!force && this._lastKey[key] && nowMs - this._lastKey[key] < 1500) return;
+    if (!force && this._lastKey[key] && nowMs - this._lastKey[key] < 2200) return;
     this._lastKey[key] = nowMs;
 
+    // Un solo toast elegante: título + cuerpo (evita apilar “¡Proveedor!” + el mismo aviso)
     if (opts.toast !== false && window.FandezNotify) {
       const toastType = typeof opts.toast === 'string' ? opts.toast : (this.TOAST_TYPE[type] || 'info');
-      FandezNotify.show(body || title, toastType);
+      const kicker = opts.kicker || this.TOAST_KICKER[type] || 'Fandez';
+      const toastTitle = title && title !== 'Fandez' ? title : (body || title);
+      const toastBody = title && title !== 'Fandez' && body && body !== title ? body : '';
+      FandezNotify.show({
+        title: toastTitle,
+        body: toastBody,
+        type: toastType,
+        kicker
+      });
     }
 
     this.playSound(type);

@@ -1,9 +1,26 @@
-<div class="lang-switcher inline-flex items-center rounded-lg border border-zilo-border bg-white/80 backdrop-blur-sm overflow-hidden text-[10px] font-semibold uppercase tracking-wide" role="group" aria-label="<%= typeof t !== 'undefined' ? t('lang.switch') : 'Language' %>">
-  <% Object.values(locales || { es: { code: 'es', flag: 'ES' }, en: { code: 'en', flag: 'EN' } }).forEach(function(loc) {
-    const active = locale === loc.code;
-  %>
-    <a href="#" class="lang-switch-link px-2.5 py-1.5 transition <%= active ? 'bg-zilo-accent-soft text-zilo-accent' : 'text-zilo-muted hover:text-zilo-text hover:bg-zilo-bg' %>" data-lang="<%= loc.code %>" lang="<%= loc.code %>" hreflang="<%= loc.code %>" <%= active ? 'aria-current="true"' : '' %>><%= loc.flag %></a>
-  <% }); %>
+<div class="lang-switcher" role="group" aria-label="<%= typeof t !== 'undefined' ? t('lang.switch') : 'Idioma' %>">
+  <span class="lang-switcher__globe" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M3 12h18"/>
+      <path d="M12 3a14 14 0 0 1 0 18"/>
+      <path d="M12 3a14 14 0 0 0 0 18"/>
+    </svg>
+  </span>
+  <div class="lang-switcher__options">
+    <% Object.values(locales || { es: { code: 'es', label: 'Español' }, en: { code: 'en', label: 'English' } }).forEach(function(loc) {
+      const active = locale === loc.code;
+      const name = loc.label || (typeof t !== 'undefined' ? t('lang.' + loc.code) : loc.code);
+    %>
+      <a href="#"
+         class="lang-switch-link<%= active ? ' is-active' : '' %>"
+         data-lang="<%= loc.code %>"
+         lang="<%= loc.code %>"
+         hreflang="<%= loc.code %>"
+         <%= active ? 'aria-current="true"' : '' %>
+         title="<%= name %>"><%= name %></a>
+    <% }); %>
+  </div>
 </div>
 <script>
 (function () {
