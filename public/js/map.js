@@ -2,11 +2,12 @@ window.FandezMap = {
   maps: {},
   markers: {},
 
+  // OpenStreetMap estándar: gratuito, sin API key (uso razonable / atribución obligatoria).
   tileLayer: {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 20
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+    subdomains: 'abc',
+    maxZoom: 19
   },
 
   _pinHtml(color) {
