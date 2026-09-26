@@ -87,6 +87,47 @@
     e.target.value = '';
   });
 
+  async function uploadBrandLogo(file) {
+    if (!file) return;
+    const status = document.getElementById('brandLogoStatus');
+    try {
+      if (status) status.textContent = 'Subiendo logo…';
+      const type = String(file.type || '').toLowerCase();
+      const isPng = type === 'image/png' || /\.png$/i.test(file.name || '');
+      if (isPng && file.size > 8 * 1024 * 1024) {
+        throw new Error('El logo supera 8 MB. Usa un PNG optimizado.');
+      }
+      // Conservar PNG (transparencia); no recomprimir a JPEG.
+      const data = isPng ? await fileToBase64(file) : await prepareFile(file);
+      const res = await fetch('/proveedor/perfil/logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data })
+      });
+      const json = await res.json();
+      if (!json.success && !json.logoUrl) {
+        throw new Error(json.error || 'No se pudo guardar el logo');
+      }
+      const preview = document.getElementById('brandLogoPreview');
+      const placeholder = document.getElementById('brandLogoPlaceholder');
+      if (preview && json.logoUrl) {
+        preview.src = `${json.logoUrl}?t=${Date.now()}`;
+        preview.classList.remove('hidden');
+      }
+      if (placeholder) placeholder.classList.add('hidden');
+      if (status) status.textContent = 'Logo actualizado. El cliente lo verá al aceptar un servicio.';
+      FandezNotify.show('Logo guardado', 'success');
+    } catch (err) {
+      if (status) status.textContent = '';
+      FandezNotify.show(err.message || 'Error al subir el logo', 'error');
+    }
+  }
+
+  document.getElementById('input-brandLogo')?.addEventListener('change', async (e) => {
+    await uploadBrandLogo(e.target.files[0]);
+    e.target.value = '';
+  });
+
   function updateVerificationUI(v) {
     if (!v) return;
     const badge = document.getElementById('verificationStatusBadge');

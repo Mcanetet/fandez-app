@@ -92,7 +92,7 @@
       <p class="text-[11px] text-zilo-muted/70 mt-3"><%= isFv
         ? 'Pagas la evaluación ahora. El precio del kit/proyecto te lo arma el instalador después del levantamiento.'
         : (isGarden
-        ? 'Pagas la evaluación técnica ahora. Diseño, construcción o mantención se cotizan con Valle Parraguez según el alcance acordado.'
+        ? 'Pagas la evaluación técnica ahora. Diseño, construcción o mantención se cotizan después según el alcance acordado con el socio.'
         : t('client.service.pay_hint_dynamic')) %></p>
       <details class="mt-3 text-left">
         <summary class="text-xs text-zilo-accent font-medium cursor-pointer select-none"><%= t('client.service.guarantees') %></summary>
@@ -823,6 +823,16 @@
             <p id="providerVerifiedStatus" class="hidden text-[10px] text-zilo-success mt-0.5"></p>
           </div>
           <span class="zilo-badge" id="providerAssignBadge"><%= t('client.service.assigned_badge') %></span>
+        </div>
+        <div id="providerBrandCard" class="hidden mb-3 flex items-center gap-3 p-3 rounded-xl border border-zilo-border bg-white/70">
+          <div class="w-14 h-14 rounded-xl bg-white border border-zilo-border flex items-center justify-center overflow-hidden shrink-0">
+            <img id="providerBrandLogo" src="" alt="" class="hidden w-full h-full object-contain p-1">
+            <span id="providerBrandLogoFallback" class="text-[10px] text-zilo-muted px-1 text-center">Logo</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="zilo-label !mb-0.5 !text-[9px]">Proveedor</p>
+            <p id="providerBrandName" class="font-semibold text-sm truncate">—</p>
+          </div>
         </div>
         <div id="providerVerification" class="flex flex-wrap gap-1.5 mb-3"></div>
         <p id="providerAdherence" class="hidden text-xs text-zilo-muted mb-2"></p>

@@ -475,6 +475,14 @@ router.post('/perfil', requireRole('provider'), requireModule('provider_perfil')
   });
 });
 
+router.post('/perfil/logo', requireRole('provider'), requireModule('provider_perfil'), (req, res) => {
+  const { data } = req.body || {};
+  if (!data) return res.status(400).json({ error: 'Sube un logo en PNG (recomendado), JPG o WebP.' });
+  const result = store.saveProviderLogo(req.session.user.id, data);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+});
+
 router.post('/modo-cliente', requireRole('provider'), (req, res) => {
   const enabled = store.enableClientPortal(req.session.user.id);
   if (enabled.error) return res.status(400).json({ error: enabled.error });

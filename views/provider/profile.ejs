@@ -73,6 +73,36 @@
       <button type="submit" class="zilo-btn-primary !py-3">Guardar datos</button>
     </form>
 
+    <% const brandLegal = (provider.providerContract?.legalEntity?.legalName || provider.name || '').trim(); %>
+    <% const brandLogoSrc = provider.branding?.logoUrl ? `/media/provider/${provider.id}/logo` : ''; %>
+    <section class="space-y-4 p-5 rounded-2xl zilo-card-premium" id="providerBrandSection">
+      <div>
+        <p class="zilo-label mb-1">Marca para el cliente</p>
+        <p class="text-xs text-zilo-muted">Cuando aceptes un servicio, el cliente verá tu razón social y logo.</p>
+      </div>
+      <div class="flex items-center gap-3 p-3 rounded-xl bg-zilo-bg/40 border border-zilo-border">
+        <div id="brandLogoPreviewWrap" class="w-16 h-16 rounded-xl bg-white border border-zilo-border flex items-center justify-center overflow-hidden shrink-0">
+          <% if (brandLogoSrc) { %>
+            <img id="brandLogoPreview" src="<%= brandLogoSrc %>" alt="Logo" class="w-full h-full object-contain">
+          <% } else { %>
+            <span id="brandLogoPlaceholder" class="text-[10px] text-zilo-muted text-center px-1">Sin logo</span>
+            <img id="brandLogoPreview" src="" alt="" class="hidden w-full h-full object-contain">
+          <% } %>
+        </div>
+        <div class="min-w-0">
+          <p class="text-[10px] text-zilo-muted uppercase tracking-wide">Razón social</p>
+          <p class="text-sm font-semibold truncate" id="brandLegalNameDisplay"><%= brandLegal || 'Completa tu contrato' %></p>
+          <p class="text-[11px] text-zilo-muted mt-0.5">Se toma del contrato · <a href="/proveedor/contrato" class="text-zilo-accent underline">editar</a></p>
+        </div>
+      </div>
+      <div>
+        <p class="text-sm font-medium mb-2">Logo (PNG alta resolución)</p>
+        <p class="text-xs text-zilo-muted mb-2">PNG transparente recomendado · hasta 8 MB · también JPG o WebP.</p>
+        <%- include('../partials/media-pick', { id: 'input-brandLogo', accept: 'image/png,image/jpeg,image/jpg,image/webp' }) %>
+        <p id="brandLogoStatus" class="text-[11px] text-zilo-muted mt-2"></p>
+      </div>
+    </section>
+
     <%- include('../partials/password-form') %>
 
     <section class="p-5 rounded-2xl border border-zilo-accent/25 bg-zilo-accent-soft/35 space-y-3">
@@ -195,7 +225,7 @@
         <span class="zilo-label block mb-0">Servicios activos</span>
         <a href="/proveedor/equipo" class="text-xs text-zilo-accent font-medium">Gestionar</a>
       </div>
-      <p class="text-[11px] text-zilo-muted mb-2">Servicios de la empresa. En Mi equipo los asignas a cada técnico (pueden tener varios).</p>
+      <p class="text-[11px] text-zilo-muted mb-2">Servicios que ofreces. En Mi equipo los asignas a cada técnico (pueden tener varios).</p>
       <div class="flex flex-wrap gap-2">
         <% if (!provider.specialties || !provider.specialties.length) { %>
           <p class="text-xs text-zilo-muted">Ningún servicio activo todavía.</p>

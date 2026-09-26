@@ -47,7 +47,7 @@ function ok(label) {
   assert.strictEqual(res.ok, true);
   assert.deepStrictEqual(res.intake.serviceTypes, ['diseno', 'construccion']);
   assert.strictEqual(res.intake.evalVisitPrice, GARDEN_EVAL_VISIT_CLP);
-  assert.ok(formatGardenIntakeSummary(res.intake).includes('Valle Parraguez'));
+  assert.ok(formatGardenIntakeSummary(res.intake).includes('Paisajismo'));
   ok('normaliza diseño + construcción');
 }
 

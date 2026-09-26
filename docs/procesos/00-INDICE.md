@@ -5,7 +5,7 @@ Fuente de verdad de producto: código en `routes/`, `models/store.js`, `lib/agen
 
 | Documento | Audiencia | Contenido |
 |-----------|-----------|-----------|
-| [01-cliente.md](01-cliente.md) | Cliente · Sofía · Soporte | Registro → pago → visita → postventa (incluye hitos jardinería Valle Parraguez) |
+| [01-cliente.md](01-cliente.md) | Cliente · Sofía · Soporte | Registro → pago → visita → postventa (incluye hitos jardinería / paisajismo) |
 | [02-socio.md](02-socio.md) | Socio · Soporte | Activación, muro, equipo, liquidación |
 | [03-tecnico.md](03-tecnico.md) | Técnico · Socio · Soporte | Wizard de visita + entregables de jardinería |
 | [07-paisajismo-entregables-validacion.html](07-paisajismo-entregables-validacion.html) · [PDF](07-paisajismo-cliente-socio-tecnico.pdf) | Producto · Socio · Técnico · Cliente | Procedimiento vigente: bitácora de hitos, roles y validación del cliente |

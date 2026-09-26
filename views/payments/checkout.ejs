@@ -33,7 +33,7 @@
       <% } %>
       <% if (request.gardenIntake && request.gardenIntake.serviceTypeLabels) { %>
         <div class="text-xs text-zilo-muted mt-2 leading-relaxed space-y-1">
-          <p><strong class="text-zilo-text">Valle Parraguez Paisajismo</strong> · <%= request.gardenIntake.serviceTypeLabels.join(', ') %></p>
+          <p><strong class="text-zilo-text">Paisajismo</strong> · <%= request.gardenIntake.serviceTypeLabels.join(', ') %></p>
           <p><%= request.gardenIntake.locationSector %> · <%= request.gardenIntake.propertyTypeLabel %></p>
           <% if (request.gardenIntake.hasDigitalPlan) { %>
             <p>Con plano digital<% if (request.gardenIntake.planFileUrl) { %> · <a href="<%= request.gardenIntake.planFileUrl %>" class="text-zilo-accent underline" target="_blank" rel="noopener">Ver PDF</a><% } %></p>

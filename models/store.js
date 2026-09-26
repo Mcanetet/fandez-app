@@ -2711,7 +2711,48 @@ function ensureProviderFields(provider) {
   if (provider.desertionCount == null) provider.desertionCount = 0;
   if (provider.clientSwitchCount == null) provider.clientSwitchCount = 0;
   if (provider.techTimeoutCount == null) provider.techTimeoutCount = 0;
+  if (!provider.branding || typeof provider.branding !== 'object') {
+    provider.branding = { logoUrl: null, logoUpdatedAt: null };
+  }
+  if (provider.branding.logoUrl == null) provider.branding.logoUrl = null;
   return provider;
+}
+
+function getProviderBrand(provider) {
+  if (!provider) return { legalName: null, logoUrl: null, displayName: null };
+  ensureProviderFields(provider);
+  const { stableProviderLogoUrl } = require('../lib/uploads');
+  const legalName = String(provider.providerContract?.legalEntity?.legalName || '').trim()
+    || String(provider.name || '').trim()
+    || null;
+  const hasLogo = Boolean(provider.branding?.logoUrl);
+  return {
+    legalName,
+    logoUrl: hasLogo ? stableProviderLogoUrl(provider.id) : null,
+    displayName: legalName
+  };
+}
+
+function saveProviderLogo(providerId, dataUrlOrBase64) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') return { error: 'Socio no encontrado' };
+  ensureProviderFields(provider);
+  const { saveProviderLogo: writeLogo, stableProviderLogoUrl } = require('../lib/uploads');
+  let storedUrl;
+  try {
+    storedUrl = writeLogo(providerId, dataUrlOrBase64);
+  } catch (err) {
+    return { error: err.message || 'No se pudo guardar el logo' };
+  }
+  provider.branding.logoUrl = storedUrl;
+  provider.branding.logoUpdatedAt = new Date().toISOString();
+  repository.persist(() => repository.saveUser(provider), `logo socio ${providerId}`);
+  return {
+    success: true,
+    logoUrl: stableProviderLogoUrl(provider.id),
+    branding: { ...provider.branding, logoUrl: stableProviderLogoUrl(provider.id) },
+    brand: getProviderBrand(provider)
+  };
 }
 
 function getProviderAdherenceStats(provider) {
@@ -2801,9 +2842,12 @@ function getPublicProviderProfile(provider, { includeContact = false } = {}) {
   const loc = provider.locationShare;
   const adherence = getProviderAdherenceStats(provider);
   const { stableTechnicianPhotoUrl } = require('../lib/uploads');
+  const brand = getProviderBrand(provider);
   const profile = {
     id: provider.id,
     name: provider.name,
+    legalName: brand.legalName,
+    logoUrl: brand.logoUrl,
     hasPhone: Boolean(provider.phone?.trim()),
     hasEmail: Boolean(provider.email?.trim()),
     rating: provider.rating,
@@ -2845,6 +2889,7 @@ function getClientVisitTeam(request) {
   const { stableTechnicianPhotoUrl } = require('../lib/uploads');
   const provider = getUserById(request.providerId);
   if (!provider) return null;
+  const brand = getProviderBrand(provider);
 
   let technician = request.technicianId ? getUserById(request.technicianId) : null;
   if (!technician) {
@@ -2867,6 +2912,9 @@ function getClientVisitTeam(request) {
     ? technician.reviewsCount
     : (provider.reviewsCount || 0);
 
+  const legalName = brand.legalName || provider.name;
+  const hasSeparateTech = Boolean(technician && technician.id !== provider.id && !technician.isSelfOperator);
+
   return {
     technicianId: techId,
     technicianName: techName,
@@ -2876,18 +2924,19 @@ function getClientVisitTeam(request) {
     technicianReviewsCount: technician?.reviewsCount || 0,
     providerId: provider.id,
     providerName: provider.name,
+    providerLegalName: legalName,
+    providerLogoUrl: brand.logoUrl,
     providerAvatar: provider.avatar || '—',
     providerRating: provider.rating != null ? provider.rating : null,
     providerReviewsCount: provider.reviewsCount || 0,
     displayName: techName,
-    displaySub: technician && technician.id !== provider.id && !technician.isSelfOperator
-      ? `Empresa · ${provider.name}`
-      : 'Socio Fandez',
+    displaySub: legalName,
     displayRating,
     displayReviewsCount: displayReviews,
     photoUrl: (techId && hasTechPhoto)
       ? stableTechnicianPhotoUrl(techId)
-      : null
+      : (brand.logoUrl || null),
+    hasSeparateTech
   };
 }
 
@@ -9951,9 +10000,11 @@ module.exports = {
   offerCommissionAgreement,
   acceptCommissionAgreement,
   getPublicProviderProfile,
+  getProviderBrand,
   getClientVisitTeam,
   getClientServiceCallContact,
   saveProviderDocument,
+  saveProviderLogo,
   setVerificationDocReview,
   saveProviderSelfie,
   setLocationConsent,

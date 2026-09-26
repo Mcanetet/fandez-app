@@ -3057,9 +3057,36 @@
     if (roleLabel) roleLabel.textContent = 'Tu técnico';
     document.getElementById('providerName').textContent = displayName;
     const companyLine = document.getElementById('providerCompanyLine');
+    const brandLegal = team?.providerLegalName || provider.legalName || team?.displaySub || provider.name || '';
+    const brandLogo = team?.providerLogoUrl || provider.logoUrl || null;
     if (companyLine) {
-      companyLine.textContent = team?.displaySub || '';
-      companyLine.classList.toggle('hidden', !team?.displaySub);
+      companyLine.textContent = brandLegal && brandLegal !== displayName ? brandLegal : '';
+      companyLine.classList.toggle('hidden', !companyLine.textContent);
+    }
+    const brandCard = document.getElementById('providerBrandCard');
+    const brandNameEl = document.getElementById('providerBrandName');
+    const brandLogoEl = document.getElementById('providerBrandLogo');
+    const brandLogoFallback = document.getElementById('providerBrandLogoFallback');
+    if (brandCard && brandNameEl) {
+      const showBrand = Boolean(brandLegal || brandLogo);
+      brandCard.classList.toggle('hidden', !showBrand);
+      brandNameEl.textContent = brandLegal || provider.name || 'Proveedor';
+      if (brandLogoEl && brandLogoFallback) {
+        if (brandLogo) {
+          brandLogoEl.src = brandLogo;
+          brandLogoEl.alt = brandLegal || 'Logo del proveedor';
+          brandLogoEl.classList.remove('hidden');
+          brandLogoFallback.classList.add('hidden');
+          brandLogoEl.onerror = () => {
+            brandLogoEl.classList.add('hidden');
+            brandLogoFallback.classList.remove('hidden');
+          };
+        } else {
+          brandLogoEl.classList.add('hidden');
+          brandLogoEl.removeAttribute('src');
+          brandLogoFallback.classList.remove('hidden');
+        }
+      }
     }
     document.getElementById('providerRating').textContent = displayRating != null ? displayRating : '—';
     document.getElementById('providerReviews').textContent = t('client.js.reviews_count', { count: displayReviews || 0 });
@@ -3099,7 +3126,8 @@
     const tripLabel = document.getElementById('tripProviderLabel');
     if (tripLabel) {
       const ratingTxt = displayRating != null ? ` · ${displayRating}★` : '';
-      tripLabel.textContent = `${displayName}${ratingTxt}`;
+      const brandBit = brandLegal && brandLegal !== displayName ? ` · ${brandLegal}` : '';
+      tripLabel.textContent = `${displayName}${brandBit}${ratingTxt}`;
     }
     if (request) {
       showBudgetBanner(request);
@@ -3163,8 +3191,9 @@
     if (lastProviderAlertId === providerReqId) return;
     lastProviderAlertId = providerReqId;
     const foundTitle = t('client.js.provider_found');
-    const foundBody = provider?.name
-      ? t('client.js.provider_found_body', { name: provider.name })
+    const brandName = team?.providerLegalName || provider?.legalName || provider?.name;
+    const foundBody = brandName
+      ? t('client.js.provider_found_body', { name: brandName })
       : foundTitle;
     if (window.FandezAlerts) {
       FandezAlerts.notify({

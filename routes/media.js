@@ -252,6 +252,17 @@ function canViewProviderDoc(user, providerId) {
   return false;
 }
 
+function sendProviderLogo(req, res) {
+  const providerId = String(req.params.providerId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!providerId) return res.status(400).end();
+  const provider = store.getUserById?.(providerId);
+  if (!provider || provider.role !== 'provider') return res.status(404).end();
+  const stored = provider.branding?.logoUrl || null;
+  if (!stored) return res.status(404).end();
+  const abs = resolveProviderDocPath(stored);
+  return sendResolvedPhoto(res, abs);
+}
+
 function sendProviderDoc(req, res) {
   const user = req.session && req.session.user;
   if (!user) return res.status(401).end();
@@ -259,7 +270,10 @@ function sendProviderDoc(req, res) {
   const providerId = String(req.params.providerId || '').replace(/[^a-zA-Z0-9_-]/g, '');
   const file = String(req.params.file || '').replace(/[^a-zA-Z0-9._-]/g, '');
   if (!providerId || !file) return res.status(400).end();
-  if (!canViewProviderDoc(user, providerId)) return res.status(404).end();
+
+  // Logos de marca: visibles a cualquier sesión autenticada (cliente ve al socio asignado).
+  const isLogo = file === 'logo' || /^logo[-_]/i.test(file);
+  if (!isLogo && !canViewProviderDoc(user, providerId)) return res.status(404).end();
 
   const provider = store.getUserById?.(providerId);
   if (!provider || provider.role !== 'provider') return res.status(404).end();
@@ -272,7 +286,8 @@ function sendProviderDoc(req, res) {
     const byKind = {
       idFront: v.idCardFront,
       idBack: v.idCardBack,
-      selfie: v.selfie
+      selfie: v.selfie,
+      logo: provider.branding?.logoUrl
     };
     const stored = byKind[kind] || byKind[file];
     if (stored) abs = resolveProviderDocPath(stored);
@@ -280,6 +295,7 @@ function sendProviderDoc(req, res) {
   return sendResolvedPhoto(res, abs);
 }
 
+router.get('/media/provider/:providerId/logo', sendProviderLogo);
 router.get('/uploads/providers/:providerId/:file', sendProviderDoc);
 router.get('/media/provider/:providerId/:file', sendProviderDoc);
 

@@ -80,7 +80,7 @@ Enviar presupuesto o cambio → cliente responde en app → si hay cargo, pago d
 
 ---
 
-## TE-06 · Jardinería — entregables (Valle Parraguez)
+## TE-06 · Jardinería — entregables
 
 ### Happy path
 1. Revisar intake del cliente (tipo Diseño/Construcción/Mantención, m² ≥ 100, plano o visita).  

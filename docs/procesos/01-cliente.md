@@ -53,7 +53,7 @@ Rutas base: `/registro` · `/cliente` · `/pagos` · `/aland` · `/seguimiento/:
 4. Pagar (tarjeta / transferencia / créditos-promo si aplica).
 5. Pago OK → solicitud en búsqueda / programada → tracking.
 
-### Jardinería y paisajismo (Valle Parraguez) — hitos
+### Jardinería y paisajismo — hitos
 
 Línea de tiempo en tracking del cliente:
 
