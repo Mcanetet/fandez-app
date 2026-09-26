@@ -132,8 +132,7 @@ const {
   requiredDocumentsHumanApproved,
   getProviderPayoutSetup,
   getMissingPayoutDocuments,
-  validateBankAccount,
-  BANK_ACCOUNT_TYPES
+  validateBankAccount
 } = require('../lib/contracts');
 const { saveProviderFile } = require('../lib/uploads');
 const {
