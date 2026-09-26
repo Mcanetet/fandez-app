@@ -1,7 +1,7 @@
 <% const stats = typeof providerStats !== 'undefined' ? providerStats : {}; %>
 <div class="trust-strip provider-trust-strip" role="region" aria-label="<%= t('provider.trust.aria') %>">
   <div class="trust-strip-item">
-    <%- include('ui-icon', { name: 'wallet', size: 18, className: 'trust-strip-icon' }) %>
+    <%- include('ui-icon', { name: 'card', size: 18, className: 'trust-strip-icon' }) %>
     <div>
       <strong><%= typeof formatCLP === 'function' ? formatCLP(stats.pendingPayout || 0) : '$0' %></strong>
       <span><%= stats.nextPayDateLabel ? t('provider.trust.pay_on', { date: stats.nextPayDateLabel }) : t('provider.trust.pending') %></span>

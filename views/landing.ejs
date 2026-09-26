@@ -46,7 +46,7 @@
       </div>
       <a href="/registro?emergency=1" class="landing-urgent-cta">
         <span class="landing-urgent-cta__icon" aria-hidden="true">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+          <%- include('partials/ui-icon', { name: 'urgent', size: 20 }) %>
         </span>
         <span class="landing-urgent-cta__body">
           <span class="landing-urgent-cta__title"><%= t('landing.emergency_cta') %></span>
@@ -104,7 +104,7 @@
         </li>
         <li>
           <span class="landing-feature-icon" aria-hidden="true">
-            <%- include('partials/ui-icon', { name: 'wallet', size: 16, className: 'text-zilo-accent' }) %>
+            <%- include('partials/ui-icon', { name: 'card', size: 16, className: 'text-zilo-accent' }) %>
           </span>
           <span class="landing-feature-text"><%= t('landing.feature.card') %></span>
         </li>
@@ -140,7 +140,7 @@
     <a href="/registro?role=provider" class="group block rounded-2xl p-5 mb-8 border border-zilo-border bg-zilo-card hover:border-zilo-accent/40 transition">
       <div class="flex items-start gap-4">
         <div class="w-11 h-11 rounded-xl bg-zilo-accent-soft border border-zilo-accent/20 flex items-center justify-center shrink-0 text-zilo-accent">
-          <%- include('partials/ui-icon', { name: 'wallet', size: 20 }) %>
+          <%- include('partials/ui-icon', { name: 'partner', size: 20 }) %>
         </div>
         <div class="flex-1 min-w-0">
           <h2 class="zilo-display text-xl text-zilo-text mb-1"><%= t('landing.partner_title') %></h2>
