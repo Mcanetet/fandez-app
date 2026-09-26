@@ -76,16 +76,33 @@
           <p class="launch-inline__note"><%= t('launch.client.note') %></p>
         </div>
         <% } %>
+        <div id="clientRegisterGuide" class="register-client-guide <%= form.role === 'client' ? '' : 'hidden' %>" role="note">
+          <p class="register-client-guide__title"><%= t('register.client_guide_title') %></p>
+          <p class="register-client-guide__lead"><%= t('register.client_guide_body') %></p>
+          <ol class="register-client-guide__steps">
+            <li><%= t('register.client_guide_step1') %></li>
+            <li><%= t('register.client_guide_step2') %></li>
+          </ol>
+          <p class="register-client-guide__example"><%= t('register.client_guide_example') %></p>
+        </div>
+      </div>
+
+      <div id="clientPersonBlock" class="register-client-section <%= form.role === 'client' ? '' : 'hidden' %>">
+        <p class="register-client-section__title"><%= t('register.client_person_title') %></p>
+        <p class="register-client-section__hint"><%= t('register.client_person_hint') %></p>
       </div>
 
       <div>
         <label for="name" id="nameLabel" class="zilo-label block mb-1.5"
           data-label-natural="<%= t('register.name') %>"
-          data-label-company="<%= t('register.contact_name') %>"><%= t('register.name') %></label>
+          data-label-company="<%= t('register.contact_name') %>"
+          data-label-client="<%= t('register.contact_name') %>"><%= form.role === 'client' ? t('register.contact_name') : t('register.name') %></label>
         <input type="text" id="name" name="name" required autocomplete="name"
           data-placeholder-natural="<%= t('register.name_placeholder') %>"
           data-placeholder-company="<%= t('register.contact_name_placeholder') %>"
-          placeholder="<%= t('register.name_placeholder') %>" class="zilo-input" value="<%= form.name || '' %>">
+          data-placeholder-client="<%= t('register.contact_name_placeholder') %>"
+          placeholder="<%= form.role === 'client' ? t('register.contact_name_placeholder') : t('register.name_placeholder') %>" class="zilo-input" value="<%= form.name || '' %>">
+        <p id="clientNameFieldHint" class="text-[11px] text-zilo-muted mt-1.5 <%= form.role === 'client' ? '' : 'hidden' %>"><%= t('register.contact_name_field_hint') %></p>
       </div>
       <div>
         <label for="email" class="zilo-label block mb-1.5"><%= t('auth.email') %></label>
@@ -93,7 +110,7 @@
       </div>
       <div>
         <label for="phone" class="zilo-label block mb-1.5"><%= t('register.phone') %></label>
-        <input type="tel" id="phone" name="phone" autocomplete="tel" placeholder="+56 9 1234 5678" class="zilo-input" value="<%= form.phone || '' %>" <%= form.role !== 'client' ? 'required' : '' %>>
+        <input type="tel" id="phone" name="phone" required autocomplete="tel" placeholder="+56 9 1234 5678" class="zilo-input" value="<%= form.phone || '' %>">
       </div>
       <div>
         <%- include('partials/password-field', {
@@ -107,22 +124,24 @@
         }) %>
       </div>
 
-      <div id="clientBillingFields" class="space-y-3 p-4 rounded-xl border border-zilo-border bg-zilo-bg/30 <%= form.role === 'client' ? '' : 'hidden' %>">
+      <div id="clientBillingFields" class="space-y-3 p-4 rounded-xl border border-zilo-border bg-zilo-bg/30 register-client-billing <%= form.role === 'client' ? '' : 'hidden' %>">
         <div>
-          <p class="text-xs font-semibold text-zilo-text"><%= t('register.client_billing_title') %></p>
-          <p class="text-[11px] text-zilo-muted mt-1"><%= t('register.client_billing_hint') %></p>
+          <p class="register-client-section__title"><%= t('register.client_billing_title') %></p>
+          <p class="register-client-section__hint"><%= t('register.client_billing_hint') %></p>
         </div>
         <div class="zilo-choice-grid">
           <label>
             <input type="radio" name="client_billing_type" value="natural" class="peer sr-only" <%= (form.clientBillingType || 'natural') !== 'empresa' ? 'checked' : '' %>>
             <div class="zilo-choice-card zilo-choice-card--compact transition peer-checked:border-zilo-accent peer-checked:bg-zilo-accent-soft peer-checked:text-zilo-accent-strong">
               <span class="zilo-choice-title"><%= t('register.client_type_natural') %></span>
+              <span class="zilo-choice-desc"><%= t('register.client_type_natural_hint') %></span>
             </div>
           </label>
           <label>
             <input type="radio" name="client_billing_type" value="empresa" class="peer sr-only" <%= form.clientBillingType === 'empresa' ? 'checked' : '' %>>
             <div class="zilo-choice-card zilo-choice-card--compact transition peer-checked:border-zilo-accent peer-checked:bg-zilo-accent-soft peer-checked:text-zilo-accent-strong">
               <span class="zilo-choice-title"><%= t('register.client_type_company') %></span>
+              <span class="zilo-choice-desc"><%= t('register.client_type_company_hint') %></span>
             </div>
           </label>
         </div>
@@ -293,12 +312,18 @@
       providerFields.classList.toggle('hidden', !isProvider);
       const clientBanner = document.getElementById('clientLaunchBanner');
       if (clientBanner) clientBanner.classList.toggle('hidden', isProvider);
+      const clientGuide = document.getElementById('clientRegisterGuide');
+      if (clientGuide) clientGuide.classList.toggle('hidden', isProvider);
+      const clientPerson = document.getElementById('clientPersonBlock');
+      if (clientPerson) clientPerson.classList.toggle('hidden', isProvider);
+      const clientNameHint = document.getElementById('clientNameFieldHint');
+      if (clientNameHint) clientNameHint.classList.toggle('hidden', isProvider);
       const title = document.getElementById('registerTitle');
       const sub = document.getElementById('registerSub');
       if (title) title.textContent = isProvider ? title.dataset.provider : title.dataset.client;
       if (sub) sub.textContent = isProvider ? sub.dataset.provider : sub.dataset.client;
       const phone = document.getElementById('phone');
-      if (phone) phone.required = isProvider;
+      if (phone) phone.required = true;
       const unit = document.getElementById('address_unit');
       const unitLabel = document.getElementById('addressUnitLabel');
       if (unit) unit.required = !isProvider;

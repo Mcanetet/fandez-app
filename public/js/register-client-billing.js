@@ -95,14 +95,22 @@
     }
 
     if (nameLabel) {
-      nameLabel.textContent = company
-        ? (nameLabel.dataset.labelCompany || t('register.contact_name', 'Nombre del contacto'))
-        : (nameLabel.dataset.labelNatural || t('register.name', 'Nombre completo'));
+      if (isClient) {
+        nameLabel.textContent = nameLabel.dataset.labelClient
+          || nameLabel.dataset.labelCompany
+          || t('register.contact_name', 'Nombre de quien pide');
+      } else {
+        nameLabel.textContent = nameLabel.dataset.labelNatural || t('register.name', 'Nombre completo');
+      }
     }
     if (nameInput) {
-      nameInput.placeholder = company
-        ? (nameInput.dataset.placeholderCompany || t('register.contact_name_placeholder', 'Quién gestiona la cuenta'))
-        : (nameInput.dataset.placeholderNatural || t('register.name_placeholder', 'Tu nombre'));
+      if (isClient) {
+        nameInput.placeholder = nameInput.dataset.placeholderClient
+          || nameInput.dataset.placeholderCompany
+          || t('register.contact_name_placeholder', 'Ej: María González');
+      } else {
+        nameInput.placeholder = nameInput.dataset.placeholderNatural || t('register.name_placeholder', 'Tu nombre');
+      }
     }
 
     if (!isClient || !company) showRutError('');
