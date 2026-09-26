@@ -2,6 +2,21 @@
 <%
   const ledger = typeof finance !== 'undefined' && finance ? finance : { stats: {}, rows: [] };
   const stats = ledger.stats || {};
+  const setup = typeof payoutSetup !== 'undefined' && payoutSetup ? payoutSetup : {
+    payoutCadence: 'weekly',
+    pendingDocuments: [],
+    needsBank: false,
+    bankReady: true,
+    bankAccount: {},
+    canReceivePayouts: true,
+    docsComplete: true
+  };
+  const bank = setup.bankAccount || {};
+  const accountTypes = typeof bankAccountTypes !== 'undefined' ? bankAccountTypes : [
+    { id: 'cuenta corriente', label: 'Cuenta corriente' },
+    { id: 'cuenta vista', label: 'Cuenta vista / RUT' },
+    { id: 'cuenta ahorro', label: 'Cuenta de ahorro' }
+  ];
 %>
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter">
   <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
@@ -44,11 +59,89 @@
 
     <p class="text-xs text-zilo-muted leading-relaxed"><%= t('provider.finance.hint') %></p>
 
+    <section class="rounded-2xl zilo-card-premium border border-zilo-border p-4 space-y-3" id="payoutCadenceCard">
+      <div>
+        <p class="zilo-label mb-1"><%= t('provider.finance.cadence_title') %></p>
+        <p class="text-[11px] text-zilo-muted"><%= t('provider.finance.cadence_hint') %></p>
+      </div>
+      <div class="grid grid-cols-2 gap-2" role="group" aria-label="<%= t('provider.finance.cadence_title') %>">
+        <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer <%= setup.payoutCadence !== 'monthly' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
+          <input type="radio" name="payoutCadence" value="weekly" class="accent-zilo-accent" <%= setup.payoutCadence !== 'monthly' ? 'checked' : '' %>>
+          <span class="text-sm font-semibold"><%= t('provider.finance.cadence_weekly') %></span>
+        </label>
+        <label class="flex items-center gap-2 p-3 rounded-xl border cursor-pointer <%= setup.payoutCadence === 'monthly' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
+          <input type="radio" name="payoutCadence" value="monthly" class="accent-zilo-accent" <%= setup.payoutCadence === 'monthly' ? 'checked' : '' %>>
+          <span class="text-sm font-semibold"><%= t('provider.finance.cadence_monthly') %></span>
+        </label>
+      </div>
+      <p id="cadenceStatus" class="text-[11px] text-zilo-muted min-h-[1rem]" role="status"></p>
+    </section>
+
+    <% if ((setup.pendingDocuments || []).length) { %>
+    <section class="rounded-2xl zilo-card-premium border border-amber-200 bg-amber-50/60 p-4 space-y-3">
+      <div>
+        <p class="zilo-label mb-1 text-amber-900"><%= t('provider.finance.pending_docs_title') %></p>
+        <p class="text-[11px] text-amber-800/80"><%= t('provider.finance.pending_docs_hint') %></p>
+      </div>
+      <ul class="space-y-2">
+        <% setup.pendingDocuments.forEach(function(doc) { %>
+          <li class="flex items-start justify-between gap-2 text-sm">
+            <span class="text-zilo-text"><%= doc.label %></span>
+            <a href="/proveedor/contrato" class="text-zilo-accent font-semibold text-xs shrink-0"><%= t('provider.finance.upload_doc') %></a>
+          </li>
+        <% }); %>
+      </ul>
+      <a href="/proveedor/contrato" class="inline-flex text-sm font-semibold text-zilo-accent hover:underline"><%= t('provider.finance.go_contract') %></a>
+    </section>
+    <% } %>
+
+    <% if (setup.needsBank) { %>
+    <section class="rounded-2xl zilo-card-premium border border-zilo-border p-4 space-y-3" id="bankAccountCard">
+      <div>
+        <p class="zilo-label mb-1"><%= t('provider.finance.bank_title') %></p>
+        <p class="text-[11px] text-zilo-muted"><%= t('provider.finance.bank_hint') %></p>
+      </div>
+      <form id="providerBankForm" class="space-y-2.5">
+        <div>
+          <label class="register-form__label" for="bankName"><%= t('provider.finance.bank_name') %></label>
+          <input type="text" id="bankName" name="bankName" required class="zilo-input" value="<%= bank.bankName || '' %>" placeholder="Ej: Banco de Chile">
+        </div>
+        <div>
+          <label class="register-form__label" for="accountType"><%= t('provider.finance.account_type') %></label>
+          <select id="accountType" name="accountType" required class="zilo-input">
+            <% accountTypes.forEach(function(opt) { %>
+              <option value="<%= opt.id %>" <%= (bank.accountType || 'cuenta corriente') === opt.id ? 'selected' : '' %>><%= opt.label %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div>
+          <label class="register-form__label" for="accountNumber"><%= t('provider.finance.account_number') %></label>
+          <input type="text" id="accountNumber" name="accountNumber" required class="zilo-input" value="<%= bank.accountNumber || '' %>" placeholder="000123456789" inputmode="numeric">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="register-form__label" for="holderName"><%= t('provider.finance.holder_name') %></label>
+            <input type="text" id="holderName" name="holderName" required class="zilo-input" value="<%= bank.holderName || (provider && provider.name) || '' %>">
+          </div>
+          <div>
+            <label class="register-form__label" for="holderRut"><%= t('provider.finance.holder_rut') %></label>
+            <input type="text" id="holderRut" name="holderRut" required class="zilo-input" value="<%= bank.holderRut || '' %>" placeholder="12.345.678-9">
+          </div>
+        </div>
+        <button type="submit" class="zilo-btn-primary !py-2.5 text-sm w-full"><%= t('provider.finance.save_bank') %></button>
+        <p id="bankFormStatus" class="text-[11px] text-zilo-muted min-h-[1rem]" role="status"></p>
+      </form>
+    </section>
+    <% } else if (setup.docsComplete && setup.bankReady) { %>
+      <p class="text-[11px] text-zilo-success"><%= t('provider.finance.ready_hint') %></p>
+    <% } %>
+
     <section>
       <div class="flex items-center justify-between mb-3">
         <p class="zilo-label mb-0"><%= t('provider.finance.ledger_title') %></p>
         <span class="text-[11px] text-zilo-muted tabular-nums"><%= (ledger.rows || []).length %></span>
       </div>
+      <p class="text-[11px] text-zilo-muted mb-3"><%= t('provider.finance.invoice_gate_hint') %></p>
 
       <% if (!(ledger.rows || []).length) { %>
         <div class="zilo-empty zilo-card-premium rounded-2xl">
@@ -95,4 +188,69 @@
 
   <%- include('../partials/nav-provider', { navActive: 'finanzas' }) %>
 </div>
+<script>
+(function () {
+  const cadenceInputs = document.querySelectorAll('input[name="payoutCadence"]');
+  const cadenceStatus = document.getElementById('cadenceStatus');
+  cadenceInputs.forEach((input) => {
+    input.addEventListener('change', async () => {
+      if (!input.checked) return;
+      if (cadenceStatus) cadenceStatus.textContent = 'Guardando…';
+      try {
+        const res = await fetch('/proveedor/finanzas/liquidacion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ payoutCadence: input.value })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo guardar');
+        if (cadenceStatus) cadenceStatus.textContent = input.value === 'monthly' ? 'Liquidación mensual activada.' : 'Liquidación semanal activada.';
+        if (window.FandezNotify) FandezNotify.show(cadenceStatus.textContent, 'success');
+        document.querySelectorAll('#payoutCadenceCard label').forEach((label) => {
+          const radio = label.querySelector('input');
+          const on = radio && radio.checked;
+          label.classList.toggle('border-zilo-accent', on);
+          label.classList.toggle('bg-zilo-accent/5', on);
+          label.classList.toggle('border-zilo-border', !on);
+        });
+      } catch (err) {
+        if (cadenceStatus) cadenceStatus.textContent = err.message || 'Error';
+        if (window.FandezNotify) FandezNotify.show(err.message || 'Error', 'error');
+      }
+    });
+  });
+
+  const bankForm = document.getElementById('providerBankForm');
+  const bankStatus = document.getElementById('bankFormStatus');
+  if (bankForm) {
+    bankForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (bankStatus) bankStatus.textContent = 'Guardando…';
+      const fd = new FormData(bankForm);
+      try {
+        const res = await fetch('/proveedor/finanzas/banco', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            bankName: fd.get('bankName'),
+            accountType: fd.get('accountType'),
+            accountNumber: fd.get('accountNumber'),
+            holderName: fd.get('holderName'),
+            holderRut: fd.get('holderRut')
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo guardar la cuenta');
+        if (bankStatus) bankStatus.textContent = 'Cuenta guardada. Ya puedes liquidar cuando subas las facturas.';
+        if (window.FandezNotify) FandezNotify.show('Datos bancarios guardados', 'success');
+      } catch (err) {
+        if (bankStatus) bankStatus.textContent = err.message || 'Error';
+        if (window.FandezNotify) FandezNotify.show(err.message || 'Error', 'error');
+      }
+    });
+  }
+})();
+</script>
 <%- include('../partials/footer', { pageScript: '/js/provider-invoice.js', extraScripts: ['/js/image-upload.js'] }) %>

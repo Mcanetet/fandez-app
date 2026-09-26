@@ -1697,6 +1697,7 @@ router.post('/complaint/:id/status', requireRole('admin'), requireAdminPermissio
 router.post('/payout/:requestId', requireRole('admin'), requireAdminPermission('pagos.manage'), (req, res) => {
   const req_ = store.markPayoutPaid(req.params.requestId);
   if (!req_) return res.status(404).json({ error: 'Solicitud no encontrada' });
+  if (req_.error) return res.status(400).json({ error: req_.error, pendingDocuments: req_.pendingDocuments, bankErrors: req_.bankErrors });
   store.logSecurityEvent('payout_marked', req.params.requestId, req);
   res.json({ success: true, request: req_ });
 });

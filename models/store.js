@@ -16,7 +16,7 @@ const { getAppVersionInfo } = require('../lib/version');
 const { t: translate } = require('../lib/i18n');
 const { getRequestTimeouts } = require('../lib/requestTimeouts');
 const { verifyPassword, hashPassword } = require('../lib/password');
-const { resolvePayoutSchedule, formatPayDate, nextBusinessDayIso } = require('../lib/payoutSchedule');
+const { resolvePayoutSchedule, resolvePayoutScheduleForCadence, formatPayDate, nextBusinessDayIso } = require('../lib/payoutSchedule');
 const {
   generateSecret,
   buildOtpauthUrl,
@@ -129,7 +129,11 @@ const {
   normalizeDocumentRecord,
   defaultDocumentMeta,
   getContractDocumentEntries,
-  requiredDocumentsHumanApproved
+  requiredDocumentsHumanApproved,
+  getProviderPayoutSetup,
+  getMissingPayoutDocuments,
+  validateBankAccount,
+  BANK_ACCOUNT_TYPES
 } = require('../lib/contracts');
 const { saveProviderFile } = require('../lib/uploads');
 const {
@@ -2775,23 +2779,12 @@ function syncProviderKycAfterContractApproval(provider) {
 
 function canProviderGoOnline(provider) {
   ensureProviderFields(provider);
-  const v = provider.verification;
   const missing = [];
   if (!provider.phone?.trim()) missing.push('teléfono');
   if (!provider.email?.trim()) missing.push('correo electrónico');
   const contractSummary = getContractSummary(provider.providerContract);
-  if (!contractSummary.canOperate) {
-    if (!v.idCardFront) missing.push('carnet (frente)');
-    if (!v.idCardBack) missing.push('carnet (reverso)');
-    if (!v.faceVerified) missing.push('verificación facial');
-    if (!provider.locationShare.consent) missing.push('permiso de ubicación');
-    if (contractSummary.status === 'pending_review') missing.push('contrato en revisión legal');
-    else if (contractSummary.status === 'rejected') missing.push('contrato rechazado — escribe a soporte@fandez.cl');
-    else if (contractSummary.status === 'needs_info') missing.push('contrato — antecedentes pendientes');
-    else if (contractSummary.status === 'expired') missing.push('contrato vencido — renovar');
-    else missing.push('contrato de socio firmado y aprobado');
-  }
-  // Contrato aprobado por admin = listo para operar: no bloquear por selfie/ubicación.
+  // Soft launch: el socio opera con los datos del registro.
+  // Documentos / banco / factura se exigen al gestionar liquidaciones (finanzas).
   return { ok: missing.length === 0, missing, contract: contractSummary };
 }
 
@@ -3002,7 +2995,7 @@ function updateProviderLocation(providerId, lat, lng) {
   ensureProviderFields(provider);
   // Si está en línea / operativo, asumir consentimiento de ubicación operativa.
   if (!provider.locationShare.consent) {
-    if (!provider.online && !getContractSummary(provider.providerContract)?.canOperate) {
+    if (!provider.online && !canProviderGoOnline(provider).ok) {
       return null;
     }
     provider.locationShare.consent = true;
@@ -5180,7 +5173,11 @@ function getUserSupportDossier(userId, { limitRequests = 12, limitLogs = 40 } = 
     ensureProviderFields(user);
     contract = getContractSummary(user.providerContract);
     if (!contract?.canOperate) {
-      flags.push({ code: 'contract_blocked', level: 'danger', label: `Contrato: ${contract?.label || 'no operativo'}` });
+      flags.push({
+        code: 'contract_pending',
+        level: 'info',
+        label: `Expediente: ${contract?.label || 'pendiente'} (puede operar; docs al liquidar)`
+      });
     }
     if (!user.online) flags.push({ code: 'offline', level: 'warn', label: 'Fuera de línea' });
     const specs = Array.isArray(user.specialties) ? user.specialties : [];
@@ -6009,12 +6006,15 @@ function getOperationalDiagnostics() {
 
 function assignPayoutSchedule(request) {
   if (!request?.completedAt) return null;
-  const schedule = resolvePayoutSchedule(request.completedAt);
+  const provider = request.providerId ? getUserById(request.providerId) : null;
+  const cadence = provider?.providerContract?.payoutCadence === 'monthly' ? 'monthly' : 'weekly';
+  const schedule = resolvePayoutScheduleForCadence(request.completedAt, cadence);
   request.payoutStatus = request.payoutStatus === 'pagado' ? 'pagado' : 'programado';
   request.payoutScheduledDate = schedule.scheduledPayDate;
   request.payoutPeriodStart = schedule.periodStart;
   request.payoutPeriodEnd = schedule.periodEnd;
   request.payoutCutoffAt = schedule.cutoffAt;
+  request.payoutCadence = schedule.cadence || cadence;
   return schedule;
 }
 
@@ -9147,11 +9147,86 @@ function listSafetyCategories() {
 function markPayoutPaid(requestId) {
   const req = requests.find(r => r.id === requestId);
   if (!req) return null;
+  ensureProviderInvoicePlan(req);
+  if (req.providerInvoicePlan?.status !== 'issued') {
+    return { error: 'El socio debe subir la factura/boleta del servicio antes de liquidar.' };
+  }
+  const provider = getUserById(req.providerId);
+  if (provider) {
+    const setup = getProviderPayoutSetup(provider.providerContract);
+    if (!setup.canReceivePayouts) {
+      return {
+        error: 'Faltan datos bancarios del socio (obligatorios mientras tenga documentos pendientes).',
+        pendingDocuments: setup.pendingDocuments,
+        bankErrors: setup.bankErrors
+      };
+    }
+  }
   req.payoutStatus = 'pagado';
   req.payoutPaidAt = new Date().toISOString();
   repository.persist(() => repository.saveRequest(req), `solicitud ${requestId}`);
   afterEvent((ev) => ev.onPayoutPaid?.(req));
   return req;
+}
+
+function getProviderPayoutSetupForUser(providerId) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') return null;
+  ensureProviderFields(provider);
+  return getProviderPayoutSetup(provider.providerContract);
+}
+
+function updateProviderBankAccount(providerId, bankInput = {}) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+  const next = {
+    ...defaultBankAccountFromContract(provider),
+    bankName: String(bankInput.bankName || '').trim().slice(0, 80),
+    accountType: String(bankInput.accountType || 'cuenta corriente').trim().slice(0, 40),
+    accountNumber: String(bankInput.accountNumber || '').trim().slice(0, 40),
+    holderName: String(bankInput.holderName || provider.name || '').trim().slice(0, 120),
+    holderRut: String(bankInput.holderRut || '').trim().slice(0, 20)
+  };
+  const check = validateBankAccount(next);
+  if (!check.ok) return { error: check.errors[0] || 'Completa los datos bancarios.', errors: check.errors };
+  provider.providerContract.bankAccount = check.bank;
+  repository.persist(() => repository.saveUser(provider), `banco socio ${providerId}`);
+  return { success: true, bankAccount: check.bank, setup: getProviderPayoutSetup(provider.providerContract) };
+}
+
+function defaultBankAccountFromContract(provider) {
+  const bank = provider?.providerContract?.bankAccount || {};
+  return {
+    bankName: bank.bankName || '',
+    accountType: bank.accountType || 'cuenta corriente',
+    accountNumber: bank.accountNumber || '',
+    holderName: bank.holderName || provider?.name || '',
+    holderRut: bank.holderRut || ''
+  };
+}
+
+function updateProviderPayoutCadence(providerId, cadenceRaw) {
+  const provider = getUserById(providerId);
+  if (!provider || provider.role !== 'provider') return { error: 'Socio no encontrado.' };
+  ensureProviderFields(provider);
+  const cadence = cadenceRaw === 'monthly' ? 'monthly' : 'weekly';
+  provider.providerContract.payoutCadence = cadence;
+  repository.persist(() => repository.saveUser(provider), `cadencia liquidación ${providerId}`);
+  // Reprogramar pendientes no pagados según nueva cadencia
+  requests
+    .filter((r) => r.providerId === providerId && r.status === 'completed' && r.payoutStatus !== 'pagado')
+    .forEach((r) => assignPayoutSchedule(r));
+  repository.persist(() => {
+    requests
+      .filter((r) => r.providerId === providerId && r.status === 'completed')
+      .forEach((r) => repository.saveRequest(r));
+  }, `reprogramar liquidaciones ${providerId}`);
+  return {
+    success: true,
+    payoutCadence: cadence,
+    setup: getProviderPayoutSetup(provider.providerContract)
+  };
 }
 
 const REFUND_OPEN_STATUSES = new Set(['requested', 'pending', 'processing']);
@@ -9820,6 +9895,9 @@ module.exports = {
   createSafetyIncident,
   listSafetyCategories,
   markPayoutPaid,
+  getProviderPayoutSetupForUser,
+  updateProviderBankAccount,
+  updateProviderPayoutCadence,
   getAdminRefundQueue,
   updateRefundStatus,
   getAdminRequestCase,

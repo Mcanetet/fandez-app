@@ -229,19 +229,42 @@ router.get('/', requireRole('provider'), async (req, res) => {
       t: req.t
     }),
     activationSteps: getProviderActivationSteps(provider, verificationCheck, contractSummary, store),
-    canGoOnline: verificationCheck.ok && contractSummary.canOperate,
+    canGoOnline: verificationCheck.ok,
     onboardingCompleteUrl: '/proveedor/onboarding/complete'
   });
 });
 
 router.get('/finanzas', requireRole('provider'), (req, res) => {
+  const provider = store.getUserById(req.session.user.id);
   const finance = store.getProviderFinanceLedger(req.session.user.id, { limit: 80 });
+  const payoutSetup = store.getProviderPayoutSetupForUser(req.session.user.id);
   res.render('provider/finanzas', {
     title: 'Finanzas — Fandez',
     user: req.session.user,
+    provider,
     finance,
+    payoutSetup,
+    bankAccountTypes: require('../lib/contracts').BANK_ACCOUNT_TYPES,
     formatCLP: store.formatCLP
   });
+});
+
+router.post('/finanzas/banco', requireRole('provider'), (req, res) => {
+  const result = store.updateProviderBankAccount(req.session.user.id, {
+    bankName: req.body.bankName,
+    accountType: req.body.accountType,
+    accountNumber: req.body.accountNumber,
+    holderName: req.body.holderName,
+    holderRut: req.body.holderRut
+  });
+  if (result.error) return res.status(400).json({ success: false, error: result.error, errors: result.errors });
+  res.json({ success: true, ...result });
+});
+
+router.post('/finanzas/liquidacion', requireRole('provider'), (req, res) => {
+  const result = store.updateProviderPayoutCadence(req.session.user.id, req.body.payoutCadence || req.body.cadence);
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  res.json({ success: true, ...result });
 });
 
 router.post('/onboarding/complete', requireRole('provider'), (req, res) => {
