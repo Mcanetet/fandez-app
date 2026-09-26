@@ -64,7 +64,7 @@ html {
 }
 
 .fandez-wordmark {
-  font-family: Unbounded, 'Bricolage Grotesque', system-ui, sans-serif;
+  font-family: Unbounded, Fraunces, system-ui, sans-serif;
   font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--zilo-text);
@@ -77,9 +77,10 @@ html {
 }
 
 .zilo-display {
-  font-family: 'Bricolage Grotesque', 'Source Sans 3', system-ui, sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-family: Fraunces, Syne, Georgia, serif;
+  font-optical-sizing: auto;
+  font-weight: 650;
+  letter-spacing: -0.02em;
   color: var(--zilo-text);
 }
 
@@ -871,7 +872,7 @@ html {
   backdrop-filter: blur(8px);
 }
 .live-track-eta__time {
-  font-family: 'Bricolage Grotesque', 'Source Sans 3', system-ui, sans-serif;
+  font-family: 'Fraunces', 'Nunito', system-ui, sans-serif;
   font-size: 1.55rem;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -1042,7 +1043,7 @@ html {
 .leaflet-container {
   background: #F4F7FB !important;
   border-radius: 1rem;
-  font-family: 'Source Sans 3', system-ui, sans-serif;
+  font-family: 'Nunito', system-ui, sans-serif;
 }
 
 .fandez-map-panel .leaflet-container {
@@ -2902,7 +2903,7 @@ body.session-role--tecnico::before {
   letter-spacing: 0.12em;
 }
 .admin-sidebar-brand h1 {
-  font-family: 'Bricolage Grotesque', 'Source Sans 3', system-ui, sans-serif;
+  font-family: 'Fraunces', 'Nunito', system-ui, sans-serif;
   color: #FFF8F0;
   letter-spacing: -0.02em;
 }
@@ -3068,7 +3069,7 @@ body.session-role--tecnico::before {
 }
 .admin-topbar-title { flex: 1; min-width: 0; }
 .admin-topbar-title h2 {
-  font-family: 'Bricolage Grotesque', 'Source Sans 3', system-ui, sans-serif;
+  font-family: 'Fraunces', 'Nunito', system-ui, sans-serif;
   font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -4629,7 +4630,7 @@ body.admin-modal-open {
   border-right: 1px solid var(--zilo-border);
 }
 .landing-stat-value {
-  font-family: 'Bricolage Grotesque', 'Source Sans 3', system-ui, sans-serif;
+  font-family: 'Fraunces', 'Nunito', system-ui, sans-serif;
   font-weight: 700;
   font-size: 1.125rem;
   line-height: 1.2;
@@ -4721,7 +4722,7 @@ body.admin-modal-open {
   font-weight: 700;
   line-height: 1.25;
   color: #1A1814;
-  font-family: "Bricolage Grotesque", "Source Sans 3", system-ui, sans-serif;
+  font-family: "Fraunces", "Nunito", system-ui, sans-serif;
 }
 .fandez-install-banner__body {
   margin: 0.3rem 0 0;
@@ -5398,7 +5399,7 @@ body.launch-notice-open {
   margin: 0 1.75rem 0.4rem 0;
 }
 .launch-notice__title {
-  font-family: 'Bricolage Grotesque', var(--font-display, sans-serif);
+  font-family: 'Fraunces', var(--font-display, sans-serif);
   font-size: 1.28rem;
   line-height: 1.2;
   font-weight: 700;

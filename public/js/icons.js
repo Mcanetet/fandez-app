@@ -12,6 +12,9 @@ window.FandezIcons = {
       generadores: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="3"/><path d="M15 9h3M15 12h3M15 15h2M7 3v2M17 3v2"/>',
       pintura: '<path d="M18.37 2.63a2.12 2.12 0 010 3l-7.07 7.07-3.54.35.35-3.54 7.07-7.07a2.12 2.12 0 013.19 0z"/><path d="M9 15l-2.5 5.5L12 18"/><path d="M14 7l3 3"/>',
       jardineria: '<path d="M12 22V10"/><path d="M9 22h6"/><path d="M12 13c-3-4-7-5-8-2 2 0 4 1 5 4"/><path d="M12 13c3-4 7-5 8-2-2 0-4 1-5 4"/><path d="M7 8c1.5-3 4-4 5-1"/><path d="M17 8c-1.5-3-4-4-5-1"/>',
+      paisajismo: '<path d="M12 22V12"/><path d="M8 22h8"/><path d="M4 14c2-1 4-1 6 1 2-2 4-2 6-1"/><path d="M6 10c1.5-2.5 3.5-3.5 6-1"/><path d="M18 10c-1.5-2.5-3.5-3.5-6-1"/><circle cx="12" cy="7" r="1.5"/>',
+      fotovoltaico: '<path d="M12 3v2"/><path d="M12 19v2"/><path d="M5 12H3"/><path d="M21 12h-2"/><path d="M6.3 6.3l-1.4-1.4"/><path d="M19.1 19.1l-1.4-1.4"/><path d="M6.3 17.7l-1.4 1.4"/><path d="M19.1 4.9l-1.4 1.4"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M8 12h8M12 8v8"/>',
+      piscinas: '<path d="M4 18c1.5-1 3-1 4.5 0s3 1 4.5 0 3-1 4.5 0 3 1 4.5 0"/><path d="M4 14c1.5-1 3-1 4.5 0s3 1 4.5 0 3-1 4.5 0 3 1 4.5 0"/><path d="M6 6h12v6H6z"/><path d="M9 6V4h6v2"/>',
       limpieza: '<path d="M9 3h6l1 4H8L9 3z"/><path d="M8 7h8v2a4 4 0 01-4 4 4 4 0 01-4-4V7z"/><path d="M12 13v8"/><path d="M9 21h6"/>',
       otros: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>'
     };

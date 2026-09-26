@@ -30,9 +30,9 @@ module.exports = {
         }
       },
       fontFamily: {
-        sans: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
-        display: ['"Bricolage Grotesque"', '"Source Sans 3"', 'system-ui', 'sans-serif'],
-        brand: ['Unbounded', '"Bricolage Grotesque"', 'system-ui', 'sans-serif']
+        sans: ['Nunito', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Syne', 'system-ui', 'serif'],
+        brand: ['Unbounded', 'Fraunces', 'system-ui', 'sans-serif']
       },
       borderRadius: { '4xl': '2rem' },
       animation: {

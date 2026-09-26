@@ -254,6 +254,8 @@ router.get('/', requireRole('client'), (req, res) => {
     user: req.session.user,
     profile,
     services: localizeServices(store.getActiveServices(), req.t),
+    servicesNow: localizeServices(store.getHomeServicesNow(), req.t),
+    servicesProject: localizeServices(store.getHomeServicesProject(), req.t),
     promos: store.getPromosForClient(req.session.user.id),
     referral: store.getReferralStats(req.session.user.id),
     passport: store.getHomePassport(req.session.user.id),
@@ -394,7 +396,8 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
   }
   const pricing = store.getPricingConfig();
   const urgencyTiers = store.getUrgencyTiersForClient();
-  const activities = store.getActivitiesForService(serviceRaw.id);
+  const { enrichActivityForClient } = require('../lib/activityBlurbs');
+  const activities = store.getActivitiesForService(serviceRaw.id).map(enrichActivityForClient);
   const serviceFromPrice = store.getServiceFromPrice(serviceRaw.id);
   const serviceSummary = store.getServicePriceSummary(serviceRaw.id);
   const service = localizeServices([{
@@ -415,6 +418,8 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     serviceRaw.id,
     req.query.resume || null
   );
+  const { resolveServicePath } = require('../lib/homeServicePaths');
+  const resolvedServicePath = resolveServicePath(req.query.camino, serviceRaw.id);
   res.render('client/service', {
     title: `${service.name} — Fandez`,
     user: req.session.user,
@@ -431,7 +436,8 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     formatCLP: store.formatCLP,
     tracking: req.query.tracking || null,
     checkoutDraft,
-    cancellationReasons: CANCELLATION_REASONS
+    cancellationReasons: CANCELLATION_REASONS,
+    resolvedServicePath
   });
 });
 
@@ -495,7 +501,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
     serviceId, address, notes, lat, lng, gift, clientPhoto, clientBrandPhoto,
     brandNotVisible, urgencyTier, activityId, customName, localTime, timeZone,
     squareMeters, landscapeProject, gardenIntake, gardenPlanFile, keepGardenPlan,
-    cleaningFactors, resumeRequestId, keepClientPhoto, keepBrandPhoto
+    fvIntake, servicePath, cleaningFactors, resumeRequestId, keepClientPhoto, keepBrandPhoto
   } = req.body;
   const service = store.getServiceById(serviceId);
   if (!service || !service.enabled) {
@@ -522,10 +528,10 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   const hasExistingBrand = Boolean(resumeDraft?.clientBrandPhotoUrl);
   const hasExistingPlan = Boolean(resumeDraft?.gardenIntake?.planFileUrl);
 
-  if ((service.id === 'jardineria' || service.id === 'limpieza') && !clientPhoto && !(keepPhoto && hasExistingPhoto)) {
+  if ((service.id === 'paisajismo' || service.id === 'fotovoltaico') && !clientPhoto && !(keepPhoto && hasExistingPhoto)) {
     return res.status(400).json({
-      error: service.id === 'limpieza'
-        ? 'Sube al menos una foto del espacio a limpiar.'
+      error: service.id === 'fotovoltaico'
+        ? 'Sube al menos una foto del techo o del tablero.'
         : 'Sube al menos una foto del jardín o del área a trabajar.'
     });
   }
@@ -548,7 +554,7 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
     if (!skipBrand && clientBrandPhoto) {
       clientBrandPhotoUrl = saveRequestFile(tempId, 'marca', clientBrandPhoto);
     }
-    if (gardenPlanFile && service.id === 'jardineria') {
+    if (gardenPlanFile && service.id === 'paisajismo') {
       gardenPlanFileUrl = saveRequestFile(tempId, 'plano', gardenPlanFile);
     } else if (keepPlan && hasExistingPlan) {
       gardenPlanFileUrl = resumeDraft.gardenIntake.planFileUrl;
@@ -578,6 +584,8 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
       landscapeProject: landscapeProject && typeof landscapeProject === 'object' ? landscapeProject : null,
       gardenIntake: gardenIntake && typeof gardenIntake === 'object' ? gardenIntake : null,
       gardenPlanFileUrl,
+      fvIntake: fvIntake && typeof fvIntake === 'object' ? fvIntake : null,
+      servicePath: servicePath || null,
       cleaningFactors: cleaningFactors && typeof cleaningFactors === 'object' ? cleaningFactors : null,
       resumeRequestId: resumeId,
       keepClientPhoto: keepPhoto && !clientPhotoUrl,

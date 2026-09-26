@@ -75,6 +75,23 @@ const {
   GARDEN_EVAL_VISIT_CLP
 } = require('../lib/gardenIntake');
 const {
+  isFvIntakeService,
+  normalizeFvIntake,
+  primaryActivityFromFvIntake,
+  formatFvIntakeSummary,
+  FV_EVAL_VISIT_CLP
+} = require('../lib/fvIntake');
+const {
+  buildFvDeliverablesChecklist,
+  ensureFvDeliverables,
+  fvDeliverablesProgress
+} = require('../lib/fvDeliverables');
+const {
+  decorateHomeFields,
+  filterServicesForHome,
+  resolveServicePath
+} = require('../lib/homeServicePaths');
+const {
   buildGardenDeliverablesChecklist,
   ensureGardenDeliverables,
   applyGardenDeliverableUpload,
@@ -343,11 +360,13 @@ async function createRequest({
   landscapeProject,
   gardenIntake,
   gardenPlanFileUrl,
+  fvIntake,
   cleaningFactors,
   resumeRequestId = null,
   keepClientPhoto = false,
   keepBrandPhoto = false,
-  keepGardenPlan = false
+  keepGardenPlan = false,
+  servicePath = null
 }) {
   const service = getServiceById(serviceId);
   const client = getUserById(clientId);
@@ -377,15 +396,24 @@ async function createRequest({
 
   notes = (notes || '').trim();
   const gardenIntakeJob = isGardenIntakeService(serviceId);
+  const fvIntakeJob = isFvIntakeService(serviceId);
+  const projectPath = resolveServicePath(servicePath, serviceId) === 'project'
+    || gardenIntakeJob
+    || fvIntakeJob;
   const gardenJob = isPerM2Service(serviceId) || gardenIntakeJob;
   const cleaningJob = isCleaningService(serviceId);
   const minM2 = gardenIntakeJob ? GARDEN_INTAKE_MIN_M2 : (cleaningJob ? CLEANING_MIN_M2 : 10);
+  if (!projectPath && notes.length < 12) {
+    // Descripción opcional en urgencia: no bloquea el pedido.
+  }
+  if (fvIntakeJob && !clientPhotoUrl) {
+    return Promise.reject(new Error('Sube al menos una foto del techo o del tablero eléctrico.'));
+  }
   if (gardenJob && !clientPhotoUrl) {
-    return Promise.reject(new Error(
-      cleaningJob
-        ? 'Sube al menos una foto del espacio a limpiar.'
-        : 'Sube al menos una foto del área a trabajar.'
-    ));
+    // Limpieza: foto opcional. Paisajismo (intake) sí la exige.
+    if (!cleaningJob) {
+      return Promise.reject(new Error('Sube al menos una foto del área a trabajar.'));
+    }
   }
   const parsedM2 = Number(squareMeters);
   if (gardenJob && (!Number.isFinite(parsedM2) || parsedM2 < minM2)) {
@@ -402,6 +430,7 @@ async function createRequest({
   }
 
   let normalizedGarden = null;
+  let normalizedFv = null;
   let activityMatch;
 
   if (gardenIntakeJob) {
@@ -421,6 +450,24 @@ async function createRequest({
           ...activityMatch,
           id: picked.id,
           kind: picked.kind || activityMatch.kind
+        };
+      }
+    }
+  } else if (fvIntakeJob) {
+    const intakeResult = normalizeFvIntake(fvIntake);
+    if (!intakeResult.ok) {
+      return Promise.reject(new Error(intakeResult.error));
+    }
+    normalizedFv = intakeResult.intake;
+    activityMatch = primaryActivityFromFvIntake(normalizedFv);
+    if (activityId) {
+      const picked = activities.find((a) => a.id === activityId);
+      if (picked) {
+        activityMatch = {
+          ...activityMatch,
+          id: picked.id,
+          kind: picked.kind || activityMatch.kind,
+          basePrice: picked.basePrice || activityMatch.basePrice
         };
       }
     }
@@ -458,8 +505,8 @@ async function createRequest({
   const resolvedLocalTime = /^\d{1,2}:\d{2}$/.test(String(localTime || '').trim())
     ? String(localTime).trim()
     : new Date();
-  const perM2 = !gardenIntakeJob && (gardenJob || isPerM2Activity(activityMatch));
-  const landscape = !gardenIntakeJob && !isManualOther && isLandscapeActivity(activityMatch);
+  const perM2 = !gardenIntakeJob && !fvIntakeJob && (gardenJob || isPerM2Activity(activityMatch));
+  const landscape = !gardenIntakeJob && !fvIntakeJob && !isManualOther && isLandscapeActivity(activityMatch);
   let landscapeFactors = null;
   if (landscape) {
     if (!Number.isFinite(parsedM2) || parsedM2 < LANDSCAPE_MIN_M2) {
@@ -478,20 +525,22 @@ async function createRequest({
 
   let quoteBase = gardenIntakeJob
     ? (Number(normalizedGarden.evalVisitPrice) || GARDEN_EVAL_VISIT_CLP)
-    : (landscape
-      ? resolveLandscapeQuoteBase(landscapeFactors)
-      : (perM2
-        ? resolveM2QuoteBase(activityMatch, parsedM2, { serviceId })
-        : activityMatch.basePrice));
+    : (fvIntakeJob
+      ? (Number(normalizedFv.evalVisitPrice) || FV_EVAL_VISIT_CLP)
+      : (landscape
+        ? resolveLandscapeQuoteBase(landscapeFactors)
+        : (perM2
+          ? resolveM2QuoteBase(activityMatch, parsedM2, { serviceId })
+          : activityMatch.basePrice)));
   if (cleaningOpts) {
     quoteBase = applyCleaningSurcharge(quoteBase, cleaningOpts);
   }
-  const visitCalc = gardenIntakeJob || landscape || isManualOther || cleaningJob
+  const visitCalc = gardenIntakeJob || fvIntakeJob || landscape || isManualOther || cleaningJob
     ? calculateVisitPricing(pricing, urgencyTier, {
       horaSolicitud: resolvedLocalTime,
       valorBase: quoteBase,
       timeZone,
-      skipWorkFloor: gardenIntakeJob || perM2 || landscape
+      skipWorkFloor: gardenIntakeJob || fvIntakeJob || perM2 || landscape
     })
     : (quoteActivityForRequest(pricing, activityId, {
       horaSolicitud: resolvedLocalTime,
@@ -533,10 +582,14 @@ async function createRequest({
 
   const landscapeSummary = landscape ? formatLandscapeSummary(landscapeFactors) : '';
   const gardenSummary = normalizedGarden ? formatGardenIntakeSummary(normalizedGarden) : '';
+  const fvSummary = normalizedFv ? formatFvIntakeSummary(normalizedFv) : '';
   const cleaningSummary = cleaningOpts ? formatCleaningSummary(cleaningOpts, parsedM2) : '';
   let notesAugmented = notes;
   if (gardenSummary && !notes.includes('Requerimiento jardinería:')) {
     notesAugmented = `${notesAugmented}\n\n${gardenSummary}`.trim();
+  }
+  if (fvSummary && !notes.includes('Proyecto FV:')) {
+    notesAugmented = `${notesAugmented}\n\nProyecto FV: ${fvSummary}`.trim();
   }
   if (landscapeSummary && !notes.includes('Proyecto paisajismo:')) {
     notesAugmented = `${notesAugmented}\n\n${landscapeSummary}`.trim();
@@ -563,9 +616,9 @@ async function createRequest({
     activityKind: activityMatch.kind,
     activityBasePrice: activityMatch.basePrice,
     activityManual: Boolean(activityMatch.manual),
-    activityIds: normalizedGarden?.activityIds || [activityMatch.id],
-    pricingUnit: gardenIntakeJob ? 'job' : ((perM2 || landscape) ? 'm2' : 'job'),
-    pricePerM2: gardenIntakeJob
+    activityIds: normalizedGarden?.activityIds || (normalizedFv ? [activityMatch.id] : [activityMatch.id]),
+    pricingUnit: (gardenIntakeJob || fvIntakeJob) ? 'job' : ((perM2 || landscape) ? 'm2' : 'job'),
+    pricePerM2: (gardenIntakeJob || fvIntakeJob)
       ? null
       : (landscape
         ? Number(landscapeFactors.ratePerM2) || null
@@ -579,6 +632,9 @@ async function createRequest({
     gardenDeliverables: normalizedGarden
       ? buildGardenDeliverablesChecklist(normalizedGarden)
       : null,
+    fvIntake: normalizedFv || null,
+    fvDeliverables: normalizedFv ? buildFvDeliverablesChecklist() : null,
+    servicePath: projectPath ? 'project' : 'now',
     cleaningFactors: cleaningOpts ? {
       hasPets: cleaningOpts.hasPets,
       postEvent: cleaningOpts.postEvent,
@@ -1654,7 +1710,7 @@ async function ensureProviderReadyForWall(providerId) {
     if (provider.specialties.includes(sid)) continue;
     // Pedidos abiertos: el socio debe poder verlos. Limpieza (lanzamiento) y
     // socios sin oficios o con oficios afines reciben el servicio automáticamente.
-    const relatedHome = ['jardineria', 'pintura', 'limpieza'].some((id) => provider.specialties.includes(id));
+    const relatedHome = ['jardineria', 'paisajismo', 'pintura', 'limpieza', 'fotovoltaico', 'piscinas'].some((id) => provider.specialties.includes(id));
     if (
       sid === 'limpieza'
       || provider.specialties.length === 0
@@ -2168,20 +2224,28 @@ function getServiceById(id) {
 function decorateServiceForClient(service) {
   if (!service) return service;
   const summary = getServicePriceSummary(getPricingConfig(), service.id);
-  return {
+  return decorateHomeFields({
     ...service,
     fromPrice: summary.fromPrice,
     averagePrice: summary.fromPrice,
     averagePriceExact: summary.averagePrice,
     maxPrice: summary.maxPrice,
     pricingUnit: summary.pricingUnit || 'job'
-  };
+  });
 }
 
 function getActiveServices() {
   // Retirados del grid cliente: viven en gasfitería (hidráulica) y Otros (electrónica)
   const retired = new Set(['lavadora', 'lavavajillas']);
   return SERVICES.filter((s) => s.enabled && !retired.has(s.id)).map(decorateServiceForClient);
+}
+
+function getHomeServicesNow() {
+  return filterServicesForHome(getActiveServices(), 'now');
+}
+
+function getHomeServicesProject() {
+  return filterServicesForHome(getActiveServices(), 'project');
 }
 
 function getLandingServices() {
@@ -7980,6 +8044,23 @@ function enrichRequestForClient(request, locale = 'es') {
     gardenPaymentUnlocks: Array.isArray(request.gardenPaymentUnlocks)
       ? request.gardenPaymentUnlocks
       : [],
+    fvIntake: request.fvIntake || null,
+    fvDeliverables: request.fvIntake
+      ? (ensureFvDeliverables(request) || []).map((d) => ({
+          ...d,
+          fileUrl: d.fileUrl ? (toServingUrl(d.fileUrl) || d.fileUrl) : null,
+          files: Array.isArray(d.files)
+            ? d.files.map((f) => ({
+              ...f,
+              url: f.url ? (toServingUrl(f.url) || f.url) : null
+            }))
+            : []
+        }))
+      : null,
+    fvDeliverablesProgress: request.fvIntake
+      ? fvDeliverablesProgress(ensureFvDeliverables(request))
+      : null,
+    servicePath: request.servicePath || (request.gardenIntake || request.fvIntake ? 'project' : 'now'),
     providerInvoicePlan,
     visitRetentionFeeClp: getVisitRetentionFeeClp(request),
     cancellationFeePreview: getCancellationFeeClp(getPricingConfig(), request),
@@ -9524,6 +9605,8 @@ module.exports = {
   formatCLP,
   getServiceById,
   getActiveServices,
+  getHomeServicesNow,
+  getHomeServicesProject,
   getLandingServices,
   toggleService,
   getModules,

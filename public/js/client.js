@@ -147,8 +147,8 @@
       }
     }
 
-    if (activitySelect && draft.activityId) {
-      activitySelect.value = draft.activityId;
+    if (draft.activityId) {
+      selectActivityCard(draft.activityId);
       if (draft.activityId === 'otro') {
         const custom = document.getElementById('customActivityName');
         if (custom) custom.value = draft.customName || '';
@@ -322,13 +322,86 @@
   let resumeKeepGardenPlan = false;
 
   function isGardenIntakeService() {
-    return page?.dataset?.gardenIntake === '1' || page?.dataset?.serviceId === 'jardineria';
+    return page?.dataset?.gardenIntake === '1' || page?.dataset?.serviceId === 'paisajismo';
+  }
+
+  function isFvIntakeService() {
+    return page?.dataset?.fvIntake === '1' || page?.dataset?.serviceId === 'fotovoltaico';
+  }
+
+  function isProjectPath() {
+    return page?.dataset?.servicePath === 'project' || isGardenIntakeService() || isFvIntakeService();
+  }
+
+  function getSelectedActivityCard() {
+    const radio = document.querySelector('[data-activity-radio]:checked');
+    return radio ? radio.closest('[data-activity-card]') : null;
+  }
+
+  function selectedActivityMeta() {
+    const card = getSelectedActivityCard();
+    if (!card) return null;
+    return {
+      id: card.dataset.id || '',
+      base: card.dataset.base,
+      unit: card.dataset.unit || 'job',
+      perM2: card.dataset.perM2,
+      minM2: card.dataset.minM2,
+      quoteMode: card.dataset.quoteMode || '',
+      blurb: card.dataset.blurb || '',
+      priceLabel: card.dataset.priceLabel || '',
+      name: card.querySelector('.font-semibold')?.textContent?.trim() || ''
+    };
+  }
+
+  function syncActivityHiddenFromCards() {
+    const meta = selectedActivityMeta();
+    if (activitySelect && meta) activitySelect.value = meta.id;
+    document.querySelectorAll('[data-activity-card]').forEach((card) => {
+      const on = card.querySelector('[data-activity-radio]')?.checked;
+      card.classList.toggle('border-zilo-accent', Boolean(on));
+      card.classList.toggle('bg-zilo-accent/[0.06]', Boolean(on));
+      card.classList.toggle('shadow-sm', Boolean(on));
+      card.classList.toggle('ring-1', Boolean(on));
+      card.classList.toggle('ring-zilo-accent/30', Boolean(on));
+      const dot = card.querySelector('.activity-card__dot');
+      const ring = card.querySelector('.activity-card__radio');
+      if (dot) dot.classList.toggle('scale-100', Boolean(on));
+      if (dot) dot.classList.toggle('scale-0', !on);
+      if (ring) ring.classList.toggle('border-zilo-accent', Boolean(on));
+    });
+    const panel = document.getElementById('activitySelectedPanel');
+    if (panel) {
+      if (!meta || !meta.id) {
+        panel.classList.add('hidden');
+      } else {
+        panel.classList.remove('hidden');
+        const n = document.getElementById('activitySelectedName');
+        const b = document.getElementById('activitySelectedBlurb');
+        const p = document.getElementById('activitySelectedPrice');
+        if (n) n.textContent = meta.name || meta.id;
+        if (b) b.textContent = meta.blurb || '';
+        if (p) p.textContent = meta.priceLabel || '';
+      }
+    }
+  }
+
+  function selectActivityCard(id) {
+    if (!id) return;
+    const radio = document.querySelector(`[data-activity-radio][value="${CSS.escape(id)}"]`);
+    if (radio) {
+      radio.checked = true;
+      syncActivityHiddenFromCards();
+      toggleClientOtherFields();
+      toggleLandscapeFields();
+      updatePricePreview();
+    }
   }
 
   function isLandscapeSelected() {
     if (isGardenIntakeService()) return false;
-    const opt = activitySelect?.selectedOptions?.[0];
-    return opt?.dataset?.quoteMode === 'landscape' || opt?.value === 'jard-paisajismo';
+    const meta = selectedActivityMeta();
+    return meta?.quoteMode === 'landscape' || meta?.id === 'jard-paisajismo';
   }
 
   function syncGardenActivityId() {
@@ -459,6 +532,65 @@
     toggleGardenPlanPanels();
   }
 
+  function syncFvActivityId() {
+    const checked = document.querySelector('.js-fv-type:checked');
+    const hidden = document.getElementById('activityId');
+    if (hidden && checked?.dataset?.activity) hidden.value = checked.dataset.activity;
+  }
+
+  function readFvIntake() {
+    syncFvActivityId();
+    const type = document.querySelector('.js-fv-type:checked')?.value || 'netbilling';
+    const kit = document.querySelector('.js-fv-kit:checked')?.value || 'custom';
+    const billRaw = document.getElementById('fvMonthlyBill')?.value || '';
+    const billDigits = String(billRaw).replace(/[^\d]/g, '');
+    return {
+      systemType: type,
+      monthlyBillClp: billDigits ? Number(billDigits) : null,
+      savingsPct: Number(document.getElementById('fvSavingsPct')?.value || 70),
+      kitPreset: kit,
+      commune: document.getElementById('fvCommune')?.value?.trim() || '',
+      roofType: document.getElementById('fvRoofType')?.value || '',
+      notes: document.getElementById('notes')?.value?.trim() || ''
+    };
+  }
+
+  function validateFvIntakeClient(intake) {
+    if (!intake?.systemType) return 'Elige el tipo de sistema.';
+    if (!intake.monthlyBillClp || intake.monthlyBillClp < 15000) {
+      return 'Indica el monto aproximado de tu boleta (mín. $15.000).';
+    }
+    if (!intake.commune || intake.commune.length < 2) return 'Indica la comuna del techo.';
+    return null;
+  }
+
+  function updateFvSavingsHint() {
+    const bill = Number(String(document.getElementById('fvMonthlyBill')?.value || '').replace(/[^\d]/g, '')) || 0;
+    const pct = Number(document.getElementById('fvSavingsPct')?.value || 70);
+    const label = document.getElementById('fvSavingsPctLabel');
+    if (label) label.textContent = `${pct}%`;
+    const hint = document.getElementById('fvSavingsHint');
+    if (!hint) return;
+    if (!bill) {
+      hint.textContent = 'Meta boleta ≈ — · ahorro ≈ — / mes';
+      return;
+    }
+    const save = Math.round(bill * (pct / 100));
+    const neu = bill - save;
+    hint.textContent = `Meta boleta ≈ $${neu.toLocaleString('es-CL')} · ahorro ≈ $${save.toLocaleString('es-CL')} / mes`;
+  }
+
+  function bindFvIntakeUi() {
+    if (!isFvIntakeService()) return;
+    document.querySelectorAll('.js-fv-type').forEach((el) => {
+      el.addEventListener('change', syncFvActivityId);
+    });
+    document.getElementById('fvMonthlyBill')?.addEventListener('input', updateFvSavingsHint);
+    document.getElementById('fvSavingsPct')?.addEventListener('input', updateFvSavingsHint);
+    syncFvActivityId();
+    updateFvSavingsHint();
+  }
+
   function readLandscapeProject() {
     return {
       standard: document.getElementById('landscapeStandard')?.value || '',
@@ -493,8 +625,12 @@
   }
 
   function toggleClientOtherFields() {
-    if (!activitySelect || !customActivityFields) return;
-    customActivityFields.classList.toggle('hidden', activitySelect.value !== 'otro');
+    if (!customActivityFields) return;
+    const id = (activitySelect && activitySelect.tagName === 'SELECT' ? activitySelect.value : null)
+      || selectedActivityMeta()?.id
+      || activitySelect?.value
+      || '';
+    customActivityFields.classList.toggle('hidden', id !== 'otro');
   }
 
   function toggleLandscapeFields() {
@@ -546,8 +682,13 @@
       const from = fromAttr ? parseInt(fromAttr, 10) : NaN;
       return Number.isFinite(from) && from > 0 ? from : 40000;
     }
-    const opt = activitySelect?.selectedOptions?.[0];
-    const perM2 = page?.dataset?.pricingUnit === 'm2' || opt?.dataset?.unit === 'm2';
+    if (isFvIntakeService()) {
+      const fromAttr = page?.dataset?.fromPrice || page?.dataset?.visitPrice;
+      const from = fromAttr ? parseInt(fromAttr, 10) : NaN;
+      return Number.isFinite(from) && from > 0 ? from : 49000;
+    }
+    const meta = selectedActivityMeta();
+    const perM2 = page?.dataset?.pricingUnit === 'm2' || meta?.unit === 'm2';
     const minM2 = parseInt(page?.dataset?.minM2 || '10', 10) || 10;
     if (isLandscapeSelected()) {
       const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
@@ -556,7 +697,7 @@
       return quote != null ? quote : 400000;
     }
     if (perM2) {
-      const rate = parseInt(opt?.dataset?.perM2 || opt?.dataset?.base || page?.dataset?.fromPrice, 10);
+      const rate = parseInt(meta?.perM2 || meta?.base || page?.dataset?.fromPrice, 10);
       const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
       const m2 = Number.isFinite(typed) && typed >= minM2 ? typed : minM2;
       const floor = isCleaningService() ? 30000 : 40000;
@@ -566,18 +707,27 @@
       if (isCleaningService()) n = Math.round(n * cleaningMultiplier());
       return n;
     }
-    const base = opt?.dataset?.base;
-    const n = base ? parseInt(base, 10) : NaN;
+    const n = meta?.base ? parseInt(meta.base, 10) : NaN;
     if (Number.isFinite(n) && n > 0) return n;
     const fromAttr = page?.dataset?.fromPrice || page?.dataset?.visitPrice;
     const from = fromAttr ? parseInt(fromAttr, 10) : NaN;
     return Number.isFinite(from) && from > 0 ? from : null;
   }
-  activitySelect?.addEventListener('change', () => {
-    toggleClientOtherFields();
-    toggleLandscapeFields();
-    updatePricePreview();
+  document.querySelectorAll('[data-activity-radio]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      syncActivityHiddenFromCards();
+      toggleClientOtherFields();
+      toggleLandscapeFields();
+      updatePricePreview();
+    });
   });
+  if (activitySelect && activitySelect.tagName === 'SELECT') {
+    activitySelect.addEventListener('change', () => {
+      toggleClientOtherFields();
+      toggleLandscapeFields();
+      updatePricePreview();
+    });
+  }
   document.getElementById('squareMeters')?.addEventListener('input', () => updatePricePreview());
   ['landscapeStandard', 'landscapeTerrain', 'landscapeSpecies', 'landscapeDesign', 'landscapeIrrigation', 'landscapeEarthwork', 'landscapeLighting']
     .forEach((id) => {
@@ -639,6 +789,7 @@
   toggleLandscapeFields();
   toggleGardenIntakePanels();
   toggleGardenPlanPanels();
+  bindFvIntakeUi();
 
   function deviceLocalClock() {
     const now = new Date();
@@ -669,16 +820,16 @@
       const p = data.preview;
       const f = data.preview.formatted;
       if (page?.dataset?.pricingUnit === 'm2') {
-        const opt = activitySelect?.selectedOptions?.[0];
+        const meta = selectedActivityMeta();
         if (isLandscapeSelected()) {
           const stdOpt = document.getElementById('landscapeStandard')?.selectedOptions?.[0];
-          const rate = parseInt(stdOpt?.dataset?.rate || opt?.dataset?.perM2 || page.dataset.fromPrice, 10);
+          const rate = parseInt(stdOpt?.dataset?.rate || meta?.perM2 || page.dataset.fromPrice, 10);
           if (Number.isFinite(rate) && rate > 0) {
             const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
             visitEl.textContent = `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(rate)} / m²`;
           }
         } else {
-          const rate = parseInt(opt?.dataset?.perM2 || page.dataset.fromPrice, 10);
+          const rate = parseInt(meta?.perM2 || page.dataset.fromPrice, 10);
           if (Number.isFinite(rate) && rate > 0) {
             const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
             visitEl.textContent = `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(rate)} / m²`;
@@ -1755,7 +1906,10 @@
   }
 
   function isGardenTracking() {
-    return page?.dataset?.gardenIntake === '1' || page?.dataset?.serviceId === 'jardineria'
+    return page?.dataset?.gardenIntake === '1' || page?.dataset?.serviceId === 'paisajismo'
+      || page?.dataset?.fvIntake === '1' || page?.dataset?.serviceId === 'fotovoltaico'
+      || Boolean(window.__lastRequest?.gardenIntake)
+      || Boolean(window.__lastRequest?.fvIntake)
       || document.getElementById('tripTimeline')?.dataset?.garden === '1';
   }
 
@@ -3272,21 +3426,35 @@
     const customName = document.getElementById('customActivityName')?.value.trim() || '';
     const notes = document.getElementById('notes')?.value.trim() || '';
     const gardenIntakeJob = isGardenIntakeService();
+    const fvIntakeJob = isFvIntakeService();
+    const projectJob = isProjectPath();
     const gardenJob = page?.dataset?.pricingUnit === 'm2' || gardenIntakeJob;
-    const landscapeJob = !gardenIntakeJob && gardenJob && isLandscapeSelected();
+    const landscapeJob = !gardenIntakeJob && !fvIntakeJob && gardenJob && isLandscapeSelected();
     const landscapeProject = landscapeJob ? readLandscapeProject() : null;
     const gardenIntake = gardenIntakeJob ? readGardenIntake() : null;
+    const fvIntake = fvIntakeJob ? readFvIntake() : null;
     const cleaningJob = isCleaningService();
     const cleaningFactors = cleaningJob ? readCleaningFactors() : null;
     const minM2 = parseInt(page?.dataset?.minM2 || '10', 10) || 10;
     const squareMetersRaw = document.getElementById('squareMeters')?.value;
     const squareMeters = gardenJob ? parseFloat(squareMetersRaw) : undefined;
 
+    if (!projectJob && notes.length < 12) {
+      // Descripción opcional
+    }
+
     if (gardenIntakeJob) {
       syncGardenActivityId();
       const gardenErr = validateGardenIntakeClient(gardenIntake, squareMeters);
       if (gardenErr) {
         FandezNotify.show(gardenErr, 'warning');
+        return;
+      }
+    } else if (fvIntakeJob) {
+      syncFvActivityId();
+      const fvErr = validateFvIntakeClient(fvIntake);
+      if (fvErr) {
+        FandezNotify.show(fvErr, 'warning');
         return;
       }
     } else if (document.getElementById('activityId') && !activityId) {
@@ -3324,13 +3492,15 @@
     const brandOptional = page?.dataset.brandOptional === '1';
     let brandNotVisible = Boolean(brandNotVisibleCheck?.checked) || brandOptional;
     const hasProblemPhoto = Boolean(cachedProblemPhoto || clientPhotoInput?.files?.length || resumeKeepClientPhoto);
-    if (gardenJob && !hasProblemPhoto) {
-      FandezNotify.show(
-        cleaningJob ? 'Sube una foto del espacio a limpiar' : t('client.js.need_garden_photo'),
-        'warning'
-      );
-      clientPhotoInput?.focus();
-      return;
+    if ((gardenJob || fvIntakeJob) && !hasProblemPhoto) {
+      if (fvIntakeJob || (gardenJob && !cleaningJob && isGardenIntakeService())) {
+        FandezNotify.show(
+          fvIntakeJob ? 'Sube una foto del techo o del tablero' : t('client.js.need_garden_photo'),
+          'warning'
+        );
+        clientPhotoInput?.focus();
+        return;
+      }
     }
     const hasBrandPhoto = Boolean(cachedBrandPhoto || clientBrandPhotoInput?.files?.length || resumeKeepBrandPhoto);
     if (!brandNotVisible && !hasBrandPhoto) {
@@ -3399,7 +3569,7 @@
           clientBrandPhoto,
           brandNotVisible,
           urgencyTier: selectedUrgencyTier,
-          activityId: gardenIntakeJob
+          activityId: gardenIntakeJob || fvIntakeJob
             ? (document.getElementById('activityId')?.value || activityId)
             : activityId,
           customName: activityId === 'otro' ? customName : undefined,
@@ -3408,6 +3578,8 @@
           gardenIntake: gardenIntakeJob ? gardenIntake : undefined,
           gardenPlanFile: gardenIntakeJob && cachedGardenPlan ? cachedGardenPlan : undefined,
           keepGardenPlan: Boolean(gardenIntakeJob && resumeRequestId && resumeKeepGardenPlan && !cachedGardenPlan),
+          fvIntake: fvIntakeJob ? fvIntake : undefined,
+          servicePath: projectJob ? 'proyecto' : 'ahora',
           cleaningFactors: cleaningJob ? cleaningFactors : undefined,
           localTime: clock.localTime,
           timeZone: clock.timeZone,

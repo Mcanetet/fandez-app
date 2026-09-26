@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulador FV cliente — mockup UI — Fandez</title>
+  <style>
+    :root {
+      --ink: #1a1814;
+      --muted: #5c564c;
+      --accent: #C45C14;
+      --line: #e6dfd4;
+      --soft: #f7f3ee;
+      --ok: #1f6b3a;
+      --ok-soft: #e4f2ea;
+      --blue: #1e4d8c;
+      --screen: #fff;
+      --bar: #1a1814;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      line-height: 1.45;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 28px 40px;
+      font-size: 10.5pt;
+      background: #fff;
+    }
+    h1 { font-size: 1.45rem; margin: 0 0 0.25rem; letter-spacing: -0.02em; }
+    h2 {
+      font-size: 1.02rem;
+      margin: 1.35rem 0 0.45rem;
+      padding-bottom: 0.2rem;
+      border-bottom: 2px solid var(--accent);
+    }
+    h3 { font-size: 0.9rem; margin: 0.9rem 0 0.35rem; color: var(--accent); }
+    .meta { color: var(--muted); font-size: 0.84rem; margin-bottom: 0.85rem; }
+    p { margin: 0 0 0.5rem; }
+    ul { margin: 0 0 0.7rem; padding-left: 1.1rem; }
+    li { margin-bottom: 0.18rem; }
+    .note {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 0.5rem 0 1rem;
+    }
+    .note strong { color: var(--ink); }
+
+    /* Phone frames */
+    .phones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 18px;
+      margin: 0.7rem 0 1.1rem;
+    }
+    .phone-wrap { break-inside: avoid; }
+    .phone-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .phone {
+      border: 2px solid #2a2620;
+      border-radius: 28px;
+      overflow: hidden;
+      background: var(--screen);
+      box-shadow: 0 8px 24px rgba(26,24,20,0.08);
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+    }
+    .notch {
+      height: 22px;
+      background: var(--bar);
+      position: relative;
+    }
+    .notch::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 6px;
+      transform: translateX(-50%);
+      width: 72px;
+      height: 8px;
+      background: #3a3530;
+      border-radius: 999px;
+    }
+    .app-header {
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .back { color: var(--accent); font-weight: 600; font-size: 0.78rem; }
+    .app-title { font-weight: 700; font-size: 0.88rem; flex: 1; text-align: center; margin-right: 28px; }
+    .app-body { padding: 12px 14px 16px; flex: 1; }
+    .brand-mini {
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .headline { font-size: 1.05rem; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.02em; }
+    .sub { font-size: 0.78rem; color: var(--muted); margin: 0 0 12px; }
+
+    .field-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    .input-fake {
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      background: var(--soft);
+      margin-bottom: 10px;
+    }
+    .hint { font-size: 0.7rem; color: var(--muted); margin: -4px 0 12px; }
+
+    .slider-track {
+      height: 8px;
+      background: #ebe4da;
+      border-radius: 999px;
+      position: relative;
+      margin: 14px 0 8px;
+    }
+    .slider-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #d9782a, var(--accent));
+      border-radius: 999px;
+      width: 70%;
+    }
+    .slider-thumb {
+      position: absolute;
+      top: 50%;
+      left: 70%;
+      width: 22px; height: 22px;
+      background: #fff;
+      border: 3px solid var(--accent);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    .pct-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+    .pct-big { font-size: 1.6rem; font-weight: 800; color: var(--accent); letter-spacing: -0.03em; }
+    .pct-labels { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--muted); margin-bottom: 12px; }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 10px 0 12px;
+    }
+    .stat {
+      background: var(--soft);
+      border-radius: 12px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+    }
+    .stat .k { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+    .stat .v { font-size: 0.95rem; font-weight: 750; margin-top: 2px; }
+    .stat.ok { background: var(--ok-soft); border-color: #c5dfce; }
+    .stat.ok .v { color: var(--ok); }
+
+    .btn {
+      display: block;
+      text-align: center;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.84rem;
+      padding: 12px;
+      border-radius: 14px;
+      margin-top: 8px;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      margin-top: 8px;
+    }
+
+    .kit {
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 11px;
+      margin-bottom: 8px;
+      position: relative;
+    }
+    .kit.selected {
+      border-color: var(--accent);
+      background: #fff8f3;
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+    .kit .tag-rec {
+      position: absolute;
+      top: -8px; right: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+    .kit-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .kit-name { font-weight: 750; font-size: 0.88rem; }
+    .kit-price { font-weight: 800; font-size: 0.9rem; color: var(--ink); white-space: nowrap; }
+    .kit-meta { font-size: 0.7rem; color: var(--muted); margin-top: 3px; }
+    .kit-bar {
+      height: 5px;
+      background: #ebe4da;
+      border-radius: 999px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .kit-bar > span {
+      display: block;
+      height: 100%;
+      background: var(--ok);
+      border-radius: 999px;
+    }
+    .radio {
+      width: 16px; height: 16px;
+      border: 2px solid var(--line);
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .kit.selected .radio {
+      border-color: var(--accent);
+      background: radial-gradient(circle, var(--accent) 45%, #fff 48%);
+    }
+    .kit-row { display: flex; gap: 8px; }
+
+    .summary-hero {
+      background: linear-gradient(145deg, #1a1814 0%, #3d2a1a 100%);
+      color: #fff;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .summary-hero .eyebrow { font-size: 0.65rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.05em; }
+    .summary-hero .big { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.03em; margin: 2px 0 6px; }
+    .summary-hero .line { font-size: 0.78rem; opacity: 0.9; }
+    .compare {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 0;
+      font-size: 0.78rem;
+    }
+    .compare .box {
+      flex: 1;
+      background: var(--soft);
+      border-radius: 12px;
+      padding: 8px;
+      text-align: center;
+      border: 1px solid var(--line);
+    }
+    .compare .box .lbl { font-size: 0.62rem; color: var(--muted); }
+    .compare .box .num { font-weight: 800; font-size: 0.95rem; }
+    .compare .box.now .num { text-decoration: line-through; color: var(--muted); font-weight: 600; }
+    .compare .box.after { background: var(--ok-soft); border-color: #c5dfce; }
+    .compare .box.after .num { color: var(--ok); }
+    .compare .arrow { color: var(--muted); font-weight: 700; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 10px; }
+    .chip {
+      font-size: 0.65rem;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: var(--muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      margin: 0.4rem 0 0.8rem;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 6px 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--soft); font-weight: 600; }
+    .formula {
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 0.76rem;
+      background: #1a1814;
+      color: #f3eee8;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 0.4rem 0 0.8rem;
+      line-height: 1.55;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: #fde8d8;
+      color: var(--accent);
+    }
+    @page { size: A4; margin: 12mm; }
+    @media print {
+      body { padding: 0; max-width: none; }
+      .phone { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Simulador FV para el cliente</h1>
+  <p class="meta">
+    Mockup de producto · Fandez · <span class="tag">TO-BE</span> · cómo se vería en la app<br>
+    Idea: el cliente ingresa su boleta, elige cuánto quiere ahorrar y “juega” con kits hasta ver precio del proyecto.
+  </p>
+
+  <div class="note">
+    <strong>Simulación de ejemplo (RM, On-Grid Netbilling):</strong>
+    boleta actual <strong>$120.000/mes</strong> → meta de ahorro <strong>70%</strong> → kit sugerido
+    <strong>5 kWp</strong> · precio referencial proyecto <strong>$5.950.000</strong> · nueva boleta ~<strong>$36.000</strong> · retorno ~4–5 años.
+    Precios “desde” de mercado Chile 2026 (llave en mano + SEC); el diseño final lo confirma la visita técnica.
+  </div>
+
+  <h2>1. Cómo se ve en la app (flujo en 4 pantallas)</h2>
+  <p>El cliente no elige kWp a ciegas: parte de su plata (boleta), define el ahorro deseado y compara kits con precio transparente.</p>
+
+  <div class="phones">
+
+    <!-- Screen 1 -->
+    <div class="phone-wrap">
+      <div class="phone-label">Pantalla 1 · Tu boleta</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="app-header">
+          <span class="back">←</span>
+          <span class="app-title">Fotovoltaica</span>
+        </div>
+        <div class="app-body">
+          <div class="brand-mini">FANDEZ</div>
+          <p class="headline">¿Cuánto pagas de luz?</p>
+          <p class="sub">Usa el promedio de tus últimos 3 meses (sin IVA si prefieres, o el total de la boleta).</p>
+          <div class="field-label">Monto mensual de la boleta</div>
+          <div class="input-fake">$ 120.000</div>
+          <p class="hint">También puedes subir una foto de la boleta más adelante (evaluación).</p>
+          <div class="chips">
+            <span class="chip">$60 mil</span>
+            <span class="chip">$90 mil</span>
+            <span class="chip" style="border-color:var(--accent);color:var(--accent);font-weight:700;">$120 mil</span>
+            <span class="chip">$180 mil</span>
+            <span class="chip">$250 mil</span>
+          </div>
+          <div class="stat-grid">
+            <div class="stat">
+              <div class="k">Consumo estimado</div>
+              <div class="v">~480 kWh/mes</div>
+            </div>
+            <div class="stat">
+              <div class="k">Zona</div>
+              <div class="v">RM · On-Grid</div>
+            </div>
+          </div>
+          <div class="btn">Continuar → elegir ahorro</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 2 -->
+    <div class="phone-wrap">
+      <div class="phone-label">Pantalla 2 · Meta de ahorro</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="app-header">
+          <span class="back">←</span>
+          <span class="app-title">Tu ahorro</span>
+        </div>
+        <div class="app-body">
+          <div class="brand-mini">FANDEZ</div>
+          <p class="headline">¿Cuánto quieres bajar la boleta?</p>
+          <p class="sub">Mueve el control. Te sugerimos un kit que se acerque a esa meta.</p>
+          <div class="pct-row">
+            <span class="field-label" style="margin:0">Ahorro deseado</span>
+            <span class="pct-big">70%</span>
+          </div>
+          <div class="slider-track">
+            <div class="slider-fill"></div>
+            <div class="slider-thumb"></div>
+          </div>
+          <div class="pct-labels">
+            <span>40%</span><span>60%</span><span>80%</span><span>90%</span>
+          </div>
+          <div class="compare">
+            <div class="box now">
+              <div class="lbl">Hoy pagas</div>
+              <div class="num">$120.000</div>
+            </div>
+            <div class="arrow">→</div>
+            <div class="box after">
+              <div class="lbl">Meta boleta</div>
+              <div class="num">~$36.000</div>
+            </div>
+          </div>
+          <div class="stat ok">
+            <div class="k">Ahorro mensual estimado</div>
+            <div class="v">≈ $84.000 / mes · ~$1.008.000 / año</div>
+          </div>
+          <div class="btn" style="margin-top:14px">Ver kits que llegan a esto</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3 -->
+    <div class="phone-wrap">
+      <div class="phone-label">Pantalla 3 · Jugar con kits</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="app-header">
+          <span class="back">←</span>
+          <span class="app-title">Kits On-Grid</span>
+        </div>
+        <div class="app-body">
+          <p class="headline" style="font-size:0.98rem;">Elige o compara</p>
+          <p class="sub">Toca un kit: actualizamos precio, % de ahorro y retorno. Precios referenciales llave en mano.</p>
+
+          <div class="kit">
+            <div class="kit-row">
+              <div class="radio"></div>
+              <div style="flex:1">
+                <div class="kit-top">
+                  <span class="kit-name">Kit 3 kWp</span>
+                  <span class="kit-price">$3.900.000</span>
+                </div>
+                <div class="kit-meta">~5 paneles · ahorro ~50% · retorno ~5–6 años</div>
+                <div class="kit-bar"><span style="width:50%"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kit selected">
+            <span class="tag-rec">Sugerido para tu 70%</span>
+            <div class="kit-row">
+              <div class="radio"></div>
+              <div style="flex:1">
+                <div class="kit-top">
+                  <span class="kit-name">Kit 5 kWp</span>
+                  <span class="kit-price">$5.950.000</span>
+                </div>
+                <div class="kit-meta">~8 paneles · ahorro ~70% · retorno ~4–5 años</div>
+                <div class="kit-bar"><span style="width:70%"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="kit">
+            <div class="kit-row">
+              <div class="radio"></div>
+              <div style="flex:1">
+                <div class="kit-top">
+                  <span class="kit-name">Kit 8 kWp</span>
+                  <span class="kit-price">$7.600.000</span>
+                </div>
+                <div class="kit-meta">~13 paneles · ahorro ~85–90% · retorno ~4 años</div>
+                <div class="kit-bar"><span style="width:88%"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn">Ver resumen del proyecto</div>
+          <div class="btn btn-ghost">+ Agregar batería (opcional)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 4 -->
+    <div class="phone-wrap">
+      <div class="phone-label">Pantalla 4 · Precio del proyecto</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="app-header">
+          <span class="back">←</span>
+          <span class="app-title">Tu proyecto</span>
+        </div>
+        <div class="app-body">
+          <div class="summary-hero">
+            <div class="eyebrow">Precio referencial del proyecto</div>
+            <div class="big">$5.950.000</div>
+            <div class="line">Kit 5 kWp On-Grid · instalación + TE-4 / Netbilling incluidos*</div>
+          </div>
+          <div class="stat-grid">
+            <div class="stat ok">
+              <div class="k">Ahorro / mes</div>
+              <div class="v">~$84.000</div>
+            </div>
+            <div class="stat">
+              <div class="k">Nueva boleta</div>
+              <div class="v">~$36.000</div>
+            </div>
+            <div class="stat">
+              <div class="k">Retorno</div>
+              <div class="v">~4–5 años</div>
+            </div>
+            <div class="stat">
+              <div class="k">Potencia</div>
+              <div class="v">5 kWp</div>
+            </div>
+          </div>
+          <p class="hint" style="margin-bottom:8px;">*Referencial. Techo complejo, distancia a tablero o batería pueden sumar. Se confirma en evaluación ($).</p>
+          <div class="chips">
+            <span class="chip">Equipos SEC</span>
+            <span class="chip">Trámite GDA</span>
+            <span class="chip">Monitoreo app</span>
+            <span class="chip">Abonos por hito</span>
+          </div>
+          <div class="btn">Pedir evaluación en mi casa</div>
+          <div class="btn btn-ghost">Cambiar kit / ahorro</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>2. Lógica detrás (para producto)</h2>
+  <p>Regla simple que el cliente entiende; el socio/técnico afina en la visita.</p>
+  <div class="formula">
+boleta_mes          = input cliente (CLP)<br>
+ahorro_%            = slider 40–90%<br>
+ahorro_mes          = boleta_mes × ahorro_%<br>
+boleta_nueva        ≈ boleta_mes − ahorro_mes<br>
+kWp_sugerido        ≈ round( (boleta_mes / 20.000) × (ahorro_% / 0.70) )  // ~$20k ahorro/mes por kW<br>
+precio_proyecto     = catálogo kit[kWp]  // admin/precios mercado RM<br>
+retorno_años        ≈ precio_proyecto / (ahorro_mes × 12)
+  </div>
+
+  <h3>Tabla de simulación (mismo cliente, distintos kits)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Kit</th>
+        <th>Precio desde*</th>
+        <th>% ahorro vs $120 mil</th>
+        <th>Boleta nueva</th>
+        <th>Ahorro / año</th>
+        <th>Retorno</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>3 kWp</td>
+        <td>$3.900.000</td>
+        <td>~50%</td>
+        <td>~$60.000</td>
+        <td>~$720.000</td>
+        <td>~5–6 años</td>
+      </tr>
+      <tr style="background:#fff8f3;">
+        <td><strong>5 kWp</strong> (sugerido)</td>
+        <td><strong>$5.950.000</strong></td>
+        <td><strong>~70%</strong></td>
+        <td><strong>~$36.000</strong></td>
+        <td><strong>~$1.008.000</strong></td>
+        <td><strong>~4–5 años</strong></td>
+      </tr>
+      <tr>
+        <td>6 kWp</td>
+        <td>$6.540.000</td>
+        <td>~75%</td>
+        <td>~$30.000</td>
+        <td>~$1.080.000</td>
+        <td>~4–5 años</td>
+      </tr>
+      <tr>
+        <td>8 kWp</td>
+        <td>$7.600.000</td>
+        <td>~85–90%</td>
+        <td>~$12–18 mil</td>
+        <td>~$1.2–1.3 M</td>
+        <td>~4 años</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="meta">*Precios referenciales mercado Chile 2026 (llave en mano). En Fandez vivirían en <code>pricing_config</code> / catálogo FV con comparativo RM.</p>
+
+  <h2>3. Momento en el journey FV</h2>
+  <ol>
+    <li><strong>Antes del pedido:</strong> simulador en vertical Fotovoltaica (sin compromiso) → CTA “Pedir evaluación”.</li>
+    <li><strong>Intake:</strong> se guarda boleta, % deseado y kit tentativo; el cliente paga la evaluación.</li>
+    <li><strong>Visita:</strong> técnico confirma techo/tablero; socio ajusta propuesta (puede subir/bajar kWp).</li>
+    <li><strong>Contrato:</strong> precio cerrado + abonos por hito (como en procedimiento 08).</li>
+  </ol>
+
+  <h2>4. Qué NO promete la UI</h2>
+  <ul>
+    <li>No garantiza el % exacto: clima, orientación, sombras y hábitos cambian el resultado.</li>
+    <li>No sustituye TE-4 / SEC / distribuidora: el socio instalador autorizado lo tramita.</li>
+    <li>No es cotización vinculante hasta evaluación + contrato firmado.</li>
+    <li>Batería e híbrido se muestran como “extra” aparte del On-Grid base.</li>
+  </ul>
+
+  <h2>5. Copy corto sugerido (app)</h2>
+  <table>
+    <tr><th>Lugar</th><th>Texto</th></tr>
+    <tr><td>Hero</td><td>“Baja tu boleta. Tú eliges cuánto.”</td></tr>
+    <tr><td>Slider</td><td>“Ahorro deseado · te armamos el kit”</td></tr>
+    <tr><td>Kits</td><td>“Juega con los kits: precio y ahorro al tiro”</td></tr>
+    <tr><td>CTA</td><td>“Pedir evaluación · precio referencial, se confirma en visita”</td></tr>
+    <tr><td>Disclaimer</td><td>“Estimación orientativa RM. El diseño final lo define tu instalador SEC.”</td></tr>
+  </table>
+
+  <p class="meta" style="margin-top:1.2rem;">
+    Relacionado: procedimiento FV
+    <a href="08-fotovoltaico-cliente-socio-tecnico.html">08-fotovoltaico-cliente-socio-tecnico</a>
+    · Este documento es mockup de producto, no procedimiento operativo.
+  </p>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+<%#
+  Grid de oficios — camino ahora | proyecto
+  locals: services, camino ('ahora'|'proyecto'), gridId, formatCLP, t
+%>
+<%
+  const list = Array.isArray(services) ? services : [];
+  const pathQ = camino === 'proyecto' ? 'proyecto' : 'ahora';
+  const gid = gridId || ('servicesGrid-' + pathQ);
+%>
+<div id="<%= gid %>" class="grid grid-cols-2 gap-3 mb-2">
+  <% list.forEach(function(service) { %>
+    <a href="/cliente/servicio/<%= service.id %>?camino=<%= pathQ %>" data-service-id="<%= service.id %>" data-camino="<%= pathQ %>"
+      class="service-item group flex flex-col items-center gap-2.5 p-4 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 hover:-translate-y-0.5 transition-all duration-300 <%= camino === 'proyecto' ? 'border-emerald-200/60 bg-emerald-50/30' : '' %>">
+      <%- include('service-icon', { icon: service.icon, size: 'lg' }) %>
+      <span class="font-medium text-sm text-center leading-tight px-1" style="overflow-wrap:anywhere"><%= service.name %></span>
+      <span class="w-full text-center leading-tight">
+        <span class="block text-[10px] text-zilo-muted"><%= camino === 'proyecto' ? t('client.from_eval') : t('client.from_price') %></span>
+        <span class="block text-xs font-medium text-zilo-muted tabular-nums"><%= formatCLP(service.averagePrice || service.fromPrice) %><% if (service.pricingUnit === 'm2') { %> / m²<% } %></span>
+      </span>
+    </a>
+  <% }); %>
+</div>
+<% if (!list.length) { %>
+<p class="text-xs text-zilo-muted text-center py-4"><%= t('client.dashboard.no_services_group') %></p>
+<% } %>

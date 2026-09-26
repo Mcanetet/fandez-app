@@ -1,0 +1,112 @@
+<%#
+  Intake Paneles solares / FV — cobro inicial = evaluación en terreno.
+%>
+<section id="fvIntake" class="space-y-4 p-4 rounded-2xl border border-amber-200/80 bg-amber-50/40" data-fv-intake="1">
+  <div>
+    <p class="zilo-label mb-1">Tu proyecto solar</p>
+    <p class="text-[11px] text-zilo-muted leading-relaxed">
+      Cuéntanos tu boleta y qué quieres ahorrar. El cobro de ahora es la
+      <strong class="font-medium text-zilo-text">evaluación en tu casa</strong>;
+      el precio del kit/proyecto te lo arma el instalador después del levantamiento.
+    </p>
+  </div>
+
+  <div>
+    <p class="zilo-label mb-2">1. Tipo de sistema *</p>
+    <div class="space-y-2">
+      <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+        <input type="radio" name="fvSystemType" class="mt-0.5 accent-amber-600 shrink-0 js-fv-type" value="netbilling" data-activity="fv-eval-netbilling" checked>
+        <span class="min-w-0">
+          <span class="text-sm font-medium block">Netbilling</span>
+          <span class="text-[11px] text-zilo-muted">Inyectas excedentes a la red y bajan de la boleta</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+        <input type="radio" name="fvSystemType" class="mt-0.5 accent-amber-600 shrink-0 js-fv-type" value="autoconsumo" data-activity="fv-eval-autoconsumo">
+        <span class="min-w-0">
+          <span class="text-sm font-medium block">Autoconsumo</span>
+          <span class="text-[11px] text-zilo-muted">Usas lo que generas en el día</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+        <input type="radio" name="fvSystemType" class="mt-0.5 accent-amber-600 shrink-0 js-fv-type" value="hibrido" data-activity="fv-eval-hibrido">
+        <span class="min-w-0">
+          <span class="text-sm font-medium block">Híbrido + batería</span>
+          <span class="text-[11px] text-zilo-muted">Respaldo si se corta la luz</span>
+        </span>
+      </label>
+    </div>
+    <input type="hidden" id="activityId" name="activityId" value="fv-eval-netbilling">
+  </div>
+
+  <div class="space-y-3 pt-1 border-t border-amber-200/70">
+    <p class="zilo-label mb-0">2. Tu boleta y ahorro *</p>
+    <div>
+      <label for="fvMonthlyBill" class="zilo-label block mb-1.5">¿Cuánto pagas de luz al mes?</label>
+      <input type="text" id="fvMonthlyBill" class="zilo-input" inputmode="numeric" placeholder="Ej: 120000" maxlength="12" autocomplete="off">
+      <p class="text-[11px] text-zilo-muted mt-1">Promedio de los últimos meses, con o sin IVA.</p>
+    </div>
+    <div>
+      <div class="flex items-end justify-between gap-2 mb-1">
+        <label for="fvSavingsPct" class="zilo-label !mb-0">¿Cuánto quieres bajar la boleta?</label>
+        <span class="text-lg font-bold text-zilo-accent tabular-nums" id="fvSavingsPctLabel">70%</span>
+      </div>
+      <input type="range" id="fvSavingsPct" min="40" max="90" step="5" value="70" class="w-full accent-zilo-accent">
+      <div class="flex justify-between text-[10px] text-zilo-muted mt-0.5"><span>40%</span><span>90%</span></div>
+      <p class="text-[11px] text-zilo-muted mt-2" id="fvSavingsHint">Meta boleta ≈ — · ahorro ≈ — / mes</p>
+    </div>
+  </div>
+
+  <div class="space-y-3 pt-1 border-t border-amber-200/70">
+    <p class="zilo-label mb-0">3. Juega con el kit (referencial)</p>
+    <p class="text-[11px] text-zilo-muted">Precios “desde” de mercado; el final sale en la propuesta.</p>
+    <div class="space-y-2" id="fvKitOptions">
+      <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+        <input type="radio" name="fvKit" class="mt-0.5 accent-amber-600 js-fv-kit" value="3">
+        <span class="min-w-0 flex-1">
+          <span class="text-sm font-medium flex justify-between gap-2"><span>Kit ~3 kWp</span><span class="tabular-nums">desde $3.900.000</span></span>
+          <span class="text-[11px] text-zilo-muted">Casa chica · ahorro medio</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3 p-3 rounded-xl border-2 border-zilo-accent bg-white cursor-pointer">
+        <input type="radio" name="fvKit" class="mt-0.5 accent-amber-600 js-fv-kit" value="5" checked>
+        <span class="min-w-0 flex-1">
+          <span class="text-sm font-medium flex justify-between gap-2"><span>Kit ~5 kWp</span><span class="tabular-nums">desde $5.950.000</span></span>
+          <span class="text-[11px] text-zilo-muted">Lo más pedido · cerca del 70%</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+        <input type="radio" name="fvKit" class="mt-0.5 accent-amber-600 js-fv-kit" value="8">
+        <span class="min-w-0 flex-1">
+          <span class="text-sm font-medium flex justify-between gap-2"><span>Kit ~8 kWp</span><span class="tabular-nums">desde $7.600.000</span></span>
+          <span class="text-[11px] text-zilo-muted">Casa grande · máximo ahorro</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
+        <input type="radio" name="fvKit" class="mt-0.5 accent-amber-600 js-fv-kit" value="custom">
+        <span class="min-w-0">
+          <span class="text-sm font-medium block">Que el técnico me recomiende</span>
+          <span class="text-[11px] text-zilo-muted">Según techo, sombra y boleta real</span>
+        </span>
+      </label>
+    </div>
+  </div>
+
+  <div class="space-y-3 pt-1 border-t border-amber-200/70">
+    <p class="zilo-label mb-0">4. Techo y ubicación *</p>
+    <div>
+      <label for="fvCommune" class="zilo-label block mb-1.5">Comuna</label>
+      <input type="text" id="fvCommune" class="zilo-input" placeholder="Ej: La Reina, Maipú, Colina" maxlength="80" autocomplete="address-level2">
+    </div>
+    <div>
+      <label for="fvRoofType" class="zilo-label block mb-1.5">Tipo de techo</label>
+      <select id="fvRoofType" class="zilo-input">
+        <option value="">No sé / lo vemos en la visita</option>
+        <option value="teja">Teja</option>
+        <option value="zinc">Zinc / metal</option>
+        <option value="concreto">Losa / concreto</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+  </div>
+</section>

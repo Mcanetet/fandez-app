@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Procedimiento proyecto fotovoltaico — Cliente · Socio · Técnico — Fandez</title>
+  <style>
+    :root {
+      --ink: #1a1814;
+      --muted: #5c564c;
+      --accent: #C45C14;
+      --line: #e6dfd4;
+      --soft: #f7f3ee;
+      --ok: #1f6b3a;
+      --blue: #1e4d8c;
+      --amber: #8a5a00;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      line-height: 1.45;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 28px 32px 48px;
+      font-size: 10.5pt;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 0.3rem;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      font-size: 1.02rem;
+      margin: 1.45rem 0 0.5rem;
+      padding-bottom: 0.22rem;
+      border-bottom: 2px solid var(--accent);
+    }
+    h3 {
+      font-size: 0.92rem;
+      margin: 1rem 0 0.35rem;
+      color: var(--accent);
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-bottom: 1rem;
+    }
+    p { margin: 0 0 0.55rem; }
+    ul, ol { margin: 0 0 0.7rem; padding-left: 1.15rem; }
+    li { margin-bottom: 0.22rem; }
+    .roles {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin: 0.7rem 0 1rem;
+    }
+    .role {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .role strong { display: block; font-size: 0.9rem; margin-bottom: 0.2rem; }
+    .role span { font-size: 0.8rem; color: var(--muted); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin: 0.45rem 0 0.9rem;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 6px 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--soft); font-weight: 600; }
+    .flow {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 0.5rem 0 0.9rem;
+      font-size: 0.84rem;
+    }
+    .flow .step {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 8px;
+      margin-bottom: 0.5rem;
+    }
+    .flow .n {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .who {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      padding: 1px 6px;
+      border-radius: 999px;
+      margin-right: 3px;
+      vertical-align: middle;
+    }
+    .who-c { background: #e8f0fa; color: var(--blue); }
+    .who-s { background: #fde8d8; color: var(--accent); }
+    .who-t { background: #e4f2ea; color: var(--ok); }
+    .who-f { background: #efe8df; color: var(--muted); }
+    .tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      margin-right: 4px;
+    }
+    .tag-mkt { background: #e8f0fa; color: var(--blue); }
+    .tag-prop { background: #e4f2ea; color: var(--ok); }
+    .tag-gap { background: #fde8d8; color: var(--accent); }
+    .callout {
+      background: var(--soft);
+      border-left: 4px solid var(--accent);
+      padding: 10px 12px;
+      margin: 0.7rem 0 0.9rem;
+      font-size: 0.88rem;
+    }
+    .prio { font-weight: 700; color: var(--accent); }
+    .footer {
+      margin-top: 1.5rem;
+      padding-top: 0.6rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+    .legend { font-size: 0.8rem; color: var(--muted); margin: 0.3rem 0 0.8rem; }
+    @media print {
+      body { padding: 10px 14px; max-width: none; }
+      .role, .flow, .callout, tr { break-inside: avoid; }
+      h2 { break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Procedimiento de proyecto fotovoltaico</h1>
+  <p class="meta">
+    Fandez · Interacción Cliente · Socio · Técnico<br>
+    Residencial / Netbilling Chile · Bitácora de hitos con validación<br>
+    Documento de producto · Versión 1.0 · 26 de septiembre de 2026
+  </p>
+
+  <div class="callout">
+    <strong>Objetivo:</strong> definir cómo debe correr un proyecto de paneles solares en Fandez:
+    evaluación → diseño → trámites SEC/distribuidora → instalación → conexión → monitoreo,
+    con <strong>evidencia fotográfica y validación del cliente</strong> en cada hito, igual que en paisajismo.
+    El cierre y el saldo solo se liberan cuando los hitos obligatorios están aceptados.
+  </div>
+
+  <h2>1. Qué dice el mercado (Chile + buenas prácticas)</h2>
+  <p>
+    <span class="tag tag-mkt">Mercado CL</span>
+    En Chile el camino típico de una generadora residencial (Ley Netbilling / GDA–SEC) es:
+  </p>
+  <ol>
+    <li>Contactar instalador eléctrico autorizado SEC (clase A o B).</li>
+    <li>Visita técnica: techo, tablero, facturas de consumo, sombras, orientación.</li>
+    <li>Cotización y contrato (equipos autorizados SEC).</li>
+    <li>Solicitud de conexión en plataforma GDA (SCR) → respuesta de la distribuidora (CIP / IEP).</li>
+    <li>Diseño, compra e instalación · declaración <strong>TE-4</strong>.</li>
+    <li>Notificación de conexión a la distribuidora + protocolo / medidor bidireccional.</li>
+    <li>Puesta en servicio y monitoreo de generación.</li>
+  </ol>
+  <p>
+    <span class="tag tag-mkt">Mercado int.</span>
+    Las EPCs residenciales pagan por hitos verificables (anticipo · permiso/tramitación · instalación · inspección/PTO),
+    documentan con fotos (techo, anclajes, strings, inversor, etiquetas, serie) y entregan as-built antes del saldo.
+    Plazo total habitual: ~45–90 días (la conexión a la red suele ser el cuello de botella).
+  </p>
+  <p>
+    <span class="tag tag-gap">Gap hoy en Fandez</span>
+    Aún no hay vertical FV en app. Este documento propone el <strong>to-be</strong> alineado al flujo Netbilling
+    y al patrón de bitácora ya usado en paisajismo.
+  </p>
+
+  <h2>2. Quién hace qué</h2>
+  <div class="roles">
+    <div class="role">
+      <strong>Cliente</strong>
+      <span>Aporta facturas y acceso al techo/tablero, paga evaluación y abonos, valida hitos (aceptar / corregir), firma papeles de conexión y recibe el acta + acceso al monitoreo.</span>
+    </div>
+    <div class="role">
+      <strong>Socio</strong>
+      <span>Empresa o profesional SEC. Acepta el pedido, asigna técnico/instalador autorizado, gestiona GDA/TE-4, filtra calidad (vista previa) y cobra abonos habilitados.</span>
+    </div>
+    <div class="role">
+      <strong>Técnico</strong>
+      <span>Instalador eléctrico autorizado (o ayudante bajo mando del socio). Sube fotos/planos por hito, ejecuta montaje y pruebas, responde correcciones.</span>
+    </div>
+  </div>
+  <p class="legend">
+    En las tablas:
+    <span class="who who-c">Cliente</span>
+    <span class="who who-s">Socio</span>
+    <span class="who who-t">Técnico</span>
+    <span class="who who-f">Fandez / Sofía</span>
+  </p>
+
+  <h2>3. Ciclo estándar por hito (igual patrón que paisajismo)</h2>
+  <div class="flow">
+    <div class="step"><div class="n">1</div><div><span class="who who-f">App</span> Libera el siguiente hito (si el anterior fue aceptado).</div></div>
+    <div class="step"><div class="n">2</div><div><span class="who who-t">Técnico</span> Sube fotos / PDF (mínimos por hito). Opcional: «enviar primero al socio».</div></div>
+    <div class="step"><div class="n">3</div><div><span class="who who-s">Socio</span> Vista previa: enviar al cliente o devolver al técnico.</div></div>
+    <div class="step"><div class="n">4</div><div><span class="who who-c">Cliente</span> Aceptar o pedir corrección (motivo obligatorio).</div></div>
+    <div class="step"><div class="n">5</div><div><span class="who who-f">App</span> Si acepta → desbloquea el siguiente hito y, si aplica, el abono «listo para cobrar».</div></div>
+    <div class="step"><div class="n">6</div><div><span class="who who-f">Sofía</span> Recordatorio &gt;48 h si falta validar o subir evidencia.</div></div>
+  </div>
+
+  <h2>4. Pasos del proyecto de punta a punta</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:18%">Fase</th>
+        <th>Qué ocurre</th>
+        <th style="width:34%">Quién interviene</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Pedido</strong></td>
+        <td>Intake FV: tipo (autoconsumo / netbilling / híbrido+batería), kWh mensuales, fotos de techo y tablero, pago de evaluación.</td>
+        <td><span class="who who-c">Cliente</span> · <span class="who who-f">App</span> arma checklist</td>
+      </tr>
+      <tr>
+        <td><strong>2. Asignación</strong></td>
+        <td>Pedido en muro a socios con especialidad eléctrica/FV; socio asigna instalador SEC vigente.</td>
+        <td><span class="who who-s">Socio</span> · <span class="who who-t">Técnico</span></td>
+      </tr>
+      <tr>
+        <td><strong>3. Evaluación</strong></td>
+        <td>Visita: techo, estructura, sombras, tablero, mediciones. Levantamiento fotográfico.</td>
+        <td><span class="who who-t">Técnico</span> · <span class="who who-c">Cliente</span> acceso</td>
+      </tr>
+      <tr>
+        <td><strong>4. Propuesta</strong></td>
+        <td>Diseño (kWp, layout, unifilar), equipos autorizados SEC, ahorro estimado, contrato y esquema de abonos.</td>
+        <td><span class="who who-s">Socio</span> propone · <span class="who who-c">Cliente</span> acepta</td>
+      </tr>
+      <tr>
+        <td><strong>5. Trámites</strong></td>
+        <td>SCR en GDA → respuesta F4 (CIP/IEP). Coordinación con distribuidora. Documentos de dominio / conexión.</td>
+        <td><span class="who who-s">Socio</span> lidera · <span class="who who-c">Cliente</span> firma</td>
+      </tr>
+      <tr>
+        <td><strong>6. Obra</strong></td>
+        <td>Montaje de estructura, paneles, cableado, inversor, etiquetado. Bitácora diaria de fotos.</td>
+        <td><span class="who who-t">Técnico</span> · <span class="who who-s">Socio</span> QC</td>
+      </tr>
+      <tr>
+        <td><strong>7. Declaración</strong></td>
+        <td>TE-4 + notificación de conexión. Protocolo y medidor bidireccional cuando corresponda.</td>
+        <td><span class="who who-s">Socio</span> / instalador autorizado</td>
+      </tr>
+      <tr>
+        <td><strong>8. Puesta en marcha</strong></td>
+        <td>Pruebas, app de monitoreo, capacitación al cliente, acta digital.</td>
+        <td><span class="who who-t">Técnico</span> · <span class="who who-c">Cliente</span> valida</td>
+      </tr>
+      <tr>
+        <td><strong>9. Cierre</strong></td>
+        <td>Todos los hitos aceptados · calificación · liquidación. Garantías y postventa en Pasaporte Hogar.</td>
+        <td>Los tres roles · <span class="who who-f">App</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5. Hitos sugeridos (bitácora en app)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Hito</th>
+        <th>Evidencia mín.</th>
+        <th>Validación</th>
+        <th>Abono sugerido</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Levantamiento / visita técnica</td>
+        <td>Fotos techo (4 frentes) + tablero + medidor + notas de sombra</td>
+        <td><span class="who who-c">Cliente</span></td>
+        <td>Evaluación (ya pagada)</td>
+      </tr>
+      <tr>
+        <td>Anteproyecto / layout</td>
+        <td>PDF layout + potencia kWp + estimación de ahorro</td>
+        <td><span class="who who-c">Cliente</span></td>
+        <td>Anticipo diseño (~10–15%)</td>
+      </tr>
+      <tr>
+        <td>Propuesta comercial + equipos SEC</td>
+        <td>Cotización, modelos autorizados, garantías</td>
+        <td><span class="who who-c">Cliente</span></td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Factibilidad / respuesta distribuidora</td>
+        <td>Comprobante SCR + F4 (CIP/IEP) o rechazo documentado</td>
+        <td><span class="who who-c">Cliente</span> toma conocimiento</td>
+        <td>Abono tramitación (~10%)</td>
+      </tr>
+      <tr>
+        <td>Unifilar / proyecto eléctrico</td>
+        <td>PDF unifilar + lista de materiales</td>
+        <td><span class="who who-c">Cliente</span> + QC socio</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Recepción de equipos en obra</td>
+        <td>Fotos cajas + series de paneles e inversor</td>
+        <td><span class="who who-c">Cliente</span></td>
+        <td>Abono materiales (~30–40%)</td>
+      </tr>
+      <tr>
+        <td>Montaje estructura / anclajes</td>
+        <td>Fotos anclajes y sellos <em>antes</em> de tapar</td>
+        <td><span class="who who-c">Cliente</span></td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Instalación de paneles</td>
+        <td>Fotos array completo + detalle strings</td>
+        <td><span class="who who-c">Cliente</span></td>
+        <td>Abono instalación (~25–30%)</td>
+      </tr>
+      <tr>
+        <td>Inversor, protecciones y etiquetado</td>
+        <td>Fotos inversor, tablero, etiquetas SEC/NT</td>
+        <td><span class="who who-c">Cliente</span></td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>TE-4 + notificación de conexión</td>
+        <td>Comprobante TE-4 / carga GDA</td>
+        <td><span class="who who-c">Cliente</span> ve estado</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Protocolo / medidor bidireccional</td>
+        <td>Acta o foto medidor + fecha</td>
+        <td><span class="who who-c">Cliente</span></td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Puesta en marcha + monitoreo</td>
+        <td>App generando, captura de producción, capacitación</td>
+        <td><span class="who who-c">Cliente</span> (acta)</td>
+        <td>Saldo (~10–15%)</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="legend">
+    Los % de abono son orientativos (mercado: 10/40/40/10 o 20/50/30). En app se configuran por proyecto.
+    Hitos de trámites pueden demorar semanas: Sofía avisa estados, no inventa plazos de la distribuidora.
+  </p>
+
+  <h2>6. Estados de cada entregable</h2>
+  <p>
+    <code>pendiente</code> → <code>subido</code> → <code>vista_previa_socio</code> (opt.) →
+    <code>esperando_cliente</code> → <code>aceptado</code> | <code>corregir</code> → (loop) → <code>aceptado</code>.
+  </p>
+  <p>
+    El cierre del proyecto solo se permite cuando <strong>todos los hitos obligatorios están aceptados</strong>
+    (no basta con “subido” ni con “TE-4 en trámite” sin evidencia en bitácora).
+  </p>
+
+  <h2>7. Requisitos duros (compliance Chile)</h2>
+  <ul>
+    <li>Instalador eléctrico autorizado SEC clase <strong>A o B</strong> vigente para TE-4.</li>
+    <li>Equipos (paneles / convertidores) en listado o con autorización especial SEC.</li>
+    <li>Trámite en plataforma <strong>GDA</strong> (solicitud, respuesta, notificación de conexión).</li>
+    <li>Declaración <strong>TE-4</strong> digital de energización de generadoras residenciales.</li>
+    <li>El socio declara en app su nº de instalador SEC; Fandez no sustituye a la SEC ni a la distribuidora.</li>
+  </ul>
+
+  <h2>8. Dónde se ve en la app (to-be)</h2>
+  <table>
+    <thead>
+      <tr><th>Rol</th><th>Pantalla</th><th>Acciones</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="who who-t">Técnico</span></td>
+        <td>Visita / obra → Bitácora FV</td>
+        <td>Subir multi-foto y PDF; marcar vista previa socio; ver estado GDA/TE-4; cerrar solo si completo</td>
+      </tr>
+      <tr>
+        <td><span class="who who-s">Socio</span></td>
+        <td>Pedido en terreno (observador) + mando</td>
+        <td>Enviar al cliente / devolver; cargar comprobantes SCR/F4/TE-4; abonos listos</td>
+      </tr>
+      <tr>
+        <td><span class="who who-c">Cliente</span></td>
+        <td>Tracking → Valida este avance</td>
+        <td>Aceptar / corregir; ver “trámites en curso”; descargar bitácora/acta PDF</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>9. Oportunidades de mejora (priorizadas)</h2>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Mejora</th><th>Impacto</th><th>Esfuerzo</th><th>Notas</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="prio">P1</td>
+        <td>Servicio «Fotovoltaica / Netbilling» en catálogo + intake (kWh, techo, tablero)</td>
+        <td>Alto</td>
+        <td>Medio</td>
+        <td>Misma base que jardinería; checklist de hitos FV</td>
+      </tr>
+      <tr>
+        <td class="prio">P1</td>
+        <td>Bitácora con validación cliente + abonos por hito</td>
+        <td>Alto</td>
+        <td>Medio</td>
+        <td>Reusar <code>gardenDeliverables</code> generalizado a «projectDeliverables»</td>
+      </tr>
+      <tr>
+        <td class="prio">P2</td>
+        <td>Campo «Instalador SEC» en perfil socio/técnico + bloqueo si no vigente</td>
+        <td>Alto</td>
+        <td>Medio</td>
+        <td>Compliance y confianza</td>
+      </tr>
+      <tr>
+        <td class="prio">P2</td>
+        <td>Estados de trámite GDA/TE-4 visibles al cliente (sin inventar ETA)</td>
+        <td>Alto</td>
+        <td>Medio</td>
+        <td>El socio carga comprobantes; Sofía solo recuerda</td>
+      </tr>
+      <tr>
+        <td class="prio">P3</td>
+        <td>Plantillas de foto (anclaje, serie, etiquetas) + marca fecha/GPS</td>
+        <td>Medio</td>
+        <td>Medio</td>
+        <td>Igual patrón de paisajismo; crítico ante reclamos de filtraciones</td>
+      </tr>
+      <tr>
+        <td class="prio">P3</td>
+        <td>Acta PDF + link a monitoreo (Enphase / SolarEdge / etc.)</td>
+        <td>Medio</td>
+        <td>Bajo–Medio</td>
+        <td>Postventa y Pasaporte Hogar</td>
+      </tr>
+      <tr>
+        <td class="prio">P4</td>
+        <td>Integración lectura automática GDA (si API pública lo permite)</td>
+        <td>Medio</td>
+        <td>Alto</td>
+        <td>Por ahora: carga manual de PDF/comprobante</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>10. Interacción objetivo (resumen)</h2>
+  <table>
+    <thead>
+      <tr><th>Rol</th><th>Durante el proyecto</th><th>En cada hito</th><th>Al final</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Técnico</strong></td>
+        <td>Instala y documenta</td>
+        <td>Sube fotos/planos; corrige</td>
+        <td>Puesta en marcha solo con hitos OK</td>
+      </tr>
+      <tr>
+        <td><strong>Socio</strong></td>
+        <td>Trámites SEC/distribuidora + QC</td>
+        <td>Vista previa opcional; gestiona abonos</td>
+        <td>Liquidación / garantías</td>
+      </tr>
+      <tr>
+        <td><strong>Cliente</strong></td>
+        <td>Sigue bitácora y trámites</td>
+        <td><strong>Valida o pide corrección</strong></td>
+        <td>Acta + monitoreo + calificación</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>11. Criterios de éxito</h2>
+  <ul>
+    <li>≥90% de instalaciones con foto de anclajes <em>antes</em> de tapar.</li>
+    <li>≥80% de series de paneles/inversor capturadas el día de montaje.</li>
+    <li>Abonos liberados solo tras hito aceptado (salvo evaluación inicial).</li>
+    <li>0 cierres sin TE-4 / notificación cargados cuando el proyecto es Netbilling.</li>
+    <li>Cliente entiende en tracking si el “atraso” es de obra o de la distribuidora.</li>
+  </ul>
+
+  <h2>12. Próximos pasos de producto</h2>
+  <ol>
+    <li>Definir servicio y intake FV (campos mínimos + fotos obligatorias).</li>
+    <li>Generalizar bitácora de hitos (hoy jardinería) a proyectos multi-día.</li>
+    <li>Piloto con 1–2 socios instaladores SEC en RM.</li>
+    <li>Ajustar % de abonos y textos Sofía con feedback real de trámites GDA.</li>
+  </ol>
+
+  <div class="footer">
+    Fandez — Gestión Integral y Servicios Fandez SpA · Documento interno de producto<br>
+    Referencias de mercado: SEC GDA / Netbilling (TE-4, SCR–F4), buenas prácticas EPC residencial (hitos + fotos + PTO).<br>
+    Patrón de app: mismo ciclo de validación que
+    <code>docs/procesos/07-paisajismo-entregables-validacion.html</code>.
+  </div>
+</body>
+</html>

@@ -1,10 +1,13 @@
 <%- include('../partials/head', { useMap: true }) %>
 
-<% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria', 'limpieza']; %>
+<% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria', 'paisajismo', 'limpieza', 'fotovoltaico', 'piscinas']; %>
 <% const brandOptional = brandOptionalServices.indexOf(String(service.id || '').toLowerCase()) !== -1; %>
-<% const isGarden = String(service.id || '') === 'jardineria'; %>
+<% const isGarden = String(service.id || '') === 'paisajismo'; %>
+<% const isFv = String(service.id || '') === 'fotovoltaico'; %>
 <% const isCleaning = String(service.id || '') === 'limpieza'; %>
-<% const perM2 = isCleaning || (!isGarden && service.pricingUnit === 'm2'); %>
+<% const servicePath = typeof resolvedServicePath !== 'undefined' ? resolvedServicePath : 'now'; %>
+<% const isProjectPath = servicePath === 'project' || isGarden || isFv; %>
+<% const perM2 = isCleaning || (!isGarden && !isFv && service.pricingUnit === 'm2'); %>
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="servicePage"
   data-service-id="<%= service.id %>"
   data-service-name="<%= service.name %>"
@@ -14,6 +17,8 @@
   data-pricing-unit="<%= perM2 ? 'm2' : 'job' %>"
   data-cleaning="<%= isCleaning ? '1' : '0' %>"
   data-garden-intake="<%= isGarden ? '1' : '0' %>"
+  data-fv-intake="<%= isFv ? '1' : '0' %>"
+  data-service-path="<%= isProjectPath ? 'project' : 'now' %>"
   data-min-m2="<%= isGarden ? 100 : (isCleaning ? 20 : 10) %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
   data-resume-id="<%= typeof checkoutDraft !== 'undefined' && checkoutDraft ? checkoutDraft.id : '' %>"
@@ -31,6 +36,17 @@
   <main class="flex-1 px-5 py-5 pb-28">
     <%- include('../partials/checkout-progress', { checkoutStep: typeof tracking !== 'undefined' && tracking ? 3 : 1 }) %>
     <%- include('../partials/trust-strip', { trustStats: typeof trustStats !== 'undefined' ? trustStats : {} }) %>
+
+    <% if (!(typeof tracking !== 'undefined' && tracking)) { %>
+    <div class="mb-4 p-3 rounded-2xl border <%= isProjectPath ? 'border-emerald-200 bg-emerald-50/60' : 'border-amber-200 bg-amber-50/50' %>">
+      <p class="text-[11px] font-semibold uppercase tracking-wide <%= isProjectPath ? 'text-emerald-800' : 'text-amber-900' %> mb-0.5">
+        <%= isProjectPath ? t('client.service.path_project_badge') : t('client.service.path_now_badge') %>
+      </p>
+      <p class="text-xs leading-relaxed <%= isProjectPath ? 'text-emerald-900/80' : 'text-amber-950/80' %>">
+        <%= isProjectPath ? t('client.service.path_project_body') : t('client.service.path_now_body') %>
+      </p>
+    </div>
+    <% } %>
 
     <% if (typeof checkoutDraft !== 'undefined' && checkoutDraft && !(typeof tracking !== 'undefined' && tracking)) { %>
     <div id="resumeDraftBanner" class="mb-4 p-4 rounded-2xl border border-zilo-accent/25 bg-zilo-accent/8">
@@ -73,9 +89,11 @@
         <span class="text-zilo-muted text-sm font-medium"><%= t('client.service.total_est') %></span>
         <strong class="text-zilo-accent font-semibold" id="displayTotalPrice"><%= perM2 ? '—' : formatCLP(displayFrom) %></strong>
       </div>
-      <p class="text-[11px] text-zilo-muted/70 mt-3"><%= isGarden
+      <p class="text-[11px] text-zilo-muted/70 mt-3"><%= isFv
+        ? 'Pagas la evaluación ahora. El precio del kit/proyecto te lo arma el instalador después del levantamiento.'
+        : (isGarden
         ? 'Pagas la evaluación técnica ahora. Diseño, construcción o mantención se cotizan con Valle Parraguez según el alcance acordado.'
-        : t('client.service.pay_hint_dynamic') %></p>
+        : t('client.service.pay_hint_dynamic')) %></p>
       <details class="mt-3 text-left">
         <summary class="text-xs text-zilo-accent font-medium cursor-pointer select-none"><%= t('client.service.guarantees') %></summary>
         <ul class="mt-2 space-y-1.5 text-[11px] text-zilo-muted leading-relaxed pl-1">
@@ -90,9 +108,14 @@
 
     <% if (urgencyTiers && urgencyTiers.length) { %>
     <%
-      const primaryUrgency = urgencyTiers.filter(function(tier) { return tier.id === 'today' || tier.id === 'immediate'; });
+      const primaryUrgency = isProjectPath
+        ? []
+        : urgencyTiers.filter(function(tier) { return tier.id === 'today' || tier.id === 'immediate'; });
       const scheduleUrgency = urgencyTiers.filter(function(tier) { return tier.id !== 'today' && tier.id !== 'immediate'; });
-      const hasToday = urgencyTiers.some(function(tier) { return tier.id === 'today'; });
+      const projectUrgency = isProjectPath
+        ? (scheduleUrgency.length ? scheduleUrgency : urgencyTiers.filter(function(tier) { return tier.id !== 'immediate'; }))
+        : [];
+      const hasToday = !isProjectPath && urgencyTiers.some(function(tier) { return tier.id === 'today'; });
       function urgencyBadge(tier) {
         const pct = Number(tier.surchargePercent != null ? tier.surchargePercent : tier.adjustmentPercent) || 0;
         if (pct > 0) return { text: '+' + pct + '%', cls: 'text-amber-700' };
@@ -101,10 +124,26 @@
       }
     %>
     <div class="p-5 rounded-2xl zilo-card-premium mb-5 zilo-page-enter-delay-1">
-      <p class="zilo-label mb-1"><%= t('client.service.when') %></p>
-      <p class="text-[11px] text-zilo-muted mb-3"><%= t('client.service.when_hint') %></p>
+      <p class="zilo-label mb-1"><%= isProjectPath ? t('client.service.when_project') : t('client.service.when') %></p>
+      <p class="text-[11px] text-zilo-muted mb-3"><%= isProjectPath ? t('client.service.when_project_hint') : t('client.service.when_hint') %></p>
       <div class="space-y-2" id="urgencyOptions">
-        <% (primaryUrgency.length ? primaryUrgency : urgencyTiers).forEach(function(tier) {
+        <% if (isProjectPath) {
+          projectUrgency.forEach(function(tier, idx) {
+            const isDefault = idx === 0;
+            const badge = urgencyBadge(tier);
+        %>
+          <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer urgency-option <%= isDefault ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-tier="<%= tier.id %>">
+            <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="mt-1 accent-zilo-accent" <%= isDefault ? 'checked' : '' %>>
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-start gap-2">
+                <strong class="text-sm"><%= tier.label %></strong>
+                <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
+              </div>
+              <% if (tier.description) { %><p class="text-[11px] text-zilo-muted mt-0.5"><%= tier.description %></p><% } %>
+            </div>
+          </label>
+        <% }); } else {
+          (primaryUrgency.length ? primaryUrgency : urgencyTiers).forEach(function(tier) {
           const isDefault = hasToday ? tier.id === 'today' : (tier.id === 'immediate' || tier === urgencyTiers[0]);
           const isUpgrade = tier.id === 'immediate';
           const badge = urgencyBadge(tier);
@@ -148,6 +187,7 @@
           </div>
         </details>
         <% } %>
+        <% } %>
       </div>
     </div>
     <% } %>
@@ -175,7 +215,7 @@
 
     <section id="requestForm" class="space-y-4 zilo-page-enter-delay-2" data-checkout-wizard="1">
       <nav id="checkoutSubSteps" class="flex gap-1 p-1 rounded-xl bg-zilo-elevated border border-zilo-border" aria-label="Pasos del pedido">
-        <button type="button" class="co-step-tab flex-1 py-2 rounded-lg text-[10px] font-semibold bg-white text-zilo-accent shadow-sm" data-co-goto="1"><%= t('client.service.checkout_step_when') %></button>
+        <button type="button" class="co-step-tab flex-1 py-2 rounded-lg text-[10px] font-semibold bg-white text-zilo-accent shadow-sm" data-co-goto="1"><%= t('client.service.checkout_step_what') %></button>
         <button type="button" class="co-step-tab flex-1 py-2 rounded-lg text-[10px] font-semibold text-zilo-muted" data-co-goto="2"><%= t('client.service.checkout_step_where') %></button>
         <button type="button" class="co-step-tab flex-1 py-2 rounded-lg text-[10px] font-semibold text-zilo-muted" data-co-goto="3"><%= t('client.service.checkout_step_review') %></button>
       </nav>
@@ -209,25 +249,84 @@
 
       <% if (isGarden) { %>
         <%- include('../partials/garden-intake') %>
+      <% } else if (isFv) { %>
+        <%- include('../partials/fv-intake') %>
       <% } else if (typeof activities !== 'undefined' && activities.length) { %>
-      <div>
-        <label for="activityId" class="zilo-label block mb-1.5"><%= t('client.service.subservice') %> *</label>
-        <select id="activityId" name="activityId" required class="zilo-input">
-          <option value=""><%= t('client.service.subservice_ph') %></option>
-          <% activities.forEach(function(act) { %>
-            <option value="<%= act.id %>" data-base="<%= act.basePrice %>" data-unit="<%= act.pricingUnit || 'job' %>" data-per-m2="<%= act.pricePerM2 || act.basePrice %>" data-min-m2="<%= act.minM2 || 15 %>" data-quote-mode="<%= act.quoteMode || '' %>">
-              <%= act.name %> — <%= act.pricingUnit === 'm2' ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m²') : formatCLP(act.basePrice) %>
-            </option>
+      <div id="activityPickerBlock">
+        <p class="zilo-label mb-1"><%= t('client.service.subservice') %> *</p>
+        <p class="text-[11px] text-zilo-muted mb-3"><%= t('client.service.subservice_pick_hint') %></p>
+        <div class="space-y-2" id="activityCardList" role="radiogroup" aria-label="<%= t('client.service.subservice') %>">
+          <% activities.forEach(function(act) {
+            const priceLabel = act.pricingUnit === 'm2'
+              ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m²')
+              : formatCLP(act.basePrice);
+            const blurb = act.clientBlurb || act.description || '';
+          %>
+            <label class="activity-card group flex gap-3 p-3.5 rounded-2xl border border-zilo-border bg-white cursor-pointer transition hover:border-zilo-accent/35 hover:bg-zilo-accent/[0.03]"
+              data-activity-card
+              data-id="<%= act.id %>"
+              data-base="<%= act.basePrice %>"
+              data-unit="<%= act.pricingUnit || 'job' %>"
+              data-per-m2="<%= act.pricePerM2 || act.basePrice %>"
+              data-min-m2="<%= act.minM2 || 15 %>"
+              data-quote-mode="<%= act.quoteMode || '' %>"
+              data-blurb="<%= String(blurb).replace(/"/g, '&quot;') %>"
+              data-price-label="<%= priceLabel %>">
+              <input type="radio" name="activityPick" value="<%= act.id %>" class="sr-only activity-card-radio" data-activity-radio>
+              <span class="activity-card__radio mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 border-zilo-border flex items-center justify-center" aria-hidden="true">
+                <span class="activity-card__dot w-2.5 h-2.5 rounded-full bg-zilo-accent scale-0 transition"></span>
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="flex items-start justify-between gap-3">
+                  <span class="text-sm font-semibold text-zilo-text leading-snug"><%= act.name %></span>
+                  <span class="text-sm font-bold text-zilo-accent tabular-nums whitespace-nowrap"><%= priceLabel %></span>
+                </span>
+                <% if (blurb) { %>
+                <span class="block text-[11px] text-zilo-muted mt-1 leading-relaxed line-clamp-2"><%= blurb %></span>
+                <% } %>
+              </span>
+            </label>
           <% }); %>
-          <option value="otro" data-base="<%= isCleaning ? 1500 : 100000 %>" data-unit="<%= perM2 ? 'm2' : 'job' %>" data-per-m2="<%= isCleaning ? 1500 : '' %>" data-min-m2="<%= isCleaning ? 20 : 15 %>">
-            <%= isCleaning ? 'Otro — describir (desde $1.500 / m²)' : 'Otro — describir (desde $100.000)' %>
-          </option>
-        </select>
-        <p class="text-[11px] text-zilo-muted mt-1"><%= t('client.service.subservice_hint') %></p>
+          <label class="activity-card group flex gap-3 p-3.5 rounded-2xl border border-dashed border-zilo-border bg-[#f7f3ee]/60 cursor-pointer transition hover:border-zilo-accent/35"
+            data-activity-card
+            data-id="otro"
+            data-base="<%= isCleaning ? 1500 : 100000 %>"
+            data-unit="<%= perM2 ? 'm2' : 'job' %>"
+            data-per-m2="<%= isCleaning ? 1500 : '' %>"
+            data-min-m2="<%= isCleaning ? 20 : 15 %>"
+            data-quote-mode=""
+            data-blurb="<%= t('client.service.subservice_other_blurb') %>"
+            data-price-label="<%= isCleaning ? 'desde $1.500 / m²' : 'desde $100.000' %>">
+            <input type="radio" name="activityPick" value="otro" class="sr-only activity-card-radio" data-activity-radio>
+            <span class="activity-card__radio mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 border-zilo-border flex items-center justify-center" aria-hidden="true">
+              <span class="activity-card__dot w-2.5 h-2.5 rounded-full bg-zilo-accent scale-0 transition"></span>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="flex items-start justify-between gap-3">
+                <span class="text-sm font-semibold text-zilo-text">Otro</span>
+                <span class="text-sm font-bold text-zilo-muted tabular-nums whitespace-nowrap"><%= isCleaning ? 'desde $1.500 / m²' : 'desde $100.000' %></span>
+              </span>
+              <span class="block text-[11px] text-zilo-muted mt-1 leading-relaxed"><%= t('client.service.subservice_other_blurb') %></span>
+            </span>
+          </label>
+        </div>
+        <input type="hidden" id="activityId" name="activityId" value="" required>
+
+        <div id="activitySelectedPanel" class="hidden mt-3 p-4 rounded-2xl border border-zilo-accent/25 bg-gradient-to-br from-zilo-accent/[0.07] to-transparent">
+          <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-accent mb-1"><%= t('client.service.subservice_selected') %></p>
+          <p class="text-base font-semibold text-zilo-text leading-snug" id="activitySelectedName">—</p>
+          <p class="text-sm text-zilo-muted mt-1.5 leading-relaxed" id="activitySelectedBlurb"></p>
+          <p class="mt-3 flex items-baseline justify-between gap-2">
+            <span class="text-xs text-zilo-muted"><%= t('client.service.subservice_price_label') %></span>
+            <span class="text-lg font-bold text-zilo-accent tabular-nums" id="activitySelectedPrice">—</span>
+          </p>
+          <p class="text-[10px] text-zilo-muted mt-1"><%= t('client.service.subservice_price_note') %></p>
+        </div>
+
         <div id="customActivityFields" class="hidden mt-3 space-y-2 p-3 rounded-xl border border-zilo-border bg-zilo-surface/40">
-          <label for="customActivityName" class="zilo-label block">Describe el servicio *</label>
-          <input type="text" id="customActivityName" maxlength="120" class="zilo-input w-full" placeholder="Ej: Instalar grifería de duchas + sellado">
-          <p class="text-[11px] text-zilo-muted">El socio puede ajustar el detalle y precio en terreno; tú lo validas.</p>
+          <label for="customActivityName" class="zilo-label block"><%= t('client.service.subservice_other_label') %> *</label>
+          <input type="text" id="customActivityName" maxlength="120" class="zilo-input w-full" placeholder="<%= t('client.service.subservice_other_ph') %>">
+          <p class="text-[11px] text-zilo-muted"><%= t('client.service.subservice_other_hint') %></p>
         </div>
       </div>
       <% } %>
@@ -266,33 +365,17 @@
       </div>
       <% } %>
       <% } %>
-      <button type="button" class="zilo-btn-primary w-full" data-co-next="2"><%= t('client.service.checkout_next') %></button>
-      </div>
 
-      <div data-co-panel="2" class="space-y-4 hidden">
-      <div>
-        <label for="address" class="zilo-label block mb-1.5" id="addressLabel"><%= t('client.service.address') %></label>
-        <input type="text" id="address" placeholder="<%= t('client.service.address_ph') %>"
-          value="<%= typeof profile !== 'undefined' ? profile.address : '' %>" class="zilo-input">
-        <input type="hidden" id="lat"><input type="hidden" id="lng">
-      </div>
-
-      <div>
-        <label class="zilo-label block mb-1.5"><%= t('client.service.location') %></label>
-        <div id="addressMap" class="w-full h-44 rounded-2xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
-        <p id="mapStatus" class="text-[10px] text-zilo-muted mt-1.5"><%= t('client.service.map_hint') %></p>
-        <div id="coverageAlert" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs leading-relaxed" role="alert"></div>
-      </div>
-
-      <div>
-        <label for="notes" class="zilo-label block mb-1.5"><%= t('client.service.detail') %> <span class="font-normal text-zilo-muted"><%= t('client.service.detail_opt') %></span></label>
-        <textarea id="notes" rows="3" placeholder="<%= isGarden ? 'Objetivo, estilo deseado, plazos u observaciones adicionales…' : (perM2 ? t('client.service.detail_garden_ph') : t('client.service.detail_ph')) %>" class="zilo-input resize-none"></textarea>
-      </div>
-
-      <div class="space-y-4">
+      <div class="pt-2 border-t border-zilo-border space-y-4">
         <div>
-          <label class="zilo-label block mb-1.5"><%= (perM2 || isGarden) ? t('client.service.photo_garden') : t('client.service.photo') %> <% if (!(perM2 || isGarden)) { %><span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span><% } else { %><span class="font-normal text-zilo-muted">*</span><% } %></label>
-          <p class="text-[11px] text-zilo-muted mb-2"><%= (perM2 || isGarden) ? t('client.service.photo_garden_hint') : t('client.service.photo_optional_hint') %></p>
+          <label for="notes" class="zilo-label block mb-1.5"><%= t('client.service.detail') %> <span class="font-normal text-zilo-muted"><%= t('client.service.detail_opt') %></span></label>
+          <textarea id="notes" rows="3" placeholder="<%= isFv ? t('client.service.detail_fv_ph') : (isGarden ? t('client.service.detail_landscape_ph') : (isProjectPath ? t('client.service.detail_project_ph') : (perM2 ? t('client.service.detail_garden_ph') : t('client.service.detail_ph')))) %>" class="zilo-input resize-none"></textarea>
+          <p class="text-[11px] text-zilo-muted mt-1"><%= isProjectPath ? t('client.service.detail_hint_project') : t('client.service.detail_hint_now') %></p>
+        </div>
+
+        <div>
+          <label class="zilo-label block mb-1.5"><%= isFv ? t('client.service.photo_fv') : ((perM2 || isGarden) ? t('client.service.photo_garden') : t('client.service.photo')) %> <% if (isGarden || isFv) { %><span class="font-normal text-zilo-muted">*</span><% } else { %><span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span><% } %></label>
+          <p class="text-[11px] text-zilo-muted mb-2"><%= isFv ? t('client.service.photo_fv_hint') : ((perM2 || isGarden) ? t('client.service.photo_garden_hint') : t('client.service.photo_optional_hint')) %></p>
           <button type="button" id="btnPhotoHelp" class="w-full mb-3 py-2.5 px-3 rounded-xl border border-zilo-accent/30 bg-zilo-accent/10 text-zilo-accent text-xs font-semibold text-left flex items-center gap-2">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <span><%= t('client.service.photo_help_link') %></span>
@@ -320,6 +403,25 @@
           </span>
         </label>
       </div>
+
+      <button type="button" class="zilo-btn-primary w-full" data-co-next="2"><%= t('client.service.checkout_next') %></button>
+      </div>
+
+      <div data-co-panel="2" class="space-y-4 hidden">
+      <div>
+        <label for="address" class="zilo-label block mb-1.5" id="addressLabel"><%= t('client.service.address') %></label>
+        <input type="text" id="address" placeholder="<%= t('client.service.address_ph') %>"
+          value="<%= typeof profile !== 'undefined' ? profile.address : '' %>" class="zilo-input">
+        <input type="hidden" id="lat"><input type="hidden" id="lng">
+      </div>
+
+      <div>
+        <label class="zilo-label block mb-1.5"><%= t('client.service.location') %></label>
+        <div id="addressMap" class="w-full h-44 rounded-2xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
+        <p id="mapStatus" class="text-[10px] text-zilo-muted mt-1.5"><%= t('client.service.map_hint') %></p>
+        <div id="coverageAlert" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs leading-relaxed" role="alert"></div>
+      </div>
+
       <div class="flex gap-2">
         <button type="button" class="flex-1 py-3 rounded-xl zilo-btn-ghost" data-co-next="1"><%= t('client.service.checkout_back') %></button>
         <button type="button" class="flex-1 zilo-btn-primary" data-co-next="3"><%= t('client.service.checkout_next') %></button>

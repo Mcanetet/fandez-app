@@ -11,19 +11,22 @@ const { flattenCatalog, flattenRegionsCatalog } = require('../lib/chile-geo');
 const SCHEMA_PATH = path.join(__dirname, '../db/schema.sql');
 
 const SEED_SERVICES = [
-  { id: 'electrico', name: 'Eléctrico', icon: 'electrico', color: '#F59E0B', visitPrice: 100000, basicMin: 100000, basicMax: 150000, description: 'Instalaciones, cortocircuitos, tableros y emergencias eléctricas.', enabled: true },
-  { id: 'gasfiter', name: 'Gásfiter', icon: 'gasfiter', color: '#3B82F6', visitPrice: 105000, basicMin: 105000, basicMax: 160000, description: 'Fugas, cañerías, grifería, destapes y conexiones de lavadora/lavavajillas.', enabled: true },
-  { id: 'aires', name: 'Aire acondicionado', icon: 'aires', color: '#0EA5E9', visitPrice: 89000, basicMin: 89000, basicMax: 170000, description: 'Mantención, reparación, recarga e instalación de equipos split.', enabled: true },
-  { id: 'cerrajero', name: 'Cerrajero', icon: 'cerrajero', color: '#8B5CF6', visitPrice: 100000, basicMin: 100000, basicMax: 180000, description: 'Apertura de puertas, cambio de cerraduras y copias de llaves.', enabled: true },
-  { id: 'termos', name: 'Termos', icon: 'termos', color: '#EF4444', visitPrice: 100000, basicMin: 100000, basicMax: 160000, description: 'Mantención, cambio de resistencia y reparación de termos eléctricos.', enabled: true },
-  { id: 'lavavajillas', name: 'Lavavajillas', icon: 'lavavajillas', color: '#06B6D4', visitPrice: 100000, basicMin: 100000, basicMax: 145000, description: 'Integrado en Gásfiter (hidráulica) y Otros (electrónica).', enabled: false },
-  { id: 'lavadora', name: 'Lavadora', icon: 'lavadora', color: '#10B981', visitPrice: 100000, basicMin: 100000, basicMax: 150000, description: 'Integrado en Gásfiter (hidráulica) y Otros (electrónica).', enabled: false },
-  { id: 'calderas', name: 'Calderas', icon: 'calderas', color: '#F97316', visitPrice: 180000, basicMin: 180000, basicMax: 310000, description: 'Mantención, calibración, bombas, quemadores y seguridad de calderas centrales.', enabled: true },
-  { id: 'generadores', name: 'Generadores', icon: 'generadores', color: '#6366F1', visitPrice: 140000, basicMin: 140000, basicMax: 250000, description: 'Mantención preventiva, pruebas de carga, transferencia y reparación de grupos electrógenos.', enabled: true },
-  { id: 'pintura', name: 'Pintura', icon: 'pintura', color: '#C45C14', visitPrice: 100000, basicMin: 100000, basicMax: 220000, description: 'Pintura de interiores, muros, techos, retoques y preparación de superficies.', enabled: true },
-  { id: 'jardineria', name: 'Jardinería y paisajismo', icon: 'jardineria', color: '#16A34A', visitPrice: 40000, basicMin: 40000, basicMax: 180000, description: 'Diseño, construcción y mantención con Valle Parraguez Paisajismo (desde 100 m²). Cobro inicial: evaluación técnica en terreno.', enabled: true },
-  { id: 'limpieza', name: 'Limpieza', icon: 'limpieza', color: '#14B8A6', visitPrice: 30000, basicMin: 30000, basicMax: 150000, description: 'Limpieza por m² ($1.500). Materiales incluidos. Adicionales +15% por mascotas o post evento.', enabled: true },
-  { id: 'otros', name: 'Otros', icon: 'otros', color: '#64748B', visitPrice: 100000, basicMin: 100000, basicMax: 150000, description: 'Electrodomésticos (lavadora/lavavajillas electrónica) y oficios complementarios.', enabled: true }
+  { id: 'jardineria', name: 'Jardinería', icon: 'jardineria', color: '#16A34A', visitPrice: 55000, basicMin: 55000, basicMax: 120000, description: 'Poda, pasto, maleza y arreglos del jardín para hoy o esta semana.', enabled: true },
+  { id: 'electrico', name: 'Eléctrico', icon: 'electrico', color: '#F59E0B', visitPrice: 100000, basicMin: 100000, basicMax: 150000, description: 'Cortocircuitos, tableros, enchufes y emergencias eléctricas.', enabled: true },
+  { id: 'gasfiter', name: 'Gasfitería', icon: 'gasfiter', color: '#3B82F6', visitPrice: 105000, basicMin: 105000, basicMax: 160000, description: 'Fugas, destapes, grifería y cañerías.', enabled: true },
+  { id: 'cerrajero', name: 'Cerrajería', icon: 'cerrajero', color: '#8B5CF6', visitPrice: 100000, basicMin: 100000, basicMax: 180000, description: 'Apertura de puertas, cambio de chapa y llaves.', enabled: true },
+  { id: 'aires', name: 'Aire acondicionado', icon: 'aires', color: '#0EA5E9', visitPrice: 89000, basicMin: 89000, basicMax: 170000, description: 'Reparación, mantención o instalación de split.', enabled: true },
+  { id: 'calderas', name: 'Calderas', icon: 'calderas', color: '#F97316', visitPrice: 180000, basicMin: 180000, basicMax: 310000, description: 'Mantención y reparación de calderas.', enabled: true },
+  { id: 'generadores', name: 'Generadores', icon: 'generadores', color: '#6366F1', visitPrice: 140000, basicMin: 140000, basicMax: 250000, description: 'Pruebas, mantención y reparación de generadores.', enabled: true },
+  { id: 'pintura', name: 'Pintura', icon: 'pintura', color: '#C45C14', visitPrice: 100000, basicMin: 100000, basicMax: 220000, description: 'Retoques, habitaciones y preparación de muros.', enabled: true },
+  { id: 'termos', name: 'Termos', icon: 'termos', color: '#EF4444', visitPrice: 100000, basicMin: 100000, basicMax: 160000, description: 'Termo sin agua caliente, resistencia o cambio.', enabled: true },
+  { id: 'piscinas', name: 'Piscinas', icon: 'piscinas', color: '#0891B2', visitPrice: 75000, basicMin: 75000, basicMax: 220000, description: 'Agua verde, bombas, filtros y mantención.', enabled: true },
+  { id: 'paisajismo', name: 'Paisajismo', icon: 'paisajismo', color: '#15803D', visitPrice: 40000, basicMin: 40000, basicMax: 180000, description: 'Diseño, construcción o mantención de jardín (proyecto con evaluación).', enabled: true },
+  { id: 'fotovoltaico', name: 'Paneles solares', icon: 'fotovoltaico', color: '#EA580C', visitPrice: 49000, basicMin: 49000, basicMax: 49000, description: 'Proyecto FV / Netbilling: evaluación, propuesta e instalación.', enabled: true },
+  { id: 'lavavajillas', name: 'Lavavajillas', icon: 'lavavajillas', color: '#06B6D4', visitPrice: 100000, basicMin: 100000, basicMax: 145000, description: 'Integrado en Gasfitería (hidráulica) y Otros (electrónica).', enabled: false },
+  { id: 'lavadora', name: 'Lavadora', icon: 'lavadora', color: '#10B981', visitPrice: 100000, basicMin: 100000, basicMax: 150000, description: 'Integrado en Gasfitería (hidráulica) y Otros (electrónica).', enabled: false },
+  { id: 'limpieza', name: 'Limpieza', icon: 'limpieza', color: '#14B8A6', visitPrice: 30000, basicMin: 30000, basicMax: 150000, description: 'Limpieza por m² ($1.500). Materiales incluidos.', enabled: true },
+  { id: 'otros', name: 'Otros', icon: 'otros', color: '#64748B', visitPrice: 100000, basicMin: 100000, basicMax: 150000, description: 'Electrodomésticos y oficios complementarios.', enabled: true }
 ];
 
 const SEED_MODULES = [
