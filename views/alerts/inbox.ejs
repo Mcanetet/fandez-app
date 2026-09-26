@@ -1,4 +1,4 @@
-<%-
+<%
   const alertsHome = typeof alertsBase === 'string' ? alertsBase : (
     user?.role === 'provider' ? '/proveedor' : user?.role === 'tecnico' ? '/tecnico' : '/cliente'
   );
