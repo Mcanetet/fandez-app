@@ -184,7 +184,11 @@
         ? t('register.zone_hint')
         : t('register.zone_hint_client');
     }
-    if (unitInput) unitInput.required = !isProviderRole();
+    if (unitInput) unitInput.required = false;
+    if (regionSelect) regionSelect.required = isProviderRole();
+    if (addressInput) addressInput.required = isProviderRole();
+    const optionalBadge = document.getElementById('addressOptionalBadge');
+    if (optionalBadge) optionalBadge.classList.toggle('hidden', isProviderRole());
     if (lastCoverage && !lastCoverage.covered) showCoverage(lastCoverage);
   }
 
@@ -1062,6 +1066,51 @@
     e.preventDefault();
     clearRegisterError();
     resolveTypedCommune();
+
+    const clientSkipAddress = !isProviderRole()
+      && !String(addressInput?.value || '').trim()
+      && !getCommuneCode()
+      && !(latInput && latInput.value)
+      && !(lngInput && lngInput.value);
+
+    if (clientSkipAddress) {
+      if (regionSelect) regionSelect.setCustomValidity('');
+      if (communeSelect) communeSelect.setCustomValidity('');
+      if (communeSearch) communeSearch.setCustomValidity('');
+      if (addressInput) addressInput.setCustomValidity('');
+      unlockSubmitFields();
+      const submitBtn = setSubmitting(true);
+      if (!submitBtn) return;
+      const watchdog = setTimeout(() => {
+        if (!submitBtn.dataset.submitting) return;
+        setSubmitting(false);
+        showRegisterError(t('register.error_generic') || 'No pudimos crear la cuenta. Intenta de nuevo.');
+      }, 20000);
+      try {
+        const body = new URLSearchParams(new FormData(form));
+        const res = await fetch(form.action || '/registro', {
+          method: 'POST',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+          body
+        });
+        const data = await res.json().catch(() => ({}));
+        clearTimeout(watchdog);
+        if (data.redirect) {
+          window.location.href = data.redirect;
+          return;
+        }
+        setSubmitting(false);
+        showRegisterError(
+          data.error || t('register.error_generic') || 'No pudimos crear la cuenta. Intenta de nuevo.',
+          { emailExists: Boolean(data.emailExists) }
+        );
+      } catch (_) {
+        clearTimeout(watchdog);
+        setSubmitting(false);
+        showRegisterError(t('register.error_generic') || 'No pudimos crear la cuenta. Intenta de nuevo.');
+      }
+      return;
+    }
 
     if (!getRegionCode()) {
       if (regionSelect) {

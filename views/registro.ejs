@@ -19,7 +19,7 @@
 
     <div class="register-fun" id="registerFun" aria-live="polite">
       <p class="register-fun__kicker"><%= t('register.fun_kicker') %></p>
-      <p class="register-fun__line" id="registerFunLine"><%= t('register.fun_1') %></p>
+      <p class="register-fun__line" id="registerFunLine"><%= (registerFunLines && registerFunLines[0]) || t('register.fun_1') %></p>
       <div class="register-fun__dots" id="registerFunDots" aria-hidden="true"></div>
     </div>
 
@@ -134,13 +134,13 @@
           <div>
             <label for="client_rut" id="clientRutLabel" class="register-form__label"
               data-label-natural="<%= t('register.client_rut_natural') %>"
-              data-label-company="<%= t('register.client_rut_company') %>"><%= t('register.client_rut_natural') %></label>
-            <input type="text" id="client_rut" name="client_rut" placeholder="12.345.678-9" class="zilo-input" value="<%= form.clientRut || '' %>" autocomplete="off" <%= form.role === 'client' && form.clientBillingType !== 'empresa' ? 'required' : '' %>>
+              data-label-company="<%= t('register.client_rut_company') %>"><%= t('register.client_rut_natural') %> <span class="register-form__optional"><%= t('register.optional') %></span></label>
+            <input type="text" id="client_rut" name="client_rut" placeholder="12.345.678-9" class="zilo-input" value="<%= form.clientRut || '' %>" autocomplete="off">
             <p id="clientRutHint" class="register-form__field-hint"><%= t('register.client_rut_hint_natural') %></p>
           </div>
         </div>
 
-        <div id="clientBillingFields" class="register-form__billing <%= form.clientBillingType === 'empresa' ? '' : 'hidden' %>">
+        <div id="clientBillingFields" class="register-form__billing <%= form.clientBillingType === 'empresa' ? '' : 'hidden' %>" <%= form.clientBillingType === 'empresa' ? '' : 'hidden' %>>
           <p class="register-form__section-title mt-3"><%= t('register.client_billing_title') %></p>
           <p class="register-form__section-hint"><%= t('register.client_billing_hint') %></p>
           <div class="register-form__fields register-form__fields--tight">
@@ -158,11 +158,11 @@
       </div>
 
       <div id="addressFields" class="register-form__section space-y-3">
-        <p class="register-form__section-title"><%= t('register.zone_title') %></p>
+        <p class="register-form__section-title"><%= t('register.zone_title') %> <span id="addressOptionalBadge" class="register-form__optional <%= form.role === 'client' ? '' : 'hidden' %>"><%= t('register.optional') %></span></p>
         <p class="register-form__section-hint" id="addressHint"><%= form.role === 'client' ? t('register.zone_hint_client') : t('register.zone_hint') %></p>
         <div>
           <label for="address_region" class="zilo-label block mb-1.5"><%= t('register.region') %></label>
-          <select id="address_region" name="address_region" required class="zilo-input">
+          <select id="address_region" name="address_region" class="zilo-input" <%= form.role === 'provider' ? 'required' : '' %>>
             <option value=""><%= t('register.region_placeholder') %></option>
             <% (registrationRegions || []).forEach(function(r) {
               var selectedRegion = form.addressRegion || 'region-metropolitana';
@@ -199,9 +199,9 @@
         </div>
         <div class="relative">
           <label for="address" id="addressLabel" class="zilo-label block mb-1.5"><%= t('register.address_street') %></label>
-          <input type="text" id="address" name="address" required autocomplete="street-address"
+          <input type="text" id="address" name="address" autocomplete="street-address"
             placeholder="<%= t('register.address_commune_first') %>" class="zilo-input address-autocomplete-input" value="<%= form.address || '' %>"
-            aria-autocomplete="list" aria-controls="addressSuggestions" aria-expanded="false" disabled>
+            aria-autocomplete="list" aria-controls="addressSuggestions" aria-expanded="false" disabled <%= form.role === 'provider' ? 'required' : '' %>>
           <input type="hidden" id="address_lat" name="address_lat" value="<%= form.addressLat || '' %>">
           <input type="hidden" id="address_lng" name="address_lng" value="<%= form.addressLng || '' %>">
           <input type="hidden" id="address_place_id" name="address_place_id" value="<%= form.addressPlaceId || '' %>">
@@ -293,26 +293,31 @@
 
 <script>
   (function () {
-    var lines = [
-      <%- JSON.stringify(t('register.fun_1')) %>,
-      <%- JSON.stringify(t('register.fun_2')) %>,
-      <%- JSON.stringify(t('register.fun_3')) %>,
-      <%- JSON.stringify(t('register.fun_4')) %>,
-      <%- JSON.stringify(t('register.fun_5')) %>,
-      <%- JSON.stringify(t('register.fun_6')) %>,
-      <%- JSON.stringify(t('register.fun_7')) %>,
-      <%- JSON.stringify(t('register.fun_8')) %>,
-      <%- JSON.stringify(t('register.fun_9')) %>,
-      <%- JSON.stringify(t('register.fun_10')) %>
-    ];
+    var lines = <%- JSON.stringify(registerFunLines && registerFunLines.length ? registerFunLines : [
+      t('register.fun_1'),
+      t('register.fun_2'),
+      t('register.fun_3'),
+      t('register.fun_4'),
+      t('register.fun_5'),
+      t('register.fun_6'),
+      t('register.fun_7'),
+      t('register.fun_8'),
+      t('register.fun_9'),
+      t('register.fun_10')
+    ]) %>;
     var lineEl = document.getElementById('registerFunLine');
     var dotsEl = document.getElementById('registerFunDots');
     if (!lineEl || !lines.length) return;
     var i = 0;
+    var showDots = lines.length <= 12;
     if (dotsEl) {
-      dotsEl.innerHTML = lines.map(function (_, idx) {
-        return '<span class="register-fun__dot' + (idx === 0 ? ' is-active' : '') + '"></span>';
-      }).join('');
+      if (showDots) {
+        dotsEl.innerHTML = lines.map(function (_, idx) {
+          return '<span class="register-fun__dot' + (idx === 0 ? ' is-active' : '') + '"></span>';
+        }).join('');
+      } else {
+        dotsEl.innerHTML = '<span class="register-fun__dot is-active register-fun__dot--pulse"></span>';
+      }
     }
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     function paint() {
@@ -320,7 +325,7 @@
       setTimeout(function () {
         lineEl.textContent = lines[i];
         lineEl.classList.remove('is-leaving');
-        if (dotsEl) {
+        if (dotsEl && showDots) {
           Array.prototype.forEach.call(dotsEl.children, function (dot, idx) {
             dot.classList.toggle('is-active', idx === i);
           });
@@ -363,12 +368,18 @@
       if (sub) sub.textContent = isProvider ? sub.dataset.provider : sub.dataset.client;
       const phone = document.getElementById('phone');
       if (phone) phone.required = true;
+      const address = document.getElementById('address');
+      const region = document.getElementById('address_region');
+      if (address) address.required = isProvider;
+      if (region) region.required = isProvider;
       const unit = document.getElementById('address_unit');
       const unitLabel = document.getElementById('addressUnitLabel');
       if (unit) unit.required = false;
       if (unitLabel) {
         unitLabel.textContent = <%- JSON.stringify(t('register.address_unit')) %>;
       }
+      const optionalBadge = document.getElementById('addressOptionalBadge');
+      if (optionalBadge) optionalBadge.classList.toggle('hidden', isProvider);
     }
 
     form.addEventListener('invalid', (event) => {

@@ -246,14 +246,15 @@
   "register.title": "Crear cuenta",
   "register.title_provider": "Únete como socio",
   "register.subtitle": "Únete a Fandez",
-  "register.subtitle_full": "Tus datos, RUT y dirección. Si eres empresa, marca la casilla.",
+  "register.subtitle_full": "Solo 4 datos: nombre, correo, teléfono y clave. El resto es opcional.",
   "register.subtitle_provider": "Cuenta, zona y oficios. Carnet después.",
   "register.role_label": "¿Quién eres?",
   "register.role_client": "Cliente",
   "register.role_client_desc": "Pido visitas",
   "register.role_provider": "Socio",
   "register.role_provider_desc": "Ofrezco el servicio",
-  "register.client_tip": "Tu RUT y dirección bastan. Si facturas a empresa, marca la casilla y completa esos datos.",
+  "register.client_tip": "Con nombre, correo, teléfono y clave ya tienes cuenta. RUT y dirección los puedes completar después.",
+  "register.optional": "opcional",
   "register.client_person_title": "Tus datos",
   "register.client_person_hint": "Quién coordina la visita.",
   "register.name": "Nombre completo",
@@ -281,7 +282,7 @@
   "register.address_unit_optional": "Depto / casa (opcional)",
   "register.address_unit_placeholder": "Ej: Depto 403",
   "register.submit": "Crear mi cuenta",
-  "register.zone_hint_client": "Comuna y calle. Ajusta el pin en tu entrada.",
+  "register.zone_hint_client": "Opcional. Puedes dejarlo y completarlo cuando pidas la visita.",
   "register.fun_kicker": "Mientras creas tu cuenta…",
   "register.fun_1": "«Amor, ¿lo arreglas tú… o pedimos a alguien que sí sepa?»",
   "register.fun_2": "Eso de «después lo veo» ya es tradición familiar.",
@@ -778,5 +779,5 @@
   "error.back_home": "Volver al inicio",
   "register.client_rut_natural": "Tu RUT",
   "register.client_rut_company": "RUT de la empresa",
-  "register.client_rut_hint_natural": "Para boleta a tu nombre."
+  "register.client_rut_hint_natural": "Opcional. Lo puedes completar al pedir la visita."
 }

@@ -2155,6 +2155,17 @@ body.session-role--tecnico::before {
   transform: scale(1.15);
 }
 
+.register-fun__dot--pulse {
+  width: 0.45rem;
+  height: 0.45rem;
+  animation: register-fun-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes register-fun-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .register-fun__line,
   .register-fun__line.is-leaving {
@@ -2293,10 +2304,21 @@ body.session-role--tecnico::before {
   color: var(--zilo-accent-strong);
 }
 
-.register-form__billing {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+.register-form__optional {
+  margin-left: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: var(--zilo-muted);
+}
+
+/* Evita que display:flex pise Tailwind .hidden */
+.register-form__billing.hidden,
+#clientBillingFields.hidden,
+#clientNaturalFields.hidden,
+#clientBillingWrap.hidden {
+  display: none !important;
 }
 
 .register-form__billing .register-billing-type {

@@ -11,6 +11,7 @@ const { notifyProviderSignup } = require('../lib/sofiaProviderSignup');
 const authAccessWatch = require('../lib/agents/authAccessWatch');
 const founderAlerts = require('../lib/agents/founderAlerts');
 const { localizeServices } = require('../lib/i18n-admin');
+const registerJokes = require('../lib/registerJokes');
 
 const PUBLIC_ROLES = ['client', 'provider', 'tecnico'];
 const ADMIN_SESSION_MS = 4 * 60 * 60 * 1000;
@@ -270,6 +271,7 @@ function registerRenderOptions(req, extra = {}) {
   const registrationRegions = getEnabledRegistrationRegions();
   const selectedRegion = form.addressRegion || '';
   const regionAllowed = selectedRegion && isRegistrationRegionEnabled(selectedRegion);
+  const locale = req.locale || req.getLocale?.() || 'es';
   return {
     services: localizeServices(store.getActiveServices(), req.t),
     referralCode: req.session.pendingReferral || null,
@@ -277,6 +279,7 @@ function registerRenderOptions(req, extra = {}) {
     pageScript: '/js/register-address.js',
     registrationRegions,
     registrationCommunes: regionAllowed ? getRegionCommunes(selectedRegion) : [],
+    registerFunLines: registerJokes.getShuffledLines(locale),
     seo: buildPageMeta(pageId, req),
     ...extra
   };

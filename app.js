@@ -798,6 +798,11 @@ async function initDatabase() {
       } catch (err) {
         console.warn('[siteAlerts] hydrate:', err.message);
       }
+      try {
+        await require('./lib/registerJokes').ensureHydrated();
+      } catch (err) {
+        console.warn('[registerJokes] hydrate:', err.message);
+      }
       await backup.ensureStartupBackup(store);
       require('./lib/aland/journey').bind({ store, io });
       aland.startEscalationWatcher(store, io);

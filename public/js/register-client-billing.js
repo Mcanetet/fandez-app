@@ -49,9 +49,11 @@
 
     const value = clientRut.value.trim();
     if (!value) {
-      const msg = isCompanyClient()
-        ? t('register.error_client_rut', 'Ingresa el RUT de la empresa.')
-        : t('register.error_client_rut', 'Ingresa tu RUT.');
+      if (!isCompanyClient()) {
+        showRutError('');
+        return true;
+      }
+      const msg = t('register.error_client_rut', 'Ingresa el RUT de la empresa.');
       showRutError(msg);
       if (showMessage) {
         clientRut.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -88,14 +90,24 @@
     const isClient = isClientRole();
     const company = isCompanyClient();
 
-    if (clientBillingWrap) clientBillingWrap.classList.toggle('hidden', !isClient);
-    if (clientNaturalFields) clientNaturalFields.classList.toggle('hidden', !isClient || company);
-    if (clientBillingFields) clientBillingFields.classList.toggle('hidden', !company);
+    if (clientBillingWrap) {
+      clientBillingWrap.classList.toggle('hidden', !isClient);
+      clientBillingWrap.hidden = !isClient;
+    }
+    if (clientNaturalFields) {
+      const hideNatural = !isClient || company;
+      clientNaturalFields.classList.toggle('hidden', hideNatural);
+      clientNaturalFields.hidden = hideNatural;
+    }
+    if (clientBillingFields) {
+      clientBillingFields.classList.toggle('hidden', !company);
+      clientBillingFields.hidden = !company;
+    }
     if (billingTypeHidden) billingTypeHidden.value = company ? 'empresa' : 'natural';
 
     placeRutField(company);
 
-    if (clientRut) clientRut.required = isClient;
+    if (clientRut) clientRut.required = company;
     if (clientLegalName) clientLegalName.required = company;
     if (clientGiro) clientGiro.required = company;
 
@@ -108,7 +120,7 @@
     if (rutHint) {
       rutHint.textContent = company
         ? t('register.client_rut_hint_company', 'Obligatorio para factura a la empresa.')
-        : t('register.client_rut_hint_natural', 'Tu RUT para boleta. Lo usamos al pagar.');
+        : t('register.client_rut_hint_natural', 'Opcional. Lo puedes completar al pedir la visita.');
     }
 
     if (nameLabel) {
@@ -159,7 +171,8 @@
 
   form.addEventListener('submit', (e) => {
     if (!isClientRole()) return;
-    if (!validateClientRut(true)) e.preventDefault();
+    if (isCompanyClient() && !validateClientRut(true)) e.preventDefault();
+    else if (clientRut && clientRut.value.trim() && !validateClientRut(true)) e.preventDefault();
   });
 
   form.addEventListener('invalid', (event) => {
