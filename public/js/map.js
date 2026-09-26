@@ -224,7 +224,11 @@ window.FandezMap = {
 
     if (destLat != null && destLng != null && !isNaN(parseFloat(destLat))) {
       this._drawRoute(containerId, plat, plng, destLat, destLng);
-      map.fitBounds(L.latLngBounds([[destLat, destLng], [plat, plng]]).pad(0.22));
+      const bounds = L.latLngBounds([[destLat, destLng], [plat, plng]]);
+      map.fitBounds(bounds.pad(0.08), {
+        padding: [36, 36],
+        maxZoom: 17
+      });
     }
     setTimeout(() => map.invalidateSize(), 80);
   }
