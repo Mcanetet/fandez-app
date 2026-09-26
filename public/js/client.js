@@ -256,7 +256,7 @@
     if (typeof FandezMap !== 'undefined') {
       showAddressOnMap(SANTIAGO.lat, SANTIAGO.lng, 'Santiago, Chile', { approximate: true });
       const map = FandezMap.maps.addressMap;
-      if (map) map.setZoom(12);
+      if (map) map.setZoom(15);
     }
 
     updatePricePreview();

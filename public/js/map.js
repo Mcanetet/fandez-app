@@ -85,7 +85,7 @@ window.FandezMap = {
     lat,
     lng,
     label,
-    zoom = 14,
+    zoom = 16,
     interactive = true,
     markerDraggable = false,
     onMarkerDrag
@@ -135,7 +135,7 @@ window.FandezMap = {
   },
 
   initTracking(container, { destLat, destLng, destLabel, providerLat, providerLng }) {
-    this.init(container, { lat: destLat, lng: destLng, label: destLabel, zoom: 14 });
+    this.init(container, { lat: destLat, lng: destLng, label: destLabel, zoom: 16 });
     const mapId = container.id;
     if (providerLat != null && providerLng != null && !isNaN(parseFloat(providerLat))) {
       this.updateProviderLocation(mapId, providerLat, providerLng, destLat, destLng);
