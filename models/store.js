@@ -3578,7 +3578,7 @@ async function changeUserPassword(userId, currentPassword, newPassword) {
   const current = String(currentPassword || '');
   const next = String(newPassword || '');
   if (!current || !next) return { error: 'Completa la contraseña actual y la nueva.' };
-  if (next.length < 10) return { error: 'La nueva contraseña debe tener al menos 10 caracteres.' };
+  if (next.length < 8) return { error: 'La nueva contraseña debe tener al menos 8 caracteres.' };
   if (next === current) return { error: 'La nueva contraseña debe ser distinta a la actual.' };
 
   const check = await verifyPassword(current, user.password);
@@ -3669,7 +3669,7 @@ async function resetPasswordWithToken(token, newPassword, confirmPassword) {
   ensureReady();
   const next = String(newPassword || '');
   const confirm = String(confirmPassword || '');
-  if (next.length < 10) return { errorKey: 'reset.error_password_short' };
+  if (next.length < 8) return { errorKey: 'reset.error_password_short' };
   if (next !== confirm) return { errorKey: 'reset.error_password_mismatch' };
 
   const user = findUserByPasswordResetToken(token);
@@ -3761,7 +3761,7 @@ async function registerUser({
 
   if (!name || !email || !password) return { errorKey: 'register.error_incomplete' };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { errorKey: 'register.error_invalid_email' };
-  if (password.length < 10) return { errorKey: 'register.error_password_short' };
+  if (password.length < 8) return { errorKey: 'register.error_password_short' };
   if (!(phone || '').trim()) {
     return { errorKey: 'register.error_phone_required' };
   }
@@ -4176,8 +4176,8 @@ async function createTechnician(socioId, { name, email, password, phone, special
     // Invitación por correo: el técnico elige su contraseña al abrir el link.
     invitePending = true;
     passwordToHash = require('crypto').randomBytes(32).toString('hex');
-  } else if (providedPassword.length < 10) {
-    return { error: 'La contraseña debe tener al menos 10 caracteres.' };
+  } else if (providedPassword.length < 8) {
+    return { error: 'La contraseña debe tener al menos 8 caracteres.' };
   }
 
   const hashedPassword = await hashPassword(passwordToHash);
@@ -4310,7 +4310,7 @@ async function activateTechnicianInvite(token, { password, phone, name } = {}) {
   const tecnico = found.tecnico;
   ensureTechnicianDossier(tecnico);
   const pwd = String(password || '');
-  if (pwd.length < 10) return { error: 'La contraseña debe tener al menos 10 caracteres.', tecnico };
+  if (pwd.length < 8) return { error: 'La contraseña debe tener al menos 8 caracteres.', tecnico };
   const phoneVal = String(phone || '').trim();
   if (!phoneVal || phoneVal.length < 8) return { error: 'Ingresa tu teléfono.', tecnico };
 
@@ -8352,10 +8352,10 @@ async function updateTechnicianForProvider(socioId, tecnicoId, { name, phone, pa
   if (phone != null) {
     tecnico.phone = String(phone).trim().slice(0, 32);
   }
-  if (password && String(password).length >= 10) {
+  if (password && String(password).length >= 8) {
     tecnico.password = await hashPassword(String(password));
   } else if (password && String(password).length > 0) {
-    return { error: 'La contraseña debe tener al menos 10 caracteres.' };
+    return { error: 'La contraseña debe tener al menos 8 caracteres.' };
   }
   if (specialties !== undefined) {
     const socio = getUserById(socioId);

@@ -1090,8 +1090,8 @@ router.post('/activar-tecnico/:token', rateLimitLogin(10), async (req, res) => {
 
   const password = String(req.body.password || '');
   const passwordConfirm = String(req.body.password_confirm || req.body.passwordConfirm || '');
-  if (password.length < 10) {
-    return renderErr('La contraseña debe tener al menos 10 caracteres.', { providerName: provider?.name });
+  if (password.length < 8) {
+    return renderErr('La contraseña debe tener al menos 8 caracteres.', { providerName: provider?.name });
   }
   if (password !== passwordConfirm) {
     return renderErr('Las contraseñas no coinciden.', { providerName: provider?.name });

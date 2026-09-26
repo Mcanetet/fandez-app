@@ -44,7 +44,7 @@
             label: t('reset.new_password'),
             hint: t('auth.password_hint'),
             autocomplete: 'new-password',
-            minlength: 10,
+            minlength: 8,
             required: true
           }) %>
         </div>
@@ -54,7 +54,7 @@
             name: 'passwordConfirm',
             label: t('reset.confirm_password'),
             autocomplete: 'new-password',
-            minlength: 10,
+            minlength: 8,
             required: true
           }) %>
           <p id="resetMatchHint" class="hidden mt-1.5 text-xs text-zilo-danger"><%= t('reset.error_password_mismatch') %></p>
@@ -83,7 +83,7 @@
   b.addEventListener('input', check);
   form.addEventListener('submit', function (e) {
     check();
-    if (a.value.length < 10 || a.value !== b.value) e.preventDefault();
+    if (a.value.length < 8 || a.value !== b.value) e.preventDefault();
   });
 })();
 </script>
