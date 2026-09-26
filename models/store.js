@@ -3844,79 +3844,69 @@ async function registerUser({
 
   const addr = (address || '').trim();
   const unit = (addressUnit || '').trim();
-  const wantsAddress = Boolean(
-    addr
-    || String(addressCommune || '').trim()
-    || String(addressLat || '').trim()
-    || String(addressLng || '').trim()
-  );
+  if (addr.length < 5) {
+    return {
+      errorKey: role === 'provider'
+        ? 'register.error_address_required_provider'
+        : 'register.error_address_required'
+    };
+  }
 
-  // Clientes: dirección opcional (completar al pedir visita). Socios: obligatoria.
-  if (role === 'provider' || wantsAddress) {
-    if (addr.length < 5) {
-      return {
-        errorKey: role === 'provider'
-          ? 'register.error_address_required_provider'
-          : 'register.error_address_required'
-      };
-    }
+  const regionCode = String(addressRegion || '').trim() || 'region-metropolitana';
+  const communeMeta = addressCommune ? getCommune(regionCode, addressCommune) : null;
+  if (!communeMeta) return { errorKey: 'register.error_commune_required' };
 
-    const regionCode = String(addressRegion || '').trim() || 'region-metropolitana';
-    const communeMeta = addressCommune ? getCommune(regionCode, addressCommune) : null;
-    if (!communeMeta) return { errorKey: 'register.error_commune_required' };
+  const lat = parseFloat(addressLat);
+  const lng = parseFloat(addressLng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { errorKey: 'register.error_address_select' };
+  }
 
-    const lat = parseFloat(addressLat);
-    const lng = parseFloat(addressLng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      return { errorKey: 'register.error_address_select' };
-    }
+  const parsedAddr = parseStreetAndNumber(addr);
+  if (!parsedAddr) return { errorKey: 'register.error_address_street_number' };
 
-    const parsedAddr = parseStreetAndNumber(addr);
-    if (!parsedAddr) return { errorKey: 'register.error_address_street_number' };
-
-    // Fast path: el usuario ya confirmó calle+número y pin en el mapa.
-    const fullAddr = withCommuneContext(addr, communeMeta.name);
-    if (lat < -56 || lat > -17 || lng < -76 || lng > -66) {
+  // Fast path: el usuario ya confirmó calle+número y pin en el mapa.
+  const fullAddr = withCommuneContext(addr, communeMeta.name);
+  if (lat < -56 || lat > -17 || lng < -76 || lng > -66) {
+    return { errorKey: 'register.error_address_mismatch' };
+  }
+  const center = staticCommuneCenter(communeMeta.name, communeMeta.regionName);
+  if (center?.found) {
+    const distToCommune = haversineKm(lat, lng, center.lat, center.lng);
+    if (distToCommune > 25) {
       return { errorKey: 'register.error_address_mismatch' };
     }
-    const center = staticCommuneCenter(communeMeta.name, communeMeta.regionName);
-    if (center?.found) {
-      const distToCommune = haversineKm(lat, lng, center.lat, center.lng);
-      if (distToCommune > 25) {
-        return { errorKey: 'register.error_address_mismatch' };
-      }
-    }
-
-    const geo = {
-      found: true,
-      lat,
-      lng,
-      label: fullAddr,
-      placeId: (addressPlaceId || '').trim() || null,
-      approximate: true
-    };
-
-    const coverage = buildCoverageResult(communeMeta, coverageMap);
-    if (!coverage.covered) {
-      const allowOutsideCoverage = role === 'provider' || isPreOperations();
-      if (!allowOutsideCoverage) {
-        return {
-          errorKey: coverage.messageKey || 'coverage.not_available',
-          code: 'coverage',
-          coverage
-        };
-      }
-      console.warn(
-        `[registro] ${role} fuera de cobertura operativa: ${communeMeta.name} (${communeMeta.regionCode}/${communeMeta.code})`
-      );
-    }
-
-    resolvedAddress = unit.length >= 2
-      ? `${geo.label || fullAddr}, ${unit}`
-      : (geo.label || fullAddr);
-    resolvedCoords = { lat, lng };
-    resolvedPlaceId = (addressPlaceId || geo.placeId || '').trim() || null;
   }
+
+  const geo = {
+    found: true,
+    lat,
+    lng,
+    label: fullAddr,
+    placeId: (addressPlaceId || '').trim() || null,
+    approximate: true
+  };
+
+  const coverage = buildCoverageResult(communeMeta, coverageMap);
+  if (!coverage.covered) {
+    const allowOutsideCoverage = role === 'provider' || isPreOperations();
+    if (!allowOutsideCoverage) {
+      return {
+        errorKey: coverage.messageKey || 'coverage.not_available',
+        code: 'coverage',
+        coverage
+      };
+    }
+    console.warn(
+      `[registro] ${role} fuera de cobertura operativa: ${communeMeta.name} (${communeMeta.regionCode}/${communeMeta.code})`
+    );
+  }
+
+  resolvedAddress = unit.length >= 2
+    ? `${geo.label || fullAddr}, ${unit}`
+    : (geo.label || fullAddr);
+  resolvedCoords = { lat, lng };
+  resolvedPlaceId = (addressPlaceId || geo.placeId || '').trim() || null;
 
   if (role === 'client') {
     const billingType = clientBillingType === 'empresa' ? 'empresa' : 'natural';
