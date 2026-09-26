@@ -465,6 +465,21 @@ router.get('/perfil', requireRole('provider'), requireModule('provider_perfil'),
   });
 });
 
+router.get('/alertas', requireRole('provider'), (req, res) => {
+  const { listOpenAlertsForUser } = require('../lib/userAlerts');
+  const bag = listOpenAlertsForUser(store, req.session.user, {
+    siteAlerts: res.locals.siteAlerts || []
+  });
+  res.render('alerts/inbox', {
+    title: 'Alertas — Fandez',
+    user: req.session.user,
+    alerts: bag.alerts,
+    actionCount: bag.actionCount,
+    alertsBase: '/proveedor',
+    navActive: 'alertas'
+  });
+});
+
 router.post('/perfil', requireRole('provider'), requireModule('provider_perfil'), (req, res) => {
   const user = store.updateUserProfile(req.session.user.id, req.body);
   if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });

@@ -26,6 +26,12 @@
         </div>
       </div>
       <div class="app-session-header__end tech-session-header__end">
+        <a href="/tecnico/alertas" class="relative zilo-btn-ghost !py-2 !px-3 !text-xs whitespace-nowrap" aria-label="Alertas">
+          Alertas
+          <% if (typeof openAlertCount !== 'undefined' && openAlertCount > 0) { %>
+            <span class="absolute -top-1 -right-1 min-w-[1rem] h-4 px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center"><%= openAlertCount > 9 ? '9+' : openAlertCount %></span>
+          <% } %>
+        </a>
         <% if (typeof linkedProvider !== 'undefined' && linkedProvider) { %>
         <button type="button" id="btnBackToProvider" class="zilo-btn-ghost !py-2 !px-3 !text-xs whitespace-nowrap">Socio</button>
         <% } %>

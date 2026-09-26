@@ -387,6 +387,19 @@ app.use(async (req, res, next) => {
     res.locals.siteAlerts = [];
   }
 
+  // Contador de alertas abiertas (cliente / socio / técnico) para badge en nav
+  res.locals.openAlertCount = 0;
+  res.locals.openAlertActionCount = 0;
+  try {
+    const u = req.session?.user;
+    if (u && ['client', 'provider', 'tecnico'].includes(u.role) && store.isReady()) {
+      const { listOpenAlertsForUser } = require('./lib/userAlerts');
+      const bag = listOpenAlertsForUser(store, u, { siteAlerts: res.locals.siteAlerts || [] });
+      res.locals.openAlertCount = bag.actionCount || bag.count || 0;
+      res.locals.openAlertActionCount = bag.actionCount || 0;
+    }
+  } catch (_) { /* ignore */ }
+
   // Evita que Safari/Chrome en móvil reutilicen HTML viejo (colores/logo antiguos)
   const accept = req.get('accept') || '';
   if (accept.includes('text/html')) {

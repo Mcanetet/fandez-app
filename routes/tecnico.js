@@ -148,6 +148,22 @@ router.get('/', requireRole('tecnico'), (req, res) => {
     onboardingCompleteUrl: '/tecnico/onboarding/complete'
   });
 });
+
+router.get('/alertas', requireRole('tecnico'), (req, res) => {
+  const { listOpenAlertsForUser } = require('../lib/userAlerts');
+  const bag = listOpenAlertsForUser(store, req.session.user, {
+    siteAlerts: res.locals.siteAlerts || []
+  });
+  res.render('alerts/inbox', {
+    title: 'Alertas — Fandez',
+    user: req.session.user,
+    alerts: bag.alerts,
+    actionCount: bag.actionCount,
+    alertsBase: '/tecnico',
+    navActive: 'alertas'
+  });
+});
+
 router.post('/onboarding/complete', requireRole('tecnico'), (req, res) => {
   const user = store.completeOnboarding(req.session.user.id);
   if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });

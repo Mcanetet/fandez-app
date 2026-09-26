@@ -375,6 +375,25 @@ window.FandezAlerts = {
     if (!force && this._lastKey[key] && nowMs - this._lastKey[key] < 2200) return;
     this._lastKey[key] = nowMs;
 
+    // Historial local para /alertas (cliente, socio, técnico)
+    try {
+      const inboxKey = 'fandez_alert_inbox';
+      const entry = {
+        title: title || 'Fandez',
+        body: body || '',
+        type,
+        url: url || null,
+        at: new Date().toISOString()
+      };
+      const prev = JSON.parse(localStorage.getItem(inboxKey) || '[]');
+      const next = Array.isArray(prev) ? prev : [];
+      const fp = `${entry.type}|${entry.title}|${entry.body}`;
+      if (!next.length || `${next[0].type}|${next[0].title}|${next[0].body}` !== fp) {
+        next.unshift(entry);
+        localStorage.setItem(inboxKey, JSON.stringify(next.slice(0, 40)));
+      }
+    } catch (_) { /* ignore */ }
+
     // Un solo toast elegante: título + cuerpo (evita apilar “¡Proveedor!” + el mismo aviso)
     if (opts.toast !== false && window.FandezNotify) {
       const toastType = typeof opts.toast === 'string' ? opts.toast : (this.TOAST_TYPE[type] || 'info');

@@ -359,6 +359,21 @@ router.get('/historial', requireRole('client'), requireModule('client_historial'
   });
 });
 
+router.get('/alertas', requireRole('client'), (req, res) => {
+  const { listOpenAlertsForUser } = require('../lib/userAlerts');
+  const bag = listOpenAlertsForUser(store, req.session.user, {
+    siteAlerts: res.locals.siteAlerts || []
+  });
+  res.render('alerts/inbox', {
+    title: 'Alertas — Fandez',
+    user: req.session.user,
+    alerts: bag.alerts,
+    actionCount: bag.actionCount,
+    alertsBase: '/cliente',
+    navActive: 'alertas'
+  });
+});
+
 router.get('/invitar', requireRole('client'), requireModule('client_referidos'), (req, res) => {
   const profile = store.getUserById(req.session.user.id);
   const referral = store.getReferralStats(req.session.user.id);
