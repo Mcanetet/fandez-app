@@ -397,6 +397,11 @@
     const longitude = parseFloat(lng);
     if (isNaN(latitude) || isNaN(longitude)) return;
 
+    // En registro cliente el mapa solo aparece al confirmar pin (ahorra scroll).
+    if (draggable || document.querySelector('.register-sheet--client') == null) {
+      mapEl.classList.add('register-map--active');
+    }
+
     const mapZoom = zoom || 16;
     const markerOptions = {
       zoom: mapZoom,

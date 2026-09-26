@@ -246,7 +246,7 @@
   "register.title": "Crear cuenta",
   "register.title_provider": "Únete como socio",
   "register.subtitle": "Únete a Fandez",
-  "register.subtitle_full": "Nombre, correo, teléfono, clave y dirección. El RUT es opcional.",
+  "register.subtitle_full": "Nombre, correo, teléfono, clave y dirección. RUT opcional.",
   "register.subtitle_provider": "Cuenta, zona y oficios. Carnet después.",
   "register.role_label": "¿Quién eres?",
   "register.role_client": "Cliente",
