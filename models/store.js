@@ -3805,14 +3805,15 @@ async function registerUser({
   if (role === 'client') {
     const billingType = clientBillingType === 'empresa' ? 'empresa' : 'natural';
     const rut = (clientRut || '').trim();
-    // RUT opcional en persona natural (se completa al pagar). Empresa sí lo exige.
+    // Persona natural: RUT + dirección. Empresa: RUT empresa + razón social + giro.
     if (billingType === 'empresa') {
       if (!rut) return { errorKey: 'register.error_client_rut' };
       if (!validateRut(rut)) return { errorKey: 'register.error_client_rut_invalid' };
       if (!(clientLegalName || '').trim()) return { errorKey: 'register.error_client_company_name' };
       if (!(clientGiro || '').trim()) return { errorKey: 'register.error_client_giro' };
-    } else if (rut && !validateRut(rut)) {
-      return { errorKey: 'register.error_client_rut_invalid' };
+    } else {
+      if (!rut) return { errorKey: 'register.error_client_rut' };
+      if (!validateRut(rut)) return { errorKey: 'register.error_client_rut_invalid' };
     }
     if (rut) {
       const rutGuard = assertRutAvailableForAccount(rut, {

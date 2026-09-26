@@ -3,15 +3,19 @@
   if (!form) return;
 
   const clientBillingWrap = document.getElementById('clientBillingWrap');
+  const clientNaturalFields = document.getElementById('clientNaturalFields');
   const clientBillingFields = document.getElementById('clientBillingFields');
+  const clientCompanyRutSlot = document.getElementById('clientCompanyRutSlot');
   const clientEmpresaToggle = document.getElementById('clientEmpresaToggle');
   const billingTypeHidden = document.getElementById('clientBillingTypeHidden');
   const clientRut = document.getElementById('client_rut');
+  const clientRutLabel = document.getElementById('clientRutLabel');
   const clientLegalName = document.getElementById('client_legal_name');
   const clientGiro = document.getElementById('client_giro');
   const rutHint = document.getElementById('clientRutHint');
   const nameLabel = document.getElementById('nameLabel');
   const nameInput = document.getElementById('name');
+  const rutFieldWrap = clientRut ? clientRut.closest('div') : null;
 
   function t(key, fallback) {
     if (typeof FandezI18n !== 'undefined') {
@@ -43,16 +47,11 @@
       return true;
     }
 
-    const company = isCompanyClient();
     const value = clientRut.value.trim();
-
-    if (!company) {
-      showRutError('');
-      return true;
-    }
-
     if (!value) {
-      const msg = t('register.error_client_rut', 'Ingresa el RUT de la empresa.');
+      const msg = isCompanyClient()
+        ? t('register.error_client_rut', 'Ingresa el RUT de la empresa.')
+        : t('register.error_client_rut', 'Ingresa tu RUT.');
       showRutError(msg);
       if (showMessage) {
         clientRut.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -76,22 +75,40 @@
     return true;
   }
 
+  function placeRutField(company) {
+    if (!rutFieldWrap) return;
+    if (company && clientCompanyRutSlot) {
+      clientCompanyRutSlot.appendChild(rutFieldWrap);
+    } else if (clientNaturalFields) {
+      clientNaturalFields.appendChild(rutFieldWrap);
+    }
+  }
+
   function syncClientBilling() {
     const isClient = isClientRole();
     const company = isCompanyClient();
 
     if (clientBillingWrap) clientBillingWrap.classList.toggle('hidden', !isClient);
+    if (clientNaturalFields) clientNaturalFields.classList.toggle('hidden', !isClient || company);
     if (clientBillingFields) clientBillingFields.classList.toggle('hidden', !company);
     if (billingTypeHidden) billingTypeHidden.value = company ? 'empresa' : 'natural';
 
-    if (clientRut) clientRut.required = company;
+    placeRutField(company);
+
+    if (clientRut) clientRut.required = isClient;
     if (clientLegalName) clientLegalName.required = company;
     if (clientGiro) clientGiro.required = company;
 
+    if (clientRutLabel) {
+      clientRutLabel.textContent = company
+        ? (clientRutLabel.dataset.labelCompany || t('register.client_rut_company', 'RUT empresa'))
+        : (clientRutLabel.dataset.labelNatural || t('register.client_rut_natural', 'Tu RUT'));
+    }
+
     if (rutHint) {
       rutHint.textContent = company
-        ? t('register.client_rut_hint_company', 'Obligatorio para factura.')
-        : t('register.client_rut_hint_optional', 'Opcional ahora; lo pedimos al pagar.');
+        ? t('register.client_rut_hint_company', 'Obligatorio para factura a la empresa.')
+        : t('register.client_rut_hint_natural', 'Tu RUT para boleta. Lo usamos al pagar.');
     }
 
     if (nameLabel) {
@@ -113,7 +130,7 @@
       }
     }
 
-    if (!company) showRutError('');
+    if (!isClient) showRutError('');
   }
 
   if (clientEmpresaToggle) {
@@ -127,7 +144,12 @@
   if (clientRut) {
     clientRut.addEventListener('input', () => showRutError(''));
     clientRut.addEventListener('blur', () => {
-      if (!isCompanyClient() || !clientRut.value.trim()) {
+      if (!isClientRole()) {
+        showRutError('');
+        return;
+      }
+      if (!clientRut.value.trim() && !isCompanyClient()) {
+        // vacío: se valida al enviar
         showRutError('');
         return;
       }

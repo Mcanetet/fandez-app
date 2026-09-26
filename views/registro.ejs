@@ -129,6 +129,17 @@
           </span>
         </label>
         <input type="hidden" name="client_billing_type" id="clientBillingTypeHidden" value="<%= form.clientBillingType === 'empresa' ? 'empresa' : 'natural' %>">
+
+        <div id="clientNaturalFields" class="register-form__fields register-form__fields--tight mt-3 <%= form.clientBillingType === 'empresa' ? 'hidden' : '' %>">
+          <div>
+            <label for="client_rut" id="clientRutLabel" class="register-form__label"
+              data-label-natural="<%= t('register.client_rut_natural') %>"
+              data-label-company="<%= t('register.client_rut_company') %>"><%= t('register.client_rut_natural') %></label>
+            <input type="text" id="client_rut" name="client_rut" placeholder="12.345.678-9" class="zilo-input" value="<%= form.clientRut || '' %>" autocomplete="off" <%= form.role === 'client' && form.clientBillingType !== 'empresa' ? 'required' : '' %>>
+            <p id="clientRutHint" class="register-form__field-hint"><%= t('register.client_rut_hint_natural') %></p>
+          </div>
+        </div>
+
         <div id="clientBillingFields" class="register-form__billing <%= form.clientBillingType === 'empresa' ? '' : 'hidden' %>">
           <p class="register-form__section-title mt-3"><%= t('register.client_billing_title') %></p>
           <p class="register-form__section-hint"><%= t('register.client_billing_hint') %></p>
@@ -141,11 +152,7 @@
               <label for="client_giro" class="register-form__label"><%= t('register.client_giro') %></label>
               <input type="text" id="client_giro" name="client_giro" placeholder="<%= t('register.client_giro_placeholder') %>" class="zilo-input" value="<%= form.clientGiro || '' %>">
             </div>
-            <div>
-              <label for="client_rut" class="register-form__label"><%= t('register.client_rut') %></label>
-              <input type="text" id="client_rut" name="client_rut" placeholder="12.345.678-9" class="zilo-input" value="<%= form.clientRut || '' %>" autocomplete="off">
-              <p id="clientRutHint" class="register-form__field-hint"><%= t('register.client_rut_hint_company') %></p>
-            </div>
+            <div id="clientCompanyRutSlot"></div>
           </div>
         </div>
       </div>
@@ -451,6 +458,9 @@
   'register.error_client_rut_invalid': t('register.error_client_rut_invalid'),
   'register.client_rut_hint_optional': t('register.client_rut_hint_optional'),
   'register.client_rut_hint_company': t('register.client_rut_hint_company'),
+  'register.client_rut_hint_natural': t('register.client_rut_hint_natural'),
+  'register.client_rut_natural': t('register.client_rut_natural'),
+  'register.client_rut_company': t('register.client_rut_company'),
   'register.name': t('register.name'),
   'register.name_placeholder': t('register.name_placeholder'),
   'register.contact_name': t('register.contact_name'),
