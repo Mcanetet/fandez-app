@@ -2589,7 +2589,7 @@ body.session-role--tecnico::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.4rem 0.65rem;
+  padding: 0.4rem 0.55rem;
   font-family: Nunito, system-ui, sans-serif;
   font-size: 0.75rem;
   font-weight: 700;
@@ -2599,6 +2599,26 @@ body.session-role--tecnico::before {
   color: var(--zilo-muted);
   white-space: nowrap;
   transition: color 0.15s ease, background 0.15s ease;
+}
+
+/* Por defecto compacto (ES/EN) para no montarse sobre el logo en móvil */
+.lang-switch-link__short {
+  display: inline;
+}
+.lang-switch-link__long {
+  display: none;
+}
+
+@media (min-width: 520px) {
+  .lang-switch-link {
+    padding: 0.4rem 0.65rem;
+  }
+  .lang-switch-link__short {
+    display: none;
+  }
+  .lang-switch-link__long {
+    display: inline;
+  }
 }
 
 .lang-switch-link:hover {
@@ -2626,6 +2646,13 @@ body.session-role--tecnico::before {
 .app-session-header .lang-switch-link {
   padding: 0.35rem 0.5rem;
   font-size: 0.6875rem;
+}
+/* Headers de sesión siempre compactos: conviven con logout */
+.app-session-header .lang-switch-link__short {
+  display: inline;
+}
+.app-session-header .lang-switch-link__long {
+  display: none;
 }
 .app-session-logout {
   color: #a84e10 !important;
@@ -2667,6 +2694,12 @@ body.session-role--tecnico::before {
 .back-header-compact .lang-switch-link {
   padding: 0.35rem 0.5rem;
   font-size: 0.6875rem;
+}
+.back-header-compact .lang-switch-link__short {
+  display: inline;
+}
+.back-header-compact .lang-switch-link__long {
+  display: none;
 }
 .back-header-compact .app-session-logout {
   width: 2.25rem;
@@ -4399,6 +4432,7 @@ body.admin-modal-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   padding: 1.25rem 1.25rem 0;
   max-width: 32rem;
   margin: 0 auto;
@@ -4408,8 +4442,31 @@ body.admin-modal-open {
   display: flex;
   align-items: center;
   gap: 0.625rem;
+  min-width: 0;
   color: var(--zilo-text);
   text-decoration: none;
+}
+.fandez-error-brand .fandez-wordmark {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fandez-error-header .lang-switcher {
+  flex-shrink: 0;
+}
+.fandez-error-header .lang-switch-link__short {
+  display: inline;
+}
+.fandez-error-header .lang-switch-link__long {
+  display: none;
+}
+@media (min-width: 520px) {
+  .fandez-error-header .lang-switch-link__short {
+    display: none;
+  }
+  .fandez-error-header .lang-switch-link__long {
+    display: inline;
+  }
 }
 
 .fandez-error-main {
@@ -5073,6 +5130,7 @@ body.admin-modal-open {
   align-items: center;
   gap: 0.625rem;
   min-width: 0;
+  overflow: hidden;
 }
 
 .landing-header__logo {
@@ -5085,6 +5143,9 @@ body.admin-modal-open {
   font-size: 1.5rem;
   line-height: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .landing-header__actions {
@@ -5092,15 +5153,23 @@ body.admin-modal-open {
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+  max-width: 100%;
 }
 
 .landing-header__actions .lang-switcher {
   flex-shrink: 0;
 }
 
+/* Con Ingresar al lado, el selector queda compacto hasta tener aire real */
 .landing-header__actions .lang-switch-link {
-  padding: 0.45rem 0.65rem;
+  padding: 0.4rem 0.5rem;
   font-size: 0.75rem;
+}
+.landing-header__actions .lang-switch-link__short {
+  display: inline;
+}
+.landing-header__actions .lang-switch-link__long {
+  display: none;
 }
 
 .landing-header__login {
@@ -5120,6 +5189,18 @@ body.admin-modal-open {
 
   .landing-header__wordmark {
     font-size: 1.75rem;
+  }
+}
+
+@media (min-width: 560px) {
+  .landing-header__actions .lang-switch-link {
+    padding: 0.45rem 0.65rem;
+  }
+  .landing-header__actions .lang-switch-link__short {
+    display: none;
+  }
+  .landing-header__actions .lang-switch-link__long {
+    display: inline;
   }
 }
 
@@ -5856,6 +5937,20 @@ header.sticky.bg-zilo-bg\/90,
 }
 .auth-topbar__lang {
   flex-shrink: 0;
+}
+.auth-topbar__lang .lang-switch-link__short {
+  display: inline;
+}
+.auth-topbar__lang .lang-switch-link__long {
+  display: none;
+}
+@media (min-width: 520px) {
+  .auth-topbar__lang .lang-switch-link__short {
+    display: none;
+  }
+  .auth-topbar__lang .lang-switch-link__long {
+    display: inline;
+  }
 }
 @media (max-width: 360px) {
   .auth-back__text {
