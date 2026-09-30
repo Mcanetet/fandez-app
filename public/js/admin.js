@@ -140,6 +140,155 @@
     btn.addEventListener('click', () => activateTab(btn.dataset.tab));
   });
 
+  /* ——— Atención hoy: modal de proceso ——— */
+  const ATTENTION_PROCESSES = {
+    'AD-01': {
+      title: 'Acceso admin (login + MFA)',
+      steps: [
+        'Identifica si el fallo es login, MFA o registro (security_logs).',
+        'No desactives MFA ni la allowlist IP “por apuro”.',
+        'Si hay pico de fallos: revisar IP, rotar credenciales comprometidas y dejar nota.',
+        'Nunca compartas la URL secreta del admin por Sofía ni chats públicos.'
+      ]
+    },
+    'AD-02': {
+      title: 'Inbox / dashboard (orden del día)',
+      steps: [
+        'Vaciar seguridad S1 primero.',
+        'Luego pagos (transferencias y devoluciones).',
+        'Contratos/KYC que bloquean socios.',
+        'Chats Sofía esperando admin y resto de colas.'
+      ]
+    },
+    'AD-03': {
+      title: 'Solicitudes: caso 360° y asignación',
+      steps: [
+        'Abre el caso 360°: cliente, socio, técnico, timeline y dinero.',
+        'Si no hay socio: asigna manual solo con elegibles verificados.',
+        'Sin elegibles: ampliar búsqueda / contactar offline / ofrecer reembolso.',
+        'No saltes KYC ni “el mismo de siempre” sin historial y disponibilidad.'
+      ]
+    },
+    'AD-04': {
+      title: 'Pagos: transferencia, reembolso y payout',
+      steps: [
+        'Transfer cliente: verificar comprobante → aprobar → activa la solicitud.',
+        'Reembolso: requested → processing → paid/failed (no marques paid sin evidencia).',
+        'Payout socio: marcar pagado según calendario y monto correcto.',
+        'Doble cobro o transfer dudosa: congelar, anotar en el caso y security_log.'
+      ]
+    },
+    'AD-05': {
+      title: 'Contratos y KYC de socios',
+      steps: [
+        'Revisa documentos: approve / reject / needs_info con lista clara.',
+        'Docs dudosos → needs_info; no apruebes “a ojo”.',
+        'Reject deja al socio offline: comunica el motivo en la app.',
+        'Trae al panel todo lo que el socio envíe por fuera.'
+      ]
+    },
+    'AD-06': {
+      title: 'Reclamos y seguridad (S1/S2/S3)',
+      steps: [
+        'Lee categoría, notas, pedido, chat y GPS antes de actuar.',
+        'S1: priorizar seguridad/133 si aplica; congelar cuentas si hay riesgo; conservar evidencia.',
+        'S2: incidente + revisión 24–72 h. S3: reclamo calidad/daño estándar.',
+        'No auto-llames emergencias desde la app: orienta al usuario y deja rastro.'
+      ]
+    }
+  };
+
+  let attentionModalState = { tab: '', requestId: '', goLabel: 'Ir a la cola' };
+
+  function closeAttentionProcessModal() {
+    const modal = document.getElementById('adminAttentionProcessModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('admin-modal-open');
+  }
+
+  function openAttentionProcessModal(item) {
+    const modal = document.getElementById('adminAttentionProcessModal');
+    const body = document.getElementById('adminAttentionProcessBody');
+    const titleEl = document.getElementById('adminAttentionProcessTitle');
+    const subEl = document.getElementById('adminAttentionProcessSub');
+    const codeEl = document.getElementById('adminAttentionProcessCode');
+    const goBtn = document.getElementById('adminAttentionGoTab');
+    const caseBtn = document.getElementById('adminAttentionOpenCase');
+    if (!modal || !body) return;
+
+    const process = ATTENTION_PROCESSES[item.processId] || ATTENTION_PROCESSES['AD-02'];
+    attentionModalState = {
+      tab: item.tab || '',
+      requestId: item.requestId || '',
+      goLabel: item.goLabel || 'Ir a la cola'
+    };
+
+    if (codeEl) codeEl.textContent = item.processId || 'AD-02';
+    if (titleEl) titleEl.textContent = process.title;
+    if (subEl) subEl.textContent = item.title || '';
+
+    const stepsHtml = (process.steps || []).map((step, i) =>
+      `<li class="flex gap-2 text-sm text-gray-700"><span class="shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-900 text-[11px] font-bold flex items-center justify-center">${i + 1}</span><span>${escapeHtml(step)}</span></li>`
+    ).join('');
+
+    body.innerHTML = `
+      ${item.body ? `<p class="text-xs text-gray-500 rounded-xl border border-amber-100 bg-amber-50/70 p-3">${escapeHtml(item.body)}</p>` : ''}
+      <div class="rounded-xl border border-gray-100 p-3">
+        <p class="text-[11px] font-bold uppercase text-gray-400 mb-2">Qué hacer ahora</p>
+        <ol class="space-y-2">${stepsHtml}</ol>
+      </div>
+    `;
+
+    if (goBtn) goBtn.textContent = attentionModalState.goLabel;
+    if (caseBtn) {
+      const hasCase = Boolean(attentionModalState.requestId);
+      caseBtn.classList.toggle('hidden', !hasCase);
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('admin-modal-open');
+  }
+
+  document.querySelectorAll('.admin-attention-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      openAttentionProcessModal({
+        type: btn.dataset.type || '',
+        processId: btn.dataset.process || 'AD-02',
+        tab: btn.dataset.tab || '',
+        requestId: btn.dataset.requestId || '',
+        title: btn.dataset.title || '',
+        body: btn.dataset.body || '',
+        goLabel: btn.dataset.goLabel || 'Ir a la cola'
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-close-attention-process]').forEach((el) => {
+    el.addEventListener('click', closeAttentionProcessModal);
+  });
+
+  document.getElementById('adminAttentionGoTab')?.addEventListener('click', () => {
+    const tab = attentionModalState.tab;
+    closeAttentionProcessModal();
+    if (tab) activateTab(tab);
+  });
+
+  document.getElementById('adminAttentionOpenCase')?.addEventListener('click', () => {
+    const id = attentionModalState.requestId;
+    closeAttentionProcessModal();
+    if (id && typeof window.__fandezOpenRequestCase === 'function') {
+      window.__fandezOpenRequestCase(id);
+    } else if (id) {
+      // Fallback: ir a solicitudes si el caso aún no está listo
+      activateTab('solicitudes');
+    }
+  });
+
   /* ——— Equipo admin ——— */
   const profilesScript = document.getElementById('adminProfilesData');
   const teamScript = document.getElementById('adminTeamData');
@@ -1724,6 +1873,7 @@
       body.innerHTML = '<p class="text-red-600">Error de red al cargar el caso.</p>';
     }
   }
+  window.__fandezOpenRequestCase = openRequestCase;
 
   document.querySelectorAll('.btn-request-case').forEach((btn) => {
     btn.addEventListener('click', () => openRequestCase(btn.dataset.id));

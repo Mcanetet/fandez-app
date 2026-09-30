@@ -107,17 +107,31 @@ function hasPerm(key) {
           <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-200 text-amber-950"><%= inbox.length %></span>
         </div>
         <ul class="space-y-2">
-          <% inbox.slice(0, 10).forEach(function(item) { %>
+          <% inbox.slice(0, 10).forEach(function(item) {
+            function escAttr(v) {
+              return String(v == null ? '' : v)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            }
+          %>
             <li>
               <button type="button"
-                class="admin-goto-tab w-full text-left p-3 rounded-xl bg-white/90 border border-amber-200 hover:border-amber-400 transition"
-                data-tab="<%= item.tab %>">
+                class="admin-attention-item w-full text-left p-3 rounded-xl bg-white/90 border border-amber-200 hover:border-amber-400 transition"
+                data-type="<%= escAttr(item.type) %>"
+                data-process="<%= escAttr(item.processId) %>"
+                data-tab="<%= escAttr(item.tab) %>"
+                data-request-id="<%= escAttr(item.requestId) %>"
+                data-title="<%= escAttr(item.title) %>"
+                data-body="<%= escAttr(item.body) %>"
+                data-go-label="<%= escAttr(item.goLabel || item.actionLabel || 'Ir') %>">
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0">
                     <strong class="text-sm block text-zilo-text truncate"><%= item.title %></strong>
                     <span class="text-xs text-zilo-muted block mt-0.5"><%= item.body %></span>
                   </div>
-                  <span class="text-[11px] font-semibold text-amber-800 shrink-0"><%= item.actionLabel %> →</span>
+                  <span class="text-[11px] font-semibold text-amber-800 shrink-0"><%= item.actionLabel || 'Mostrar' %> →</span>
                 </div>
               </button>
             </li>
@@ -3085,6 +3099,26 @@ function hasPerm(key) {
     </section>
 
     </main>
+  </div>
+</div>
+
+<div id="adminAttentionProcessModal" class="admin-modal fixed inset-0 z-[200] hidden items-center justify-center p-3 sm:p-4" aria-hidden="true">
+  <div class="admin-modal-backdrop absolute inset-0" data-close-attention-process></div>
+  <div class="admin-modal-sheet relative w-full max-w-lg flex flex-col rounded-2xl" role="dialog" aria-labelledby="adminAttentionProcessTitle">
+    <div class="admin-modal-head flex items-start justify-between gap-3 px-4 sm:px-5 pt-4 sm:pt-5 pb-3 shrink-0 border-b border-black/10">
+      <div class="min-w-0">
+        <p id="adminAttentionProcessCode" class="text-[10px] font-bold uppercase tracking-wide text-amber-700"></p>
+        <h4 id="adminAttentionProcessTitle" class="text-base font-semibold">Proceso</h4>
+        <p id="adminAttentionProcessSub" class="text-xs text-gray-500 mt-0.5"></p>
+      </div>
+      <button type="button" class="text-gray-400 hover:text-gray-700 text-lg leading-none shrink-0 w-8 h-8 rounded-lg hover:bg-black/5" data-close-attention-process aria-label="Cerrar">&times;</button>
+    </div>
+    <div id="adminAttentionProcessBody" class="admin-modal-body flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5 py-4 space-y-3 text-sm"></div>
+    <div class="admin-modal-foot flex flex-wrap gap-2 px-4 sm:px-5 py-3 border-t border-black/10 shrink-0">
+      <button type="button" id="adminAttentionGoTab" class="admin-primary-btn !py-2 !px-3 text-sm">Ir a la cola</button>
+      <button type="button" id="adminAttentionOpenCase" class="admin-secondary-btn !py-2 !px-3 text-sm hidden">Ver caso 360°</button>
+      <button type="button" class="admin-secondary-btn !py-2 !px-3 text-sm" data-close-attention-process>Cerrar</button>
+    </div>
   </div>
 </div>
 

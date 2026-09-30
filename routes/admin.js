@@ -53,41 +53,52 @@ function buildAdminAttentionInbox(storeRef, locale = 'es') {
   pendingTransfers.slice(0, 8).forEach((r) => {
     inbox.push({
       type: 'transfer',
+      processId: 'AD-04',
       urgency: 'high',
       tab: 'pagos',
       title: `Confirmar transferencia · ${r.serviceName || 'Servicio'}`,
       body: `${r.clientName || 'Cliente'} · ${storeRef.formatCLP(r.amountDue || 0)}`,
-      actionLabel: 'Ir a Pagos'
+      actionLabel: 'Mostrar',
+      goLabel: 'Ir a Pagos',
+      requestId: r.id || null
     });
   });
   dispatchQueue.slice(0, 8).forEach((r) => {
     inbox.push({
       type: 'dispatch',
+      processId: 'AD-03',
       urgency: 'high',
       tab: 'solicitudes',
       title: `Pedido sin socio · ${r.serviceName || 'Servicio'}`,
       body: `${r.clientName || 'Cliente'} · ${(r.eligibleProviders || []).length} socio(s) elegible(s)`,
-      actionLabel: 'Asignar'
+      actionLabel: 'Mostrar',
+      goLabel: 'Asignar',
+      requestId: r.id || null
     });
   });
   if ((contractStats.pending_review || 0) > 0 || (contractStats.needs_info || 0) > 0) {
     inbox.push({
       type: 'contracts',
+      processId: 'AD-05',
       urgency: 'medium',
       tab: 'contratos',
       title: 'Contratos de socios por revisar',
       body: `${contractStats.pending_review || 0} en revisión · ${contractStats.needs_info || 0} con antecedentes pendientes`,
-      actionLabel: 'Revisar'
+      actionLabel: 'Mostrar',
+      goLabel: 'Revisar contratos'
     });
   }
   pendingPayouts.slice(0, 5).forEach((p) => {
     inbox.push({
       type: 'payout',
+      processId: 'AD-04',
       urgency: 'medium',
       tab: 'proveedores',
       title: `Marcar pago a socio · ${p.providerName || 'Socio'}`,
       body: storeRef.formatCLP(p.providerPayout || 0),
-      actionLabel: 'Ir a Socios'
+      actionLabel: 'Mostrar',
+      goLabel: 'Ir a Socios',
+      requestId: p.requestId || null
     });
   });
   try {
@@ -95,11 +106,13 @@ function buildAdminAttentionInbox(storeRef, locale = 'es') {
     refunds.forEach((r) => {
       inbox.push({
         type: 'refund',
+        processId: 'AD-04',
         urgency: 'high',
         tab: 'pagos',
         title: `Devolución pendiente · ${r.serviceName || 'Servicio'}`,
         body: `${r.clientName || 'Cliente'} · ${storeRef.formatCLP(r.refundAmount || 0)} · ${r.refundScheduledDate || r.refundStatus}`,
-        actionLabel: 'Procesar',
+        actionLabel: 'Mostrar',
+        goLabel: 'Procesar devolución',
         requestId: r.id
       });
     });
@@ -107,11 +120,14 @@ function buildAdminAttentionInbox(storeRef, locale = 'es') {
   openComplaints.slice(0, 5).forEach((c) => {
     inbox.push({
       type: 'complaint',
+      processId: 'AD-06',
       urgency: 'medium',
       tab: 'reclamos',
       title: c.subject || 'Reclamo abierto',
       body: `${c.clientName || 'Cliente'} · ${String(c.status || '').replace(/_/g, ' ')}`,
-      actionLabel: 'Ver reclamo'
+      actionLabel: 'Mostrar',
+      goLabel: 'Ver reclamo',
+      requestId: c.requestId || null
     });
   });
   try {
@@ -125,11 +141,13 @@ function buildAdminAttentionInbox(storeRef, locale = 'es') {
         .join(' · ');
       inbox.push({
         type: 'auth_access',
+        processId: 'AD-01',
         urgency: auth.byEvent.registro_fail || auth.byEvent.verify_mail_issue ? 'high' : 'medium',
         tab: 'seguridad',
         title: `Accesos con error · última 3 h (${auth.total})`,
         body: top || 'Revisa login y registro',
-        actionLabel: 'Ver seguridad'
+        actionLabel: 'Mostrar',
+        goLabel: 'Ver seguridad'
       });
     }
   } catch (_) { /* ignore */ }
@@ -138,17 +156,20 @@ function buildAdminAttentionInbox(storeRef, locale = 'es') {
     op.issues.filter((i) => i.severity === 'high').slice(0, 6).forEach((issue) => {
       inbox.push({
         type: 'ops',
+        processId: 'AD-03',
         urgency: 'high',
         tab: 'solicitudes',
         title: `Ops · ${issue.code}`,
         body: `${issue.clientName || 'Cliente'} · ${issue.serviceName || 'Servicio'} — ${issue.hint || ''}`,
-        actionLabel: 'Diagnóstico',
+        actionLabel: 'Mostrar',
+        goLabel: 'Ir a solicitudes',
         requestId: issue.requestId
       });
     });
   } catch (_) { /* ignore */ }
   return inbox;
 }
+
 
 router.use(adminIpAllowlist());
 router.use(attachAdminAccess);
