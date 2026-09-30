@@ -35,6 +35,7 @@ const { buildPageMeta, getSiteUrl } = require('./lib/seo');
 const seoRoutes = require('./routes/seo');
 const appMode = require('./lib/appMode');
 const androidTwa = require('./lib/androidTwa');
+const launchNotice = require('./lib/launchNotice');
 
 const app = express();
 const server = http.createServer(app);
@@ -355,7 +356,8 @@ app.use(async (req, res, next) => {
   res.locals.adminUrl = appMode.adminUrl;
   res.locals.appModeStatus = appMode.getPublicStatus();
   res.locals.requestTimeouts = getRequestTimeouts();
-  res.locals.launchNoticeActive = false;
+  res.locals.launchNoticeActive = launchNotice.isPreOperations();
+  res.locals.showDemoRibbon = launchNotice.showDemoRibbon();
   res.locals.playStoreUrl = androidTwa.getPlayStoreUrl();
   res.locals.playStoreListingLive = androidTwa.isPlayStoreListingLive();
   res.locals.androidPackageId = androidTwa.getAndroidPackageId();

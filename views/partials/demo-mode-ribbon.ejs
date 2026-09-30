@@ -1,5 +1,10 @@
 <%
-  var demoOn = typeof appModeStatus !== 'undefined' && appModeStatus && appModeStatus.isDemo;
+  var demoOn = false;
+  if (typeof showDemoRibbon !== 'undefined') {
+    demoOn = Boolean(showDemoRibbon);
+  } else if (typeof appModeStatus !== 'undefined' && appModeStatus && appModeStatus.isDemo) {
+    demoOn = true;
+  }
   if (typeof forceDemoRibbon !== 'undefined' && forceDemoRibbon) demoOn = true;
 %>
 <% if (demoOn) { %>
