@@ -35,9 +35,9 @@ function hasPerm(key) {
       <div class="min-w-0">
         <span class="zilo-label !text-[9px]"><%= t('admin.operations') %></span>
         <h1 class="text-sm font-semibold truncate"><%= t('admin.title') %></h1>
-        <% const modeSt = typeof appModeStatus !== 'undefined' ? appModeStatus : { mode: 'demo', label: 'Modo demo', isDemo: true }; %>
+        <% const modeSt = typeof appModeStatus !== 'undefined' ? appModeStatus : { mode: 'demo', label: 'Demo local', isDemo: true }; %>
         <p class="mt-1">
-          <span class="admin-mode-pill <%= modeSt.isProduction ? 'is-live' : '' %>"><%= modeSt.label %></span>
+          <span class="admin-mode-pill <%= modeSt.isProductive2 ? 'is-live' : '' %>"><%= modeSt.label %></span>
         </p>
         <% if (typeof appVersion !== 'undefined' && appVersion) { %>
           <p class="admin-version truncate"><%= appVersion.label %></p>
@@ -1406,12 +1406,7 @@ function hasPerm(key) {
       </div>
       <p class="text-xs text-gray-500 mb-4 sm:hidden">
         <%= t('admin.demo.hint') %>
-        <% const modeDemoHint = typeof appModeStatus !== 'undefined' ? appModeStatus : null; %>
-        <% if (modeDemoHint && modeDemoHint.isProduction) { %>
-          <span class="block mt-1 text-amber-800">Modo producción: estas cuentas <strong>no aparecen</strong> en el login de cliente/socio.</span>
-        <% } else { %>
-          <span class="block mt-1">Modo demo: si están activas, aparecen abajo en el login.</span>
-        <% } %>
+        <span class="block mt-1 text-amber-800">Demo anterior retirado: estas cuentas <strong>ya no aparecen</strong> en el login público (ni en Demo 2.0 ni en Productivo 2.0).</span>
       </p>
       <div id="demoAccountsList" class="space-y-2">
         <% demoAccounts.forEach(acc => { %>
@@ -2907,37 +2902,40 @@ function hasPerm(key) {
 
     <!-- SEGURIDAD -->
     <section class="<%= panelClass('seguridad') %>" data-panel="seguridad">
-      <% const modePanel = typeof appModeStatus !== 'undefined' ? appModeStatus : { mode: 'demo', label: 'Modo demo', isDemo: true, canToggle: true, adminBasePath: '/admin' }; %>
-      <div class="p-4 rounded-2xl border mb-4 <%= modePanel.isProduction ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-amber-500/10 border-amber-500/30' %>">
+      <% const modePanel = typeof appModeStatus !== 'undefined' ? appModeStatus : { mode: 'demo', label: 'Demo local', isDemo: true, canToggle: true, adminBasePath: '/admin' }; %>
+      <div class="p-4 rounded-2xl border mb-4 <%= modePanel.isProductive2 ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-amber-500/10 border-amber-500/30' %>">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0 flex-1">
-            <h4 class="text-sm font-semibold"><%= modePanel.isProduction ? 'Producción' : 'Modo demo' %></h4>
+            <h4 class="text-sm font-semibold"><%= modePanel.label || (modePanel.isDemo ? 'Demo local' : 'Demo 2.0') %></h4>
             <p class="text-xs text-gray-600 mt-1">
               <% if (modePanel.isDemo) { %>
-                Pruebas: pagos simulados, atajos demo en el login y sin restricción de RUT duplicado.
+                Demo local (legado): pagos simulados. Ya no hay atajos de login públicos. Preferir <strong>Demo 2.0</strong> en el servidor.
+              <% } else if (modePanel.isProductive2) { %>
+                Productivo 2.0: pagos reales, sin huincha de demo. Listo para operación.
               <% } else { %>
-                Real: pagos reales, sin atajos demo. Un RUT de cliente no se repite en otro cliente ni un RUT de socio en otro socio; la misma persona sí puede ser cliente y socio.
+                Demo 2.0: pagos reales, reclutamiento de socios. Cuando lances, pon <code>SHOW_DEMO_RIBBON=false</code> → pasa a Productivo 2.0.
               <% } %>
             </p>
             <ul class="mt-2 text-[11px] text-gray-600 space-y-1 list-disc pl-4">
-              <li>Usuarios demo en login: <strong><%= modePanel.isDemo ? 'visibles' : 'ocultos' %></strong></li>
+              <li>Atajos demo antiguos en login: <strong>eliminados</strong></li>
               <li>Mismo RUT cliente + socio: <strong>permitido</strong> (bloqueo solo entre dos clientes o dos socios)</li>
-              <li>Pagos: <strong><%= modePanel.isDemo ? 'demo / simulados' : 'reales' %></strong></li>
+              <li>Pagos: <strong><%= modePanel.isDemo ? 'simulados (local)' : 'reales' %></strong></li>
+              <li>Huincha pública: <strong><%= modePanel.isDemo2 || modePanel.isDemo ? 'Demo 2.0' : 'oculta (Productivo 2.0)' %></strong></li>
             </ul>
             <p class="text-[11px] text-gray-500 mt-2">URL admin: <code class="bg-white/70 px-1 rounded"><%= modePanel.adminBasePath %>/login</code>
               <% if (modePanel.overrideActive) { %> · override activo (env: <%= modePanel.envMode %>)<% } %>
             </p>
             <% if (!modePanel.canToggle) { %>
               <p class="text-[11px] text-amber-800 mt-2 rounded-lg bg-amber-50 border border-amber-200 px-2 py-1.5">
-                El cambio desde admin está bloqueado porque <code>APP_MODE=production</code> en el servidor.
-                Para habilitarlo: <code>ALLOW_APP_MODE_TOGGLE=true</code> o cambia <code>APP_MODE</code> en Hostinger.
+                El cambio de <code>APP_MODE</code> desde admin está bloqueado en el servidor.
+                Demo 2.0 → Productivo 2.0: <code>SHOW_DEMO_RIBBON=false</code> y reinicia.
               </p>
             <% } %>
           </div>
           <% if (modePanel.canToggle && (adminAccess.isSuperAdmin || adminAccess.isFullAccess)) { %>
-            <div class="flex gap-2 shrink-0">
-              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isDemo ? 'bg-white border-amber-400' : 'bg-white/50' %>" data-mode="demo">Demo</button>
-              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isProduction ? 'bg-white border-emerald-500' : 'bg-white/50' %>" data-mode="production">Producción</button>
+            <div class="flex flex-wrap gap-2 shrink-0">
+              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isDemo ? 'bg-white border-amber-400' : 'bg-white/50' %>" data-mode="demo" title="Solo desarrollo local">Demo local</button>
+              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isProduction ? 'bg-white border-emerald-500' : 'bg-white/50' %>" data-mode="production"><%= modePanel.isProductive2 ? 'Productivo 2.0' : 'Demo 2.0' %></button>
             </div>
           <% } %>
         </div>

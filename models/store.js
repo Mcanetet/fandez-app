@@ -5396,9 +5396,8 @@ function isDemoAccount(userOrId) {
 }
 
 function getDemoAccounts({ forLogin = false } = {}) {
-  const appMode = require('../lib/appMode');
-  // En login/producción nunca mostrar atajos demo
-  if (forLogin && appMode.isProductionMode()) return [];
+  // Demo anterior eliminado: nunca mostrar atajos Cliente/Socio en el login público.
+  if (forLogin) return [];
   return DEMO_ACCOUNT_IDS
     .map(id => USERS.find(u => u.id === id))
     .filter(Boolean)
@@ -5409,7 +5408,7 @@ function getDemoAccounts({ forLogin = false } = {}) {
       email: u.email,
       password: DEMO_ACCOUNT_PASSWORDS[u.id] || '',
       active: u.active !== false,
-      loginVisible: appMode.isDemoMode() && u.active !== false
+      loginVisible: false
     }));
 }
 

@@ -4040,7 +4040,7 @@
   document.querySelectorAll('.btn-set-app-mode').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const mode = btn.dataset.mode;
-      if (!confirm('¿Cambiar a ' + (mode === 'production' ? 'PRODUCCIÓN' : 'DEMO') + '?\n\n• Demo: atajos en login + pagos simulados + sin bloqueo de RUT\n• Producción: sin atajos demo + pagos reales + RUT único por tipo (cliente/socio; la misma persona puede ser ambos)')) return;
+      if (!confirm('¿Cambiar a ' + (mode === 'production' ? 'Demo 2.0 (pagos reales)' : 'Demo local (pagos simulados)') + '?\n\n• Demo local: solo desarrollo, pagos simulados\n• Demo 2.0: pagos reales + reclutamiento (huincha). Para Productivo 2.0 usa SHOW_DEMO_RIBBON=false en Hostinger.')) return;
       try {
         const res = await adminFetch('/modo', {
           method: 'POST',
