@@ -136,6 +136,13 @@
     </div>
   </header>
 
+  <% if (typeof appModeStatus !== 'undefined' && appModeStatus && appModeStatus.isDemo) { %>
+  <div style="background:linear-gradient(90deg,#A84E10,#C45C14,#B47814);color:#fff;text-align:center;font-size:11px;font-weight:600;padding:8px 12px;line-height:1.35;" role="status">
+    <strong style="letter-spacing:.06em;text-transform:uppercase;margin-right:6px;">Modo DEMO</strong>
+    Esta página está en modo DEMO para hacer pruebas y reclutar socios hasta el lanzamiento.
+  </div>
+  <% } %>
+
   <main>
     <div class="install-hint" id="installHint">
       Si Play Protect bloqueó “Instalar app”: Chrome ⋮ → <strong>Añadir a la pantalla de inicio</strong> (no Instalar app).

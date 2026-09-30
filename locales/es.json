@@ -1,5 +1,7 @@
 {
   "app.name": "Fandez",
+  "demo.ribbon.label": "Modo DEMO",
+  "demo.ribbon.text": "Esta página está en modo DEMO para hacer pruebas y reclutar socios hasta el lanzamiento.",
   "lang.switch": "Idioma",
   "lang.es": "Español",
   "lang.en": "English",
