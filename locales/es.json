@@ -511,6 +511,7 @@
   "admin.panels.pagos": "Pagos",
   "admin.panels.solicitudes": "Solicitudes",
   "admin.panels.proveedores": "Socios",
+  "admin.panels.ecosistema": "Red operativa",
   "admin.panels.reclamos": "Reclamos",
   "admin.panels.informes": "Informes",
   "admin.panels.alertas": "Mensajes alerta",

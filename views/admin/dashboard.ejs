@@ -1715,6 +1715,137 @@ function hasPerm(key) {
       <% } %>
     </section>
 
+    <!-- RED OPERATIVA + COMUNICACIONES -->
+    <section class="<%= panelClass('ecosistema') %>" data-panel="ecosistema"
+      data-can-send="<%= hasPerm('comunicaciones.send') || hasPerm('usuarios.manage') ? '1' : '0' %>"
+      data-smtp="<%= notificationStats.emailConfigured ? '1' : '0' %>"
+      data-subtitle="Estado de empresas inscritas, técnicos por especialidad y correos a socios, técnicos o clientes.">
+      <p class="text-xs text-gray-500 mb-4 sm:hidden">Estado de la red y comunicaciones por correo.</p>
+
+      <div id="ecosystemLoading" class="text-sm text-gray-500 py-8 text-center">Cargando estado de la red…</div>
+      <div id="ecosystemContent" class="hidden space-y-8">
+        <div id="ecosystemSummary" class="grid grid-cols-2 sm:grid-cols-5 gap-2"></div>
+
+        <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+              <h4 class="text-sm font-semibold">Entradas y salidas</h4>
+              <p class="text-[11px] text-gray-500">Altas (registro) y bajas (desactivación o anonimización) por tipo de cuenta.</p>
+            </div>
+            <div class="flex flex-wrap gap-2 items-center">
+              <label class="text-[11px] text-gray-600">Periodo</label>
+              <select id="ecosystemMovementDays" class="admin-filter-select text-xs">
+                <option value="7">7 días</option>
+                <option value="30" selected>30 días</option>
+                <option value="90">90 días</option>
+                <option value="180">180 días</option>
+              </select>
+              <button type="button" id="ecosystemMovementRefresh" class="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold">Actualizar</button>
+            </div>
+          </div>
+          <div id="ecosystemMovementSummary" class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4"></div>
+          <div class="flex flex-wrap gap-2 mb-4" id="ecosystemMovementTabs">
+            <button type="button" class="eco-mvt-tab px-3 py-1.5 rounded-full text-xs font-semibold bg-zilo-accent text-white" data-mvt-role="clients">Clientes</button>
+            <button type="button" class="eco-mvt-tab px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700" data-mvt-role="providers">Socios</button>
+            <button type="button" class="eco-mvt-tab px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700" data-mvt-role="technicians">Técnicos</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h5 class="text-xs font-bold uppercase text-emerald-700 mb-2">Entran</h5>
+              <div id="ecosystemEntrants" class="space-y-2 max-h-64 overflow-y-auto"></div>
+            </div>
+            <div>
+              <h5 class="text-xs font-bold uppercase text-red-700 mb-2">Salen</h5>
+              <div id="ecosystemLeavers" class="space-y-2 max-h-64 overflow-y-auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-3">
+            <div>
+              <h4 class="text-sm font-semibold">Empresas inscritas</h4>
+              <p class="text-[11px] text-gray-500">Operativas, incompletas y qué les falta para tomar pedidos.</p>
+            </div>
+            <div class="admin-filters">
+              <input type="search" id="ecosystemCompanySearch" class="admin-filter-q" placeholder="Buscar empresa…" autocomplete="off">
+              <select id="ecosystemCompanyFilter" class="admin-filter-select admin-filter-select-lg" aria-label="Filtrar estado">
+                <option value="">Todos los estados</option>
+                <option value="operativa">Operativas</option>
+                <option value="casi_lista">Casi listas</option>
+                <option value="incompleta">Incompletas</option>
+                <option value="pausada">Pausadas</option>
+              </select>
+            </div>
+          </div>
+          <div id="ecosystemCompanies" class="space-y-3 max-h-[28rem] overflow-y-auto"></div>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-semibold mb-1">Técnicos activos por especialidad</h4>
+          <p class="text-[11px] text-gray-500 mb-3">Solo técnicos con cuenta activa y documentación mínima para operar.</p>
+          <div id="ecosystemTechTotals" class="text-xs text-gray-600 mb-3"></div>
+          <div class="overflow-x-auto rounded-2xl border border-gray-200">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50 text-left">
+                <tr>
+                  <th class="p-3 font-semibold">Especialidad</th>
+                  <th class="p-3 font-semibold text-center">Activos</th>
+                  <th class="p-3 font-semibold text-center">En línea</th>
+                </tr>
+              </thead>
+              <tbody id="ecosystemTechTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <% if (hasPerm('comunicaciones.send') || hasPerm('usuarios.manage')) { %>
+        <div class="p-4 sm:p-5 rounded-2xl bg-zilo-card border border-gray-200">
+          <h4 class="text-sm font-semibold mb-1">Correo a socios, técnicos o clientes</h4>
+          <p class="text-[11px] text-gray-500 mb-4">
+            Elige audiencia o selecciona clientes puntuales. Máximo <%= 250 %> destinatarios por envío.
+            <% if (!notificationStats.emailConfigured) { %>
+              <span class="text-amber-700">SMTP no configurado: modo demo (solo log).</span>
+            <% } %>
+          </p>
+          <form id="ecosystemMailForm" class="space-y-4">
+            <fieldset class="space-y-2">
+              <legend class="text-xs font-semibold text-gray-700">Audiencia</legend>
+              <div class="flex flex-wrap gap-3 text-xs">
+                <label class="inline-flex items-center gap-1.5"><input type="radio" name="mailAudience" value="providers" checked> Todos los socios</label>
+                <label class="inline-flex items-center gap-1.5"><input type="radio" name="mailAudience" value="technicians"> Todos los técnicos</label>
+                <label class="inline-flex items-center gap-1.5"><input type="radio" name="mailAudience" value="providers_and_technicians"> Socios y técnicos</label>
+                <label class="inline-flex items-center gap-1.5"><input type="radio" name="mailAudience" value="clients"> Todos los clientes</label>
+                <label class="inline-flex items-center gap-1.5"><input type="radio" name="mailAudience" value="custom_clients"> Clientes seleccionados</label>
+              </div>
+            </fieldset>
+            <div id="ecosystemClientPicker" class="hidden space-y-2 p-3 rounded-xl bg-gray-50 border border-gray-200">
+              <div class="flex gap-2">
+                <input type="search" id="ecosystemClientSearch" class="admin-filter-q flex-1" placeholder="Buscar cliente por nombre o correo…" autocomplete="off">
+                <button type="button" id="ecosystemClientSearchBtn" class="px-3 py-2 rounded-lg bg-gray-800 text-white text-xs font-semibold">Buscar</button>
+              </div>
+              <div id="ecosystemClientResults" class="space-y-1 max-h-40 overflow-y-auto"></div>
+              <div id="ecosystemClientSelected" class="flex flex-wrap gap-1.5"></div>
+            </div>
+            <p id="ecosystemMailPreview" class="text-[11px] text-gray-600">Destinatarios estimados: —</p>
+            <div>
+              <label class="text-xs font-semibold text-gray-700 block mb-1" for="ecosystemMailSubject">Asunto</label>
+              <input type="text" id="ecosystemMailSubject" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" maxlength="200" required>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-gray-700 block mb-1" for="ecosystemMailBody">Mensaje</label>
+              <textarea id="ecosystemMailBody" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm min-h-[120px]" maxlength="12000" required placeholder="Escribe el mensaje…"></textarea>
+            </div>
+            <div class="flex flex-wrap gap-2 items-center">
+              <button type="submit" id="ecosystemMailSubmit" class="px-4 py-2.5 rounded-xl bg-zilo-accent text-white text-sm font-semibold">Enviar correo</button>
+              <span id="ecosystemMailStatus" class="text-xs text-gray-500"></span>
+            </div>
+          </form>
+        </div>
+        <% } %>
+      </div>
+    </section>
+
     <!-- RECLAMOS -->
     <section class="<%= panelClass('reclamos') %>" data-panel="reclamos">
       <div class="space-y-2">

@@ -18,6 +18,7 @@
     pagos: 'Pagos',
     solicitudes: 'Solicitudes',
     proveedores: 'Socios',
+    ecosistema: 'Red operativa',
     reclamos: 'Reclamos',
     informes: 'Informes',
     alertas: 'Mensajes alerta',
@@ -120,6 +121,9 @@
     }
     if (id === 'florencia' && typeof window.__fandezLoadFlorenciaCalendar === 'function') {
       window.__fandezLoadFlorenciaCalendar();
+    }
+    if (id === 'ecosistema' && typeof window.__fandezLoadEcosystem === 'function') {
+      window.__fandezLoadEcosystem();
     }
   }
 
@@ -4178,4 +4182,364 @@
   document.getElementById('dsarSearch')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); refreshDsarResults(); }
   });
+
+  /* ——— Red operativa + comunicaciones ——— */
+  (function initEcosystemPanel() {
+    const panel = document.querySelector('[data-panel="ecosistema"]');
+    if (!panel) return;
+
+    const loadingEl = document.getElementById('ecosystemLoading');
+    const contentEl = document.getElementById('ecosystemContent');
+    const summaryEl = document.getElementById('ecosystemSummary');
+    const companiesEl = document.getElementById('ecosystemCompanies');
+    const techTotalsEl = document.getElementById('ecosystemTechTotals');
+    const techTableEl = document.getElementById('ecosystemTechTable');
+    const companySearch = document.getElementById('ecosystemCompanySearch');
+    const companyFilter = document.getElementById('ecosystemCompanyFilter');
+    const mailForm = document.getElementById('ecosystemMailForm');
+    const mailPreview = document.getElementById('ecosystemMailPreview');
+    const mailStatus = document.getElementById('ecosystemMailStatus');
+    const clientPicker = document.getElementById('ecosystemClientPicker');
+    const clientSearch = document.getElementById('ecosystemClientSearch');
+    const clientSearchBtn = document.getElementById('ecosystemClientSearchBtn');
+    const clientResults = document.getElementById('ecosystemClientResults');
+    const clientSelected = document.getElementById('ecosystemClientSelected');
+    const canSend = panel.dataset.canSend === '1';
+    const selectedClients = new Map();
+    const movementSummaryEl = document.getElementById('ecosystemMovementSummary');
+    const movementDaysEl = document.getElementById('ecosystemMovementDays');
+    const entrantsEl = document.getElementById('ecosystemEntrants');
+    const leaversEl = document.getElementById('ecosystemLeavers');
+    let movementRole = 'clients';
+
+    const statusClass = {
+      operativa: 'bg-emerald-500/15 text-emerald-800',
+      casi_lista: 'bg-amber-500/15 text-amber-900',
+      incompleta: 'bg-orange-500/15 text-orange-900',
+      pausada: 'bg-gray-200 text-gray-600'
+    };
+
+    function esc(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function getMailAudience() {
+      const checked = mailForm?.querySelector('input[name="mailAudience"]:checked');
+      return checked?.value || 'providers';
+    }
+
+    function renderSelectedClients() {
+      if (!clientSelected) return;
+      if (!selectedClients.size) {
+        clientSelected.innerHTML = '<span class="text-[11px] text-gray-500">Ningún cliente seleccionado.</span>';
+        return;
+      }
+      clientSelected.innerHTML = [...selectedClients.values()].map((u) => (
+        `<button type="button" class="text-[11px] px-2 py-1 rounded-full bg-blue-500/10 text-blue-900 border border-blue-500/20" data-remove-client="${esc(u.id)}">${esc(u.name || u.email)} ×</button>`
+      )).join('');
+      clientSelected.querySelectorAll('[data-remove-client]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          selectedClients.delete(btn.dataset.removeClient);
+          renderSelectedClients();
+          refreshMailPreview();
+        });
+      });
+    }
+
+    function renderCompanies(list) {
+      if (!companiesEl) return;
+      if (!list.length) {
+        companiesEl.innerHTML = '<p class="text-sm text-gray-500 text-center py-6">Sin empresas que coincidan.</p>';
+        return;
+      }
+      companiesEl.innerHTML = list.map((c) => {
+        const missing = (c.missing || []).slice(0, 6);
+        const more = (c.missing || []).length - missing.length;
+        return `<article class="p-4 rounded-2xl bg-zilo-card border border-gray-200 ecosystem-company"
+          data-name="${esc((c.name || '').toLowerCase())}"
+          data-email="${esc((c.email || '').toLowerCase())}"
+          data-status="${esc(c.operationalStatus)}">
+          <div class="flex flex-wrap items-start gap-2 mb-2">
+            <strong class="text-sm">${esc(c.name)}</strong>
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${statusClass[c.operationalStatus] || statusClass.incompleta}">${esc(c.operationalLabel)}</span>
+            ${c.online ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700">En línea</span>' : ''}
+          </div>
+          <p class="text-xs text-gray-500">${esc(c.email)}${c.phone ? ` · ${esc(c.phone)}` : ''}</p>
+          ${c.legalName ? `<p class="text-[11px] text-gray-500 mt-0.5">${esc(c.legalName)}</p>` : ''}
+          <p class="text-[10px] text-gray-400 mt-1">Contrato: ${esc(c.contractLabel || '—')} · ${c.coveredCount}/${c.servicesCount} servicios con técnico</p>
+          ${missing.length ? `<ul class="mt-2 text-[11px] text-orange-800 list-disc pl-4 space-y-0.5">${missing.map((m) => `<li>${esc(m)}</li>`).join('')}${more > 0 ? `<li>… y ${more} más</li>` : ''}</ul>` : '<p class="text-[11px] text-emerald-700 mt-2">Lista para operar en muro.</p>'}
+        </article>`;
+      }).join('');
+    }
+
+    function applyCompanyFilters() {
+      const data = window.__ecosystemOverview;
+      if (!data?.companies) return;
+      const q = String(companySearch?.value || '').trim().toLowerCase();
+      const st = companyFilter?.value || '';
+      const filtered = data.companies.filter((c) => {
+        if (st && c.operationalStatus !== st) return false;
+        if (!q) return true;
+        const hay = `${c.name || ''} ${c.email || ''} ${c.legalName || ''}`.toLowerCase();
+        return hay.includes(q);
+      });
+      renderCompanies(filtered);
+    }
+
+    function formatMovementDate(iso) {
+      if (!iso) return '—';
+      try {
+        return new Date(iso).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
+      } catch (_) {
+        return iso;
+      }
+    }
+
+    function renderMovementRow(item, type) {
+      const sub = type === 'in'
+        ? `<span class="text-[10px] text-emerald-700">${esc(item.source || 'registro')}</span>`
+        : `<span class="text-[10px] text-red-700">${esc(item.reason || 'Salida')}</span>`;
+      const email = item.email && !String(item.email).includes('@anonymized.local')
+        ? esc(item.email)
+        : (item.previousEmail ? esc(item.previousEmail) : '—');
+      return `<div class="p-2.5 rounded-xl border border-gray-200 bg-white text-xs">
+        <strong class="block">${esc(item.name)}</strong>
+        <span class="text-gray-500 block truncate">${email}</span>
+        <span class="text-[10px] text-gray-400 block mt-0.5">${formatMovementDate(item.at)}</span>
+        ${sub}
+      </div>`;
+    }
+
+    function renderMovements(mv) {
+      if (!mv) return;
+      const labels = {
+        clients: 'Clientes',
+        providers: 'Socios',
+        technicians: 'Técnicos'
+      };
+      if (movementSummaryEl) {
+        movementSummaryEl.innerHTML = ['clients', 'providers', 'technicians'].map((key) => {
+          const row = mv.summary?.[key] || { in: 0, out: 0 };
+          return `<div class="p-3 rounded-xl bg-gray-50 border border-gray-200 text-center">
+            <span class="text-[10px] font-bold uppercase text-gray-600">${labels[key]}</span>
+            <p class="text-sm mt-1"><span class="text-emerald-700 font-semibold">+${row.in}</span>
+              <span class="text-gray-400 mx-1">/</span>
+              <span class="text-red-700 font-semibold">−${row.out}</span></p>
+            <span class="text-[9px] text-gray-400">últimos ${mv.periodDays || 30} días</span>
+          </div>`;
+        }).join('');
+      }
+      const ins = mv.entrants?.[movementRole] || [];
+      const outs = mv.leavers?.[movementRole] || [];
+      if (entrantsEl) {
+        entrantsEl.innerHTML = ins.length
+          ? ins.map((item) => renderMovementRow(item, 'in')).join('')
+          : '<p class="text-[11px] text-gray-500 py-4 text-center">Nadie nuevo en este periodo.</p>';
+      }
+      if (leaversEl) {
+        leaversEl.innerHTML = outs.length
+          ? outs.map((item) => renderMovementRow(item, 'out')).join('')
+          : '<p class="text-[11px] text-gray-500 py-4 text-center">Sin bajas en este periodo.</p>';
+      }
+    }
+
+    function renderOverview(data) {
+      const s = data.summary || {};
+      if (summaryEl) {
+        summaryEl.innerHTML = [
+          { k: 'Empresas', v: s.totalProviders || 0 },
+          { k: 'Operativas', v: s.operativa || 0, cls: 'text-emerald-600' },
+          { k: 'Casi listas', v: s.casi_lista || 0, cls: 'text-amber-600' },
+          { k: 'Incompletas', v: s.incompleta || 0, cls: 'text-orange-600' },
+          { k: 'Pausadas', v: s.pausada || 0, cls: 'text-gray-500' }
+        ].map((row) => (
+          `<div class="p-3 rounded-xl bg-zilo-card border border-gray-200 text-center">
+            <span class="text-[9px] uppercase text-gray-500 font-bold">${esc(row.k)}</span>
+            <strong class="block text-lg ${row.cls || ''}">${row.v}</strong>
+          </div>`
+        )).join('');
+      }
+      renderCompanies(data.companies || []);
+      const tt = data.technicians?.totals || {};
+      if (techTotalsEl) {
+        techTotalsEl.textContent = `${tt.activeOperational || 0} técnicos operativos · ${tt.onlineOperational || 0} en línea · ${tt.pendingDocs || 0} con documentación pendiente · ${tt.totalTechnicians || 0} perfiles totales`;
+      }
+      const rows = data.technicians?.bySpecialty || [];
+      if (techTableEl) {
+        techTableEl.innerHTML = rows.length
+          ? rows.map((r) => (
+            `<tr class="border-t border-gray-100">
+              <td class="p-3">${esc(r.name)}${r.enabled === false ? ' <span class="text-gray-400">(catálogo off)</span>' : ''}</td>
+              <td class="p-3 text-center font-semibold">${r.activeTechnicians || 0}</td>
+              <td class="p-3 text-center">${r.onlineTechnicians || 0}</td>
+            </tr>`
+          )).join('')
+          : '<tr><td colspan="3" class="p-4 text-center text-gray-500">Sin técnicos activos por especialidad.</td></tr>';
+      }
+      renderMovements(data.movements);
+    }
+
+    async function refreshMailPreview() {
+      if (!canSend || !mailPreview) return;
+      const audience = getMailAudience();
+      if (audience === 'custom_clients' && !selectedClients.size) {
+        mailPreview.textContent = 'Selecciona al menos un cliente.';
+        return;
+      }
+      const params = new URLSearchParams();
+      if (audience === 'custom_clients') {
+        params.set('userIds', [...selectedClients.keys()].join(','));
+      } else {
+        params.set('audience', audience);
+      }
+      try {
+        const res = await adminFetch(`/comunicaciones/preview?${params.toString()}`);
+        const data = await res.json();
+        if (!data.success) {
+          mailPreview.textContent = data.error || 'No se pudo estimar destinatarios.';
+          return;
+        }
+        mailPreview.textContent = `Destinatarios estimados: ${data.count}${data.max ? ` (máx. ${data.max})` : ''}`;
+      } catch (_) {
+        mailPreview.textContent = 'Error al calcular destinatarios.';
+      }
+    }
+
+    window.__fandezLoadEcosystem = async function loadEcosystem(forceReload) {
+      const days = Number(movementDaysEl?.value || 30);
+      if (!forceReload && window.__ecosystemOverview && window.__ecosystemOverviewDays === days) {
+        loadingEl?.classList.add('hidden');
+        contentEl?.classList.remove('hidden');
+        renderOverview(window.__ecosystemOverview);
+        refreshMailPreview();
+        return;
+      }
+      loadingEl?.classList.remove('hidden');
+      contentEl?.classList.add('hidden');
+      try {
+        const res = await adminFetch(`/ecosistema/overview?days=${encodeURIComponent(days)}`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error');
+        window.__ecosystemOverview = data.overview;
+        window.__ecosystemOverviewDays = days;
+        loadingEl?.classList.add('hidden');
+        contentEl?.classList.remove('hidden');
+        renderOverview(data.overview);
+        refreshMailPreview();
+      } catch (err) {
+        if (loadingEl) loadingEl.textContent = err.message || 'No se pudo cargar.';
+      }
+    };
+
+    document.getElementById('ecosystemMovementRefresh')?.addEventListener('click', () => {
+      window.__ecosystemOverviewDays = null;
+      window.__fandezLoadEcosystem(true);
+    });
+    movementDaysEl?.addEventListener('change', () => {
+      window.__ecosystemOverviewDays = null;
+      window.__fandezLoadEcosystem(true);
+    });
+    document.querySelectorAll('.eco-mvt-tab').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        movementRole = btn.dataset.mvtRole || 'clients';
+        document.querySelectorAll('.eco-mvt-tab').forEach((b) => {
+          const active = b === btn;
+          b.classList.toggle('bg-zilo-accent', active);
+          b.classList.toggle('text-white', active);
+          b.classList.toggle('bg-gray-100', !active);
+          b.classList.toggle('text-gray-700', !active);
+        });
+        if (window.__ecosystemOverview?.movements) renderMovements(window.__ecosystemOverview.movements);
+      });
+    });
+
+    companySearch?.addEventListener('input', applyCompanyFilters);
+    companyFilter?.addEventListener('change', applyCompanyFilters);
+
+    mailForm?.querySelectorAll('input[name="mailAudience"]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const aud = getMailAudience();
+        clientPicker?.classList.toggle('hidden', aud !== 'custom_clients');
+        refreshMailPreview();
+      });
+    });
+
+    async function searchClients() {
+      const q = String(clientSearch?.value || '').trim();
+      if (!q) return;
+      const res = await adminFetch(`/usuarios?q=${encodeURIComponent(q)}&role=client&limit=30`);
+      const data = await res.json();
+      if (!clientResults) return;
+      if (!data.success || !data.users?.length) {
+        clientResults.innerHTML = '<p class="text-[11px] text-gray-500 p-2">Sin resultados.</p>';
+        return;
+      }
+      clientResults.innerHTML = data.users.map((u) => (
+        `<button type="button" class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white text-xs border border-transparent hover:border-gray-200" data-pick-client="${esc(u.id)}" data-name="${esc(u.name)}" data-email="${esc(u.email)}">
+          <strong>${esc(u.name || 'Cliente')}</strong><span class="text-gray-500 block truncate">${esc(u.email)}</span>
+        </button>`
+      )).join('');
+      clientResults.querySelectorAll('[data-pick-client]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          selectedClients.set(btn.dataset.pickClient, {
+            id: btn.dataset.pickClient,
+            name: btn.dataset.name,
+            email: btn.dataset.email
+          });
+          renderSelectedClients();
+          refreshMailPreview();
+        });
+      });
+    }
+
+    clientSearchBtn?.addEventListener('click', searchClients);
+    clientSearch?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); searchClients(); }
+    });
+
+    mailForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!canSend) return;
+      const audience = getMailAudience();
+      const subject = document.getElementById('ecosystemMailSubject')?.value || '';
+      const body = document.getElementById('ecosystemMailBody')?.value || '';
+      if (audience === 'custom_clients' && !selectedClients.size) {
+        FandezNotify.show('Selecciona al menos un cliente', 'warning');
+        return;
+      }
+      const ok = window.confirm('¿Enviar este correo a los destinatarios seleccionados?');
+      if (!ok) return;
+      const submitBtn = document.getElementById('ecosystemMailSubmit');
+      submitBtn.disabled = true;
+      if (mailStatus) mailStatus.textContent = 'Enviando…';
+      try {
+        const payload = {
+          subject,
+          body,
+          audience: audience === 'custom_clients' ? 'clients' : audience,
+          userIds: audience === 'custom_clients' ? [...selectedClients.keys()] : undefined
+        };
+        const res = await adminFetch('/comunicaciones/enviar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Error al enviar');
+        const demo = data.demo ? ' (modo demo SMTP)' : '';
+        FandezNotify.show(`Enviados ${data.sent}/${data.total}${demo}`, data.failed ? 'warning' : 'success');
+        if (mailStatus) mailStatus.textContent = `Enviados ${data.sent}, fallidos ${data.failed || 0}${demo}`;
+      } catch (err) {
+        FandezNotify.show(err.message || 'No se pudo enviar', 'error');
+        if (mailStatus) mailStatus.textContent = '';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    renderSelectedClients();
+    if (dashboard.dataset.initialTab === 'ecosistema' || new URLSearchParams(window.location.search).get('tab') === 'ecosistema') {
+      window.__fandezLoadEcosystem();
+    }
+  })();
 })();

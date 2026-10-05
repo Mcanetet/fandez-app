@@ -3981,6 +3981,8 @@ async function registerUser({
     phone: (phone || '').trim() || null,
     onboardingCompleted: false,
     memberSince: new Date().toISOString().slice(0, 10),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     emailVerifiedAt: null,
     emailVerificationCodeHash: null,
     emailVerificationExpiresAt: null,
@@ -5053,7 +5055,26 @@ function adminUpdateManagedUser(userId, patch = {}, actorId) {
   }
 
   if (patch.active !== undefined) {
+    const wasActive = user.active !== false;
     user.active = patch.active === true || patch.active === 'true' || patch.active === 1;
+    const nowActive = user.active !== false;
+    if (wasActive && !nowActive) {
+      user.deactivatedAt = new Date().toISOString();
+      logSecurityEvent('cuenta_desactivada', JSON.stringify({
+        userId: user.id,
+        role: user.role,
+        email: user.email,
+        name: user.name
+      }), { session: { user: { id: actorId } } });
+    }
+    if (!wasActive && nowActive) {
+      user.deactivatedAt = null;
+      logSecurityEvent('cuenta_reactivada', JSON.stringify({
+        userId: user.id,
+        role: user.role,
+        email: user.email
+      }), { session: { user: { id: actorId } } });
+    }
     // Al bloquear un socio/técnico, sacarlo de línea para que no reciba trabajos.
     if (!user.active && (user.role === 'provider' || user.role === 'tecnico')) {
       user.online = false;

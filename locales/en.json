@@ -511,6 +511,7 @@
   "admin.panels.pagos": "Payments",
   "admin.panels.solicitudes": "Requests",
   "admin.panels.proveedores": "Partners",
+  "admin.panels.ecosistema": "Operations network",
   "admin.panels.reclamos": "Complaints",
   "admin.panels.informes": "Reports",
   "admin.panels.alertas": "Alert messages",

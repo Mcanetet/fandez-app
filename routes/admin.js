@@ -39,6 +39,8 @@ const { resolveAdminAccess, hasFullSystemAccess } = require('../lib/adminPermiss
 const florencia = require('../lib/florencia');
 const informes = require('../lib/informes');
 const siteAlerts = require('../lib/siteAlerts');
+const { getAdminEcosystemOverview } = require('../lib/adminEcosystem');
+const adminBroadcast = require('../lib/adminBroadcast');
 
 function buildAdminAttentionInbox(storeRef, locale = 'es') {
   const inbox = [];
@@ -1243,6 +1245,67 @@ router.get('/usuarios', requireRole('admin'), requireAdminPermission('usuarios.v
     limit: Number(req.query.limit) || 40
   });
   res.json({ success: true, users });
+});
+
+router.get('/ecosistema/overview', requireRole('admin'), requireAdminPermission('ecosistema.view', 'proveedores.view'), (req, res) => {
+  try {
+    const overview = getAdminEcosystemOverview(store, {
+      days: Number(req.query.days) || 30,
+      movementsLimit: Number(req.query.movementsLimit) || 50
+    });
+    res.json({ success: true, overview });
+  } catch (err) {
+    console.error('[admin/ecosistema]', err.message);
+    res.status(500).json({ error: 'No se pudo cargar el estado de la red.' });
+  }
+});
+
+router.get('/comunicaciones/preview', requireRole('admin'), requireAdminPermission('comunicaciones.send', 'usuarios.manage'), (req, res) => {
+  const audience = req.query.audience || '';
+  const userIds = String(req.query.userIds || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const recipients = adminBroadcast.resolveRecipients(store, {
+    audience,
+    userIds: userIds.length ? userIds : undefined
+  });
+  res.json({
+    success: true,
+    count: recipients.length,
+    max: adminBroadcast.MAX_RECIPIENTS,
+    sample: recipients.slice(0, 8).map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role
+    }))
+  });
+});
+
+router.post('/comunicaciones/enviar', requireRole('admin'), requireAdminPermission('comunicaciones.send', 'usuarios.manage'), requireCsrf, async (req, res) => {
+  const body = req.body || {};
+  const userIds = Array.isArray(body.userIds)
+    ? body.userIds
+    : String(body.userIds || '').split(/[\s,;]+/).filter(Boolean);
+  try {
+    const result = await adminBroadcast.sendAdminBroadcast(store, {
+      audience: body.audience,
+      userIds: userIds.length ? userIds : undefined,
+      subject: body.subject,
+      body: body.body || body.message
+    });
+    if (result.error) return res.status(400).json({ error: result.error });
+    store.logSecurityEvent(
+      'admin_email_broadcast',
+      `${result.sent}/${result.total} ${result.audience} by ${req.session.user.email}`,
+      req
+    );
+    res.json(result);
+  } catch (err) {
+    console.error('[admin/comunicaciones]', err.message);
+    res.status(500).json({ error: 'Error al enviar correos.' });
+  }
 });
 
 router.get('/usuarios/:id/diagnostico', requireRole('admin'), requireAdminPermission('usuarios.view', 'usuarios.manage'), (req, res) => {

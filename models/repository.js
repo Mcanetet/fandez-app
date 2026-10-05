@@ -352,6 +352,8 @@ function rowToUser(row) {
     usedWelcomePromo: Boolean(row.used_welcome_promo),
     usedReferral: Boolean(row.used_referral),
     memberSince: row.member_since ? String(row.member_since).slice(0, 10) : null,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
     onboardingCompleted: Boolean(row.onboarding_completed),
     onboardingCompletedAt: row.onboarding_completed_at ? new Date(row.onboarding_completed_at).toISOString() : null,
     active: row.active == null ? true : Boolean(row.active),
