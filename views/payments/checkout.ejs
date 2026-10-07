@@ -276,9 +276,13 @@
     </p>
     <% } %>
 
-    <% if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments) { %>
+    <% if (typeof mpSandboxMissingTestPk !== 'undefined' && mpSandboxMissingTestPk) { %>
+    <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpSandboxTestPkWarn">
+      <strong>Pago en prueba bloqueado:</strong> falta <code>MP_TEST_PUBLIC_KEY</code> en Hostinger. Mercado Pago Developers → tu app → <strong>Credenciales de prueba</strong> → copia <strong>Public Key</strong> ahí. Opcional: <code>MP_TEST_ACCESS_TOKEN</code> (mismo bloque). Reinicia la app. No uses la Public Key de producción en DEMO.
+    </p>
+    <% } else if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments) { %>
     <p class="text-xs text-sky-900 p-3 rounded-xl border border-sky-200 bg-sky-50 text-center">
-      Modo <strong>prueba</strong>: en Hostinger usa claves de <strong>Credenciales de prueba</strong> (<code>MP_TEST_PUBLIC_KEY</code> + <code>MP_TEST_ACCESS_TOKEN</code>, o reemplaza <code>MP_PUBLIC_KEY</code> / <code>MP_ACCESS_TOKEN</code> por ese par). No uses Public Key de producción aquí.
+      Modo <strong>prueba</strong> activo — cobro con tarjetas de prueba Mercado Pago.
     </p>
     <% } %>
     <% if (typeof mpCredentialMismatch !== 'undefined' && mpCredentialMismatch) { %>
