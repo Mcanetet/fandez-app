@@ -260,6 +260,7 @@ router.get('/checkout', requireRole('client'), (req, res) => {
     mpConfigured: cardCheckout.isAnyCardGatewayConfigured(pricing),
     mpPublicKey: mp.getPublicKey(),
     mpEmbedCheckout: mp.isEmbedCheckoutAvailable(),
+    mpCredentialMismatch: mp.isCredentialPairMismatch(),
     cardGateway: gateways.getActiveCardGateway(pricing),
     enabledCardGateways,
     gatewayStatus,

@@ -276,7 +276,11 @@
     </p>
     <% } %>
 
-    <% if (mpGwOnly && mpConfigured && !mpEmbedCheckout) { %>
+    <% if (typeof mpCredentialMismatch !== 'undefined' && mpCredentialMismatch) { %>
+    <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpCredentialMismatchWarn">
+      <strong>Credenciales Mercado Pago mezcladas.</strong> En Hostinger, <code>MP_PUBLIC_KEY</code> y <code>MP_ACCESS_TOKEN</code> deben copiarse del <strong>mismo bloque</strong> (Credenciales de prueba o de producción) en Mercado Pago Developers. Si no, aparece «Card Token not found».
+    </p>
+    <% } else if (mpGwOnly && mpConfigured && !mpEmbedCheckout) { %>
     <p class="text-xs text-amber-900 p-3 rounded-xl border border-amber-200 bg-amber-50 text-center" id="mpEmbedSetupWarn">
       Falta <strong>MP_PUBLIC_KEY</strong> en el servidor para el formulario de tarjeta en Fandez. Mientras tanto no uses el botón que abre Mercado Pago: configura la clave pública en Hostinger o paga por transferencia.
     </p>
