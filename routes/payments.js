@@ -519,7 +519,8 @@ router.post('/mp/tarjeta', requireRole('client'), async (req, res) => {
       service,
       baseUrl,
       formData: formData || req.body,
-      payerEmail
+      payerEmail,
+      billing: billingResult.billingSnapshot || billing
     });
     if (!payment) {
       return res.status(502).json({ success: false, error: 'No se pudo procesar el pago.' });
@@ -546,8 +547,13 @@ router.post('/mp/tarjeta', requireRole('client'), async (req, res) => {
       error: `Pago no aprobado (${detail}). Revisa los datos de la tarjeta.`
     });
   } catch (err) {
-    console.error('[pagos/mp/tarjeta]', err.message);
-    return res.status(500).json({ success: false, error: 'Error al procesar el pago. Intenta de nuevo.' });
+    const error = mp.formatMercadoPagoError(err);
+    console.error('[pagos/mp/tarjeta]', err.message, err.cause || err.apiResponse?.body || '');
+    const clientMsg = /rut|tarjeta|token|payer|identification|parameter|invalid/i.test(error)
+      ? error
+      : 'Error al procesar el pago. Intenta de nuevo.';
+    const status = String(err.message || '').startsWith('MP_VALIDATION:') ? 400 : 502;
+    return res.status(status).json({ success: false, error: clientMsg });
   }
 });
 
