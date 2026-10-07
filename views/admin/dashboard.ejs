@@ -2678,13 +2678,44 @@ function hasPerm(key) {
     </section>
 
     <!-- MENSAJES ALERTA -->
-    <section class="<%= panelClass('alertas') %>" data-panel="alertas" data-subtitle="<%= t('admin.alertas.subtitle') %>">
+    <section class="<%= panelClass('alertas') %>" data-panel="alertas"
+      data-ops-inbox-manage="<%= (hasPerm('alertas.manage') || hasPerm('informes.view')) ? '1' : '0' %>"
+      data-subtitle="<%= t('admin.alertas.subtitle') %>">
       <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <p class="text-xs text-gray-500 sm:hidden"><%= t('admin.alertas.subtitle') %></p>
         <% if (hasPerm('alertas.manage')) { %>
         <button type="button" id="alertasNewBtn" class="admin-primary-btn !py-2 !px-3 text-sm ml-auto"><%= t('admin.alertas.new') %></button>
         <% } %>
       </div>
+
+      <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-zinc-950 text-zinc-100 border border-zinc-800">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div>
+            <h4 class="text-sm font-semibold text-white">Bandeja operativa · Sofía / Clara</h4>
+            <p class="text-[11px] text-zinc-400 mt-0.5">Misma bandeja que la app Fandez Admin en el celular.</p>
+          </div>
+          <a href="<%= adminBase %>/app" class="inline-flex items-center justify-center px-3 py-2 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shrink-0">Abrir bandeja móvil</a>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mb-2" role="tablist" aria-label="Filtrar alertas operativas">
+          <button type="button" class="ops-inbox-filter p-3 rounded-xl border border-amber-500 bg-amber-950/50 ring-1 ring-amber-500/40 text-center" data-ops-filter="open" aria-selected="true">
+            <strong class="block text-lg text-amber-400" id="opsInboxStatOpen">—</strong>
+            <span class="text-[10px] text-zinc-400 uppercase tracking-wide">Abiertas</span>
+          </button>
+          <button type="button" class="ops-inbox-filter p-3 rounded-xl border border-zinc-700 bg-zinc-900 text-center" data-ops-filter="critical" aria-selected="false">
+            <strong class="block text-lg text-amber-400" id="opsInboxStatCrit">—</strong>
+            <span class="text-[10px] text-zinc-400 uppercase tracking-wide">Críticas</span>
+          </button>
+          <button type="button" class="ops-inbox-filter p-3 rounded-xl border border-zinc-700 bg-zinc-900 text-center" data-ops-filter="today" aria-selected="false">
+            <strong class="block text-lg text-amber-400" id="opsInboxStatToday">—</strong>
+            <span class="text-[10px] text-zinc-400 uppercase tracking-wide">Hoy</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-zinc-500 text-center mb-3" id="opsInboxFilterHint">Mostrando alertas abiertas</p>
+        <div id="opsInboxList" class="space-y-2 max-h-[28rem] overflow-y-auto"></div>
+        <p id="opsInboxEmpty" class="hidden text-sm text-zinc-500 text-center py-8">Sin alertas abiertas.</p>
+      </div>
+
+      <h4 class="text-sm font-semibold mb-3 text-zilo-text">Banners en la app (clientes y socios)</h4>
 
       <div class="grid lg:grid-cols-2 gap-4">
         <div>
@@ -3050,7 +3081,8 @@ function hasPerm(key) {
             <ul class="mt-2 text-[11px] text-gray-600 space-y-1 list-disc pl-4">
               <li>Atajos demo antiguos en login: <strong>eliminados</strong></li>
               <li>Mismo RUT cliente + socio: <strong>permitido</strong> (bloqueo solo entre dos clientes o dos socios)</li>
-              <li>Pagos: <strong><%= modePanel.isDemo ? 'simulados (local)' : 'reales' %></strong></li>
+              <li>Mercado Pago: <strong><%= typeof operationalPhaseStatus !== 'undefined' && operationalPhaseStatus.isProductivoPhase ? 'credenciales producción' : 'credenciales prueba' %></strong></li>
+              <li>Pagos APP_MODE: <strong><%= modePanel.isDemo ? 'simulados (local)' : 'servidor production' %></strong></li>
               <li>Huincha pública: <strong><%= modePanel.isDemo2 || modePanel.isDemo ? 'Demo 2.0' : 'oculta (Productivo 2.0)' %></strong></li>
             </ul>
             <p class="text-[11px] text-gray-500 mt-2">URL admin: <code class="bg-white/70 px-1 rounded"><%= modePanel.adminBasePath %>/login</code>
@@ -3064,9 +3096,11 @@ function hasPerm(key) {
             <% } %>
           </div>
           <% if (modePanel.canToggle && (adminAccess.isSuperAdmin || adminAccess.isFullAccess)) { %>
+            <% const opPhase = typeof operationalPhaseStatus !== 'undefined' ? operationalPhaseStatus : { isDemoPhase: true, isProductivoPhase: false }; %>
             <div class="flex flex-wrap gap-2 shrink-0">
-              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isDemo ? 'bg-white border-amber-400' : 'bg-white/50' %>" data-mode="demo" title="Solo desarrollo local">Demo local</button>
-              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isProduction ? 'bg-white border-emerald-500' : 'bg-white/50' %>" data-mode="production"><%= modePanel.isProductive2 ? 'Productivo 2.0' : 'Demo 2.0' %></button>
+              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isDemo ? 'bg-white border-amber-400' : 'bg-white/50' %>" data-mode="demo" data-phase="demo" title="Solo desarrollo local">Demo local</button>
+              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isProduction && opPhase.isDemoPhase ? 'bg-white border-amber-400' : 'bg-white/50' %>" data-mode="production" data-phase="demo" title="MP prueba + huincha">Demo 2.0</button>
+              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= opPhase.isProductivoPhase ? 'bg-white border-emerald-500' : 'bg-white/50' %>" data-mode="production" data-phase="productivo" title="MP producción">Productivo 2.0</button>
             </div>
           <% } %>
         </div>

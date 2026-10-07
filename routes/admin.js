@@ -1053,7 +1053,30 @@ router.get('/openai-usage', requireRole('admin'), requireAdminPermission('openai
 });
 
 router.get('/modo', requireRole('admin'), requireAdminPermission('seguridad.view', 'equipo.manage'), (req, res) => {
-  res.json({ success: true, ...getPublicStatus(), suggestedAdminPath: require('../lib/appMode').suggestAdminPath() });
+  const mp = require('../lib/mercadopago');
+  const operationalPhase = require('../lib/operationalPhase');
+  res.json({
+    success: true,
+    ...getPublicStatus(),
+    operationalPhase: operationalPhase.getPublicStatus(),
+    mercadopago: mp.getCredentialAdminStatus(),
+    suggestedAdminPath: require('../lib/appMode').suggestAdminPath()
+  });
+});
+
+router.post('/operational-phase', requireRole('admin'), requireAdminPermission('precios.manage', 'equipo.manage'), async (req, res) => {
+  const access = req.adminAccess || {};
+  if (!(access.isSuperAdmin || access.isFullAccess)) {
+    return res.status(403).json({ success: false, error: 'Sin permiso para cambiar fase operativa.' });
+  }
+  try {
+    const operationalPhaseStore = require('../lib/operationalPhaseStore');
+    const result = await operationalPhaseStore.persistOperationalPhase(req.body.phase);
+    store.logSecurityEvent('operational_phase_change', result.phase, req);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message || 'No se pudo guardar.' });
+  }
 });
 
 router.post('/modo', requireRole('admin'), requireAdminPermission('equipo.manage'), async (req, res) => {
@@ -1069,8 +1092,14 @@ router.post('/modo', requireRole('admin'), requireAdminPermission('equipo.manage
   }
   try {
     const status = await appModeStore.persistAppModeOverride(req.body.mode);
-    store.logSecurityEvent('app_mode_change', status.mode, req);
-    res.json({ success: true, ...status });
+    const operationalPhaseStore = require('../lib/operationalPhaseStore');
+    let phase = 'demo';
+    if (req.body.mode === 'production') {
+      phase = req.body.phase === 'productivo' || req.body.productivo === true ? 'productivo' : 'demo';
+    }
+    const phaseStatus = await operationalPhaseStore.persistOperationalPhase(phase);
+    store.logSecurityEvent('app_mode_change', `${status.mode}:${phase}`, req);
+    res.json({ success: true, ...status, operationalPhase: phaseStatus });
   } catch (err) {
     console.error('[admin/modo]', err.message);
     res.status(400).json({ success: false, error: err.message || 'No se pudo guardar el modo.' });

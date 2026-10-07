@@ -278,7 +278,11 @@
 
     <% if (typeof mpSandboxMissingTestPk !== 'undefined' && mpSandboxMissingTestPk) { %>
     <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpSandboxTestPkWarn">
-      <strong>Pago en prueba bloqueado:</strong> falta <code>MP_TEST_PUBLIC_KEY</code> en Hostinger. Mercado Pago Developers → tu app → <strong>Credenciales de prueba</strong> → copia <strong>Public Key</strong> ahí. Opcional: <code>MP_TEST_ACCESS_TOKEN</code> (mismo bloque). Reinicia la app. No uses la Public Key de producción en DEMO.
+      <strong>Pago en prueba bloqueado:</strong> falta <code>MP_TEST_PUBLIC_KEY</code> en Hostinger. Mercado Pago Developers → tu app → <strong>Credenciales de prueba</strong> → copia <strong>Public Key</strong> ahí. Reinicia la app.
+    </p>
+    <% } else if (typeof mpSandboxMissingTestToken !== 'undefined' && mpSandboxMissingTestToken) { %>
+    <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpSandboxTestTokenWarn">
+      <strong>Falta el Access Token de prueba:</strong> crea <code>MP_TEST_ACCESS_TOKEN</code> en Hostinger con el valor de <strong>Credenciales de prueba → Access Token</strong> (misma pantalla que la Public Key). No uses <code>MP_ACCESS_TOKEN</code> de producción en DEMO.
     </p>
     <% } else if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments) { %>
     <p class="text-xs text-sky-900 p-3 rounded-xl border border-sky-200 bg-sky-50 text-center">

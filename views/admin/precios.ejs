@@ -208,9 +208,17 @@
             </div>
           <% }); %>
         </div>
+        <div class="mt-4 p-3 rounded-xl border border-gray-200 bg-white text-xs" id="mpCredProfileBox">
+          <p class="font-semibold text-gray-700 mb-1">Mercado Pago — perfil activo</p>
+          <p class="text-gray-500 mb-2" id="mpCredProfileLine">Cargando…</p>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn-mp-phase text-[11px] px-2.5 py-1 rounded-lg border border-amber-400 bg-amber-50 font-semibold" data-phase="demo">Usar credenciales de prueba</button>
+            <button type="button" class="btn-mp-phase text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500 bg-emerald-50 font-semibold" data-phase="productivo">Usar credenciales de producción</button>
+          </div>
+          <p class="text-[10px] text-gray-400 mt-2">En Hostinger: prueba → <code>MP_TEST_PUBLIC_KEY</code> + <code>MP_TEST_ACCESS_TOKEN</code> · producción → <code>MP_PUBLIC_KEY</code> + <code>MP_ACCESS_TOKEN</code></p>
+        </div>
         <p class="text-[10px] text-gray-400 mt-3">
           Transbank: <code>TRANSBANK_COMMERCE_CODE</code>, <code>TRANSBANK_API_KEY</code>, <code>TRANSBANK_ENV</code> ·
-          Mercado Pago: <code>MP_ACCESS_TOKEN</code>, <code>MP_PUBLIC_KEY</code> (tarjeta en Fandez) ·
           PayPal: <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_ENV</code>
         </p>
       </section>
@@ -622,5 +630,55 @@
     </section>
   </main>
 </div>
+
+<script>
+(function () {
+  const base = '<%= typeof adminBase !== "undefined" ? adminBase : "/admin" %>';
+  const line = document.getElementById('mpCredProfileLine');
+  async function refreshMpProfile() {
+    if (!line) return;
+    try {
+      const res = await fetch(base + '/modo', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const data = await res.json().catch(() => ({}));
+      if (!data.success) {
+        line.textContent = 'No se pudo leer el perfil MP.';
+        return;
+      }
+      const mp = data.mercadopago || {};
+      const phase = data.operationalPhase?.phase === 'productivo' ? 'producción' : 'prueba';
+      line.textContent = 'Activo: credenciales de ' + phase + '. '
+        + (mp.publicKeyConfigured && mp.accessTokenConfigured ? 'Par configurado en servidor.' : 'Faltan variables en Hostinger (' + (mp.publicKeyEnv || '') + ', ' + (mp.accessTokenEnv || '') + ').');
+    } catch (_) {
+      line.textContent = 'Error al cargar perfil MP.';
+    }
+  }
+  document.querySelectorAll('.btn-mp-phase').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const phase = btn.dataset.phase;
+      if (!confirm(phase === 'productivo'
+        ? '¿Activar Mercado Pago de PRODUCCIÓN? Solo si las credenciales live están en Hostinger.'
+        : '¿Activar Mercado Pago de PRUEBA (sandbox)?')) return;
+      try {
+        const res = await fetch(base + '/operational-phase', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ phase })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          alert(data.error || 'No se pudo cambiar el perfil.');
+          return;
+        }
+        await refreshMpProfile();
+        alert('Perfil MP: ' + (phase === 'productivo' ? 'producción' : 'prueba'));
+      } catch (_) {
+        alert('Error de red');
+      }
+    });
+  });
+  refreshMpProfile();
+})();
+</script>
 
 <%- include('../partials/footer') %>

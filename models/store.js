@@ -291,6 +291,7 @@ async function init() {
 
   await repository.migrate();
   await require('../lib/appModeStore').hydrateAppModeOverride().catch(() => {});
+  await require('../lib/operationalPhaseStore').hydrateOperationalPhase().catch(() => {});
   await repository.ensureDemoData();
   await require('../lib/backup').hydrateFromDatabase();
   const customProfiles = await adminProfilesStore.loadCustomProfiles();

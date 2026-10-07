@@ -116,8 +116,9 @@
     if (id === 'informes' && typeof window.__fandezLoadInformes === 'function') {
       window.__fandezLoadInformes();
     }
-    if (id === 'alertas' && typeof window.__fandezLoadAlertas === 'function') {
-      window.__fandezLoadAlertas();
+    if (id === 'alertas') {
+      if (typeof window.__fandezLoadAlertas === 'function') window.__fandezLoadAlertas();
+      if (typeof window.__fandezLoadOpsInbox === 'function') window.__fandezLoadOpsInbox();
     }
     if (id === 'florencia' && typeof window.__fandezLoadFlorenciaCalendar === 'function') {
       window.__fandezLoadFlorenciaCalendar();
@@ -3267,6 +3268,176 @@
     }
   })();
 
+  /* ——— Bandeja operativa (ops inbox) ——— */
+  (function initOpsInboxDashboard() {
+    const panel = document.querySelector('[data-panel="alertas"]');
+    if (!panel) return;
+    const listEl = document.getElementById('opsInboxList');
+    const emptyEl = document.getElementById('opsInboxEmpty');
+    const hintEl = document.getElementById('opsInboxFilterHint');
+    const canResolve = panel.dataset.opsInboxManage === '1';
+    let allItems = [];
+    let activeFilter = 'open';
+
+    const FILTER_HINTS = {
+      open: 'Mostrando alertas abiertas',
+      critical: 'Mostrando alertas críticas abiertas',
+      today: 'Mostrando alertas de hoy (abiertas y resueltas)'
+    };
+    const EMPTY_MSG = {
+      open: 'Sin alertas abiertas. Sofía / Clara te avisarán aquí y por correo.',
+      critical: 'Sin alertas críticas abiertas.',
+      today: 'Sin alertas registradas hoy.'
+    };
+
+    function esc(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function sevClass(s) {
+      const v = String(s || '').toLowerCase();
+      if (['critical', 's1', 'critica', 'alta', 'high'].includes(v)) return 'critical';
+      return '';
+    }
+
+    function when(iso) {
+      try {
+        return new Date(iso).toLocaleString('es-CL', { timeZone: 'America/Santiago' });
+      } catch (_) {
+        return iso || '';
+      }
+    }
+
+    function isTodayChile(iso) {
+      if (!iso) return false;
+      try {
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+        const key = new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+        return key === today;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function filterItems(items, filter) {
+      if (filter === 'critical') {
+        return items.filter((i) => i.status === 'open' && sevClass(i.severity) === 'critical');
+      }
+      if (filter === 'today') {
+        return items.filter((i) => isTodayChile(i.createdAt));
+      }
+      return items.filter((i) => i.status === 'open');
+    }
+
+    function updateStats(items) {
+      const open = items.filter((i) => i.status === 'open');
+      const crit = open.filter((i) => sevClass(i.severity) === 'critical').length;
+      const todayN = items.filter((i) => isTodayChile(i.createdAt)).length;
+      const o = document.getElementById('opsInboxStatOpen');
+      const c = document.getElementById('opsInboxStatCrit');
+      const t = document.getElementById('opsInboxStatToday');
+      if (o) o.textContent = String(open.length);
+      if (c) c.textContent = String(crit);
+      if (t) t.textContent = String(todayN);
+    }
+
+    function setFilterButtons(filter) {
+      document.querySelectorAll('.ops-inbox-filter').forEach((btn) => {
+        const on = btn.dataset.opsFilter === filter;
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        btn.classList.toggle('border-amber-500', on);
+        btn.classList.toggle('bg-amber-950/50', on);
+        btn.classList.toggle('ring-1', on);
+        btn.classList.toggle('ring-amber-500/40', on);
+        btn.classList.toggle('border-zinc-700', !on);
+        btn.classList.toggle('bg-zinc-900', !on);
+      });
+    }
+
+    function renderList() {
+      const filtered = filterItems(allItems, activeFilter);
+      if (!listEl) return;
+      if (!filtered.length) {
+        listEl.innerHTML = '';
+        if (emptyEl) {
+          emptyEl.hidden = false;
+          emptyEl.textContent = EMPTY_MSG[activeFilter] || EMPTY_MSG.open;
+        }
+        return;
+      }
+      if (emptyEl) emptyEl.hidden = true;
+      listEl.innerHTML = filtered.map((item) => {
+        const resolved = item.status !== 'open';
+        const crit = sevClass(item.severity) === 'critical';
+        const border = crit && !resolved ? 'border-red-500/40' : 'border-zinc-700';
+        const opacity = resolved ? 'opacity-60' : '';
+        return `<article class="p-3 rounded-xl bg-zinc-900 border ${border} ${opacity}" data-ops-id="${esc(item.id)}">
+          <p class="text-[10px] text-zinc-400 mb-1">${esc(item.agent || 'Agente')} · ${esc(item.severity || '—')} · ${esc(when(item.createdAt))}${resolved ? ' · resuelta' : ''}</p>
+          <strong class="text-sm block text-white">${esc(item.title || '')}</strong>
+          <p class="text-xs text-zinc-300 mt-1 whitespace-pre-wrap line-clamp-4">${esc(item.body || '')}</p>
+          <div class="flex flex-wrap gap-2 mt-2">
+            ${item.link ? `<a href="${esc(item.link)}" class="text-xs px-2.5 py-1.5 rounded-lg bg-amber-600 text-white font-semibold" target="_blank" rel="noopener">Abrir</a>` : ''}
+            ${canResolve && !resolved ? `<button type="button" class="text-xs px-2.5 py-1.5 rounded-lg border border-zinc-600 text-zinc-200 ops-inbox-resolve" data-id="${esc(item.id)}">Marcar resuelto</button>` : ''}
+          </div>
+        </article>`;
+      }).join('');
+
+      listEl.querySelectorAll('.ops-inbox-resolve').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try {
+            const res = await adminFetch(`/ops-inbox/${encodeURIComponent(btn.dataset.id)}/resolve`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: '{}'
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Error');
+            FandezNotify.show('Alerta resuelta', 'success');
+            await loadOpsInbox();
+          } catch (err) {
+            FandezNotify.show(err.message || 'No se pudo resolver', 'error');
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
+    function setActiveFilter(filter) {
+      activeFilter = filter;
+      setFilterButtons(filter);
+      if (hintEl) hintEl.textContent = FILTER_HINTS[filter] || FILTER_HINTS.open;
+      renderList();
+    }
+
+    async function loadOpsInbox() {
+      if (!listEl) return;
+      try {
+        const res = await adminFetch('/ops-inbox?limit=80');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error');
+        allItems = data.items || [];
+        updateStats(allItems);
+        renderList();
+      } catch (err) {
+        listEl.innerHTML = `<p class="text-xs text-red-400 p-3">${esc(err.message || 'No se pudo cargar la bandeja')}</p>`;
+      }
+    }
+
+    document.querySelectorAll('.ops-inbox-filter').forEach((btn) => {
+      btn.addEventListener('click', () => setActiveFilter(btn.dataset.opsFilter || 'open'));
+    });
+
+    window.__fandezLoadOpsInbox = loadOpsInbox;
+    if (dashboard.dataset.initialTab === 'alertas' || new URLSearchParams(window.location.search).get('tab') === 'alertas') {
+      loadOpsInbox();
+    }
+    setInterval(() => {
+      if (document.querySelector('[data-panel="alertas"]')?.classList.contains('hidden')) return;
+      loadOpsInbox().catch(() => {});
+    }, 45000);
+  })();
+
   /* ——— Gráficas marketing (Florencia / Informes) ——— */
   function renderFlorenciaBarChart(el, series, { color = '#c026d3' } = {}) {
     if (!el) return;
@@ -4044,7 +4215,14 @@
   document.querySelectorAll('.btn-set-app-mode').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const mode = btn.dataset.mode;
-      if (!confirm('¿Cambiar a ' + (mode === 'production' ? 'Demo 2.0 (pagos reales)' : 'Demo local (pagos simulados)') + '?\n\n• Demo local: solo desarrollo, pagos simulados\n• Demo 2.0: pagos reales + reclutamiento (huincha). Para Productivo 2.0 usa SHOW_DEMO_RIBBON=false en Hostinger.')) return;
+      const phase = btn.dataset.phase || 'demo';
+      const labels = {
+        demo: 'Demo local (MP credenciales de prueba)',
+        'production:demo': 'Demo 2.0 (MP prueba + huincha reclutamiento)',
+        'production:productivo': 'Productivo 2.0 (MP credenciales de producción)'
+      };
+      const key = mode === 'production' ? `production:${phase}` : mode;
+      if (!confirm('¿Cambiar a ' + (labels[key] || key) + '?')) return;
       try {
         const res = await adminFetch('/modo', {
           method: 'POST',
@@ -4053,7 +4231,7 @@
             Accept: 'application/json'
           },
           credentials: 'same-origin',
-          body: JSON.stringify({ mode })
+          body: JSON.stringify({ mode, phase, productivo: phase === 'productivo' })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.success) {

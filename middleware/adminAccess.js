@@ -27,6 +27,11 @@ function attachAdminAccess(req, res, next) {
   res.locals.adminBase = getAdminBasePath();
   res.locals.adminUrl = adminUrl;
   res.locals.appModeStatus = getPublicStatus();
+  try {
+    res.locals.operationalPhaseStatus = require('../lib/operationalPhase').getPublicStatus();
+  } catch (_) {
+    res.locals.operationalPhaseStatus = { phase: 'demo', isDemoPhase: true, isProductivoPhase: false };
+  }
   next();
 }
 
