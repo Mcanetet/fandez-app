@@ -19,9 +19,12 @@ En el panel de la app (Environment variables), ajusta:
 | `MP_SANDBOX` | `false` o eliminar | No usar sandbox en prod. |
 | `MP_WEBHOOK_SECRET` | Clave del panel MP | Webhooks → tu URL → copiar secret. |
 | `MP_PAYER_EMAIL` | Email del comercio MP | Evita rechazos al crear preferencias. |
+| `MP_PUBLIC_KEY` | Public Key (panel MP → Credenciales) | Formulario de tarjeta **dentro** de Fandez (Brick). Sin esto, el checkout redirige a mercadopago.cl. |
 | `APP_URL` | `https://www.fandez.cl` | URLs de retorno de pago. |
 
 Mantén las existentes: `DB_*`, `MP_ACCESS_TOKEN`, `SMTP_*`, `SESSION_SECRET`, etc.
+
+Opcional: `MP_CHECKOUT_REDIRECT=true` fuerza el checkout clásico en el sitio de Mercado Pago (sin Brick embebido).
 
 **Webhook Mercado Pago**
 

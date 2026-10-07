@@ -258,12 +258,24 @@ router.get('/checkout', requireRole('client'), (req, res) => {
     formatCLP: store.formatCLP,
     pointsValue: store.POINTS_VALUE_CLP,
     mpConfigured: cardCheckout.isAnyCardGatewayConfigured(pricing),
+    mpPublicKey: mp.getPublicKey(),
+    mpEmbedCheckout: mp.isEmbedCheckoutAvailable(),
     cardGateway: gateways.getActiveCardGateway(pricing),
     enabledCardGateways,
     gatewayStatus,
     company,
     pricing,
     trustStats: store.getClientTrustStats()
+  });
+});
+
+router.get('/mp/brick-config', requireRole('client'), (req, res) => {
+  res.json({
+    success: true,
+    embed: mp.isEmbedCheckoutAvailable(),
+    publicKey: mp.getPublicKey(),
+    sandbox: process.env.MP_SANDBOX === 'true',
+    redirectOnly: process.env.MP_CHECKOUT_REDIRECT === 'true'
   });
 });
 
@@ -378,7 +390,22 @@ router.post('/crear', requireRole('client'), async (req, res) => {
       });
     }
 
+    if (payment.mode === 'mercadopago_embed') {
+      return res.status(400).json({
+        success: false,
+        error: 'Completa el pago con el formulario de tarjeta en esta pantalla.',
+        embedded: true
+      });
+    }
+
     if (payment.mode === 'mercadopago') {
+      if (mp.isEmbedCheckoutAvailable()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Completa el pago con el formulario de tarjeta en esta pantalla.',
+          embedded: true
+        });
+      }
       store.setCardPaymentSession(request.id, {
         gateway: 'mercadopago',
         preferenceId: payment.preferenceId
@@ -430,6 +457,97 @@ router.post('/crear', requireRole('client'), async (req, res) => {
       }
     }
     res.status(500).json({ error: 'No se pudo crear el pago. Intenta nuevamente.' });
+  }
+});
+
+router.post('/mp/tarjeta', requireRole('client'), async (req, res) => {
+  const { requestId, promoCode, paymentMethod, billing, formData } = req.body;
+  const puntosOn = store.isModuleEnabled('client_puntos');
+  const request = store.requests.find((r) => r.id === requestId);
+
+  if (!request || request.clientId !== req.session.user.id) {
+    return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
+  }
+  if (!mp.isEmbedCheckoutAvailable()) {
+    return res.status(400).json({ success: false, error: 'Pago embebido no disponible.' });
+  }
+
+  const billingResult = ensureBillingForPayment(req.session.user.id, requestId, billing);
+  if (billingResult.error) {
+    return res.status(400).json({ success: false, error: billingResult.error });
+  }
+
+  const method = paymentMethod || 'card';
+  if (method !== 'card') {
+    return res.status(400).json({ success: false, error: 'Método no válido para tarjeta embebida.' });
+  }
+
+  const discountResult = store.applyCheckoutDiscounts(req.session.user.id, requestId, {
+    useCredits: Boolean(req.body.useCredits),
+    usePoints: puntosOn && Boolean(req.body.usePoints),
+    promoCode,
+    paymentMethod: method
+  });
+  if (discountResult.error) return res.status(400).json(discountResult);
+
+  const updated = store.requests.find((r) => r.id === requestId);
+  const baseUrl = getBaseUrl(req);
+  const pricing = store.getPricingConfig();
+
+  if (updated.amountDue === 0) {
+    store.markPaymentApproved(requestId, 'credits');
+    store.activateRequest(requestId);
+    notifyProviders(req, store.requests.find((r) => r.id === requestId));
+    return res.json({ success: true, free: true, redirect: paymentSuccessPath(requestId) });
+  }
+
+  const gatewayId = req.body.cardGateway || null;
+  const status = gateways.getGatewayStatus(pricing);
+  const gateway = gatewayId && status[gatewayId]?.enabled
+    ? status[gatewayId]
+    : gateways.getActiveCardGateway(pricing);
+  if (!gateway || gateway.id !== 'mercadopago') {
+    return res.status(400).json({ success: false, error: 'Selecciona Mercado Pago como pasarela.' });
+  }
+
+  const service = store.getServiceById(request.serviceId);
+  const payerEmail = billing?.invoiceEmail || req.session.user?.email;
+
+  try {
+    const payment = await mp.createCardPaymentFromToken({
+      request: updated,
+      service,
+      baseUrl,
+      formData: formData || req.body,
+      payerEmail
+    });
+    if (!payment) {
+      return res.status(502).json({ success: false, error: 'No se pudo procesar el pago.' });
+    }
+
+    const mpId = String(payment.id || '');
+    const st = String(payment.status || '').toLowerCase();
+    const extras = cardInstallmentsExtras(payment);
+
+    if (st === 'approved') {
+      store.markPaymentApproved(requestId, mpId, extras);
+      store.activateRequest(requestId);
+      notifyProviders(req, store.requests.find((r) => r.id === requestId));
+      return res.json({ success: true, redirect: paymentSuccessPath(requestId) });
+    }
+    if (st === 'pending' || st === 'in_process') {
+      store.setCardPaymentSession(request.id, { gateway: 'mercadopago', paymentId: mpId });
+      return res.json({ success: true, redirect: `/pagos/pendiente?ref=${requestId}` });
+    }
+
+    const detail = payment.status_detail || payment.status || 'rejected';
+    return res.status(400).json({
+      success: false,
+      error: `Pago no aprobado (${detail}). Revisa los datos de la tarjeta.`
+    });
+  } catch (err) {
+    console.error('[pagos/mp/tarjeta]', err.message);
+    return res.status(500).json({ success: false, error: 'Error al procesar el pago. Intenta de nuevo.' });
   }
 });
 
