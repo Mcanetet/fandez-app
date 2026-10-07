@@ -548,12 +548,9 @@ router.post('/mp/tarjeta', requireRole('client'), async (req, res) => {
     });
   } catch (err) {
     const error = mp.formatMercadoPagoError(err);
-    console.error('[pagos/mp/tarjeta]', err.message, err.cause || err.apiResponse?.body || '');
-    const clientMsg = /rut|tarjeta|token|payer|identification|parameter|invalid/i.test(error)
-      ? error
-      : 'Error al procesar el pago. Intenta de nuevo.';
-    const status = String(err.message || '').startsWith('MP_VALIDATION:') ? 400 : 502;
-    return res.status(status).json({ success: false, error: clientMsg });
+    console.error('[pagos/mp/tarjeta]', error, err?.cause || err);
+    const status = String(err?.message || '').startsWith('MP_VALIDATION:') ? 400 : 502;
+    return res.status(status).json({ success: false, error });
   }
 });
 
