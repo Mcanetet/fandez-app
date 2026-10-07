@@ -261,6 +261,7 @@ router.get('/checkout', requireRole('client'), (req, res) => {
     mpPublicKey: mp.getPublicKey(),
     mpEmbedCheckout: mp.isEmbedCheckoutAvailable(),
     mpCredentialMismatch: mp.isCredentialPairMismatch(),
+    mpSandboxPayments: mp.usesSandboxPayments(),
     cardGateway: gateways.getActiveCardGateway(pricing),
     enabledCardGateways,
     gatewayStatus,

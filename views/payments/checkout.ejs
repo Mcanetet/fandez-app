@@ -276,6 +276,11 @@
     </p>
     <% } %>
 
+    <% if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments) { %>
+    <p class="text-xs text-sky-900 p-3 rounded-xl border border-sky-200 bg-sky-50 text-center">
+      Modo <strong>prueba</strong>: en Hostinger usa claves de <strong>Credenciales de prueba</strong> (<code>MP_TEST_PUBLIC_KEY</code> + <code>MP_TEST_ACCESS_TOKEN</code>, o reemplaza <code>MP_PUBLIC_KEY</code> / <code>MP_ACCESS_TOKEN</code> por ese par). No uses Public Key de producción aquí.
+    </p>
+    <% } %>
     <% if (typeof mpCredentialMismatch !== 'undefined' && mpCredentialMismatch) { %>
     <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpCredentialMismatchWarn">
       <strong>Credenciales Mercado Pago mezcladas.</strong> En Hostinger, <code>MP_PUBLIC_KEY</code> y <code>MP_ACCESS_TOKEN</code> deben copiarse del <strong>mismo bloque</strong> (Credenciales de prueba o de producción) en Mercado Pago Developers. Si no, aparece «Card Token not found».

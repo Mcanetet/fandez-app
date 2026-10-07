@@ -26,6 +26,8 @@ Mantén las existentes: `DB_*`, `MP_ACCESS_TOKEN`, `SMTP_*`, `SESSION_SECRET`, e
 
 Opcional: `MP_CHECKOUT_REDIRECT=true` fuerza el checkout clásico en el sitio de Mercado Pago (sin Brick embebido).
 
+**Pruebas (DEMO / `MP_SANDBOX=true`):** no mezcles Public Key de **producción** con Access Token de **prueba** (error «Unauthorized use of live credentials»). Usa el par de **Credenciales de prueba** en `MP_TEST_PUBLIC_KEY` + `MP_TEST_ACCESS_TOKEN`, o pega ese par en `MP_PUBLIC_KEY` + `MP_ACCESS_TOKEN`.
+
 **Webhook Mercado Pago**
 
 - URL: `https://www.fandez.cl/pagos/webhook` (o la ruta configurada en tu app).
