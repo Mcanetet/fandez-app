@@ -1,25 +1,28 @@
 <%- include('../partials/head', { useMap: true }) %>
 
-<% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria', 'paisajismo', 'limpieza', 'fotovoltaico', 'piscinas']; %>
+<% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria', 'paisajismo', 'limpieza', 'escombros', 'fotovoltaico', 'piscinas']; %>
 <% const brandOptional = brandOptionalServices.indexOf(String(service.id || '').toLowerCase()) !== -1; %>
 <% const isGarden = String(service.id || '') === 'paisajismo'; %>
 <% const isFv = String(service.id || '') === 'fotovoltaico'; %>
 <% const isCleaning = String(service.id || '') === 'limpieza'; %>
+<% const isEscombros = String(service.id || '') === 'escombros'; %>
 <% const servicePath = typeof resolvedServicePath !== 'undefined' ? resolvedServicePath : 'now'; %>
 <% const isProjectPath = servicePath === 'project' || isGarden || isFv; %>
-<% const perM2 = isCleaning || (!isGarden && !isFv && service.pricingUnit === 'm2'); %>
+<% const perM2 = isCleaning || (!isGarden && !isFv && !isEscombros && service.pricingUnit === 'm2'); %>
 <div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="servicePage"
   data-service-id="<%= service.id %>"
   data-service-name="<%= service.name %>"
   data-client-id="<%= user && user.id ? user.id : '' %>"
   data-visit-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
   data-from-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
-  data-pricing-unit="<%= perM2 ? 'm2' : 'job' %>"
+  data-pricing-unit="<%= isEscombros ? 'mixed' : (perM2 ? 'm2' : 'job') %>"
   data-cleaning="<%= isCleaning ? '1' : '0' %>"
+  data-escombros="<%= isEscombros ? '1' : '0' %>"
+  data-escombros-min="303450"
   data-garden-intake="<%= isGarden ? '1' : '0' %>"
   data-fv-intake="<%= isFv ? '1' : '0' %>"
   data-service-path="<%= isProjectPath ? 'project' : 'now' %>"
-  data-min-m2="<%= isGarden ? 100 : (isCleaning ? 20 : 10) %>"
+  data-min-m2="<%= isGarden ? 100 : (isCleaning ? 20 : (isEscombros ? 1 : 10)) %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
   data-resume-id="<%= typeof checkoutDraft !== 'undefined' && checkoutDraft ? checkoutDraft.id : '' %>"
   data-whatsapp="<%= company.whatsapp %>"
@@ -263,18 +266,21 @@
         <p class="text-[11px] text-zilo-muted mb-3"><%= t('client.service.subservice_pick_hint') %></p>
         <div class="space-y-2" id="activityCardList" role="radiogroup" aria-label="<%= t('client.service.subservice') %>">
           <% activities.forEach(function(act) {
-            const priceLabel = act.pricingUnit === 'm2'
+            const unit = act.pricingUnit || 'job';
+            const priceLabel = unit === 'm2'
               ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m²')
-              : formatCLP(act.basePrice);
+              : (unit === 'm3'
+                ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m³')
+                : formatCLP(act.basePrice));
             const blurb = act.clientBlurb || act.description || '';
           %>
             <label class="activity-card group flex gap-3 p-3.5 rounded-2xl border border-zilo-border bg-white cursor-pointer transition hover:border-zilo-accent/35 hover:bg-zilo-accent/[0.03]"
               data-activity-card
               data-id="<%= act.id %>"
               data-base="<%= act.basePrice %>"
-              data-unit="<%= act.pricingUnit || 'job' %>"
+              data-unit="<%= unit %>"
               data-per-m2="<%= act.pricePerM2 || act.basePrice %>"
-              data-min-m2="<%= act.minM2 || 15 %>"
+              data-min-m2="<%= act.minM2 || (unit === 'm3' || unit === 'm2' ? 1 : 15) %>"
               data-quote-mode="<%= act.quoteMode || '' %>"
               data-blurb="<%= String(blurb).replace(/"/g, '&quot;') %>"
               data-price-label="<%= priceLabel %>">
@@ -337,14 +343,16 @@
       </div>
       <% } %>
 
-      <% if (perM2) { %>
-      <div id="gardenAreaBlock">
-        <label for="squareMeters" class="zilo-label block mb-1.5"><%= t('client.service.area_m2') %> *</label>
-        <input type="number" id="squareMeters" name="squareMeters" min="<%= isCleaning ? 20 : 10 %>" step="1" inputmode="numeric" required class="zilo-input" placeholder="<%= t('client.service.area_m2_ph') %>">
+      <% if (perM2 || isEscombros) { %>
+      <div id="gardenAreaBlock" class="<%= isEscombros ? 'hidden' : '' %>">
+        <label for="squareMeters" class="zilo-label block mb-1.5" id="qtyUnitLabel"><%= isEscombros ? 'Cantidad *' : t('client.service.area_m2') + ' *' %></label>
+        <input type="number" id="squareMeters" name="squareMeters" min="<%= isCleaning ? 20 : (isEscombros ? 1 : 10) %>" step="1" inputmode="numeric" <%= isEscombros ? '' : 'required' %> class="zilo-input" placeholder="<%= isEscombros ? 'Ej: 3' : t('client.service.area_m2_ph') %>">
         <p class="text-[11px] text-zilo-muted mt-1" id="gardenAreaHint">
           <%= isCleaning
             ? 'Indica los m² a limpiar (mín. 20). Precio base $1.500 / m². Llevamos los materiales.'
-            : t('client.service.area_m2_hint') %>
+            : (isEscombros
+              ? 'Indica m² o m³ según el ítem elegido. Mínimo de intervención $303.450 (IVA incl.).'
+              : t('client.service.area_m2_hint')) %>
         </p>
       </div>
 

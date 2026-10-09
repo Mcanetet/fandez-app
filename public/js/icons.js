@@ -16,6 +16,7 @@ window.FandezIcons = {
       fotovoltaico: '<path d="M12 3v2"/><path d="M12 19v2"/><path d="M5 12H3"/><path d="M21 12h-2"/><path d="M6.3 6.3l-1.4-1.4"/><path d="M19.1 19.1l-1.4-1.4"/><path d="M6.3 17.7l-1.4 1.4"/><path d="M19.1 4.9l-1.4 1.4"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M8 12h8M12 8v8"/>',
       piscinas: '<path d="M4 18c1.5-1 3-1 4.5 0s3 1 4.5 0 3-1 4.5 0 3 1 4.5 0"/><path d="M4 14c1.5-1 3-1 4.5 0s3 1 4.5 0 3-1 4.5 0 3 1 4.5 0"/><path d="M6 6h12v6H6z"/><path d="M9 6V4h6v2"/>',
       limpieza: '<path d="M9 3h6l1 4H8L9 3z"/><path d="M8 7h8v2a4 4 0 01-4 4 4 4 0 01-4-4V7z"/><path d="M12 13v8"/><path d="M9 21h6"/>',
+      escombros: '<path d="M4 10l2.5-4h11L20 10"/><path d="M4 10h16v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7z"/><path d="M8 14h8M9.5 17h5"/>',
       otros: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>'
     };
     const paths = icons[icon] || '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>';

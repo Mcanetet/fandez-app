@@ -53,6 +53,8 @@ const {
   isPerM2Service,
   isPerM2Activity,
   isCleaningService,
+  isEscombrosService,
+  ESCOMBROS_MIN_JOB_CLP,
   isLandscapeActivity,
   resolveM2QuoteBase,
   normalizeLandscapeFactors,
@@ -491,7 +493,9 @@ async function createRequest({
         id: `otro-${Date.now()}`,
         name: `Otro: ${name}`,
         kind: 'correctiva',
-        basePrice: gardenJob ? (cleaningJob ? CLEANING_OTHER_RATE_M2 : GARDEN_OTHER_RATE_M2) : MIN_WORK_BASE_CLP,
+        basePrice: gardenJob
+          ? (cleaningJob ? CLEANING_OTHER_RATE_M2 : GARDEN_OTHER_RATE_M2)
+          : (isEscombrosService(serviceId) ? ESCOMBROS_MIN_JOB_CLP : MIN_WORK_BASE_CLP),
         pricePerM2: gardenJob ? (cleaningJob ? CLEANING_OTHER_RATE_M2 : GARDEN_OTHER_RATE_M2) : null,
         pricingUnit: gardenJob ? 'm2' : 'job',
         minM2: gardenJob ? (cleaningJob ? CLEANING_MIN_M2 : 15) : null,
@@ -1722,7 +1726,7 @@ function broadenSpecialtyForOpenRequest(serviceId) {
     // Otros oficios: solo socios que ya operan algún servicio.
     const hasAnyCoverage = u.specialties.some((spec) => hasTechnicianCoverage(u.id, spec));
     const alreadyOperates = u.specialties.length > 0;
-    if (sid !== 'limpieza' && !hasAnyCoverage && !alreadyOperates) continue;
+    if (sid !== 'limpieza' && sid !== 'escombros' && !hasAnyCoverage && !alreadyOperates) continue;
     u.specialties = [...u.specialties, sid];
     syncTechniciansToProviderServices(u.id);
     repository.persist(() => repository.saveUser(u), `especialidad abierta ${sid} ${u.id}`);
@@ -1753,9 +1757,10 @@ async function ensureProviderReadyForWall(providerId) {
     if (provider.specialties.includes(sid)) continue;
     // Pedidos abiertos: el socio debe poder verlos. Limpieza (lanzamiento) y
     // socios sin oficios o con oficios afines reciben el servicio automáticamente.
-    const relatedHome = ['jardineria', 'paisajismo', 'pintura', 'limpieza', 'fotovoltaico', 'piscinas'].some((id) => provider.specialties.includes(id));
+    const relatedHome = ['jardineria', 'paisajismo', 'pintura', 'limpieza', 'escombros', 'fotovoltaico', 'piscinas'].some((id) => provider.specialties.includes(id));
     if (
       sid === 'limpieza'
+      || sid === 'escombros'
       || provider.specialties.length === 0
       || relatedHome
       || provider.specialties.some((spec) => hasTechnicianCoverage(providerId, spec))

@@ -27,6 +27,7 @@ const SEED_SERVICES = [
   { id: 'lavavajillas', name: 'Lavavajillas', icon: 'lavavajillas', color: '#06B6D4', visitPrice: 100000, basicMin: 100000, basicMax: 145000, description: 'Integrado en Gasfitería (hidráulica) y Otros (electrónica).', enabled: false },
   { id: 'lavadora', name: 'Lavadora', icon: 'lavadora', color: '#10B981', visitPrice: 100000, basicMin: 100000, basicMax: 150000, description: 'Integrado en Gasfitería (hidráulica) y Otros (electrónica).', enabled: false },
   { id: 'limpieza', name: 'Limpieza', icon: 'limpieza', color: '#14B8A6', visitPrice: 30000, basicMin: 30000, basicMax: 150000, description: 'Limpieza por m² ($1.500). Materiales incluidos.', enabled: true },
+  { id: 'escombros', name: 'Retiro de Escombros y Limpieza Profunda', icon: 'escombros', color: '#78716C', visitPrice: 14875, basicMin: 14875, basicMax: 303450, description: 'Retiro de escombros, sedimentos y limpieza profunda post emergencia. Precios por m²/m³/jornada (IVA incl.).', enabled: true },
   { id: 'otros', name: 'Otros', icon: 'otros', color: '#64748B', visitPrice: 100000, basicMin: 100000, basicMax: 150000, description: 'Electrodomésticos y oficios complementarios.', enabled: true }
 ];
 

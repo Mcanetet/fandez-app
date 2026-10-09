@@ -421,6 +421,7 @@
       syncActivityHiddenFromCards();
       toggleClientOtherFields();
       toggleLandscapeFields();
+      toggleEscombrosQtyFields();
       updatePricePreview();
     }
   }
@@ -684,6 +685,34 @@
     }
   }
 
+  function isEscombrosService() {
+    return page?.dataset?.escombros === '1' || page?.dataset?.serviceId === 'escombros';
+  }
+
+  function toggleEscombrosQtyFields() {
+    if (!isEscombrosService()) return;
+    const meta = selectedActivityMeta();
+    const unit = meta?.unit || 'job';
+    const needsQty = unit === 'm2' || unit === 'm3';
+    const block = document.getElementById('gardenAreaBlock');
+    const input = document.getElementById('squareMeters');
+    const label = document.getElementById('qtyUnitLabel');
+    const hint = document.getElementById('gardenAreaHint');
+    if (block) block.classList.toggle('hidden', !needsQty);
+    if (input) {
+      input.required = needsQty;
+      input.min = String(parseInt(meta?.minM2 || '1', 10) || 1);
+    }
+    if (label) {
+      label.textContent = unit === 'm3' ? 'Cantidad (m³) *' : (unit === 'm2' ? 'Cantidad (m²) *' : 'Cantidad *');
+    }
+    if (hint && needsQty) {
+      hint.textContent = unit === 'm3'
+        ? 'Indica los m³ de material. Mínimo de intervención $303.450 (IVA incl.).'
+        : 'Indica los m² a tratar. Mínimo de intervención $303.450 (IVA incl.).';
+    }
+  }
+
   function isCleaningService() {
     return page?.dataset?.cleaning === '1' || page?.dataset?.serviceId === 'limpieza';
   }
@@ -715,24 +744,32 @@
       return Number.isFinite(from) && from > 0 ? from : 49000;
     }
     const meta = selectedActivityMeta();
-    const perM2 = page?.dataset?.pricingUnit === 'm2' || meta?.unit === 'm2';
-    const minM2 = parseInt(page?.dataset?.minM2 || '10', 10) || 10;
+    const unitRate = page?.dataset?.pricingUnit === 'm2' || meta?.unit === 'm2' || meta?.unit === 'm3';
+    const minM2 = parseInt(meta?.minM2 || page?.dataset?.minM2 || '10', 10) || 10;
     if (isLandscapeSelected()) {
       const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
       const m2 = Number.isFinite(typed) && typed >= 20 ? typed : 20;
       const quote = computeLandscapeQuote(m2);
       return quote != null ? quote : 400000;
     }
-    if (perM2) {
+    if (unitRate) {
       const rate = parseInt(meta?.perM2 || meta?.base || page?.dataset?.fromPrice, 10);
       const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
       const m2 = Number.isFinite(typed) && typed >= minM2 ? typed : minM2;
-      const floor = isCleaningService() ? 30000 : 40000;
+      const floor = isCleaningService()
+        ? 30000
+        : (isEscombrosService() ? (parseInt(page?.dataset?.escombrosMin || '303450', 10) || 303450) : 40000);
       const defaultRate = isCleaningService() ? 1500 : 5500;
       let n = (Number.isFinite(rate) && rate > 0 ? rate : defaultRate) * m2;
       n = Math.max(floor, Math.round(n));
       if (isCleaningService()) n = Math.round(n * cleaningMultiplier());
       return n;
+    }
+    if (isEscombrosService()) {
+      const floor = parseInt(page?.dataset?.escombrosMin || '303450', 10) || 303450;
+      const n = meta?.base ? parseInt(meta.base, 10) : NaN;
+      if (Number.isFinite(n) && n > 0) return Math.max(floor, n);
+      return floor;
     }
     const n = meta?.base ? parseInt(meta.base, 10) : NaN;
     if (Number.isFinite(n) && n > 0) return n;
@@ -745,14 +782,17 @@
       syncActivityHiddenFromCards();
       toggleClientOtherFields();
       toggleLandscapeFields();
+      toggleEscombrosQtyFields();
       updatePricePreview();
     });
   });
   syncActivityHiddenFromCards();
+  toggleEscombrosQtyFields();
   if (activitySelect && activitySelect.tagName === 'SELECT') {
     activitySelect.addEventListener('change', () => {
       toggleClientOtherFields();
       toggleLandscapeFields();
+      toggleEscombrosQtyFields();
       updatePricePreview();
     });
   }
@@ -841,7 +881,7 @@
         timeZone: clock.timeZone
       });
       if (base) params.set('base', String(base));
-      if (page?.dataset?.pricingUnit === 'm2') params.set('skipFloor', '1');
+      if (page?.dataset?.pricingUnit === 'm2' || isEscombrosService()) params.set('skipFloor', '1');
       const sid = page?.dataset?.serviceId;
       if (sid) params.set('serviceId', sid);
       const aLat = parseFloat(page?.dataset?.addressLat);
@@ -855,20 +895,23 @@
       if (!data.success) return;
       const p = data.preview;
       const f = data.preview.formatted;
-      if (page?.dataset?.pricingUnit === 'm2') {
-        const meta = selectedActivityMeta();
+      const meta = selectedActivityMeta();
+      const unitSuffix = meta?.unit === 'm3' ? ' / m³' : (meta?.unit === 'm2' || page?.dataset?.pricingUnit === 'm2' ? ' / m²' : '');
+      if (unitSuffix && (page?.dataset?.pricingUnit === 'm2' || isEscombrosService())) {
         if (isLandscapeSelected()) {
           const stdOpt = document.getElementById('landscapeStandard')?.selectedOptions?.[0];
           const rate = parseInt(stdOpt?.dataset?.rate || meta?.perM2 || page.dataset.fromPrice, 10);
           if (Number.isFinite(rate) && rate > 0) {
             const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
-            visitEl.textContent = `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(rate)} / m²`;
+            visitEl.textContent = `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(rate)}${unitSuffix}`;
           }
         } else {
           const rate = parseInt(meta?.perM2 || page.dataset.fromPrice, 10);
           if (Number.isFinite(rate) && rate > 0) {
             const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
-            visitEl.textContent = `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(rate)} / m²`;
+            visitEl.textContent = `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(rate)}${unitSuffix}`;
+          } else {
+            visitEl.textContent = f.baseVisit;
           }
         }
       } else {
@@ -3575,16 +3618,18 @@
     const gardenIntakeJob = isGardenIntakeService();
     const fvIntakeJob = isFvIntakeService();
     const projectJob = isProjectPath();
-    const gardenJob = page?.dataset?.pricingUnit === 'm2' || gardenIntakeJob;
+    const activityMeta = selectedActivityMeta();
+    const escombrosQty = isEscombrosService() && (activityMeta?.unit === 'm2' || activityMeta?.unit === 'm3');
+    const gardenJob = page?.dataset?.pricingUnit === 'm2' || gardenIntakeJob || escombrosQty;
     const landscapeJob = !gardenIntakeJob && !fvIntakeJob && gardenJob && isLandscapeSelected();
     const landscapeProject = landscapeJob ? readLandscapeProject() : null;
     const gardenIntake = gardenIntakeJob ? readGardenIntake() : null;
     const fvIntake = fvIntakeJob ? readFvIntake() : null;
     const cleaningJob = isCleaningService();
     const cleaningFactors = cleaningJob ? readCleaningFactors() : null;
-    const minM2 = parseInt(page?.dataset?.minM2 || '10', 10) || 10;
+    const minM2 = parseInt(activityMeta?.minM2 || page?.dataset?.minM2 || '10', 10) || 10;
     const squareMetersRaw = document.getElementById('squareMeters')?.value;
-    const squareMeters = gardenJob ? parseFloat(squareMetersRaw) : undefined;
+    const squareMeters = (gardenJob || escombrosQty) ? parseFloat(squareMetersRaw) : undefined;
 
     if (!projectJob && notes.length < 12) {
       // Descripción opcional
@@ -3626,10 +3671,13 @@
         return;
       }
     } else if (!gardenIntakeJob && gardenJob && (!Number.isFinite(squareMeters) || squareMeters < minM2)) {
+      const unitLabel = activityMeta?.unit === 'm3' ? 'm³' : 'm²';
       FandezNotify.show(
         cleaningJob
           ? `Indica los m² a limpiar (mínimo ${minM2})`
-          : t('client.js.need_m2'),
+          : (isEscombrosService()
+            ? `Indica la cantidad en ${unitLabel} (mínimo ${minM2})`
+            : t('client.js.need_m2')),
         'warning'
       );
       document.getElementById('squareMeters')?.focus();
