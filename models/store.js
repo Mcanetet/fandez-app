@@ -164,6 +164,13 @@ const {
 const emailVerification = require('../lib/emailVerification');
 const passwordReset = require('../lib/passwordReset');
 const { isPreOperations } = require('../lib/launchNotice');
+const {
+  isDeferredUrgencyTier,
+  validateProposedVisit,
+  formatVisitLabel,
+  scheduleFields,
+  defaultVisitYmdForTier
+} = require('../lib/visitSchedule');
 
 let SERVICES = [];
 let MODULES = [];
@@ -574,7 +581,10 @@ async function createRequest({
     lat: coords.lat,
     lng: coords.lng,
     serviceId,
-    supplyCount
+    supplyCount,
+    communeCode: geoMeta?.communeCode || null,
+    communeName: geoMeta?.communeName || null,
+    address: fullAddress
   };
 
   const visitCalc = gardenIntakeJob || fvIntakeJob || landscape || isManualOther || cleaningJob
@@ -798,8 +808,13 @@ function getCheckoutDraftForClient(clientId, serviceId, resumeId = null) {
     gardenIntake: request.gardenIntake || null,
     cleaningFactors: request.cleaningFactors || null,
     brandNotVisible: Boolean(request.brandNotVisible),
-    clientPhotoUrl: request.clientPhotoUrl || null,
-    clientBrandPhotoUrl: request.clientBrandPhotoUrl || null,
+    // URLs públicas (auth) — no devolver rutas crudas de disco/`/uploads` rotas en el <img>.
+    clientPhotoUrl: request.clientPhotoUrl
+      ? (stableRequestPhotoUrl(request.id, 'problem') || toServingUrl(request.clientPhotoUrl) || null)
+      : null,
+    clientBrandPhotoUrl: request.clientBrandPhotoUrl
+      ? (stableRequestPhotoUrl(request.id, 'brand') || toServingUrl(request.clientBrandPhotoUrl) || null)
+      : null,
     isGift: Boolean(request.isGift),
     gift: request.isGift ? {
       name: request.beneficiaryName || '',
@@ -2379,6 +2394,8 @@ function decorateServiceForClient(service) {
     averagePrice: summary.fromPrice,
     averagePriceExact: summary.averagePrice,
     maxPrice: summary.maxPrice,
+    minJobPrice: summary.minJobPrice || null,
+    showMinJob: Boolean(summary.showMinJob && summary.minJobPrice),
     pricingUnit: summary.pricingUnit || 'job'
   });
 }
@@ -2819,7 +2836,10 @@ function previewVisitPrice(tierId, valorBase, {
   skipWorkFloor,
   lat,
   lng,
-  serviceId
+  serviceId,
+  communeCode,
+  communeName,
+  address
 } = {}) {
   const opts = {};
   if (valorBase != null && Number.isFinite(valorBase) && valorBase > 0) {
@@ -2830,24 +2850,27 @@ function previewVisitPrice(tierId, valorBase, {
   }
   if (timeZone) opts.timeZone = String(timeZone);
   if (skipWorkFloor) opts.skipWorkFloor = true;
+  if (communeCode) opts.communeCode = String(communeCode).trim();
+  if (communeName) opts.communeName = String(communeName).trim();
+  if (address) opts.address = String(address).trim();
   const jobLat = parseFloat(lat);
   const jobLng = parseFloat(lng);
   if (Number.isFinite(jobLat) && Number.isFinite(jobLng)) {
     opts.lat = jobLat;
     opts.lng = jobLng;
-    if (serviceId) {
-      opts.serviceId = serviceId;
-      const pricing = getPricingConfig();
-      const { normalizeZonePricing } = require('../lib/zonePricing');
-      const zoneCfg = normalizeZonePricing(pricing.zonePricing);
-      if (zoneCfg.supply.enabled) {
-        opts.supplyCount = countReadyTechniciansNearJob(
-          jobLat,
-          jobLng,
-          serviceId,
-          zoneCfg.supply.radiusKm
-        );
-      }
+  }
+  if (serviceId) {
+    opts.serviceId = serviceId;
+    const pricing = getPricingConfig();
+    const { normalizeZonePricing } = require('../lib/zonePricing');
+    const zoneCfg = normalizeZonePricing(pricing.zonePricing);
+    if (zoneCfg.supply.enabled && Number.isFinite(jobLat) && Number.isFinite(jobLng)) {
+      opts.supplyCount = countReadyTechniciansNearJob(
+        jobLat,
+        jobLng,
+        serviceId,
+        zoneCfg.supply.radiusKm
+      );
     }
   }
   return calculateVisitPricing(getPricingConfig(), tierId, opts);
@@ -5738,7 +5761,33 @@ function normalizeEtaRange(etaMinutesMin, etaMinutesMax) {
   };
 }
 
-function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, technicianId, lat, lng } = {}) {
+function applyVisitProposalToRequest(request, proposal, { proposedBy } = {}) {
+  request.proposedVisitAt = proposal.iso;
+  request.scheduledVisitAt = null;
+  request.scheduleStatus = 'proposed';
+  request.scheduleLabel = proposal.label;
+  request.scheduleProposedAt = new Date().toISOString();
+  request.scheduleProposedBy = proposedBy || null;
+  request.scheduleConfirmedAt = null;
+  // ETA simbólica: el mapa en vivo se activa al marcar «En camino».
+  request.etaMinutesMin = null;
+  request.etaMinutesMax = null;
+  request.etaLabel = proposal.label;
+  request.etaDeclaredAt = new Date().toISOString();
+  request.etaSource = 'scheduled';
+  request.liveEtaMinutes = null;
+}
+
+function tryAcceptRequest(requestId, userId, {
+  etaMinutesMin,
+  etaMinutesMax,
+  technicianId,
+  lat,
+  lng,
+  proposedVisitAt,
+  visitDate,
+  visitTime
+} = {}) {
   const request = requests.find(r => r.id === requestId);
   if (!request || request.status !== 'searching') {
     return { error: 'Solicitud ya no está disponible', code: 'taken' };
@@ -5754,6 +5803,19 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
     const parentIds = getTechnicianParentIds(user);
     if (parentIds.includes(request.clientId)) {
       return { error: 'No puedes tomar una solicitud de tu propio socio' };
+    }
+  }
+
+  const deferred = isDeferredUrgencyTier(request.urgencyTier);
+  let visitProposal = null;
+  if (deferred) {
+    visitProposal = validateProposedVisit(request, {
+      proposedVisitAt,
+      date: visitDate,
+      time: visitTime
+    });
+    if (visitProposal.error) {
+      return { error: visitProposal.error, code: 'needs_schedule' };
     }
   }
 
@@ -5796,11 +5858,16 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
     if (!tecnico) {
       clearTechnicianFromRequest(request);
       request.awaitingProviderReassign = true;
+      if (deferred && visitProposal) {
+        applyVisitProposalToRequest(request, visitProposal, { proposedBy: user.id });
+      }
       acceptChatMessage = appendChatMessage(request, {
         senderType: 'system',
         senderId: null,
         senderName: 'Fandez',
-        body: `${user.name} tomó tu pedido y está asignando un técnico del equipo.`
+        body: deferred && visitProposal
+          ? `${user.name} tomó tu pedido programado. Propone visita: ${visitProposal.label}. Confirma abajo o escribe en el chat si necesitas otro horario. Está asignando un técnico del equipo.`
+          : `${user.name} tomó tu pedido y está asignando un técnico del equipo.`
       });
       if (request.noProviderDecisionStatus === 'pending') {
         request.noProviderDecisionStatus = 'resolved';
@@ -5818,7 +5885,8 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
         request,
         chatMessage: acceptChatMessage,
         selfOperator: false,
-        needsTechnicianAssign: true
+        needsTechnicianAssign: true,
+        needsScheduleConfirm: Boolean(deferred && visitProposal)
       };
     }
 
@@ -5829,19 +5897,26 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
 
     if (tecnico.isSelfOperator) {
       request.techStatus = 'aceptado';
-      const actorCoords = resolveActorCoords(tecnico.id, lat, lng)
-        || resolveActorCoords(user.id, null, null);
-      if (actorCoords && request.coords) {
-        applyDrivingEtaToRequest(request, actorCoords.lat, actorCoords.lng, { persist: false });
+      if (deferred && visitProposal) {
+        applyVisitProposalToRequest(request, visitProposal, { proposedBy: tecnico.id });
       } else {
-        request.etaMinutesMin = 45;
-        request.etaMinutesMax = 90;
-        request.etaLabel = formatEtaRangeLabel(45, 90, 'es');
-        request.etaDeclaredAt = new Date().toISOString();
-        request.etaSource = 'fallback';
+        const actorCoords = resolveActorCoords(tecnico.id, lat, lng)
+          || resolveActorCoords(user.id, null, null);
+        if (actorCoords && request.coords) {
+          applyDrivingEtaToRequest(request, actorCoords.lat, actorCoords.lng, { persist: false });
+        } else {
+          request.etaMinutesMin = 45;
+          request.etaMinutesMax = 90;
+          request.etaLabel = formatEtaRangeLabel(45, 90, 'es');
+          request.etaDeclaredAt = new Date().toISOString();
+          request.etaSource = 'fallback';
+        }
       }
     } else {
       request.techStatus = 'asignado';
+      if (deferred && visitProposal) {
+        applyVisitProposalToRequest(request, visitProposal, { proposedBy: user.id });
+      }
     }
   } else if (user.role === 'tecnico') {
     if (!Array.isArray(user.specialties) || !user.specialties.includes(request.serviceId)) {
@@ -5865,24 +5940,30 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
       };
     }
 
-    const actorCoords = resolveActorCoords(user.id, lat, lng);
-    let etaApplied = null;
-    if (actorCoords && request.coords) {
-      etaApplied = applyDrivingEtaToRequest(request, actorCoords.lat, actorCoords.lng, { persist: false });
-      if (etaApplied.error) return { error: etaApplied.error };
-      updateTechnicianLocation(user.id, actorCoords.lat, actorCoords.lng);
+    if (deferred && visitProposal) {
+      applyVisitProposalToRequest(request, visitProposal, { proposedBy: user.id });
+      const actorCoords = resolveActorCoords(user.id, lat, lng);
+      if (actorCoords) updateTechnicianLocation(user.id, actorCoords.lat, actorCoords.lng);
     } else {
-      const eta = normalizeEtaRange(etaMinutesMin, etaMinutesMax);
-      if (eta.error) {
-        return {
-          error: 'Activa la ubicación GPS para calcular tu llegada en auto, o indica una ETA manual.'
-        };
+      const actorCoords = resolveActorCoords(user.id, lat, lng);
+      let etaApplied = null;
+      if (actorCoords && request.coords) {
+        etaApplied = applyDrivingEtaToRequest(request, actorCoords.lat, actorCoords.lng, { persist: false });
+        if (etaApplied.error) return { error: etaApplied.error };
+        updateTechnicianLocation(user.id, actorCoords.lat, actorCoords.lng);
+      } else {
+        const eta = normalizeEtaRange(etaMinutesMin, etaMinutesMax);
+        if (eta.error) {
+          return {
+            error: 'Activa la ubicación GPS para calcular tu llegada en auto, o indica una ETA manual.'
+          };
+        }
+        request.etaMinutesMin = eta.etaMinutesMin;
+        request.etaMinutesMax = eta.etaMinutesMax;
+        request.etaLabel = eta.etaLabel;
+        request.etaDeclaredAt = new Date().toISOString();
+        request.etaSource = 'manual';
       }
-      request.etaMinutesMin = eta.etaMinutesMin;
-      request.etaMinutesMax = eta.etaMinutesMax;
-      request.etaLabel = eta.etaLabel;
-      request.etaDeclaredAt = new Date().toISOString();
-      request.etaSource = 'manual';
     }
 
     request.providerId = socio.id;
@@ -5914,14 +5995,18 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
       senderType: 'system',
       senderId: null,
       senderName: 'Fandez',
-      body: `${request.technicianName || user.name} ha tomado tu pedido. Su hora de llegada estimada es de ${request.etaLabel}.`
+      body: deferred && visitProposal
+        ? `${request.technicianName || user.name} tomó tu pedido programado y propone visita: ${visitProposal.label}. Confirma abajo o escribe en el chat si necesitas otro horario.`
+        : `${request.technicianName || user.name} ha tomado tu pedido. Su hora de llegada estimada es de ${request.etaLabel}.`
     });
   } else {
     acceptChatMessage = appendChatMessage(request, {
       senderType: 'system',
       senderId: null,
       senderName: 'Fandez',
-      body: `${user.name} tomó tu pedido y asignó a ${request.technicianName}. El técnico tiene ${getRequestTimeouts().techAcceptMinutes} minutos para aceptar; luego te indicará su hora de llegada.`
+      body: deferred && visitProposal
+        ? `${user.name} tomó tu pedido programado. Propone visita: ${visitProposal.label}. El técnico ${request.technicianName} confirmará y coordinará contigo por chat.`
+        : `${user.name} tomó tu pedido y asignó a ${request.technicianName}. El técnico tiene ${getRequestTimeouts().techAcceptMinutes} minutos para aceptar; luego te indicará su hora de llegada.`
     });
   }
 
@@ -5934,8 +6019,89 @@ function tryAcceptRequest(requestId, userId, { etaMinutesMin, etaMinutesMax, tec
     success: true,
     request,
     chatMessage: acceptChatMessage,
-    selfOperator: Boolean(selfOp)
+    selfOperator: Boolean(selfOp),
+    needsScheduleConfirm: Boolean(deferred && visitProposal)
   };
+}
+
+function proposeVisitSchedule(requestId, actorId, { proposedVisitAt, visitDate, visitTime } = {}) {
+  const request = getRequestById(requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  const actor = getUserById(actorId);
+  if (!actor) return { error: 'Usuario no encontrado.' };
+
+  const isTech = request.technicianId === actorId;
+  const isProvider = request.providerId === actorId && actor.role === 'provider';
+  if (!isTech && !isProvider) return { error: 'No autorizado.' };
+  if (!['assigned', 'in_progress'].includes(request.status)) {
+    return { error: 'Este pedido ya no admite reprogramación.' };
+  }
+  if (['en_sitio', 'diagnostico', 'reparando', 'comprando', 'presupuesto_pendiente', 'presupuesto_aprobado', 'completado'].includes(request.techStatus)) {
+    return { error: 'La visita ya está en curso; no se puede reprogramar desde aquí.' };
+  }
+
+  const proposal = validateProposedVisit(request, {
+    proposedVisitAt,
+    date: visitDate,
+    time: visitTime
+  });
+  if (proposal.error) return { error: proposal.error };
+
+  applyVisitProposalToRequest(request, proposal, { proposedBy: actorId });
+  ensureRequestChat(request);
+  const chatMessage = appendChatMessage(request, {
+    senderType: 'system',
+    senderId: null,
+    senderName: 'Fandez',
+    body: `${actor.name || 'El técnico'} propone nueva visita: ${proposal.label}. Confirma en la app o escribe en el chat.`
+  });
+  repository.persist(() => repository.saveRequest(request), `agenda ${requestId}`);
+  return { success: true, request, chatMessage };
+}
+
+function confirmVisitSchedule(requestId, clientId, { approved = true, note } = {}) {
+  const request = getRequestById(requestId);
+  if (!request || request.clientId !== clientId) return { error: 'Solicitud no encontrada.' };
+  if (!request.proposedVisitAt && !request.scheduledVisitAt) {
+    return { error: 'Aún no hay una propuesta de horario.' };
+  }
+  if (!['assigned', 'in_progress', 'searching'].includes(request.status) && request.status !== 'assigned') {
+    return { error: 'Este pedido ya no admite confirmación de agenda.' };
+  }
+
+  ensureRequestChat(request);
+  let chatMessage = null;
+
+  if (approved) {
+    const when = request.proposedVisitAt || request.scheduledVisitAt;
+    request.scheduledVisitAt = when;
+    request.proposedVisitAt = when;
+    request.scheduleStatus = 'confirmed';
+    request.scheduleConfirmedAt = new Date().toISOString();
+    request.scheduleLabel = formatVisitLabel(when, 'es');
+    request.etaLabel = request.scheduleLabel;
+    chatMessage = appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: `Horario confirmado: ${request.scheduleLabel}. El técnico llegará ese día; el mapa en vivo se activa cuando marque «En camino».`
+    });
+  } else {
+    request.scheduleStatus = 'needs_reschedule';
+    request.scheduledVisitAt = null;
+    const reason = String(note || '').trim().slice(0, 280);
+    chatMessage = appendChatMessage(request, {
+      senderType: 'system',
+      senderId: null,
+      senderName: 'Fandez',
+      body: reason
+        ? `El cliente pidió otro horario: «${reason}». Coordina por chat y propone una nueva fecha.`
+        : 'El cliente pidió otro horario. Coordina por chat y propone una nueva fecha en el calendario.'
+    });
+  }
+
+  repository.persist(() => repository.saveRequest(request), `agenda confirm ${requestId}`);
+  return { success: true, request, chatMessage, approved: Boolean(approved) };
 }
 
 function setTechnicianEta(requestId, technicianId, { etaMinutesMin, etaMinutesMax, lat, lng } = {}) {
@@ -6652,13 +6818,28 @@ function updateTechStatus(requestId, technicianId, techStatus, { lat, lng } = {}
   }
 
   const actorCoords = resolveActorCoords(technicianId, lat, lng);
-  if (['aceptado', 'en_camino'].includes(techStatus) && actorCoords && request.coords) {
+  const deferredJob = isDeferredUrgencyTier(request.urgencyTier);
+  const hasSchedule = Boolean(request.proposedVisitAt || request.scheduledVisitAt);
+  // Programados: no pisar la agenda con ETA GPS hasta «en camino».
+  if (
+    ['aceptado', 'en_camino'].includes(techStatus)
+    && actorCoords
+    && request.coords
+    && !(deferredJob && techStatus === 'aceptado' && hasSchedule)
+  ) {
     applyDrivingEtaToRequest(request, actorCoords.lat, actorCoords.lng, { persist: false });
+    updateTechnicianLocation(technicianId, actorCoords.lat, actorCoords.lng);
+  } else if (actorCoords && ['aceptado', 'en_camino'].includes(techStatus)) {
     updateTechnicianLocation(technicianId, actorCoords.lat, actorCoords.lng);
   }
 
-  if (techStatus === 'aceptado' && !(request.etaMinutesMin && request.etaMinutesMax)) {
-    return { error: 'Activa el GPS para calcular tu llegada en auto, o declara una ETA antes de aceptar.' };
+  if (techStatus === 'aceptado') {
+    const hasEta = request.etaMinutesMin && request.etaMinutesMax;
+    if (!hasEta && !(deferredJob && hasSchedule)) {
+      return { error: deferredJob
+        ? 'Propón fecha y hora de visita en el calendario antes de aceptar.'
+        : 'Activa el GPS para calcular tu llegada en auto, o declara una ETA antes de aceptar.' };
+    }
   }
   // Código de seguridad: se genera al salir (en camino) para que el cliente lo tenga listo
   if (techStatus === 'en_camino' || techStatus === 'en_sitio') {
@@ -8508,6 +8689,7 @@ function enrichRequestForProvider(request, locale = 'es') {
     awaitingProviderReassign: Boolean(request.awaitingProviderReassign),
     assignedAt: request.assignedAt || null,
     scheduledSearchAt: request.scheduledSearchAt || null,
+    ...scheduleFields(request),
     clientPhotoUrl: request.clientPhotoUrl
       ? (stableRequestPhotoUrl(request.id, 'problem') || toServingUrl(safe.clientPhotoUrl) || null)
       : null,
@@ -10178,8 +10360,12 @@ module.exports = {
   getWorkWallItems,
   dismissWorkWallItem,
   tryAcceptRequest,
+  proposeVisitSchedule,
+  confirmVisitSchedule,
   setTechnicianEta,
   formatEtaRangeLabel,
+  isDeferredUrgencyTier,
+  defaultVisitYmdForTier,
   getRequestChat,
   postRequestChatMessage,
   getOnlineTechnicians,

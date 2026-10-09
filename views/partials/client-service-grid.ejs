@@ -16,6 +16,9 @@
       <span class="w-full text-center leading-tight">
         <span class="block text-[10px] text-zilo-muted"><%= camino === 'proyecto' ? t('client.from_eval') : t('client.from_price') %></span>
         <span class="block text-xs font-medium text-zilo-muted tabular-nums"><%= formatCLP(service.averagePrice || service.fromPrice) %><% if (service.pricingUnit === 'm2') { %> / m²<% } %></span>
+        <% if (service.showMinJob && service.minJobPrice) { %>
+        <span class="block text-[10px] text-zilo-muted tabular-nums mt-0.5"><%= t('client.min_job') %> <%= formatCLP(service.minJobPrice) %></span>
+        <% } %>
       </span>
     </a>
   <% }); %>

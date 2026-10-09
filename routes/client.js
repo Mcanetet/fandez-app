@@ -467,12 +467,16 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
   const urgencyTiers = store.getUrgencyTiersForClient();
   const { enrichActivityForClient } = require('../lib/activityBlurbs');
   const activities = store.getActivitiesForService(serviceRaw.id).map(enrichActivityForClient);
-  const serviceFromPrice = store.getServiceFromPrice(serviceRaw.id);
   const serviceSummary = store.getServicePriceSummary(serviceRaw.id);
+  const serviceFromPrice = serviceSummary.fromPrice != null
+    ? serviceSummary.fromPrice
+    : store.getServiceFromPrice(serviceRaw.id);
   const service = localizeServices([{
     ...serviceRaw,
     fromPrice: serviceFromPrice,
     averagePrice: serviceFromPrice,
+    minJobPrice: serviceSummary.minJobPrice || null,
+    showMinJob: Boolean(serviceSummary.showMinJob && serviceSummary.minJobPrice),
     pricingUnit: serviceSummary.pricingUnit || 'job'
   }], req.t)[0];
   const profile = store.getUserById(req.session.user.id);
@@ -530,7 +534,10 @@ router.get('/precio-preview', requireRole('client'), (req, res) => {
     skipWorkFloor: req.query.skipFloor === '1' || req.query.skipFloor === 'true',
     lat: Number.isFinite(lat) ? lat : undefined,
     lng: Number.isFinite(lng) ? lng : undefined,
-    serviceId
+    serviceId,
+    communeCode: (req.query.communeCode || '').trim() || undefined,
+    communeName: (req.query.communeName || '').trim() || undefined,
+    address: (req.query.address || '').trim() || undefined
   });
   if (!preview) return res.status(400).json({ error: 'Opción de llegada no válida' });
   const zoneAmt = preview.zone?.adjustmentAmount || 0;
@@ -1037,6 +1044,29 @@ router.post('/presupuesto/:id/responder', requireRole('client'), (req, res) => {
       status: result.request.status,
       siteReport: result.request.siteReport
     }
+  });
+});
+
+router.post('/solicitud/:id/agenda', requireRole('client'), (req, res) => {
+  const approved = req.body.approved !== false && req.body.approved !== 'false';
+  const result = store.confirmVisitSchedule(req.params.id, req.session.user.id, {
+    approved,
+    note: req.body?.note
+  });
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+
+  const io = req.app.get('io');
+  const enriched = store.enrichRequestForClient(result.request, req.locale || 'es');
+  emitRequestUpdateToParties(io, store, result.request, {
+    request: enriched,
+    chatMessage: result.chatMessage || null
+  });
+
+  res.json({
+    success: true,
+    approved: result.approved,
+    request: enriched,
+    chatMessage: result.chatMessage || null
   });
 });
 

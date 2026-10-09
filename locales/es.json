@@ -431,6 +431,7 @@
   "client.welcome_label": "Bienvenida",
   "client.services": "¿Qué necesitas?",
   "client.from_price": "desde",
+  "client.min_job": "mín.",
   "client.from_eval": "evaluación desde",
   "client.in_progress": "En curso",
   "client.requests_paused": "Solicitudes pausadas",

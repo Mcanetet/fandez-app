@@ -22,7 +22,7 @@
   data-pricing-unit="<%= isEscombros ? 'mixed' : (perM2 ? 'm2' : 'job') %>"
   data-cleaning="<%= isCleaning ? '1' : '0' %>"
   data-escombros="<%= isEscombros ? '1' : '0' %>"
-  data-escombros-min="303450"
+  data-escombros-min="297500"
   data-garden-intake="<%= isGarden ? '1' : '0' %>"
   data-fv-intake="<%= isFv ? '1' : '0' %>"
   data-service-path="<%= isProjectPath ? 'project' : 'now' %>"
@@ -83,9 +83,10 @@
     <div class="p-5 rounded-2xl zilo-card-premium mb-5 zilo-page-enter-delay-1" id="pricingBox">
       <p class="zilo-label mb-4"><%= t('client.service.rates') %></p>
       <% const displayFrom = typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice); %>
+      <% const escombrosMin = Number(typeof service !== 'undefined' && service.minJobPrice) || 297500; %>
       <div class="flex justify-between py-3 border-b border-zilo-border">
-        <span class="text-zilo-muted text-sm"><%= isGarden ? 'Evaluación técnica' : (perM2 ? t('client.service.work_base_m2') : t('client.service.work_base')) %></span>
-        <strong class="text-zilo-accent font-semibold" id="displayVisitPrice"><%= formatCLP(displayFrom) %><% if (perM2) { %> / m²<% } %></strong>
+        <span class="text-zilo-muted text-sm"><%= isGarden ? 'Evaluación técnica' : (isEscombros ? (t('client.from_price') + ' / m²') : (perM2 ? t('client.service.work_base_m2') : t('client.service.work_base'))) %></span>
+        <strong class="text-zilo-accent font-semibold text-right" id="displayVisitPrice"><%= formatCLP(displayFrom) %><% if (perM2 || isEscombros) { %> / m²<% } %><% if (isEscombros) { %><span class="block text-[11px] font-medium text-zilo-muted mt-0.5"><%= t('client.min_job') %> <%= formatCLP(escombrosMin) %></span><% } %></strong>
       </div>
       <div id="scheduleAdjustmentRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
         <span class="text-zilo-muted" id="scheduleAdjustmentLabel"><%= t('client.service.schedule_surcharge') %></span>
@@ -356,7 +357,7 @@
           <%= isCleaning
             ? 'Indica los m² a limpiar (mín. 20). Precio base $1.500 / m². Llevamos los materiales.'
             : (isEscombros
-              ? 'Indica m² o m³ según el ítem elegido. Mínimo de intervención $303.450 (IVA incl.).'
+              ? 'Indica m² o m³ según el ítem elegido. Mínimo de intervención $297.500 (IVA incl.).'
               : t('client.service.area_m2_hint')) %>
         </p>
       </div>
@@ -849,6 +850,20 @@
         </div>
         <div id="gardenValidateList" class="space-y-2"></div>
         <p id="gardenPaymentUnlocks" class="hidden text-[11px] text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"></p>
+      </div>
+
+      <div id="visitScheduleConfirm" class="hidden mb-3 p-4 rounded-2xl border border-amber-300 bg-amber-50/80">
+        <p class="zilo-label mb-1"><%= t('client.service.schedule_confirm_label') %></p>
+        <p class="text-sm font-semibold text-amber-950" id="visitScheduleProposeLabel">—</p>
+        <p class="text-xs text-amber-900/80 mt-1 mb-3"><%= t('client.service.schedule_confirm_hint') %></p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button type="button" id="btnConfirmVisitSchedule" class="py-2.5 rounded-xl zilo-btn-primary !text-sm"><%= t('client.service.schedule_confirm_yes') %></button>
+          <button type="button" id="btnRejectVisitSchedule" class="py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.service.schedule_confirm_other') %></button>
+        </div>
+      </div>
+      <div id="visitScheduleConfirmed" class="hidden mb-3 p-4 rounded-2xl border border-emerald-200 bg-emerald-50/70">
+        <p class="zilo-label mb-1"><%= t('client.service.schedule_confirmed_label') %></p>
+        <p class="text-sm font-semibold text-emerald-900" id="visitScheduleConfirmedLabel">—</p>
       </div>
 
       <div class="p-5 rounded-2xl zilo-card-premium" id="providerLiveCard">

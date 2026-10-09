@@ -52,6 +52,7 @@
   let selectedUrgencyTier = document.querySelector('input[name="urgencyTier"]:checked')?.value || 'today';
   let geocodeTimer = null;
   let addressCovered = null;
+  let lastCoverage = null;
   const socket = io();
   const clientId = page.dataset.clientId || '';
   if (clientId) {
@@ -100,11 +101,34 @@
     }
   }
 
-  function showExistingPhoto(previewEl, url) {
+  function showExistingPhoto(previewEl, url, { requestId, kind } = {}) {
     if (!previewEl || !url) return;
     const img = previewEl.querySelector('img');
-    if (img) img.src = url;
-    previewEl.classList.remove('hidden');
+    if (!img) return;
+    const stable = requestId
+      ? `/media/request/${encodeURIComponent(requestId)}/kind/${kind === 'brand' ? 'brand' : 'problem'}`
+      : null;
+    const candidates = [...new Set([stable, url].filter(Boolean))];
+    let idx = 0;
+    const fail = () => {
+      img.removeAttribute('src');
+      previewEl.classList.add('hidden');
+      if (kind === 'brand') resumeKeepBrandPhoto = false;
+      else resumeKeepClientPhoto = false;
+    };
+    const tryNext = () => {
+      if (idx >= candidates.length) {
+        fail();
+        return;
+      }
+      const next = candidates[idx++];
+      img.onload = () => {
+        previewEl.classList.remove('hidden');
+      };
+      img.onerror = () => tryNext();
+      img.src = next;
+    };
+    tryNext();
   }
 
   function applyCheckoutDraft(draft) {
@@ -205,12 +229,18 @@
     }
 
     if (draft.clientPhotoUrl) {
-      showExistingPhoto(clientPhotoPreview, draft.clientPhotoUrl);
       resumeKeepClientPhoto = true;
+      showExistingPhoto(clientPhotoPreview, draft.clientPhotoUrl, {
+        requestId: draft.id || resumeRequestId,
+        kind: 'problem'
+      });
     }
     if (draft.clientBrandPhotoUrl && !draft.brandNotVisible) {
-      showExistingPhoto(clientBrandPhotoPreview, draft.clientBrandPhotoUrl);
       resumeKeepBrandPhoto = true;
+      showExistingPhoto(clientBrandPhotoPreview, draft.clientBrandPhotoUrl, {
+        requestId: draft.id || resumeRequestId,
+        kind: 'brand'
+      });
     }
 
     if (resumeRequestId && !new URLSearchParams(window.location.search).get('resume')) {
@@ -723,8 +753,8 @@
     }
     if (hint && needsQty) {
       hint.textContent = unit === 'm3'
-        ? 'Indica los m³ de material. Mínimo de intervención $303.450 (IVA incl.).'
-        : 'Indica los m² a tratar. Mínimo de intervención $303.450 (IVA incl.).';
+        ? 'Indica los m³ de material. Mínimo de intervención $297.500 (IVA incl.).'
+        : 'Indica los m² a tratar. Mínimo de intervención $297.500 (IVA incl.).';
     }
   }
 
@@ -773,7 +803,7 @@
       const m2 = Number.isFinite(typed) && typed >= minM2 ? typed : minM2;
       const floor = isCleaningService()
         ? 30000
-        : (isEscombrosService() ? (parseInt(page?.dataset?.escombrosMin || '303450', 10) || 303450) : 40000);
+        : (isEscombrosService() ? (parseInt(page?.dataset?.escombrosMin || '297500', 10) || 297500) : 40000);
       const defaultRate = isCleaningService() ? 1500 : 5500;
       let n = (Number.isFinite(rate) && rate > 0 ? rate : defaultRate) * m2;
       n = Math.max(floor, Math.round(n));
@@ -781,7 +811,7 @@
       return n;
     }
     if (isEscombrosService()) {
-      const floor = parseInt(page?.dataset?.escombrosMin || '303450', 10) || 303450;
+      const floor = parseInt(page?.dataset?.escombrosMin || '297500', 10) || 297500;
       const n = meta?.base ? parseInt(meta.base, 10) : NaN;
       if (Number.isFinite(n) && n > 0) return Math.max(floor, n);
       return floor;
@@ -904,6 +934,10 @@
         params.set('lat', String(coords.lat));
         params.set('lng', String(coords.lng));
       }
+      if (lastCoverage?.communeCode) params.set('communeCode', lastCoverage.communeCode);
+      if (lastCoverage?.communeName) params.set('communeName', lastCoverage.communeName);
+      const addr = (addressInput?.value || '').trim();
+      if (addr) params.set('address', addr);
       const res = await fetch(`/cliente/precio-preview?${params.toString()}`);
       const data = await res.json();
       if (!data.success) return;
@@ -1016,8 +1050,9 @@
           zoneRow.classList.remove('hidden');
           zoneRow.classList.add('flex');
           const origin = zoneMeta.originLabel || 'Ñuñoa';
+          const commune = zoneMeta.communeName || lastCoverage?.communeName || '';
           const km = zoneMeta.distanceKm != null ? zoneMeta.distanceKm : '—';
-          const distPct = Number(zoneMeta.distancePercent) || 0;
+          const distPct = Number(zoneMeta.communePercent != null ? zoneMeta.communePercent : zoneMeta.distancePercent) || 0;
           const supplyPct = Number(zoneMeta.supplyPercent) || 0;
           const totalPct = zoneMeta.totalPercent != null ? zoneMeta.totalPercent : (distPct + supplyPct);
           const techs = zoneMeta.supplyCount;
@@ -1027,7 +1062,13 @@
             percent: Math.abs(totalPct),
             techs: techs != null ? techs : '—'
           });
-          if (distPct > 0 && supplyPct > 0 && techs != null) {
+          if (zoneMeta.mode === 'commune' || commune) {
+            label = t('client.js.zone_surcharge_commune', {
+              commune: commune || 'zona',
+              percent: Math.abs(totalPct),
+              origin
+            });
+          } else if (distPct > 0 && supplyPct > 0 && techs != null) {
             label = t('client.js.zone_surcharge_split', {
               origin,
               km,
@@ -1110,7 +1151,14 @@
     if (!input || !preview) return;
     input.addEventListener('change', async () => {
       const file = input.files?.[0];
+      const img = preview.querySelector('img');
       if (!file) {
+        if (img) {
+          img.onload = null;
+          img.onerror = null;
+          img.removeAttribute('src');
+        }
+        preview.classList.add('hidden');
         onReady?.(null);
         return;
       }
@@ -1120,13 +1168,29 @@
         onReady?.(null);
         return;
       }
+      // Vista previa inmediata (blob) mientras se comprime para el envío.
+      let blobUrl = null;
+      try {
+        blobUrl = URL.createObjectURL(file);
+        if (img) {
+          img.onload = null;
+          img.onerror = null;
+          img.src = blobUrl;
+        }
+        preview.classList.remove('hidden');
+      } catch (_) { /* compress path still runs */ }
+
       const dataUrl = await compressImageFile(file);
+      if (blobUrl) {
+        try { URL.revokeObjectURL(blobUrl); } catch (_) { /* noop */ }
+      }
       if (!dataUrl) {
         FandezNotify.show(t('client.js.need_photo'), 'warning');
+        if (img) img.removeAttribute('src');
+        preview.classList.add('hidden');
         onReady?.(null);
         return;
       }
-      const img = preview.querySelector('img');
       if (img) img.src = dataUrl;
       preview.classList.remove('hidden');
       onReady?.(dataUrl);
@@ -1206,6 +1270,7 @@
   }
 
   function setCoverageState(coverage) {
+    lastCoverage = coverage || null;
     addressCovered = coverage?.covered === true;
     if (!coverageAlert) return;
 
@@ -1913,6 +1978,9 @@
   document.getElementById('btnCancelScheduled')?.addEventListener('click', () => {
     cancelSearchOrSchedule(scheduledPanel?.dataset.requestId || currentRequestId || page.dataset.tracking);
   });
+  document.getElementById('btnConfirmVisitSchedule')?.addEventListener('click', () => respondVisitSchedule(true));
+  document.getElementById('btnRejectVisitSchedule')?.addEventListener('click', () => respondVisitSchedule(false));
+
   document.getElementById('btnCancelService')?.addEventListener('click', () => {
     cancelSearchOrSchedule(currentRequestId || page.dataset.tracking);
   });
@@ -2313,6 +2381,60 @@
     return ['tomorrow', 'two_days', 'scheduled'].includes(tier);
   }
 
+  function updateVisitScheduleUi(request) {
+    const proposeBox = document.getElementById('visitScheduleConfirm');
+    const confirmedBox = document.getElementById('visitScheduleConfirmed');
+    const proposeLabel = document.getElementById('visitScheduleProposeLabel');
+    const confirmedLabel = document.getElementById('visitScheduleConfirmedLabel');
+    if (!proposeBox && !confirmedBox) return;
+
+    const status = String(request?.scheduleStatus || '');
+    const label = request?.scheduleLabel
+      || request?.etaLabel
+      || '';
+    const showPropose = status === 'proposed' && label && request?.providerId;
+    const showConfirmed = status === 'confirmed' && label;
+
+    if (proposeBox) proposeBox.classList.toggle('hidden', !showPropose);
+    if (confirmedBox) confirmedBox.classList.toggle('hidden', !showConfirmed);
+    if (proposeLabel && label) proposeLabel.textContent = label;
+    if (confirmedLabel && label) confirmedLabel.textContent = label;
+  }
+
+  async function respondVisitSchedule(approved) {
+    const id = currentRequestId || lastTrackedRequest?.id;
+    if (!id) return;
+    let note = '';
+    if (!approved) {
+      note = window.prompt(t('client.service.schedule_other_prompt') || '¿Qué horario te acomoda? (se envía al técnico)', '') || '';
+    }
+    try {
+      const res = await fetch(`/cliente/solicitud/${encodeURIComponent(id)}/agenda`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ approved, note })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo guardar');
+      if (data.request) {
+        lastTrackedRequest = data.request;
+        updateVisitScheduleUi(data.request);
+        updateLiveTrackBanner(data.request);
+      }
+      FandezNotify.show(
+        approved
+          ? (t('client.service.schedule_confirmed_toast') || 'Horario confirmado')
+          : (t('client.service.schedule_other_toast') || 'Pediste otro horario. Coordina por chat.'),
+        approved ? 'success' : 'info'
+      );
+      if (!approved) {
+        document.getElementById('openJobChatBtn')?.click();
+      }
+    } catch (err) {
+      FandezNotify.show(err.message || 'Error', 'error');
+    }
+  }
+
   function isLiveTrackingActive(request) {
     if (!request?.providerId) return false;
     const ts = String(request.techStatus || '');
@@ -2358,11 +2480,19 @@
       hint.classList.toggle('hidden', !(deferred && !enRoute && !request?.etaLabel && request?.providerId));
     }
 
-    if (!live && deferred && !request?.etaLabel) {
+    if (!live && deferred && (!request?.etaLabel || request?.etaSource === 'scheduled' || request?.scheduleStatus)) {
       etaBox.classList.add('is-waiting');
       if (etaMin) etaMin.innerHTML = '—<small>min</small>';
-      if (title) title.textContent = t('client.service.live_waiting_title');
-      if (sub) sub.textContent = t('client.service.live_scheduled_hint');
+      if (title) {
+        title.textContent = request?.scheduleStatus === 'confirmed'
+          ? (t('client.service.schedule_confirmed_label') || 'Visita agendada')
+          : t('client.service.live_waiting_title');
+      }
+      if (sub) {
+        sub.textContent = request?.scheduleLabel
+          || request?.etaLabel
+          || t('client.service.live_scheduled_hint');
+      }
       if (badge) badge.textContent = t('client.service.assigned_badge');
       return;
     }
@@ -2465,6 +2595,7 @@
     advanceTripStep(step);
     updateTripStatusHero(request, step);
     updateLiveTrackBanner(request);
+    updateVisitScheduleUi(request);
     renderGardenValidatePanel(request);
 
     if (lastTripStepAlert === step) return;

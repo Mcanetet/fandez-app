@@ -247,6 +247,7 @@
       grid.innerHTML = `<div class="col-span-2 text-center py-16 text-zilo-muted"><p class="text-sm">${noServices}</p></div>`;
       return;
     }
+    const minJobLabel = (typeof FandezI18n !== 'undefined') ? FandezI18n.t('client.js.min_job') : 'mín.';
     grid.innerHTML = active.map(s => `
       <a href="/cliente/servicio/${s.id}" class="group flex flex-col items-center gap-3 p-5 rounded-2xl zilo-card-premium hover:border-zilo-accent/25 transition-all">
         ${FandezIcons.wrap(s.icon, null, 'w-14 h-14', 28)}
@@ -254,6 +255,7 @@
         <span class="w-full text-center leading-tight">
           <span class="block text-[10px] text-zilo-muted">${averageLabel}</span>
           <span class="block text-xs font-medium text-zilo-muted tabular-nums">${fmt(s.averagePrice)}${s.pricingUnit === 'm2' ? ' / m²' : ''}</span>
+          ${s.showMinJob && s.minJobPrice ? `<span class="block text-[10px] text-zilo-muted tabular-nums mt-0.5">${minJobLabel} ${fmt(s.minJobPrice)}</span>` : ''}
         </span>
       </a>
     `).join('');
