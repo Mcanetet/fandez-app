@@ -215,7 +215,8 @@ function hasPerm(key) {
 
     <!-- FINANZAS -->
     <section class="<%= panelClass('finanzas') %>" data-panel="finanzas" data-subtitle="<%= t('admin.finanzas.subtitle') %>">
-      <% const fin = financialReport.summary; %>
+      <% const financialReportSafe = (typeof financialReport !== 'undefined' && financialReport) ? financialReport : { summary: {}, byPaymentMethod: [], byGateway: [], byUrgency: [], dailyTrend: [], maxDaily: 1, pricing: { laborRate: 0.15, materialsRate: 0, cardSurcharge: 0 }, accounting: {} }; %>
+      <% const fin = financialReportSafe.summary || {}; %>
       <div class="flex justify-between items-start gap-3 mb-4">
         <p class="text-xs text-gray-500 sm:hidden"><%= t('admin.finanzas.subtitle') %></p>
         <div class="flex flex-col items-end gap-2 shrink-0 ml-auto">
@@ -258,17 +259,17 @@ function hasPerm(key) {
         </div>
       </div>
 
-      <% const acc = financialReport.accounting || {}; const pnl = acc.pnl || { income: {}, expenses: {} }; const bs = acc.balanceSheet || { assets: [], liabilities: [], equity: [] }; const bank = acc.bank || { reconciliation: {}, movements: [] }; const purch = acc.purchases || { invoices: [], connection: {} }; %>
+      <% const acc = financialReportSafe.accounting || {}; const pnl = acc.pnl || { income: {}, expenses: {} }; const pnlIncome = pnl.income || {}; const pnlExpenses = pnl.expenses || {}; const bs = acc.balanceSheet || { assets: [], liabilities: [], equity: [] }; const bank = acc.bank || { reconciliation: {}, movements: [] }; const purch = acc.purchases || { invoices: [], connection: {} }; %>
 
       <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4">
         <h4 class="text-sm font-semibold mb-1"><%= t('admin.finanzas.pnl_title') %></h4>
         <p class="text-[11px] text-gray-500 mb-3"><%= t('admin.finanzas.pnl_subtitle') %></p>
         <div class="space-y-2 text-sm">
-          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.income_commission') %></span><strong class="text-emerald-600"><%= formatCLP(pnl.income.commission || 0) %></strong></div>
-          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.income_surcharge') %></span><strong class="text-emerald-600"><%= formatCLP(pnl.income.cardSurcharge || 0) %></strong></div>
-          <div class="flex justify-between border-t border-gray-100 pt-2"><span class="text-gray-500"><%= t('admin.finanzas.expense_payouts') %></span><strong class="text-red-600"><%= formatCLP(pnl.expenses.providerPaid || 0) %></strong></div>
-          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.expense_purchases') %></span><strong class="text-red-600"><%= formatCLP(pnl.expenses.purchases || 0) %></strong></div>
-          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.expense_pending') %></span><strong class="text-yellow-600"><%= formatCLP(pnl.expenses.providerPending || 0) %></strong></div>
+          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.income_commission') %></span><strong class="text-emerald-600"><%= formatCLP(pnlIncome.commission || 0) %></strong></div>
+          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.income_surcharge') %></span><strong class="text-emerald-600"><%= formatCLP(pnlIncome.cardSurcharge || 0) %></strong></div>
+          <div class="flex justify-between border-t border-gray-100 pt-2"><span class="text-gray-500"><%= t('admin.finanzas.expense_payouts') %></span><strong class="text-red-600"><%= formatCLP(pnlExpenses.providerPaid || 0) %></strong></div>
+          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.expense_purchases') %></span><strong class="text-red-600"><%= formatCLP(pnlExpenses.purchases || 0) %></strong></div>
+          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.expense_pending') %></span><strong class="text-yellow-600"><%= formatCLP(pnlExpenses.providerPending || 0) %></strong></div>
           <div class="flex justify-between border-t border-gray-200 pt-2 text-base"><span class="font-medium"><%= t('admin.finanzas.net_result') %></span><strong class="<%= (pnl.netResult || 0) >= 0 ? 'text-emerald-600' : 'text-red-600' %>"><%= formatCLP(pnl.netResult || 0) %></strong></div>
         </div>
       </div>
@@ -394,9 +395,9 @@ function hasPerm(key) {
           <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.tech_visits') %></span><strong><%= formatCLP(fin.visitsCollected) %></strong></div>
           <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.labor_completed') %></span><strong><%= formatCLP(fin.serviceVolume) %></strong></div>
           <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.materials') %></span><strong><%= formatCLP(fin.materialsVolume) %></strong></div>
-          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.card_surcharge', { percent: financialReport.pricing.cardSurcharge }) %></span><strong><%= formatCLP(fin.cardSurcharges) %></strong></div>
-          <div class="flex justify-between border-t border-gray-200 pt-2"><span class="text-gray-500"><%= t('admin.finanzas.labor_commission', { percent: Math.round(financialReport.pricing.laborRate * 100) }) %></span><strong class="text-blue-600"><%= formatCLP(fin.laborCommission) %></strong></div>
-          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.materials_commission', { percent: Math.round(financialReport.pricing.materialsRate * 100) }) %></span><strong class="text-blue-600"><%= formatCLP(fin.materialsCommission) %></strong></div>
+          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.card_surcharge', { percent: (financialReportSafe.pricing && financialReportSafe.pricing.cardSurcharge) || 0 }) %></span><strong><%= formatCLP(fin.cardSurcharges) %></strong></div>
+          <div class="flex justify-between border-t border-gray-200 pt-2"><span class="text-gray-500"><%= t('admin.finanzas.labor_commission', { percent: Math.round(((financialReportSafe.pricing && financialReportSafe.pricing.laborRate) || 0) * 100) }) %></span><strong class="text-blue-600"><%= formatCLP(fin.laborCommission) %></strong></div>
+          <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.materials_commission', { percent: Math.round(((financialReportSafe.pricing && financialReportSafe.pricing.materialsRate) || 0) * 100) }) %></span><strong class="text-blue-600"><%= formatCLP(fin.materialsCommission) %></strong></div>
           <div class="flex justify-between"><span class="text-gray-500"><%= t('admin.finanzas.paid_providers') %></span><strong class="text-emerald-600"><%= formatCLP(fin.providerPaid) %></strong></div>
         </div>
       </div>
@@ -404,9 +405,9 @@ function hasPerm(key) {
       <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4">
         <h4 class="text-sm font-semibold mb-3"><%= t('admin.finanzas.trend_7d') %></h4>
         <div class="flex items-end gap-1 h-24">
-          <% financialReport.dailyTrend.forEach(function(day) { %>
+          <% (financialReportSafe.dailyTrend || []).forEach(function(day) { %>
             <div class="flex-1 flex flex-col items-center gap-1">
-              <div class="w-full rounded-t bg-blue-500/70" style="height: <%= Math.max(4, Math.round((day.amount / financialReport.maxDaily) * 100)) %>%"></div>
+              <div class="w-full rounded-t bg-blue-500/70" style="height: <%= Math.max(4, Math.round((day.amount / (financialReportSafe.maxDaily || 1)) * 100)) %>%"></div>
               <span class="text-[8px] text-gray-500 text-center leading-tight"><%= day.label %></span>
             </div>
           <% }); %>
@@ -416,10 +417,10 @@ function hasPerm(key) {
       <div class="grid grid-cols-1 gap-4 mb-4">
         <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200">
           <h4 class="text-sm font-semibold mb-2"><%= t('admin.finanzas.by_payment_method') %></h4>
-          <% if (!financialReport.byPaymentMethod.length) { %>
+          <% if (!(financialReportSafe.byPaymentMethod || []).length) { %>
             <p class="text-xs text-gray-500"><%= t('admin.common.no_data') %></p>
           <% } %>
-          <% financialReport.byPaymentMethod.forEach(function(row) { %>
+          <% (financialReportSafe.byPaymentMethod || []).forEach(function(row) { %>
             <div class="flex justify-between text-sm py-1 border-b border-gray-100 last:border-0">
               <span><%= row.name %> <span class="text-gray-400 text-xs">(<%= row.count %>)</span></span>
               <strong><%= formatCLP(row.amount) %></strong>
@@ -428,7 +429,7 @@ function hasPerm(key) {
         </div>
         <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200">
           <h4 class="text-sm font-semibold mb-2"><%= t('admin.finanzas.by_gateway') %></h4>
-          <% financialReport.byGateway.forEach(function(row) { %>
+          <% (financialReportSafe.byGateway || []).forEach(function(row) { %>
             <div class="flex justify-between text-sm py-1 border-b border-gray-100 last:border-0">
               <span><%= row.name %> <span class="text-gray-400 text-xs">(<%= row.count %>)</span></span>
               <strong><%= formatCLP(row.amount) %></strong>
@@ -437,7 +438,7 @@ function hasPerm(key) {
         </div>
         <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200">
           <h4 class="text-sm font-semibold mb-2"><%= t('admin.finanzas.by_urgency') %></h4>
-          <% financialReport.byUrgency.forEach(function(row) { %>
+          <% (financialReportSafe.byUrgency || []).forEach(function(row) { %>
             <div class="flex justify-between text-sm py-1 border-b border-gray-100 last:border-0">
               <span><%= row.name %> <span class="text-gray-400 text-xs">(<%= row.count %>)</span></span>
               <strong><%= formatCLP(row.amount) %></strong>

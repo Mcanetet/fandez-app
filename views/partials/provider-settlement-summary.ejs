@@ -1,0 +1,63 @@
+<%
+  const fin = typeof settlement !== 'undefined' && settlement ? settlement : null;
+  if (!fin) { /* skip */ }
+  else {
+    const clientPaid = Number(fin.grandTotal != null ? fin.grandTotal : fin.amount) || 0;
+    const youReceive = Number(fin.providerPayout != null ? fin.providerPayout : fin.providerTotal) || 0;
+    const laborRatePct = Math.round((Number(fin.laborCommissionRate) || 0.15) * 100);
+    const cardPct = Number(fin.merchantCardFeePercent) || 0;
+    const cardPctLabel = cardPct
+      ? String(Math.round(cardPct * 10) / 10).replace('.', ',')
+      : '—';
+    const fandezBill = Number(fin.appTotal != null
+      ? fin.appTotal
+      : ((fin.laborCommission || 0) + (fin.cardFee || 0))) || 0;
+    const showDetail = fin.showDetail !== false;
+%>
+<div class="provider-settlement-summary mt-2 space-y-2">
+  <div class="grid grid-cols-2 gap-2">
+    <div class="rounded-xl border border-zilo-border bg-zilo-bg/50 px-3 py-2.5">
+      <p class="text-[10px] uppercase tracking-wide text-zilo-muted mb-0.5"><%= t('provider.settlement_client_paid') %></p>
+      <strong class="text-sm text-zilo-text tabular-nums block"><%= formatCLP(clientPaid) %></strong>
+      <p class="text-[10px] text-zilo-muted mt-0.5"><%= t('provider.settlement_boleta_100') %></p>
+    </div>
+    <div class="rounded-xl border border-zilo-success/25 bg-zilo-success/5 px-3 py-2.5">
+      <p class="text-[10px] uppercase tracking-wide text-zilo-muted mb-0.5"><%= t('provider.settlement_you_receive') %></p>
+      <strong class="text-sm text-zilo-success tabular-nums block"><%= formatCLP(youReceive) %></strong>
+      <p class="text-[10px] text-zilo-muted mt-0.5"><%= t('provider.settlement_after_fees') %></p>
+    </div>
+  </div>
+  <p class="text-[11px] text-zilo-muted leading-relaxed">
+    <%= t('provider.settlement_fandez_invoices', {
+      rate: laborRatePct,
+      mpPercent: cardPctLabel,
+      fees: formatCLP(fandezBill)
+    }) %>
+  </p>
+  <% if (showDetail) { %>
+  <details class="text-left">
+    <summary class="text-[10px] text-zilo-muted cursor-pointer"><%= t('provider.settlement') %></summary>
+    <div class="text-[10px] text-zilo-muted mt-1 space-y-0.5">
+      <p><%= t('provider.settlement_charged') %>: <%= formatCLP(clientPaid) %></p>
+      <p><%= t('provider.settlement_card') %> <%= cardPctLabel %>%: −<%= formatCLP(fin.cardFee || 0) %></p>
+      <p><%= t('provider.settlement_app') %> <%= laborRatePct %>% IVA incl.: −<%= formatCLP(fin.laborCommission || 0) %></p>
+      <% if (fin.materialsTotal) { %>
+        <p class="text-zilo-success"><%= t('provider.settlement_materials_keep') %>: <%= formatCLP(fin.materialsTotal) %></p>
+      <% } %>
+      <% if (fin.ivaOnFees != null) { %>
+        <p><%= t('provider.settlement_iva') %>: <%= formatCLP(fin.ivaOnFees || 0) %> <span class="text-zilo-muted/80">(ya incluido)</span></p>
+        <p class="text-[9px] text-zilo-muted/80"><%= t('provider.settlement_iva_hint') %></p>
+      <% } %>
+      <% if (fin.payoutScheduledLabel && fin.payoutStatus !== 'pagado') { %>
+        <p><%= t('provider.finance.scheduled') %>: <%= fin.payoutScheduledLabel %></p>
+      <% } %>
+      <p class="text-zilo-success font-medium"><%= t('provider.settlement_you_receive') %>: <%= formatCLP(youReceive) %></p>
+      <% if (fin.technicianPay && fin.technicianPay.configured && !fin.technicianPay.selfOperator && fin.technicianPayout != null) { %>
+        <p>Pago técnico (<%= fin.technicianPayLabel || 'acuerdo' %>): <%= formatCLP(fin.technicianPayout) %></p>
+        <p>Te queda tras técnico: <%= formatCLP(fin.providerKeepAfterTech != null ? fin.providerKeepAfterTech : (youReceive - fin.technicianPayout)) %></p>
+      <% } %>
+    </div>
+  </details>
+  <% } %>
+</div>
+<% } %>

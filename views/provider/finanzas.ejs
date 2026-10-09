@@ -163,21 +163,7 @@
                   <strong class="text-sm text-zilo-success block"><%= formatCLP(row.providerPayout) %></strong>
                 </div>
               </div>
-              <details>
-                <summary class="text-[11px] text-zilo-accent font-semibold cursor-pointer py-0.5"><%= t('provider.settlement') %></summary>
-                <div class="mt-2 text-[11px] text-zilo-muted space-y-0.5">
-                  <p><%= t('provider.settlement_charged') %>: <%= formatCLP(row.grandTotal) %></p>
-                  <p><%= t('provider.settlement_card') %>: −<%= formatCLP(row.cardFee) %></p>
-                  <p><%= t('provider.settlement_app') %>: −<%= formatCLP(row.laborCommission) %></p>
-                  <% if (row.materialsTotal) { %>
-                    <p class="text-zilo-success"><%= t('provider.settlement_materials_keep') %>: <%= formatCLP(row.materialsTotal) %></p>
-                  <% } %>
-                  <% if (row.payoutScheduledLabel && row.payoutStatus !== 'pagado') { %>
-                    <p><%= t('provider.finance.scheduled') %>: <%= row.payoutScheduledLabel %></p>
-                  <% } %>
-                  <p class="text-zilo-success font-medium"><%= t('provider.js.your_payout') %>: <%= formatCLP(row.providerPayout) %></p>
-                </div>
-              </details>
+              <%- include('../partials/provider-settlement-summary', { settlement: row }) %>
               <%- include('../partials/provider-invoice-upload', { invoicePlan: row.providerInvoicePlan, invoiceRequestId: row.id }) %>
             </article>
           <% }); %>

@@ -42,14 +42,75 @@ const siteAlerts = require('../lib/siteAlerts');
 const { getAdminEcosystemOverview } = require('../lib/adminEcosystem');
 const adminBroadcast = require('../lib/adminBroadcast');
 
+function safeAdminCall(label, fn, fallback) {
+  try {
+    return fn();
+  } catch (err) {
+    console.error(`[admin] ${label}:`, err.message);
+    if (err.stack) console.error(err.stack);
+    return typeof fallback === 'function' ? fallback() : fallback;
+  }
+}
+
+async function safeAdminCallAsync(label, fn, fallback) {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error(`[admin] ${label}:`, err.message);
+    if (err.stack) console.error(err.stack);
+    return typeof fallback === 'function' ? fallback() : fallback;
+  }
+}
+
+function emptyFinancialReport() {
+  return {
+    summary: {
+      visitsCollected: 0,
+      cardSurcharges: 0,
+      serviceVolume: 0,
+      materialsVolume: 0,
+      totalBilled: 0,
+      appCommission: 0,
+      laborCommission: 0,
+      materialsCommission: 0,
+      providerPending: 0,
+      providerPaid: 0,
+      pendingTransferCount: 0,
+      pendingTransferAmount: 0,
+      approvedCount: 0,
+      completedCount: 0,
+      activeCount: 0
+    },
+    byPaymentMethod: [],
+    byGateway: [],
+    byUrgency: [],
+    dailyTrend: [],
+    maxDaily: 1,
+    pricing: { laborRate: 0.15, materialsRate: 0, cardSurcharge: 0 },
+    accounting: {
+      pnl: { income: {}, expenses: {}, netResult: 0 },
+      balanceSheet: { assets: [], liabilities: [], equity: [] },
+      bank: { reconciliation: {}, movements: [] },
+      purchases: { invoices: [], connection: {} },
+      sales: [],
+      costs: [],
+      dte: { documentsCount: 0, amount: 0, note: null }
+    }
+  };
+}
+
 function buildAdminAttentionInbox(storeRef, locale = 'es') {
   const inbox = [];
   const pendingTransfers = storeRef.getAllRequests().filter((r) => r.paymentStatus === 'pending_transfer');
-  const dispatchQueue = storeRef.getAdminDispatchQueue(locale);
-  const contractStats = storeRef.getContractStats();
+  const dispatchQueue = safeAdminCall('attention.dispatchQueue', () => storeRef.getAdminDispatchQueue(locale), []);
+  const contractStats = safeAdminCall('attention.contractStats', () => storeRef.getContractStats(), {});
   const openComplaints = (storeRef.COMPLAINTS || []).filter((c) => c.status !== 'resuelto');
-  const pendingPayouts = storeRef.getPayments().filter(
-    (p) => p.status === 'completed' && p.payoutStatus !== 'pagado' && p.payoutStatus !== 'n/a'
+  const pendingPayouts = safeAdminCall(
+    'attention.pendingPayouts',
+    () => storeRef.getPayments().filter(
+      (p) => p.status === 'completed' && p.payoutStatus !== 'pagado' && p.payoutStatus !== 'n/a'
+    ),
+    []
   );
 
   pendingTransfers.slice(0, 8).forEach((r) => {
@@ -597,7 +658,7 @@ router.get('/', requireRole('admin'), async (req, res) => {
   const providers = store.USERS.filter(u => u.role === 'provider');
   const clients = store.USERS.filter(u => u.role === 'client');
   const onlineCount = providers.filter(p => p.online).length;
-  const adminStats = store.getAdminStats();
+  const adminStats = safeAdminCall('getAdminStats', () => store.getAdminStats(), {});
   const pricing = store.getPricingConfig();
   const access = req.adminAccess || store.resolveAdminAccess(store.getUserById(req.session.user.id));
   const requestedTab = req.query.tab || null;
@@ -617,81 +678,95 @@ router.get('/', requireRole('admin'), async (req, res) => {
     ...adminStats
   };
 
+  const backupConfig = await safeAdminCallAsync('backup.loadConfig', () => backup.loadConfigAsync(), {});
+  const backups = await safeAdminCallAsync('backup.listBackups', () => backup.listBackups(), []);
+  const serviceBriefsMod = require('../lib/serviceBriefs');
+  const serviceBriefs = await safeAdminCallAsync(
+    'serviceBriefs.list',
+    () => serviceBriefsMod.listBriefs({ limit: 100 }),
+    []
+  );
+
   res.render('admin/dashboard', {
     title: 'Fandez — Admin',
     user: req.session.user,
     stats,
     services: localizeServices(store.SERVICES, req.t),
-    modules: store.getModules(),
-    promos: store.getAllPromos(),
-    crmLeads: store.getCrmLeads(),
-    crmStats: store.getCrmStats(),
+    modules: safeAdminCall('getModules', () => store.getModules(), []),
+    promos: safeAdminCall('getAllPromos', () => store.getAllPromos(), []),
+    crmLeads: safeAdminCall('getCrmLeads', () => store.getCrmLeads(), []),
+    crmStats: safeAdminCall('getCrmStats', () => store.getCrmStats(), {}),
     crmStages: store.CRM_PIPELINE_STAGES,
-    clientModules: localizeModules(store.getModulesByAudience('client'), req.t),
-    providerModules: localizeModules(store.getModulesByAudience('provider'), req.t),
-    coverageRegions: store.getCoverageForAdmin(),
-    coverageStats: store.getCoverageStats(),
-    coverageInterest: store.getCoverageInterest(40),
-    coverageInterestStats: store.getCoverageInterestStats(),
+    clientModules: localizeModules(safeAdminCall('modules.client', () => store.getModulesByAudience('client'), []), req.t),
+    providerModules: localizeModules(safeAdminCall('modules.provider', () => store.getModulesByAudience('provider'), []), req.t),
+    coverageRegions: safeAdminCall('coverage.admin', () => store.getCoverageForAdmin(), []),
+    coverageStats: safeAdminCall('coverage.stats', () => store.getCoverageStats(), {}),
+    coverageInterest: safeAdminCall('coverage.interest', () => store.getCoverageInterest(40), []),
+    coverageInterestStats: safeAdminCall('coverage.interestStats', () => store.getCoverageInterestStats(), { total: 0, topCommunes: [] }),
     requests: allRequests.slice(0, 30),
-    payments: store.getPayments(),
-    payouts: store.getProviderPayouts(),
-    providersDirectory: store.getAdminProvidersDirectory(),
-    pendingTransfers: store.getAllRequests().filter(r => r.paymentStatus === 'pending_transfer'),
-    refundQueue: store.getAdminRefundQueue({ status: 'open', limit: 60 }),
-    dispatchQueue: store.getAdminDispatchQueue(req.locale || 'es'),
+    payments: safeAdminCall('getPayments', () => store.getPayments(), []),
+    payouts: safeAdminCall('getProviderPayouts', () => store.getProviderPayouts(), []),
+    providersDirectory: safeAdminCall('providersDirectory', () => store.getAdminProvidersDirectory(), []),
+    pendingTransfers: allRequests.filter(r => r.paymentStatus === 'pending_transfer'),
+    refundQueue: safeAdminCall('refundQueue', () => store.getAdminRefundQueue({ status: 'open', limit: 60 }), []),
+    dispatchQueue: safeAdminCall('dispatchQueue', () => store.getAdminDispatchQueue(req.locale || 'es'), []),
     csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
     complaints: store.COMPLAINTS,
     chats: store.CHATS,
     consents: store.consentRecords.slice(0, 20),
     securityLogs: store.securityLogs.slice(0, 25),
     providers,
-    demoAccounts: store.getDemoAccounts(),
+    demoAccounts: safeAdminCall('demoAccounts', () => store.getDemoAccounts(), []),
     company,
     pricing,
     formatCLP: store.formatCLP,
-    backupConfig: await backup.loadConfigAsync(),
-    backups: await backup.listBackups(),
-    backupRetention: backup.getRetentionSummary(),
-    githubBackupStatus: typeof backup.githubStatus === 'function' ? backup.githubStatus() : backup.githubStatus,
+    backupConfig,
+    backups,
+    backupRetention: safeAdminCall('backup.retention', () => backup.getRetentionSummary(), {}),
+    githubBackupStatus: safeAdminCall(
+      'backup.githubStatus',
+      () => (typeof backup.githubStatus === 'function' ? backup.githubStatus() : backup.githubStatus),
+      { enabled: false, exportReady: false, configured: {} }
+    ),
     formatBytes: backup.formatBytes,
     appVersion: getAppVersionInfo(),
-    mfaStatus: store.getAdminMfaStatus(req.session.user.id),
+    mfaStatus: safeAdminCall('mfaStatus', () => store.getAdminMfaStatus(req.session.user.id), { enabled: false, pending: false }),
     mfaMessage: req.query.mfa || null,
     mfaError: req.query.mfa_error || null,
-    financialReport: store.getFinancialReport(),
+    financialReport: safeAdminCall('financialReport', () => store.getFinancialReport(), emptyFinancialReport()),
     clientIp: getClientIp(req),
     adminIpAllowlist: parseAdminIpAllowlist(),
-    dteDocuments: store.getAllDteDocuments().slice(0, 40),
-    dteStatus: events.getDteStatus(),
-    notificationStats: notifications.getStats(),
-    recentNotifications: notifications.getRecent(30),
-    providerContracts: store.getAllProviderContracts(),
-    contractStats: store.getContractStats(),
+    dteDocuments: safeAdminCall('dteDocuments', () => store.getAllDteDocuments().slice(0, 40), []),
+    dteStatus: safeAdminCall('dteStatus', () => events.getDteStatus(), { mode: 'demo', provider: 'mock', libredte: false }),
+    notificationStats: safeAdminCall('notificationStats', () => notifications.getStats(), { total: 0, sent: 0, failed: 0, emailConfigured: false }),
+    recentNotifications: safeAdminCall('recentNotifications', () => notifications.getRecent(30), []),
+    providerContracts: safeAdminCall('providerContracts', () => store.getAllProviderContracts(), []),
+    contractStats: safeAdminCall('contractStats', () => store.getContractStats(), {}),
     documentCatalog: require('../lib/contracts').DOCUMENT_CATALOG,
     listProviderReviewDocuments: store.listProviderReviewDocuments,
     adminNav: getNavForLocale(access, req.t),
     adminStrings: getAdminStrings(req.t),
     adminAccess: access,
-    adminTeam: store.getAdminTeamUsers(),
+    adminTeam: safeAdminCall('adminTeam', () => store.getAdminTeamUsers(), []),
     adminProfiles: getProfilesList(),
     adminPermissionGroups: getPermissionGroups(),
-    managedUsers: store.getManagedUsers({ limit: 30 }),
-    florenciaConnections: florencia.connectionsStatus(),
+    managedUsers: safeAdminCall('managedUsers', () => store.getManagedUsers({ limit: 30 }), []),
+    florenciaConnections: safeAdminCall('florencia.connections', () => florencia.connectionsStatus(), {}),
     canAccessPanel: (panelId) => canAccessPanel(access, panelId),
     initialTab,
-    attentionInbox: buildAdminAttentionInbox(store, req.locale || 'es'),
-    serviceBriefs: await require('../lib/serviceBriefs').listBriefs({ limit: 100 }),
-    briefStatuses: require('../lib/serviceBriefs').STATUSES
+    attentionInbox: safeAdminCall('attentionInbox', () => buildAdminAttentionInbox(store, req.locale || 'es'), []),
+    serviceBriefs,
+    briefStatuses: serviceBriefsMod.STATUSES || []
   });
   } catch (err) {
     console.error('[admin/dashboard]', err.message);
     if (err.stack) console.error(err.stack);
+    const hint = String(err.message || 'error desconocido').slice(0, 180);
     return res.status(500).render('error', {
       title: 'Error en el panel',
-      message: 'No se pudo cargar el panel de administración. Si acabas de actualizar, redeploya la app completa en Hostinger.',
+      message: `No se pudo cargar el panel de administración (${hint}). Si acabas de actualizar, redeploya la app completa en Hostinger.`,
       code: 500,
-      retryPath: req.originalUrl || '/admin'
+      retryPath: req.originalUrl || adminUrl()
     });
   }
 });

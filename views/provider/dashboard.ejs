@@ -282,23 +282,7 @@
                 <a href="/proveedor/trabajo/<%= req.id %>" class="block text-center zilo-btn-primary !py-2.5 !text-sm">Abrir pedido · chat y terreno</a>
               <% } %>
               <% if (req.status === 'completed' && req.financialsVisible && req.financialsVisible.completed) { %>
-                  <% const fin = req.financialsVisible; %>
-                  <details class="text-left">
-                    <summary class="text-[10px] text-zilo-muted cursor-pointer"><%= t('provider.settlement') %></summary>
-                    <div class="text-[10px] text-zilo-muted mt-1 space-y-0.5">
-                      <p><%= t('provider.settlement_charged') %>: <%= formatCLP(fin.grandTotal) %></p>
-                      <p><%= t('provider.settlement_card') %> <%= fin.merchantCardFeePercent || 0 %>%: −<%= formatCLP(fin.cardFee || 0) %></p>
-                      <p><%= t('provider.settlement_app') %> <%= Math.round((fin.laborCommissionRate || 0) * 100) %>% IVA incl.: −<%= formatCLP(fin.laborCommission) %></p>
-                      <% if (fin.materialsTotal) { %><p class="text-zilo-success"><%= t('provider.settlement_materials_keep') %>: <%= formatCLP(fin.materialsTotal) %></p><% } %>
-                      <p><%= t('provider.settlement_iva') %>: <%= formatCLP(fin.ivaOnFees || 0) %> <span class="text-zilo-muted">(ya incluido)</span></p>
-                      <p class="text-[9px] text-zilo-muted/80"><%= t('provider.settlement_iva_hint') %></p>
-                      <p class="text-zilo-success font-medium"><%= t('provider.js.your_payout') %>: <%= formatCLP(fin.providerPayout) %></p>
-                      <% if (fin.technicianPay && fin.technicianPay.configured && !fin.technicianPay.selfOperator && fin.technicianPayout != null) { %>
-                        <p>Pago técnico (<%= fin.technicianPayLabel || 'acuerdo' %>): <%= formatCLP(fin.technicianPayout) %></p>
-                        <p>Te queda tras técnico: <%= formatCLP(fin.providerKeepAfterTech != null ? fin.providerKeepAfterTech : (fin.providerPayout - fin.technicianPayout)) %></p>
-                      <% } %>
-                    </div>
-                  </details>
+                  <%- include('../partials/provider-settlement-summary', { settlement: req.financialsVisible }) %>
                   <%- include('../partials/provider-invoice-upload', { invoicePlan: req.providerInvoicePlan, invoiceRequestId: req.id }) %>
               <% } else if (req.providerPayout != null && req.status !== 'completed') { %>
                 <p class="text-[10px] text-zilo-muted"><%= t('provider.payout_until_complete') %></p>

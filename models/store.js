@@ -6313,7 +6313,7 @@ function buildProviderInvoicePlan(request, financials) {
     fileName: request.providerInvoicePlan?.fileName || null,
     mimeType: request.providerInvoicePlan?.mimeType || null,
     url: request.providerInvoicePlan?.url || null,
-    note: 'Emite boleta/factura al cliente por el total del servicio. Fandez te factura el 15% IVA incluido + costo Mercado Pago (~3,8%); se descuenta de tu liquidación.'
+    note: 'Emite boleta/factura al cliente por el 100% de lo pagado. Fandez te factura el 15% IVA incluido + costo de la comisión de la tarjeta usada; se descuenta de tu liquidación.'
   };
   return request.providerInvoicePlan;
 }
@@ -8601,6 +8601,8 @@ function getProviderFinanceLedger(providerId, { limit = 60 } = {}) {
         cardFee: fin.cardFee || 0,
         merchantCardFeePercent: fin.merchantCardFeePercent || 0,
         laborCommissionRate: fin.laborCommissionRate || 0.15,
+        appTotal: fin.appTotal || 0,
+        ivaOnFees: fin.ivaOnFees || 0,
         grandTotal: fin.grandTotal || 0,
         visitPaid: fin.visitPaid || 0,
         serviceAmount: fin.serviceAmount || 0,
@@ -9834,7 +9836,21 @@ function getFinancialReport() {
 
   const maxDaily = Math.max(1, ...Object.values(last7Days).map((d) => d.amount));
 
-  const accounting = getAccountingPack();
+  let accounting = null;
+  try {
+    accounting = getAccountingPack();
+  } catch (err) {
+    console.error('[getFinancialReport] accounting pack:', err.message);
+    accounting = {
+      pnl: { income: {}, expenses: {}, netResult: 0 },
+      balanceSheet: { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0 },
+      bank: { reconciliation: {}, movements: [] },
+      purchases: { invoices: [], connection: {} },
+      sales: [],
+      costs: [],
+      dte: { documentsCount: 0, amount: 0, note: null }
+    };
+  }
 
   return {
     summary,
@@ -9844,9 +9860,9 @@ function getFinancialReport() {
     dailyTrend: Object.values(last7Days),
     maxDaily,
     pricing: {
-      laborRate: pricing.laborCommissionRate,
-      materialsRate: pricing.materialsCommissionRate,
-      cardSurcharge: pricing.cardSurchargePercent
+      laborRate: pricing.laborCommissionRate || 0,
+      materialsRate: pricing.materialsCommissionRate || 0,
+      cardSurcharge: pricing.cardSurchargePercent || 0
     },
     accounting
   };
