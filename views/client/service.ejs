@@ -455,11 +455,12 @@
         <input type="text" id="inlineBillFiscalAddress" value="<%= billInline.fiscalAddress || profile.address || '' %>" placeholder="Dirección fiscal" class="zilo-input !py-2 text-sm">
         <input type="email" id="inlineBillInvoiceEmail" value="<%= billInline.invoiceEmail || profile.email %>" placeholder="Email facturación" class="zilo-input !py-2 text-sm">
       </div>
-      <section id="mpEmbedSection" class="zilo-card-premium rounded-2xl p-4 checkout-mp-block">
+      <section id="inlineMpEmbedSection" class="zilo-card-premium rounded-2xl p-4 checkout-mp-block">
         <h2 class="zilo-label mb-3"><%= t('checkout.payment_title') %></h2>
         <p id="inlineMpBrickLoading" class="hidden text-xs text-zilo-muted py-4 text-center">Cargando formulario de tarjeta…</p>
         <p id="inlineMpBrickError" class="hidden text-xs text-amber-900 py-2 text-center"></p>
-        <div id="mpCardPaymentBrick"></div>
+        <div id="inlineMpCardPaymentBrick" class="min-h-[120px]"></div>
+        <button type="button" id="inlineOpenFullCheckout" class="hidden w-full mt-3 zilo-btn-primary !py-2.5 !text-sm">Abrir formulario de tarjeta</button>
       </section>
       <a href="#" id="inlineCheckoutFallback" class="block text-center text-xs text-zilo-accent font-medium"><%= t('client.service.checkout_full_link') %></a>
     </section>

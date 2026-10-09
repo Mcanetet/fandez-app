@@ -128,14 +128,17 @@
 
     setInlineBrickLoading(true);
     try {
-      const result = await window.FandezMpBrick.sync({
+      const brickCtx = {
         embed: true,
         publicKey: mpPublicKey,
         amount,
         maxInstallments: parseInt(page.dataset.maxInstallments, 10) || 3,
         paymentMethod: 'card',
         cardGateway: 'mercadopago',
+        containerId: 'inlineMpCardPaymentBrick',
+        sectionId: 'inlineMpEmbedSection',
         payerEmail: getBillingPayload().invoiceEmail,
+        onReady: () => setInlineBrickLoading(false),
         onBeforeSubmit: () => {
           if (!billingReady()) {
             inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -167,10 +170,15 @@
           if (payload.redirect) window.location.href = payload.redirect;
           return payload;
         })
-      });
+      };
+      const result = await window.FandezMpBrick.sync(brickCtx);
       mpBrickActive = Boolean(result?.active);
+      const openFullBtn = document.getElementById('inlineOpenFullCheckout');
       if (!mpBrickActive) {
-        setInlineBrickError('No pudimos cargar el formulario aquí. Usa el enlace de abajo o abre el checkout completo.');
+        setInlineBrickError('No pudimos cargar el formulario aquí.');
+        openFullBtn?.classList.remove('hidden');
+      } else {
+        openFullBtn?.classList.add('hidden');
       }
     } catch (err) {
       console.error('[inline-pay]', err);
@@ -198,7 +206,9 @@
     document.getElementById('requestForm')?.classList.add('hidden');
     document.getElementById('resumeDraftBanner')?.classList.add('hidden');
     document.querySelectorAll('#urgencyOptions, #alandChatSection').forEach((el) => el?.classList.add('hidden'));
-    document.getElementById('stickyOrderBar')?.classList.remove('is-visible');
+    const sticky = document.getElementById('stickyOrderBar');
+    sticky?.classList.remove('is-visible');
+    sticky?.setAttribute('aria-hidden', 'true');
     inlineRoot.classList.remove('hidden');
     setProgressStep(2);
     inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -218,6 +228,8 @@
     e.preventDefault();
     goFullCheckout();
   });
+
+  document.getElementById('inlineOpenFullCheckout')?.addEventListener('click', () => goFullCheckout());
 
   document.getElementById('btnResumePay')?.addEventListener('click', () => {
     const id = document.getElementById('btnResumePay')?.dataset?.requestId;

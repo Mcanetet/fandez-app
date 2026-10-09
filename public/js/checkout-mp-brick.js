@@ -2,15 +2,15 @@
  * Mercado Pago Card Payment Brick — checkout embebido en Fandez (sin redirect a MP).
  */
 (function () {
-  let controller = null;
-  let mounting = null;
-  let lastAmount = null;
+  /** @type {Record<string, { controller: object, amount: number }>} */
+  const slots = {};
+  /** @type {Record<string, Promise<unknown>|null>} */
+  const mountingById = {};
 
   function isMercadoPagoGateway(id) {
     return String(id || '').toLowerCase() === 'mercadopago';
   }
 
-  /** Paleta Fandez — evita el azul del theme bootstrap en el loading del botón Pagar */
   const FANDEZ_MP_VISUAL = {
     theme: 'default',
     customVariables: {
@@ -34,41 +34,67 @@
     }
   };
 
+  function resolveIds(ctx) {
+    const containerId = ctx.containerId || 'mpCardPaymentBrick';
+    const sectionId = ctx.sectionId || 'mpEmbedSection';
+    return { containerId, sectionId };
+  }
+
   function shouldUseBrick(ctx) {
     if (!ctx.embed || !ctx.publicKey) return false;
     if (ctx.paymentMethod !== 'card') return false;
     if (!isMercadoPagoGateway(ctx.cardGateway)) return false;
-    if (!ctx.amount || ctx.amount < 1) return false;
+    const amount = Math.round(Number(ctx.amount) || 0);
+    if (amount < 1) return false;
     return true;
   }
 
-  async function unmount() {
-    if (controller && typeof controller.unmount === 'function') {
+  async function unmountSlot(containerId) {
+    const slot = slots[containerId];
+    if (slot?.controller && typeof slot.controller.unmount === 'function') {
       try {
-        await controller.unmount();
+        await slot.controller.unmount();
       } catch (_) { /* noop */ }
     }
-    controller = null;
-    lastAmount = null;
+    delete slots[containerId];
+    mountingById[containerId] = null;
+    const el = document.getElementById(containerId);
+    if (el) el.innerHTML = '';
+  }
+
+  async function unmountAll() {
+    await Promise.all(Object.keys(slots).map((id) => unmountSlot(id)));
   }
 
   async function mount(ctx) {
     if (!window.MercadoPago) return false;
-    const container = document.getElementById('mpCardPaymentBrick');
+    const { containerId } = resolveIds(ctx);
+    const container = document.getElementById(containerId);
     if (!container) return false;
 
-    if (controller && lastAmount === ctx.amount) return true;
+    const amount = Math.round(Number(ctx.amount) || 0);
+    const slot = slots[containerId];
+    if (slot?.controller && slot.amount === amount) return true;
 
-    await unmount();
+    if (mountingById[containerId]) {
+      try {
+        await mountingById[containerId];
+        return Boolean(slots[containerId]?.controller);
+      } catch (_) {
+        return false;
+      }
+    }
+
+    await unmountSlot(containerId);
     container.innerHTML = '';
 
     const mp = new MercadoPago(ctx.publicKey, { locale: 'es-CL' });
     const bricksBuilder = mp.bricks();
 
-    mounting = bricksBuilder
-      .create('cardPayment', 'mpCardPaymentBrick', {
+    mountingById[containerId] = bricksBuilder
+      .create('cardPayment', containerId, {
         initialization: {
-          amount: ctx.amount,
+          amount,
           payer: ctx.payerEmail ? { email: ctx.payerEmail } : undefined
         },
         customization: {
@@ -83,7 +109,9 @@
           }
         },
         callbacks: {
-          onReady: () => {},
+          onReady: () => {
+            if (typeof ctx.onReady === 'function') ctx.onReady();
+          },
           onSubmit: (cardFormData) => {
             if (typeof ctx.onBeforeSubmit === 'function') {
               const block = ctx.onBeforeSubmit();
@@ -97,7 +125,7 @@
             return ctx.submitPayment(cardFormData);
           },
           onError: (error) => {
-            console.error('[mp-brick]', error);
+            console.error('[mp-brick]', containerId, error);
             if (window.FandezNotify) {
               FandezNotify.show('No se pudo cargar el formulario de pago. Recarga la página.', 'error');
             }
@@ -105,47 +133,40 @@
         }
       })
       .then((ctrl) => {
-        controller = ctrl;
-        lastAmount = ctx.amount;
-        mounting = null;
+        slots[containerId] = { controller: ctrl, amount };
+        mountingById[containerId] = null;
         return ctrl;
       })
       .catch((err) => {
-        mounting = null;
-        console.error('[mp-brick] mount', err);
+        mountingById[containerId] = null;
+        console.error('[mp-brick] mount', containerId, err);
         throw err;
       });
 
-    await mounting;
+    await mountingById[containerId];
     return true;
   }
 
   window.FandezMpBrick = {
     async sync(ctx) {
-      const section = document.getElementById('mpEmbedSection');
+      const { containerId, sectionId } = resolveIds(ctx);
+      const section = document.getElementById(sectionId);
       const use = shouldUseBrick(ctx);
       if (section) section.classList.toggle('hidden', !use);
 
       if (!use) {
-        await unmount();
+        await unmountSlot(containerId);
         return { active: false };
-      }
-
-      if (mounting) {
-        try {
-          await mounting;
-        } catch (_) {
-          return { active: false };
-        }
       }
 
       try {
         await mount(ctx);
-        return { active: true };
+        return { active: Boolean(slots[containerId]?.controller) };
       } catch (_) {
         return { active: false };
       }
     },
-    unmount
+    unmount: unmountAll,
+    unmountSlot
   };
 })();

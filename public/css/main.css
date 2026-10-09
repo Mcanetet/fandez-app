@@ -6583,9 +6583,11 @@ body.launch-notice-open {
   accent-color: var(--zilo-accent);
   color-scheme: light;
 }
-.checkout-mp-block #mpCardPaymentBrick {
+.checkout-mp-block #mpCardPaymentBrick,
+.checkout-mp-block #inlineMpCardPaymentBrick {
   --mp-accent: var(--zilo-accent);
   --mp-accent-dark: var(--zilo-accent-strong);
+  min-height: 120px;
 }
 .checkout-mp-block #mpCardPaymentBrick button[type='submit'],
 .checkout-mp-block #mpCardPaymentBrick button[data-testid='submit-button'] {
