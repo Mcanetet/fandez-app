@@ -16,6 +16,7 @@
   let lastAmountDue = parseFloat(page.dataset.initialAmount) || 0;
   let mpBrickActive = false;
   let mpConfigFetched = false;
+  let payerEmailFallback = '';
 
   function toast(messageOrOpts, type) {
     if (window.FandezNotify) {
@@ -64,6 +65,7 @@
       if (data.success) {
         mpConfigFetched = true;
         if (data.publicKey) mpPublicKey = data.publicKey;
+        if (data.payerEmailFallback) payerEmailFallback = data.payerEmailFallback;
         if (typeof data.embed === 'boolean') mpEmbed = data.embed;
         if (data.credentialMismatch) {
           toast({
@@ -241,14 +243,48 @@
     if (reveal) revealMpEmbedSection();
     setMpBrickLoading(true);
     lastAmountDue = amount;
+
+    let preferenceId = '';
+    let brickAmount = amount;
+    try {
+      const initRes = await fetch('/pagos/mp/brick-init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          requestId,
+          useCredits: useCredits?.checked,
+          usePoints: usePoints?.checked,
+          promoCode: promoCode?.value.trim() || '',
+          paymentMethod: 'card',
+          billing: getBillingPayload()
+        })
+      });
+      const initData = await initRes.json().catch(() => ({}));
+      if (initRes.ok && initData.success) {
+        if (initData.publicKey) mpPublicKey = initData.publicKey;
+        preferenceId = initData.preferenceId || '';
+        brickAmount = Math.round(Number(initData.amount) || amount);
+      } else if (initData.error) {
+        console.warn('[checkout] brick-init', initData.error);
+      }
+    } catch (err) {
+      console.warn('[checkout] brick-init', err);
+    }
+
+    const payerEmail = document.getElementById('billInvoiceEmail')?.value?.trim()
+      || payerEmailFallback
+      || '';
+
     const result = await window.FandezMpBrick.sync({
       embed: true,
       publicKey: mpPublicKey,
-      amount,
+      amount: brickAmount,
+      preferenceId,
       maxInstallments,
       paymentMethod: 'card',
       cardGateway: 'mercadopago',
-      payerEmail: document.getElementById('billInvoiceEmail')?.value?.trim() || '',
+      payerEmail,
+      payerEmailFallback,
       onReady: () => setMpBrickLoading(false),
       onBeforeSubmit: () => {
         if (!billingReady()) {
@@ -442,7 +478,7 @@
         await refreshMpEmbedConfig(false);
       }
       await recalc();
-      if (mpEmbed && !mpBrickActive && lastAmountDue > 0) {
+      if (mpEmbed && billingReady() && !mpBrickActive && lastAmountDue > 0) {
         await syncMpBrick(lastAmountDue, { reveal: true });
       }
     } catch (err) {

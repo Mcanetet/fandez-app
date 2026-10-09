@@ -286,8 +286,78 @@ router.get('/mp/brick-config', requireRole('client'), (req, res) => {
     credentialProfile: status.profile,
     credentialMismatch: mp.isCredentialPairMismatch(),
     missingTestPublicKey: status.missingTestPublicKey,
-    missingTestAccessToken: status.missingTestAccessToken
+    missingTestAccessToken: status.missingTestAccessToken,
+    payerEmailFallback: String(process.env.MP_PAYER_EMAIL || '').trim() || null
   });
+});
+
+router.post('/mp/brick-init', requireRole('client'), async (req, res) => {
+  const { requestId, promoCode, paymentMethod, billing } = req.body;
+  const puntosOn = store.isModuleEnabled('client_puntos');
+  const request = store.requests.find((r) => r.id === requestId);
+
+  if (!request || request.clientId !== req.session.user.id) {
+    return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
+  }
+  if (!mp.isEmbedCheckoutAvailable()) {
+    return res.status(400).json({ success: false, error: 'Pago embebido no disponible.' });
+  }
+
+  const billingResult = ensureBillingForPayment(req.session.user.id, requestId, billing);
+  if (billingResult.error) {
+    return res.status(400).json({ success: false, error: billingResult.error });
+  }
+
+  const discountResult = store.applyCheckoutDiscounts(req.session.user.id, requestId, {
+    useCredits: Boolean(req.body.useCredits),
+    usePoints: puntosOn && Boolean(req.body.usePoints),
+    promoCode,
+    paymentMethod: paymentMethod || 'card'
+  });
+  if (discountResult.error) return res.status(400).json(discountResult);
+
+  const updated = store.requests.find((r) => r.id === requestId);
+  const amount = Math.round(Number(updated.amountDue) || 0);
+  if (amount < 1) {
+    return res.status(400).json({ success: false, error: 'Monto inválido para tarjeta.' });
+  }
+
+  const service = store.getServiceById(request.serviceId);
+  const baseUrl = getBaseUrl(req);
+  const pricing = store.getPricingConfig();
+
+  try {
+    const preference = await mp.createPreference({
+      request: updated,
+      service,
+      baseUrl,
+      maxInstallments: pricing.maxCardInstallments
+    });
+    if (!preference?.id) {
+      return res.status(503).json({
+        success: false,
+        error: 'Mercado Pago no pudo preparar el formulario. Revisa MP_TEST_ACCESS_TOKEN.'
+      });
+    }
+    store.setCardPaymentSession(request.id, {
+      gateway: 'mercadopago',
+      preferenceId: preference.id
+    });
+    return res.json({
+      success: true,
+      publicKey: mp.getPublicKey(),
+      preferenceId: preference.id,
+      amount,
+      sandbox: mp.usesSandboxPayments()
+    });
+  } catch (err) {
+    console.error('[mp/brick-init]', err.message);
+    return res.status(503).json({
+      success: false,
+      error: (typeof mp.paymentErrorForClient === 'function' ? mp.paymentErrorForClient(err) : null)
+        || 'No se pudo preparar Mercado Pago.'
+    });
+  }
 });
 
 router.post('/calcular', requireRole('client'), (req, res) => {

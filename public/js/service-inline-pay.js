@@ -128,10 +128,31 @@
 
     setInlineBrickLoading(true);
     try {
+      let preferenceId = '';
+      let brickAmount = Math.round(Number(amount) || 0);
+      try {
+        const initRes = await fetch('/pagos/mp/brick-init', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            requestId,
+            paymentMethod: 'card',
+            billing: getBillingPayload()
+          })
+        });
+        const initData = await initRes.json().catch(() => ({}));
+        if (initRes.ok && initData.success) {
+          if (initData.publicKey) mpPublicKey = initData.publicKey;
+          preferenceId = initData.preferenceId || '';
+          brickAmount = Math.round(Number(initData.amount) || brickAmount);
+        }
+      } catch (_) { /* noop */ }
+
       const brickCtx = {
         embed: true,
         publicKey: mpPublicKey,
-        amount,
+        amount: brickAmount,
+        preferenceId,
         maxInstallments: parseInt(page.dataset.maxInstallments, 10) || 3,
         paymentMethod: 'card',
         cardGateway: 'mercadopago',

@@ -2,7 +2,7 @@
  * Mercado Pago Card Payment Brick — checkout embebido en Fandez (sin redirect a MP).
  */
 (function () {
-  /** @type {Record<string, { controller: object, amount: number }>} */
+  /** @type {Record<string, { controller: object, amount: number, preferenceId?: string }>} */
   const slots = {};
   /** @type {Record<string, Promise<unknown>|null>} */
   const mountingById = {};
@@ -49,6 +49,21 @@
     return true;
   }
 
+  function isVisible(el) {
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden') return false;
+    return el.getClientRects().length > 0;
+  }
+
+  async function waitUntilVisible(el, maxFrames = 30) {
+    for (let i = 0; i < maxFrames; i += 1) {
+      if (isVisible(el)) return true;
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    return isVisible(el);
+  }
+
   async function unmountSlot(containerId) {
     const slot = slots[containerId];
     if (slot?.controller && typeof slot.controller.unmount === 'function') {
@@ -66,20 +81,33 @@
     await Promise.all(Object.keys(slots).map((id) => unmountSlot(id)));
   }
 
+  function slotMounted(containerId, amount, preferenceId) {
+    const slot = slots[containerId];
+    const el = document.getElementById(containerId);
+    if (!slot?.controller || !el || el.children.length === 0) return false;
+    if (slot.amount !== amount) return false;
+    if (preferenceId && slot.preferenceId !== preferenceId) return false;
+    return true;
+  }
+
   async function mount(ctx) {
     if (!window.MercadoPago) return false;
-    const { containerId } = resolveIds(ctx);
+    const { containerId, sectionId } = resolveIds(ctx);
     const container = document.getElementById(containerId);
+    const section = document.getElementById(sectionId);
     if (!container) return false;
 
     const amount = Math.round(Number(ctx.amount) || 0);
-    const slot = slots[containerId];
-    if (slot?.controller && slot.amount === amount) return true;
+    const preferenceId = ctx.preferenceId ? String(ctx.preferenceId) : '';
+    if (slotMounted(containerId, amount, preferenceId || undefined)) return true;
+
+    if (section) section.classList.remove('hidden');
+    await waitUntilVisible(section || container);
 
     if (mountingById[containerId]) {
       try {
         await mountingById[containerId];
-        return Boolean(slots[containerId]?.controller);
+        return slotMounted(containerId, amount, preferenceId || undefined);
       } catch (_) {
         return false;
       }
@@ -88,15 +116,19 @@
     await unmountSlot(containerId);
     container.innerHTML = '';
 
+    const payerEmail = String(ctx.payerEmail || ctx.payerEmailFallback || '').trim();
     const mp = new MercadoPago(ctx.publicKey, { locale: 'es-CL' });
     const bricksBuilder = mp.bricks();
 
+    const initialization = {
+      amount,
+      payer: payerEmail ? { email: payerEmail } : undefined
+    };
+    if (preferenceId) initialization.preferenceId = preferenceId;
+
     mountingById[containerId] = bricksBuilder
       .create('cardPayment', containerId, {
-        initialization: {
-          amount,
-          payer: ctx.payerEmail ? { email: ctx.payerEmail } : undefined
-        },
+        initialization,
         customization: {
           visual: {
             style: FANDEZ_MP_VISUAL,
@@ -127,13 +159,13 @@
           onError: (error) => {
             console.error('[mp-brick]', containerId, error);
             if (window.FandezNotify) {
-              FandezNotify.show('No se pudo cargar el formulario de pago. Recarga la página.', 'error');
+              FandezNotify.show('Mercado Pago no pudo mostrar el formulario. Reintenta o usa el enlace de checkout.', 'error');
             }
           }
         }
       })
       .then((ctrl) => {
-        slots[containerId] = { controller: ctrl, amount };
+        slots[containerId] = { controller: ctrl, amount, preferenceId: preferenceId || undefined };
         mountingById[containerId] = null;
         return ctrl;
       })
@@ -144,7 +176,7 @@
       });
 
     await mountingById[containerId];
-    return true;
+    return slotMounted(containerId, amount, preferenceId || undefined);
   }
 
   window.FandezMpBrick = {
@@ -152,18 +184,19 @@
       const { containerId, sectionId } = resolveIds(ctx);
       const section = document.getElementById(sectionId);
       const use = shouldUseBrick(ctx);
-      if (section) section.classList.toggle('hidden', !use);
+      if (section && !use) section.classList.add('hidden');
 
       if (!use) {
         await unmountSlot(containerId);
-        return { active: false };
+        return { active: false, reason: 'invalid_context' };
       }
+      if (section) section.classList.remove('hidden');
 
       try {
-        await mount(ctx);
-        return { active: Boolean(slots[containerId]?.controller) };
-      } catch (_) {
-        return { active: false };
+        const ok = await mount(ctx);
+        return { active: ok };
+      } catch (err) {
+        return { active: false, reason: err?.message || 'mount_failed' };
       }
     },
     unmount: unmountAll,
