@@ -54,7 +54,7 @@
 
   async function ensureMpScripts() {
     if (!window.MercadoPago) await loadScript('https://sdk.mercadopago.com/js/v2');
-    if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js?v=20261009-visa3');
+    if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js?v=20261009-visa4');
   }
 
   async function refreshMpEmbedConfig(force) {
@@ -289,12 +289,9 @@
       amount: brickAmount,
       // Brick de tarjeta no depende de preferenceId; evita filtrar Visa/prepago.
       preferenceId: '',
-      maxInstallments,
+      maxInstallments: 1,
       paymentMethod: 'card',
       cardGateway: 'mercadopago',
-      creditCardIds: ['visa', 'master', 'amex'],
-      debitCardIds: ['debvisa', 'debmaster'],
-      prepaidCardIds: ['visa', 'master'],
       payerEmail,
       payerEmailFallback,
       onReady: () => setMpBrickLoading(false),

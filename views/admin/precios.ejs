@@ -216,6 +216,7 @@
             <button type="button" class="btn-mp-phase text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500 bg-emerald-50 font-semibold" data-phase="productivo">Usar credenciales de producción</button>
           </div>
           <p class="text-[10px] text-gray-400 mt-2">En Hostinger: prueba → <code>MP_TEST_PUBLIC_KEY</code> + <code>MP_TEST_ACCESS_TOKEN</code> · producción → <code>MP_PUBLIC_KEY</code> + <code>MP_ACCESS_TOKEN</code></p>
+          <p class="text-[11px] text-gray-600 mt-3" id="mpCardBrandsLine">Marcas tarjeta: cargando…</p>
         </div>
         <p class="text-[10px] text-gray-400 mt-3">
           Transbank: <code>TRANSBANK_COMMERCE_CODE</code>, <code>TRANSBANK_API_KEY</code>, <code>TRANSBANK_ENV</code> ·
@@ -250,12 +251,32 @@
         </div>
       </section>
 
-      <% const zoneCfg = pricing.zonePricing || {}; const zoneOrigin = zoneCfg.origin || {}; const zoneDist = zoneCfg.distance || {}; const zoneSupply = zoneCfg.supply || {}; const zoneBands = Array.isArray(zoneDist.bands) && zoneDist.bands.length ? zoneDist.bands : [{ maxKm: 4, percent: 0 }, { maxKm: 8, percent: 5 }, { maxKm: 12, percent: 10 }, { maxKm: 18, percent: 16 }, { maxKm: 999, percent: 22 }]; const zoneSupplyTiers = Array.isArray(zoneSupply.tiers) && zoneSupply.tiers.length ? zoneSupply.tiers : [{ minTechs: 5, percent: 0 }, { minTechs: 3, percent: 4 }, { minTechs: 2, percent: 9 }, { minTechs: 1, percent: 16 }, { minTechs: 0, percent: 24 }]; %>
+      <%
+        const zoneCfg = pricing.zonePricing || {};
+        const zoneOrigin = zoneCfg.origin || {};
+        const zoneDist = zoneCfg.distance || {};
+        const zoneSupply = zoneCfg.supply || {};
+        const defaultZoneCommunes = [
+          { code: 'nunoa', name: 'Ñuñoa', percent: 0 },
+          { code: 'providencia', name: 'Providencia', percent: 5 },
+          { code: 'las-condes', name: 'Las Condes', percent: 10 },
+          { code: 'la-reina', name: 'La Reina', percent: 10 },
+          { code: 'vitacura', name: 'Vitacura', percent: 15 },
+          { code: 'lo-barnechea', name: 'Lo Barnechea', percent: 20 },
+          { code: 'colina', name: 'Colina', percent: 20 }
+        ];
+        const zoneCommunes = Array.isArray(zoneCfg.communes) && zoneCfg.communes.length
+          ? zoneCfg.communes
+          : defaultZoneCommunes;
+        const zoneBands = Array.isArray(zoneDist.bands) && zoneDist.bands.length ? zoneDist.bands : [{ maxKm: 4, percent: 0 }, { maxKm: 8, percent: 5 }, { maxKm: 12, percent: 10 }, { maxKm: 18, percent: 16 }, { maxKm: 999, percent: 22 }];
+        const zoneSupplyTiers = Array.isArray(zoneSupply.tiers) && zoneSupply.tiers.length ? zoneSupply.tiers : [{ minTechs: 5, percent: 0 }, { minTechs: 3, percent: 4 }, { minTechs: 2, percent: 9 }, { minTechs: 1, percent: 16 }, { minTechs: 0, percent: 24 }];
+        const zoneMode = zoneCfg.mode || 'commune';
+      %>
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
         <div class="flex justify-between items-start mb-4 gap-2 flex-wrap">
           <div>
-            <h2 class="text-sm font-semibold">Precio por zona (punto cero)</h2>
-            <p class="text-xs text-gray-500 mt-1">Recargo sobre el precio base <strong>antes</strong> de horario y urgencia. Distancia desde el hub + escasez de técnicos operativos cerca del cliente.</p>
+            <h2 class="text-sm font-semibold">Precio por zona (por comuna)</h2>
+            <p class="text-xs text-gray-500 mt-1">Recargo sobre el precio base <strong>antes</strong> de horario y urgencia. Hub: <%= zoneOrigin.label || 'Ñuñoa' %>. Ej.: dentro de Ñuñoa 0%, Providencia 5%.</p>
           </div>
           <label class="flex items-center gap-2 text-sm font-medium cursor-pointer shrink-0">
             <input type="checkbox" name="zoneEnabled" <%= zoneCfg.enabled !== false ? 'checked' : '' %> class="rounded accent-zilo-accent">
@@ -268,26 +289,70 @@
             <input type="text" name="zoneOriginLabel" value="<%= zoneOrigin.label || 'Ñuñoa' %>" class="zilo-input w-full mt-1 !py-2 text-sm">
           </div>
           <div>
-            <label class="text-xs text-gray-500">Latitud hub</label>
-            <input type="number" name="zoneOriginLat" value="<%= zoneOrigin.lat != null ? zoneOrigin.lat : -33.456 %>" step="0.000001" class="zilo-input w-full mt-1 !py-2 text-sm" required>
+            <label class="text-xs text-gray-500">Modo de cálculo</label>
+            <select name="zoneMode" class="zilo-input w-full mt-1 !py-2 text-sm">
+              <option value="commune" <%= zoneMode !== 'bands' && zoneMode !== 'per_km' ? 'selected' : '' %>>Por comuna (recomendado)</option>
+              <option value="bands" <%= zoneMode === 'bands' ? 'selected' : '' %>>Tramos por km (legado)</option>
+              <option value="per_km" <%= zoneMode === 'per_km' ? 'selected' : '' %>>Por km (legado)</option>
+            </select>
           </div>
           <div>
-            <label class="text-xs text-gray-500">Longitud hub</label>
-            <input type="number" name="zoneOriginLng" value="<%= zoneOrigin.lng != null ? zoneOrigin.lng : -70.598 %>" step="0.000001" class="zilo-input w-full mt-1 !py-2 text-sm" required>
+            <label class="text-xs text-gray-500">% si comuna no está en tabla</label>
+            <input type="number" name="zoneDefaultCommunePercent" value="<%= zoneCfg.defaultCommunePercent != null ? zoneCfg.defaultCommunePercent : 15 %>" min="0" max="100" step="0.5" class="zilo-input w-full mt-1 !py-2 text-sm" required>
           </div>
           <div>
             <label class="text-xs text-gray-500">Tope total recargo zona %</label>
             <input type="number" name="zoneMaxTotalPercent" value="<%= zoneCfg.maxTotalPercent != null ? zoneCfg.maxTotalPercent : 35 %>" min="0" max="100" step="0.5" class="zilo-input w-full mt-1 !py-2 text-sm" required>
           </div>
         </div>
+        <input type="hidden" name="zoneOriginLat" value="<%= zoneOrigin.lat != null ? zoneOrigin.lat : -33.456 %>">
+        <input type="hidden" name="zoneOriginLng" value="<%= zoneOrigin.lng != null ? zoneOrigin.lng : -70.598 %>">
         <input type="hidden" name="zoneOriginRegionCode" value="<%= zoneOrigin.regionCode || 'region-metropolitana' %>">
         <input type="hidden" name="zoneOriginCommuneCode" value="<%= zoneOrigin.communeCode || 'nunoa' %>">
 
         <div class="mb-4 p-3 rounded-xl bg-gray-50 border border-gray-200">
-          <p class="text-xs font-semibold text-gray-700 mb-2">Distancia (km vía carretera ≈ línea recta × factor)</p>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="text-xs font-semibold text-gray-700">Tabla de comunas y recargo %</p>
+            <button type="button" id="btnAddZoneCommune" class="text-xs font-semibold text-zilo-accent hover:underline">+ Agregar comuna</button>
+          </div>
+          <p class="text-[10px] text-gray-500 mb-3">Código slug (ej. <code>providencia</code>, <code>las-condes</code>). Ñuñoa = 0%.</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm" id="zoneCommuneTable">
+              <thead>
+                <tr class="text-[10px] uppercase tracking-wide text-gray-500 text-left">
+                  <th class="pb-2 pr-2 font-semibold">Código</th>
+                  <th class="pb-2 pr-2 font-semibold">Comuna</th>
+                  <th class="pb-2 pr-2 font-semibold w-28">Recargo %</th>
+                  <th class="pb-2 w-10"></th>
+                </tr>
+              </thead>
+              <tbody id="zoneCommuneRows">
+                <% zoneCommunes.forEach(function(c) { %>
+                  <tr class="zone-commune-row border-t border-gray-200">
+                    <td class="py-1.5 pr-2">
+                      <input type="text" name="zoneCommuneCode" value="<%= c.code %>" class="zilo-input !py-1.5 text-sm w-full" placeholder="nunoa" required>
+                    </td>
+                    <td class="py-1.5 pr-2">
+                      <input type="text" name="zoneCommuneName" value="<%= c.name %>" class="zilo-input !py-1.5 text-sm w-full" placeholder="Ñuñoa" required>
+                    </td>
+                    <td class="py-1.5 pr-2">
+                      <input type="number" name="zoneCommunePercent" value="<%= c.percent %>" min="0" max="100" step="0.5" class="zilo-input !py-1.5 text-sm w-full" required>
+                    </td>
+                    <td class="py-1.5">
+                      <button type="button" class="zone-commune-remove text-red-600 text-xs font-semibold px-1" title="Quitar">✕</button>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <details class="mb-4 p-3 rounded-xl bg-gray-50 border border-gray-200">
+          <summary class="text-xs font-semibold text-gray-700 cursor-pointer">Avanzado: distancia por km (legado)</summary>
+          <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
             <div>
-              <label class="text-[10px] text-gray-500">Modo</label>
+              <label class="text-[10px] text-gray-500">Modo distancia</label>
               <select name="zoneDistanceMode" class="zilo-input w-full mt-0.5 !py-2 text-sm">
                 <option value="bands" <%= zoneDist.mode !== 'per_km' ? 'selected' : '' %>>Tramos (km)</option>
                 <option value="per_km" <%= zoneDist.mode === 'per_km' ? 'selected' : '' %>>Por km</option>
@@ -298,16 +363,15 @@
               <input type="number" name="zoneRoadFactor" value="<%= zoneDist.roadFactor != null ? zoneDist.roadFactor : 1.2 %>" min="1" max="2" step="0.05" class="zilo-input w-full mt-0.5 !py-2 text-sm">
             </div>
             <div>
-              <label class="text-[10px] text-gray-500">Km gratis (modo por km)</label>
+              <label class="text-[10px] text-gray-500">Km gratis</label>
               <input type="number" name="zoneFreeKm" value="<%= zoneDist.freeKm != null ? zoneDist.freeKm : 3 %>" min="0" step="0.5" class="zilo-input w-full mt-0.5 !py-2 text-sm">
             </div>
             <div>
-              <label class="text-[10px] text-gray-500">% / km (modo por km)</label>
+              <label class="text-[10px] text-gray-500">% / km</label>
               <input type="number" name="zonePercentPerKm" value="<%= zoneDist.percentPerKm != null ? zoneDist.percentPerKm : 1.25 %>" min="0" step="0.1" class="zilo-input w-full mt-0.5 !py-2 text-sm">
             </div>
           </div>
           <input type="hidden" name="zoneMaxDistancePercent" value="<%= zoneDist.maxDistancePercent != null ? zoneDist.maxDistancePercent : 22 %>">
-          <p class="text-[10px] text-gray-500 mb-2">Tramos: hasta X km desde <%= zoneOrigin.label || 'Ñuñoa' %> → recargo %</p>
           <div class="space-y-2">
             <% zoneBands.forEach(function(b) { %>
               <div class="grid grid-cols-2 gap-2 max-w-md">
@@ -316,13 +380,13 @@
               </div>
             <% }); %>
           </div>
-        </div>
+        </details>
 
         <div class="p-3 rounded-xl bg-gray-50 border border-gray-200">
           <div class="flex items-center justify-between gap-2 mb-2">
-            <p class="text-xs font-semibold text-gray-700">Disponibilidad de técnicos</p>
+            <p class="text-xs font-semibold text-gray-700">Disponibilidad de técnicos (opcional, se suma al %)</p>
             <label class="flex items-center gap-2 text-xs font-medium cursor-pointer">
-              <input type="checkbox" name="zoneSupplyEnabled" <%= zoneSupply.enabled !== false ? 'checked' : '' %> class="rounded accent-zilo-accent">
+              <input type="checkbox" name="zoneSupplyEnabled" <%= zoneSupply.enabled === true ? 'checked' : '' %> class="rounded accent-zilo-accent">
               Usar oferta local
             </label>
           </div>
@@ -330,7 +394,7 @@
             <label class="text-[10px] text-gray-500">Radio para contar técnicos listos (km)</label>
             <input type="number" name="zoneSupplyRadiusKm" value="<%= zoneSupply.radiusKm != null ? zoneSupply.radiusKm : 14 %>" min="1" max="80" step="1" class="zilo-input w-full mt-0.5 !py-2 text-sm">
           </div>
-          <p class="text-[10px] text-gray-500 mb-2">Si hay al menos N técnicos operativos (expediente OK) de socios con base dentro del radio → recargo %</p>
+          <p class="text-[10px] text-gray-500 mb-2">Desactivado por defecto. Si lo activas, se suma al % de la comuna.</p>
           <div class="space-y-2">
             <% zoneSupplyTiers.forEach(function(t) { %>
               <div class="grid grid-cols-2 gap-2 max-w-md">
@@ -341,6 +405,30 @@
           </div>
         </div>
       </section>
+      <script>
+        (function () {
+          var tbody = document.getElementById('zoneCommuneRows');
+          var addBtn = document.getElementById('btnAddZoneCommune');
+          if (!tbody || !addBtn) return;
+          function bindRemove(btn) {
+            btn.addEventListener('click', function () {
+              var row = btn.closest('tr');
+              if (row && tbody.querySelectorAll('tr').length > 1) row.remove();
+            });
+          }
+          tbody.querySelectorAll('.zone-commune-remove').forEach(bindRemove);
+          addBtn.addEventListener('click', function () {
+            var tr = document.createElement('tr');
+            tr.className = 'zone-commune-row border-t border-gray-200';
+            tr.innerHTML = '<td class="py-1.5 pr-2"><input type="text" name="zoneCommuneCode" value="" class="zilo-input !py-1.5 text-sm w-full" placeholder="macul" required></td>'
+              + '<td class="py-1.5 pr-2"><input type="text" name="zoneCommuneName" value="" class="zilo-input !py-1.5 text-sm w-full" placeholder="Macul" required></td>'
+              + '<td class="py-1.5 pr-2"><input type="number" name="zoneCommunePercent" value="10" min="0" max="100" step="0.5" class="zilo-input !py-1.5 text-sm w-full" required></td>'
+              + '<td class="py-1.5"><button type="button" class="zone-commune-remove text-red-600 text-xs font-semibold px-1" title="Quitar">✕</button></td>';
+            tbody.appendChild(tr);
+            bindRemove(tr.querySelector('.zone-commune-remove'));
+          });
+        })();
+      </script>
 
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
         <div class="flex justify-between items-center mb-4">
@@ -728,6 +816,7 @@
 (function () {
   const base = '<%= typeof adminBase !== "undefined" ? adminBase : "/admin" %>';
   const line = document.getElementById('mpCredProfileLine');
+  const brandsLine = document.getElementById('mpCardBrandsLine');
   async function refreshMpProfile() {
     if (!line) return;
     try {
@@ -741,6 +830,16 @@
       const phase = data.operationalPhase?.phase === 'productivo' ? 'producción' : 'prueba';
       line.textContent = 'Activo: credenciales de ' + phase + '. '
         + (mp.publicKeyConfigured && mp.accessTokenConfigured ? 'Par configurado en servidor.' : 'Faltan variables en Hostinger (' + (mp.publicKeyEnv || '') + ', ' + (mp.accessTokenEnv || '') + ').');
+      if (brandsLine) {
+        if (!data.mpCardMethodsOk) {
+          brandsLine.textContent = 'Marcas tarjeta: no se pudo consultar /v1/payment_methods.';
+        } else {
+          const b = data.mpCardBrands || {};
+          const flag = (on) => (on ? 'OK' : 'NO');
+          brandsLine.innerHTML = 'Marcas activas en tu cuenta MP: Visa <strong>' + flag(b.visa) + '</strong> · Mastercard <strong>' + flag(b.master) + '</strong> · Amex <strong>' + flag(b.amex) + '</strong>'
+            + (b.visa ? '' : ' — <span class="text-amber-700">Sin Visa el Brick no la acepta; actívala en Mercado Pago → Medios de pago.</span>');
+        }
+      }
     } catch (_) {
       line.textContent = 'Error al cargar perfil MP.';
     }

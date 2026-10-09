@@ -77,7 +77,7 @@
         await loadScript('https://sdk.mercadopago.com/js/v2');
       }
       if (!window.FandezMpBrick) {
-        await loadScript('/js/checkout-mp-brick.js?v=20261009-visa3');
+        await loadScript('/js/checkout-mp-brick.js?v=20261009-visa4');
       }
     })().catch((err) => {
       scriptsPromise = null;
@@ -132,16 +132,6 @@
       }
       if (mpEmbed && mpPublicKey) await ensureMpScripts();
     } catch (_) { /* noop */ }
-  }
-
-  function chileCardIdsFromConfig() {
-    // Siempre pedir Visa (crédito/débito/prepago). No filtrar por API:
-    // si la cuenta no la tiene, el Brick falla y el aviso de brick-config lo explica.
-    return {
-      creditCardIds: ['visa', 'master', 'amex'],
-      debitCardIds: ['debvisa', 'debmaster'],
-      prepaidCardIds: ['visa', 'master']
-    };
   }
 
   function getBillingPayload() {
@@ -260,17 +250,15 @@
     }
 
     try {
-      const chileIds = chileCardIdsFromConfig();
       const brickCtx = {
         embed: true,
         publicKey: mpPublicKey,
         amount: Math.round(Number(amount) || 0),
-        // Card Payment Brick + /v1/payments: no atar a preferenceId (puede filtrar medios).
+        // 1 cuota en el Brick (evita «Cuotas sin interés» que oculta Visa).
         preferenceId: '',
-        maxInstallments: parseInt(page.dataset.maxInstallments, 10) || 3,
+        maxInstallments: 1,
         paymentMethod: 'card',
         cardGateway: 'mercadopago',
-        ...chileIds,
         containerId: 'inlineMpCardPaymentBrick',
         sectionId: 'inlineMpEmbedSection',
         payerEmail: billing.invoiceEmail,

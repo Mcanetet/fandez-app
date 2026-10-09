@@ -1,6 +1,9 @@
 /**
  * Mercado Pago Payment Brick (solo tarjetas) — checkout embebido en Fandez.
- * Usa Payment Brick (no Card Payment Brick) para aceptar prepaid_card (Visa prepago CL, MP 2025).
+ *
+ * Importante (Chile): con maxInstallments > 1 el Brick entra en «Cuotas sin interés»
+ * y solo muestra marcas con convenio (a menudo Master/Amex). Visa queda fuera.
+ * Por eso el embed fuerza 1 cuota; el tope de cuotas del admin aplica en Checkout Pro.
  */
 (function () {
   /** @type {Record<string, { controller: object, amount: number }>} */
@@ -90,7 +93,6 @@
     return true;
   }
 
-  /** Payment Brick entrega { selectedPaymentMethod, formData }; Card Brick entregaba formData plano. */
   function unwrapSubmitPayload(payload) {
     if (!payload || typeof payload !== 'object') return payload;
     if (payload.formData && typeof payload.formData === 'object') {
@@ -132,29 +134,16 @@
     const mp = new MercadoPago(ctx.publicKey, { locale: 'es-CL' });
     const bricksBuilder = mp.bricks();
 
-    // Sin preferenceId: evita filtrar Visa. Solo tarjetas (crédito/débito/prepago).
     const initialization = {
       amount,
       payer: payerEmail ? { email: payerEmail } : undefined
     };
-
-    // Chile: IDs explícitos (visa/debvisa) para forzar marca Visa en el Brick.
-    const creditIds = Array.isArray(ctx.creditCardIds) && ctx.creditCardIds.length
-      ? ctx.creditCardIds
-      : ['visa', 'master', 'amex'];
-    const debitIds = Array.isArray(ctx.debitCardIds) && ctx.debitCardIds.length
-      ? ctx.debitCardIds
-      : ['debvisa', 'debmaster'];
-    const prepaidIds = Array.isArray(ctx.prepaidCardIds) && ctx.prepaidCardIds.length
-      ? ctx.prepaidCardIds
-      : ['visa', 'master'];
 
     mountingById[containerId] = bricksBuilder
       .create('payment', containerId, {
         initialization,
         customization: {
           visual: {
-            // Oculta la fila de logos incompleta de MP; Fandez muestra Visa/MC/Amex arriba.
             hideFormTitle: true,
             style: FANDEZ_MP_VISUAL,
             texts: {
@@ -162,11 +151,12 @@
             }
           },
           paymentMethods: {
-            // MP mar-2025: prepaidCard explícito + IDs Chile (visa, debvisa).
-            creditCard: creditIds,
-            debitCard: debitIds,
-            prepaidCard: prepaidIds,
-            maxInstallments: ctx.maxInstallments || 3,
+            // all = no filtrar por convenio de cuotas / IDs incompletos
+            creditCard: 'all',
+            debitCard: 'all',
+            prepaidCard: 'all',
+            // 1 cuota: evita UI «Cuotas sin interés» que oculta Visa sin convenio
+            maxInstallments: 1,
             minInstallments: 1
           }
         },

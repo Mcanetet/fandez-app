@@ -1144,15 +1144,22 @@ router.get('/openai-usage', requireRole('admin'), requireAdminPermission('openai
   }
 });
 
-router.get('/modo', requireRole('admin'), requireAdminPermission('seguridad.view', 'equipo.manage'), (req, res) => {
+router.get('/modo', requireRole('admin'), requireAdminPermission('seguridad.view', 'equipo.manage'), async (req, res) => {
   const mp = require('../lib/mercadopago');
   const operationalPhase = require('../lib/operationalPhase');
+  let cardMethods = { ok: false, brands: {}, methods: [] };
+  try {
+    cardMethods = await mp.listCardPaymentMethods();
+  } catch (_) { /* noop */ }
   res.json({
     success: true,
     ...getPublicStatus(),
     operationalPhase: operationalPhase.getPublicStatus(),
     mercadopago: mp.getCredentialAdminStatus(),
-    suggestedAdminPath: require('../lib/appMode').suggestAdminPath()
+    suggestedAdminPath: require('../lib/appMode').suggestAdminPath(),
+    mpCardBrands: cardMethods.brands || {},
+    mpCardMethodIds: (cardMethods.methods || []).map((m) => m.id),
+    mpCardMethodsOk: Boolean(cardMethods.ok)
   });
 });
 
@@ -2402,6 +2409,26 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
       nocturnoPercent: parseInt(body.scheduleNocturnoPercent, 10)
     },
     zonePricing: (() => {
+      const communeCodes = Array.isArray(body.zoneCommuneCode)
+        ? body.zoneCommuneCode
+        : (body.zoneCommuneCode ? [body.zoneCommuneCode] : []);
+      const communeNames = Array.isArray(body.zoneCommuneName)
+        ? body.zoneCommuneName
+        : (body.zoneCommuneName ? [body.zoneCommuneName] : []);
+      const communePct = Array.isArray(body.zoneCommunePercent)
+        ? body.zoneCommunePercent
+        : (body.zoneCommunePercent ? [body.zoneCommunePercent] : []);
+      const communes = [];
+      for (let i = 0; i < Math.max(communeCodes.length, communeNames.length); i++) {
+        const name = String(communeNames[i] || '').trim();
+        const code = String(communeCodes[i] || '').trim();
+        if (!name && !code) continue;
+        communes.push({
+          code: code || name,
+          name: name || code,
+          percent: parseFloat(communePct[i]) || 0
+        });
+      }
       const bandMax = Array.isArray(body.zoneBandMaxKm)
         ? body.zoneBandMaxKm
         : (body.zoneBandMaxKm ? [body.zoneBandMaxKm] : []);
@@ -2430,8 +2457,12 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
           percent: parseFloat(supPct[i]) || 0
         });
       }
+      const zoneMode = body.zoneMode === 'bands' || body.zoneMode === 'per_km'
+        ? body.zoneMode
+        : 'commune';
       return {
         enabled: body.zoneEnabled === 'on',
+        mode: zoneMode,
         origin: {
           label: body.zoneOriginLabel || 'Ñuñoa',
           lat: parseFloat(body.zoneOriginLat),
@@ -2439,6 +2470,8 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
           regionCode: body.zoneOriginRegionCode || 'region-metropolitana',
           communeCode: body.zoneOriginCommuneCode || 'nunoa'
         },
+        communes,
+        defaultCommunePercent: parseFloat(body.zoneDefaultCommunePercent),
         distance: {
           mode: body.zoneDistanceMode === 'per_km' ? 'per_km' : 'bands',
           freeKm: parseFloat(body.zoneFreeKm),
