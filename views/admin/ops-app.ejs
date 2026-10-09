@@ -76,8 +76,32 @@
       padding: 10px;
       text-align: center;
     }
+    button.stat {
+      width: 100%;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    button.stat:hover { border-color: #3f3f46; }
+    button.stat.active {
+      border-color: var(--amber);
+      background: #1a120c;
+      box-shadow: inset 0 0 0 1px rgba(196, 92, 20, 0.35);
+    }
+    button.stat:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 2px;
+    }
     .stat strong { display: block; font-size: 18px; color: var(--amber); }
-    .stat span { font-size: 10px; color: var(--muted); }
+    button.stat.active strong { color: #fbbf8a; }
+    .stat span { font-size: 10px; color: var(--muted); display: block; }
+    .filter-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin: -6px 0 12px;
+      text-align: center;
+    }
     .card {
       background: var(--card);
       border: 1px solid var(--line);
@@ -149,11 +173,18 @@
       O abre <a href="<%= typeof adminBase !== 'undefined' ? adminBase : '' %>/instalar-admin" style="color:#fbbf8a">la guía de instalación</a>.
     </div>
 
-    <div class="stats">
-      <div class="stat"><strong id="statOpen">—</strong><span>Abiertas</span></div>
-      <div class="stat"><strong id="statCrit">—</strong><span>Críticas</span></div>
-      <div class="stat"><strong id="statToday">—</strong><span>Hoy</span></div>
+    <div class="stats" role="tablist" aria-label="Filtrar alertas">
+      <button type="button" class="stat active" data-filter="open" id="statOpenBtn" role="tab" aria-selected="true" aria-controls="list">
+        <strong id="statOpen">—</strong><span>Abiertas</span>
+      </button>
+      <button type="button" class="stat" data-filter="critical" id="statCritBtn" role="tab" aria-selected="false" aria-controls="list">
+        <strong id="statCrit">—</strong><span>Críticas</span>
+      </button>
+      <button type="button" class="stat" data-filter="today" id="statTodayBtn" role="tab" aria-selected="false" aria-controls="list">
+        <strong id="statToday">—</strong><span>Hoy</span>
+      </button>
     </div>
+    <p class="filter-hint" id="filterHint">Mostrando alertas abiertas</p>
 
     <div id="list"></div>
     <div class="empty" id="empty" hidden>Sin alertas abiertas. Sofía / Clara te avisarán aquí y por correo.</div>

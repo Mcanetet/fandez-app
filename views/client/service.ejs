@@ -24,7 +24,13 @@
   data-resume-id="<%= typeof checkoutDraft !== 'undefined' && checkoutDraft ? checkoutDraft.id : '' %>"
   data-whatsapp="<%= company.whatsapp %>"
   data-brand-optional="<%= brandOptional ? '1' : '0' %>"
-  data-user-name="<%= user && user.name ? user.name : 'Cliente' %>">
+  data-user-name="<%= user && user.name ? user.name : 'Cliente' %>"
+  data-address-lat="<%= typeof profile !== 'undefined' && profile.addressLat != null ? profile.addressLat : '' %>"
+  data-address-lng="<%= typeof profile !== 'undefined' && profile.addressLng != null ? profile.addressLng : '' %>"
+  data-mp-embed="<%= typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout ? '1' : '0' %>"
+  data-mp-public-key="<%= typeof mpPublicKey !== 'undefined' ? mpPublicKey : '' %>"
+  data-mp-token-configured="<%= typeof mpTokenConfigured !== 'undefined' && mpTokenConfigured ? '1' : '0' %>"
+  data-max-installments="<%= typeof maxCardInstallments !== 'undefined' ? maxCardInstallments : 3 %>">
 
   <%- include('../partials/back-header', {
     backUrl: '/cliente',
@@ -53,7 +59,7 @@
       <p class="text-sm font-semibold text-zilo-ink mb-1"><%= t('client.service.resume_title') %></p>
       <p class="text-xs text-zilo-muted leading-relaxed mb-3"><%= t('client.service.resume_body') %></p>
       <div class="flex gap-2">
-        <a href="/pagos/checkout?ref=<%= checkoutDraft.id %>" class="zilo-btn-primary !py-2.5 !text-sm flex-1 text-center"><%= t('client.service.resume_pay') %></a>
+        <button type="button" id="btnResumePay" data-request-id="<%= checkoutDraft.id %>" class="zilo-btn-primary !py-2.5 !text-sm flex-1 text-center"><%= t('client.service.resume_pay') %></button>
         <button type="button" id="btnEditDraft" class="zilo-btn-ghost !py-2.5 !text-sm shrink-0"><%= t('client.service.resume_edit') %></button>
       </div>
     </div>
@@ -80,6 +86,10 @@
       <div id="urgencyAdjustmentRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
         <span class="text-zilo-muted" id="urgencyAdjustmentLabel"><%= t('client.service.urgency_surcharge') %></span>
         <strong id="displayUrgencyAdj" class="text-orange-600">—</strong>
+      </div>
+      <div id="zoneAdjustmentRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
+        <span class="text-zilo-muted" id="zoneAdjustmentLabel"><%= t('client.service.zone_surcharge') %></span>
+        <strong id="displayZoneAdj" class="text-orange-600">—</strong>
       </div>
       <div class="flex justify-between py-3 border-b border-zilo-border hidden" id="servicePriceRow">
         <span class="text-zilo-muted text-sm"><%= t('client.service.service_est') %></span>
@@ -108,10 +118,11 @@
 
     <% if (urgencyTiers && urgencyTiers.length) { %>
     <%
+      const primaryTierIds = { today: 1, immediate: 1, critical: 1 };
       const primaryUrgency = isProjectPath
         ? []
-        : urgencyTiers.filter(function(tier) { return tier.id === 'today' || tier.id === 'immediate'; });
-      const scheduleUrgency = urgencyTiers.filter(function(tier) { return tier.id !== 'today' && tier.id !== 'immediate'; });
+        : urgencyTiers.filter(function(tier) { return primaryTierIds[tier.id]; });
+      const scheduleUrgency = urgencyTiers.filter(function(tier) { return !primaryTierIds[tier.id]; });
       const projectUrgency = isProjectPath
         ? (scheduleUrgency.length ? scheduleUrgency : urgencyTiers.filter(function(tier) { return tier.id !== 'immediate'; }))
         : [];
@@ -144,19 +155,20 @@
           </label>
         <% }); } else {
           (primaryUrgency.length ? primaryUrgency : urgencyTiers).forEach(function(tier) {
-          const isDefault = hasToday ? tier.id === 'today' : (tier.id === 'immediate' || tier === urgencyTiers[0]);
-          const isUpgrade = tier.id === 'immediate';
+          const isFastTier = tier.id === 'immediate' || tier.id === 'critical';
+          const isDefault = hasToday ? tier.id === 'today' : (isFastTier || tier === urgencyTiers[0]);
+          const isUpgrade = isFastTier;
           const badge = urgencyBadge(tier);
         %>
           <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer urgency-option <%= isDefault ? 'border-zilo-accent bg-zilo-accent/5' : (isUpgrade ? 'border-amber-300/70 bg-amber-50/40' : 'border-zilo-border') %>" data-tier="<%= tier.id %>">
             <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="mt-1 accent-zilo-accent" <%= isDefault ? 'checked' : '' %>>
             <div class="flex-1 min-w-0">
               <div class="flex justify-between items-start gap-2">
-                <strong class="text-sm"><%= tier.id === 'today' ? t('client.service.urgency_today') : (tier.id === 'immediate' ? t('client.service.urgency_now') : tier.label) %></strong>
+                <strong class="text-sm"><%= tier.id === 'today' ? t('client.service.urgency_today') : (isFastTier ? t('client.service.urgency_now') : tier.label) %></strong>
                 <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
               </div>
               <% if (isUpgrade) { %>
-                <p class="text-[11px] text-amber-800/80 mt-0.5"><%= t('client.service.urgency_now_hint') %></p>
+                <p class="text-[11px] text-amber-800/80 mt-0.5"><%= tier.description || t('client.service.urgency_now_sla') %></p>
               <% } else if (tier.description) { %>
                 <p class="text-[11px] text-zilo-muted mt-0.5"><%= tier.description %></p>
               <% } %>
@@ -213,14 +225,8 @@
     </section>
     <% } %>
 
-    <section id="requestForm" class="space-y-4 zilo-page-enter-delay-2" data-checkout-wizard="1">
-      <nav id="checkoutSubSteps" class="flex gap-1 p-1 rounded-xl bg-zilo-elevated border border-zilo-border" aria-label="Pasos del pedido">
-        <button type="button" class="co-step-tab flex-1 py-2 rounded-lg text-[10px] font-semibold bg-white text-zilo-accent shadow-sm" data-co-goto="1"><%= t('client.service.checkout_step_what') %></button>
-        <button type="button" class="co-step-tab flex-1 py-2 rounded-lg text-[10px] font-semibold text-zilo-muted" data-co-goto="2"><%= t('client.service.checkout_step_where') %></button>
-        <button type="button" class="co-step-tab flex-1 py-2 rounded-lg text-[10px] font-semibold text-zilo-muted" data-co-goto="3"><%= t('client.service.checkout_step_review') %></button>
-      </nav>
-
-      <div data-co-panel="1" class="space-y-4">
+    <section id="requestForm" class="space-y-4 zilo-page-enter-delay-2">
+      <div id="serviceOrderSections" class="space-y-4">
       <% if (mod('client_regalo')) { %>
       <div class="p-4 rounded-2xl zilo-gift-card">
         <label class="flex items-center gap-3 cursor-pointer">
@@ -274,7 +280,7 @@
               data-price-label="<%= priceLabel %>">
               <input type="radio" name="activityPick" value="<%= act.id %>" class="sr-only activity-card-radio" data-activity-radio>
               <span class="activity-card__radio mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 border-zilo-border flex items-center justify-center" aria-hidden="true">
-                <span class="activity-card__dot w-2.5 h-2.5 rounded-full bg-zilo-accent scale-0 transition"></span>
+                <span class="activity-card__dot w-2.5 h-2.5 rounded-full bg-zilo-accent"></span>
               </span>
               <span class="min-w-0 flex-1">
                 <span class="flex items-start justify-between gap-3">
@@ -299,7 +305,7 @@
             data-price-label="<%= isCleaning ? 'desde $1.500 / m²' : 'desde $100.000' %>">
             <input type="radio" name="activityPick" value="otro" class="sr-only activity-card-radio" data-activity-radio>
             <span class="activity-card__radio mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 border-zilo-border flex items-center justify-center" aria-hidden="true">
-              <span class="activity-card__dot w-2.5 h-2.5 rounded-full bg-zilo-accent scale-0 transition"></span>
+              <span class="activity-card__dot w-2.5 h-2.5 rounded-full bg-zilo-accent"></span>
             </span>
             <span class="min-w-0 flex-1">
               <span class="flex items-start justify-between gap-3">
@@ -404,44 +410,56 @@
         </label>
       </div>
 
-      <button type="button" class="zilo-btn-primary w-full" data-co-next="2"><%= t('client.service.checkout_next') %></button>
-      </div>
-
-      <div data-co-panel="2" class="space-y-4 hidden">
-      <div>
-        <label for="address" class="zilo-label block mb-1.5" id="addressLabel"><%= t('client.service.address') %></label>
-        <input type="text" id="address" placeholder="<%= t('client.service.address_ph') %>"
-          value="<%= typeof profile !== 'undefined' ? profile.address : '' %>" class="zilo-input">
-        <input type="hidden" id="lat"><input type="hidden" id="lng">
-      </div>
-
-      <div>
-        <label class="zilo-label block mb-1.5"><%= t('client.service.location') %></label>
-        <div id="addressMap" class="w-full h-44 rounded-2xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
-        <p id="mapStatus" class="text-[10px] text-zilo-muted mt-1.5"><%= t('client.service.map_hint') %></p>
-        <div id="coverageAlert" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs leading-relaxed" role="alert"></div>
-      </div>
-
-      <div class="flex gap-2">
-        <button type="button" class="flex-1 py-3 rounded-xl zilo-btn-ghost" data-co-next="1"><%= t('client.service.checkout_back') %></button>
-        <button type="button" class="flex-1 zilo-btn-primary" data-co-next="3"><%= t('client.service.checkout_next') %></button>
-      </div>
-      </div>
-
-      <div data-co-panel="3" class="space-y-4 hidden">
-        <div class="p-4 rounded-2xl zilo-card-premium border border-zilo-accent/15 space-y-2" id="checkoutReviewCard">
-          <p class="zilo-label mb-1"><%= t('client.service.checkout_step_review') %></p>
-          <p class="text-sm"><strong id="coReviewService"><%= service.name %></strong></p>
-          <p class="text-xs text-zilo-muted" id="coReviewActivity">—</p>
-          <p class="text-xs text-zilo-muted" id="coReviewAddress">—</p>
-          <p class="text-sm font-semibold text-zilo-accent" id="coReviewTotal">—</p>
+      <div class="pt-2 border-t border-zilo-border space-y-3" id="serviceAddressBlock">
+        <div>
+          <label for="address" class="zilo-label block mb-1.5" id="addressLabel"><%= t('client.service.address') %></label>
+          <input type="text" id="address" placeholder="<%= t('client.service.address_ph') %>"
+            value="<%= typeof profile !== 'undefined' ? profile.address : '' %>" class="zilo-input" autocomplete="street-address">
+          <input type="hidden" id="lat"><input type="hidden" id="lng">
         </div>
-        <div class="flex gap-2">
-          <button type="button" class="flex-1 py-3 rounded-xl zilo-btn-ghost" data-co-next="2"><%= t('client.service.checkout_back') %></button>
-          <button type="button" id="btnRequest" class="flex-1 zilo-btn-primary"><%= t('client.service.continue') %></button>
+        <div>
+          <label class="zilo-label block mb-1.5"><%= t('client.service.location') %></label>
+          <div id="addressMap" class="service-address-map w-full rounded-2xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
+          <p id="mapStatus" class="text-[10px] text-zilo-muted mt-1.5"><%= t('client.service.map_hint') %></p>
+          <div id="coverageAlert" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs leading-relaxed" role="alert"></div>
         </div>
-        <p class="text-center text-[10px] text-zilo-muted"><%= t('client.service.secure_pay') %></p>
       </div>
+
+      <button type="button" id="btnRequest" class="zilo-btn-primary w-full"><%= t('client.service.continue_pay') %></button>
+      <p class="text-center text-[10px] text-zilo-muted"><%= t('client.service.secure_pay') %></p>
+      </div>
+    </section>
+
+    <% const billInline = (typeof profile !== 'undefined' && profile.billing) ? profile.billing : { type: 'natural', rut: '', legalName: profile.name, giro: '', fiscalAddress: profile.address || '', invoiceEmail: profile.email }; %>
+    <section id="inlineCheckout" class="hidden space-y-4 zilo-page-enter-delay-2" aria-label="<%= t('client.service.inline_pay_aria') %>">
+      <div class="checkout-pay-hero zilo-card-premium rounded-2xl p-5 border border-zilo-accent/20">
+        <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-muted"><%= t('checkout.pay_subtitle') %></p>
+        <p class="text-3xl font-bold text-zilo-accent tabular-nums mt-1" id="inlinePayTotal">—</p>
+        <p class="text-[10px] text-zilo-muted mt-1"><%= t('client.service.secure_pay') %></p>
+      </div>
+      <div class="zilo-card-premium rounded-2xl p-4 space-y-2">
+        <p class="zilo-label mb-1"><%= t('checkout.billing_title') %></p>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-xs <%= billInline.type !== 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
+            <input type="radio" name="billingType" value="natural" <%= billInline.type !== 'empresa' ? 'checked' : '' %> class="accent-zilo-accent">
+            <%= t('checkout.billing_natural') %>
+          </label>
+          <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-xs <%= billInline.type === 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
+            <input type="radio" name="billingType" value="empresa" <%= billInline.type === 'empresa' ? 'checked' : '' %> class="accent-zilo-accent">
+            <%= t('checkout.billing_company') %>
+          </label>
+        </div>
+        <input type="text" id="inlineBillRut" value="<%= billInline.rut || '' %>" placeholder="RUT" class="zilo-input !py-2 text-sm">
+        <input type="text" id="inlineBillLegalName" value="<%= billInline.legalName || profile.name %>" placeholder="Nombre o razón social" class="zilo-input !py-2 text-sm">
+        <input type="text" id="inlineBillGiro" value="<%= billInline.giro || '' %>" placeholder="Giro (empresa)" class="zilo-input !py-2 text-sm <%= billInline.type === 'empresa' ? '' : 'hidden' %>">
+        <input type="text" id="inlineBillFiscalAddress" value="<%= billInline.fiscalAddress || profile.address || '' %>" placeholder="Dirección fiscal" class="zilo-input !py-2 text-sm">
+        <input type="email" id="inlineBillInvoiceEmail" value="<%= billInline.invoiceEmail || profile.email %>" placeholder="Email facturación" class="zilo-input !py-2 text-sm">
+      </div>
+      <section id="mpEmbedSection" class="zilo-card-premium rounded-2xl p-4 checkout-mp-block">
+        <h2 class="zilo-label mb-3"><%= t('checkout.payment_title') %></h2>
+        <div id="mpCardPaymentBrick"></div>
+      </section>
+      <a href="#" id="inlineCheckoutFallback" class="block text-center text-xs text-zilo-accent font-medium"><%= t('client.service.checkout_full_link') %></a>
     </section>
 
     <div id="stickyOrderBar" class="sticky-order-bar" aria-hidden="true">
@@ -450,7 +468,7 @@
           <p class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= t('client.service.visit_est') %></p>
           <strong class="text-zilo-accent text-base" id="stickyTotal"><%= perM2 ? '—' : formatCLP(typeof displayFrom !== 'undefined' ? displayFrom : (service.fromPrice || pricing.servicePrice)) %></strong>
         </div>
-        <button type="button" id="btnRequestSticky" class="sticky-order-btn"><%= t('client.service.continue') %></button>
+        <button type="button" id="btnRequestSticky" class="sticky-order-btn"><%= t('client.service.continue_pay') %></button>
       </div>
     </div>
 
@@ -1036,7 +1054,7 @@
 </div>
 
 <%- include('../partials/call-overlay') %>
-<%- include('../partials/footer', { pageScript: '/js/client.js', extraScripts: ['/js/image-upload.js', '/js/job-chat.js', '/js/webrtc-call.js'] }) %>
+<%- include('../partials/footer', { pageScript: '/js/client.js', extraScripts: ['/js/image-upload.js', '/js/job-chat.js', '/js/webrtc-call.js', '/js/service-inline-pay.js'] }) %>
 <% if (typeof mod === 'function' && mod('client_aland')) { %>
 <script src="/js/aland-chat.js"></script>
 <% } %>

@@ -126,6 +126,9 @@
     if (id === 'ecosistema' && typeof window.__fandezLoadEcosystem === 'function') {
       window.__fandezLoadEcosystem();
     }
+    if (id === 'correos' && typeof window.__fandezRefreshMailPreview === 'function') {
+      window.__fandezRefreshMailPreview();
+    }
   }
 
   tabs.forEach(tab => {
@@ -4222,7 +4225,23 @@
         'production:productivo': 'Productivo 2.0 (MP credenciales de producción)'
       };
       const key = mode === 'production' ? `production:${phase}` : mode;
-      if (!confirm('¿Cambiar a ' + (labels[key] || key) + '?')) return;
+      let purgeOperational = false;
+      let confirmGoLive = '';
+      if (phase === 'productivo') {
+        if (!confirm(
+          'Productivo 2.0 borra TODAS las solicitudes, pagos pendientes e historial de servicios (Pasaporte Hogar, reclamos, chats Aland de pedidos). '
+          + 'Créditos, puntos y contadores de servicios vuelven a cero (no se conservan saldos demo). '
+          + 'Se mantienen clientes, socios, técnicos y admins inscritos. ¿Continuar?'
+        )) return;
+        confirmGoLive = prompt('Escribe PRODUCTIVO_CERO para confirmar el arranque en cero:');
+        if (confirmGoLive !== 'PRODUCTIVO_CERO') {
+          FandezNotify.show('Cancelado: no se cambió el modo.', 'info');
+          return;
+        }
+        purgeOperational = true;
+      } else if (!confirm('¿Cambiar a ' + (labels[key] || key) + '?')) {
+        return;
+      }
       try {
         const res = await adminFetch('/modo', {
           method: 'POST',
@@ -4231,14 +4250,28 @@
             Accept: 'application/json'
           },
           credentials: 'same-origin',
-          body: JSON.stringify({ mode, phase, productivo: phase === 'productivo' })
+          body: JSON.stringify({
+            mode,
+            phase,
+            productivo: phase === 'productivo',
+            purgeOperational,
+            confirmGoLive: purgeOperational ? confirmGoLive : undefined
+          })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.success) {
           FandezNotify.show(data.error || ('No se pudo cambiar el modo (' + res.status + ')'), 'error');
           return;
         }
-        FandezNotify.show('Modo: ' + data.label, 'success');
+        const reset = data.operationalPhase?.operationalReset;
+        if (reset?.requestsRemoved != null) {
+          FandezNotify.show(
+            'Productivo 2.0 · eliminadas ' + reset.requestsRemoved + ' solicitudes. Operación en cero.',
+            'success'
+          );
+        } else {
+          FandezNotify.show('Modo: ' + data.label, 'success');
+        }
         setTimeout(() => location.reload(), 700);
       } catch (err) {
         FandezNotify.show((err && err.message) || 'Error al cambiar modo', 'error');
@@ -4364,7 +4397,8 @@
   /* ——— Red operativa + comunicaciones ——— */
   (function initEcosystemPanel() {
     const panel = document.querySelector('[data-panel="ecosistema"]');
-    if (!panel) return;
+    const mailForm = document.getElementById('ecosystemMailForm');
+    if (!panel && !mailForm) return;
 
     const loadingEl = document.getElementById('ecosystemLoading');
     const contentEl = document.getElementById('ecosystemContent');
@@ -4374,7 +4408,6 @@
     const techTableEl = document.getElementById('ecosystemTechTable');
     const companySearch = document.getElementById('ecosystemCompanySearch');
     const companyFilter = document.getElementById('ecosystemCompanyFilter');
-    const mailForm = document.getElementById('ecosystemMailForm');
     const mailPreview = document.getElementById('ecosystemMailPreview');
     const mailStatus = document.getElementById('ecosystemMailStatus');
     const clientPicker = document.getElementById('ecosystemClientPicker');
@@ -4382,7 +4415,7 @@
     const clientSearchBtn = document.getElementById('ecosystemClientSearchBtn');
     const clientResults = document.getElementById('ecosystemClientResults');
     const clientSelected = document.getElementById('ecosystemClientSelected');
-    const canSend = panel.dataset.canSend === '1';
+    const canSend = document.getElementById('admin-correos-masivos')?.dataset.canSend === '1';
     const selectedClients = new Map();
     const movementSummaryEl = document.getElementById('ecosystemMovementSummary');
     const movementDaysEl = document.getElementById('ecosystemMovementDays');
@@ -4583,7 +4616,10 @@
       }
     }
 
+    window.__fandezRefreshMailPreview = refreshMailPreview;
+
     window.__fandezLoadEcosystem = async function loadEcosystem(forceReload) {
+      if (!panel) return;
       const days = Number(movementDaysEl?.value || 30);
       if (!forceReload && window.__ecosystemOverview && window.__ecosystemOverviewDays === days) {
         loadingEl?.classList.add('hidden');
@@ -4716,7 +4752,9 @@
     });
 
     renderSelectedClients();
-    if (dashboard.dataset.initialTab === 'ecosistema' || new URLSearchParams(window.location.search).get('tab') === 'ecosistema') {
+    refreshMailPreview();
+    const tabParam = new URLSearchParams(window.location.search).get('tab');
+    if (dashboard.dataset.initialTab === 'ecosistema' || tabParam === 'ecosistema') {
       window.__fandezLoadEcosystem();
     }
   })();

@@ -83,7 +83,18 @@ Tour guiado incluye el muro (`data-tour="work-wall"`).
 
 Cuenta demo socio: `pedro@fandez.cl` / `proveedor123`.
 
-## 6. Checklist día del soft launch
+## 6. Productivo 2.0 — arranque en cero (admin)
+
+Al pasar de **Demo 2.0** a **Productivo 2.0** (Seguridad → botón **Productivo 2.0**):
+
+1. Confirma en el diálogo y escribe **`PRODUCTIVO_CERO`**.
+2. La app **borra** solicitudes, pagos pendientes, Pasaporte Hogar, reclamos y notificaciones de pedidos de prueba.
+3. **Se conservan** clientes, socios, técnicos, admins, catálogo, precios y cobertura.
+4. Contadores operativos vuelven a **0** (servicios, **créditos Fandez**, **puntos** — no se conservan saldos de demo); reseñas de socios en perfil se limpian.
+
+Solo cambiar credenciales MP en **Precios** (demo ↔ producción) **no** ejecuta esta limpieza.
+
+## 7. Checklist día del soft launch
 
 - [ ] `/health?go=1` → `softLaunchReady: true`, `mode: production`
 - [ ] Pago de prueba real (monto bajo) → cliente ve tracking, socio ve muro
@@ -92,7 +103,7 @@ Cuenta demo socio: `pedro@fandez.cl` / `proveedor123`.
 - [ ] SMTP: OTP y comprobante llegan
 - [ ] Admin revisa **Ops** en inbox si hay pedidos pagados sin muro
 
-## 7. Qué no hacer aún
+## 8. Qué no hacer aún
 
 - Campañas masivas o cupones agresivos.
 - Ampliar fuera de Santiago sin revisar cobertura y tiempos.

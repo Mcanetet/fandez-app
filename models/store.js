@@ -539,33 +539,14 @@ async function createRequest({
   if (cleaningOpts) {
     quoteBase = applyCleaningSurcharge(quoteBase, cleaningOpts);
   }
-  const visitCalc = gardenIntakeJob || fvIntakeJob || landscape || isManualOther || cleaningJob
-    ? calculateVisitPricing(pricing, urgencyTier, {
-      horaSolicitud: resolvedLocalTime,
-      valorBase: quoteBase,
-      timeZone,
-      skipWorkFloor: gardenIntakeJob || fvIntakeJob || perM2 || landscape
-    })
-    : (quoteActivityForRequest(pricing, activityId, {
-      horaSolicitud: resolvedLocalTime,
-      tierId: urgencyTier,
-      timeZone,
-      squareMeters: parsedM2,
-      serviceId,
-      cleaningFactors: cleaningOpts
-    }) || calculateVisitPricing(pricing, urgencyTier, {
-      horaSolicitud: resolvedLocalTime,
-      valorBase: quoteBase,
-      timeZone,
-      skipWorkFloor: perM2
-    }));
-  if (!visitCalc) return Promise.reject(new Error('Opción de urgencia no válida'));
 
   let coords;
   let geoMeta = null;
   const geo = await geocodeAddress(fullAddress);
-  if (inputCoords?.lat && inputCoords?.lng) {
+  if (inputCoords?.lat != null && inputCoords?.lng != null) {
     coords = { lat: parseFloat(inputCoords.lat), lng: parseFloat(inputCoords.lng) };
+  } else if (Number.isFinite(parseFloat(client.addressLat)) && Number.isFinite(parseFloat(client.addressLng))) {
+    coords = { lat: parseFloat(client.addressLat), lng: parseFloat(client.addressLng) };
   } else {
     coords = { lat: geo.lat, lng: geo.lng, displayName: geo.displayName };
   }
@@ -579,6 +560,43 @@ async function createRequest({
   if (!coverage.covered) {
     return Promise.reject(new Error(formatCoverageMessage(coverage)));
   }
+
+  const { normalizeZonePricing } = require('../lib/zonePricing');
+  const zoneCfg = normalizeZonePricing(pricing.zonePricing);
+  const supplyCount = zoneCfg.supply.enabled
+    ? countReadyTechniciansNearJob(coords.lat, coords.lng, serviceId, zoneCfg.supply.radiusKm)
+    : null;
+  const zoneQuoteOpts = {
+    lat: coords.lat,
+    lng: coords.lng,
+    serviceId,
+    supplyCount
+  };
+
+  const visitCalc = gardenIntakeJob || fvIntakeJob || landscape || isManualOther || cleaningJob
+    ? calculateVisitPricing(pricing, urgencyTier, {
+      horaSolicitud: resolvedLocalTime,
+      valorBase: quoteBase,
+      timeZone,
+      skipWorkFloor: gardenIntakeJob || fvIntakeJob || perM2 || landscape,
+      ...zoneQuoteOpts
+    })
+    : (quoteActivityForRequest(pricing, activityId, {
+      horaSolicitud: resolvedLocalTime,
+      tierId: urgencyTier,
+      timeZone,
+      squareMeters: parsedM2,
+      serviceId,
+      cleaningFactors: cleaningOpts,
+      ...zoneQuoteOpts
+    }) || calculateVisitPricing(pricing, urgencyTier, {
+      horaSolicitud: resolvedLocalTime,
+      valorBase: quoteBase,
+      timeZone,
+      skipWorkFloor: perM2,
+      ...zoneQuoteOpts
+    }));
+  if (!visitCalc) return Promise.reject(new Error('Opción de urgencia no válida'));
 
   const isGift = Boolean(gift?.name);
   const beneficiaryName = isGift ? gift.name : client.name;
@@ -669,6 +687,8 @@ async function createRequest({
     tariffLocalTime: visitCalc.tariff?.minutesOfDay || null,
     tariffTimeZone: visitCalc.tariff?.timeZone || timeZone || null,
     tariffUrgenciaBand: visitCalc.tariff?.urgenciaBand || null,
+    zonePricing: visitCalc.zone || null,
+    zoneAdjustmentAmount: visitCalc.zone?.adjustmentAmount || 0,
     visitBasePrice: visitCalc.baseVisit,
     visitTotal: visitCalc.visitTotal,
     // El checkout inicial ya cobra el servicio dinámico completo.
@@ -790,17 +810,35 @@ function getCheckoutDraftForClient(clientId, serviceId, resumeId = null) {
 function updateUserProfile(userId, data) {
   const user = getUserById(userId);
   if (!user) return null;
+  const { normalizeRegisteredPerson, enrichPersonFields } = require('../lib/personName');
+  const bodyFirst = data.first_name || data.firstName;
+  const bodyLast = data.last_name || data.lastName;
+  if (bodyFirst !== undefined || bodyLast !== undefined) {
+    const person = normalizeRegisteredPerson({
+      firstName: bodyFirst != null ? bodyFirst : user.firstName,
+      lastName: bodyLast != null ? bodyLast : user.lastName,
+      name: user.name
+    });
+    user.firstName = person.firstName;
+    user.lastName = person.lastName;
+    user.name = person.name;
+    user.avatar = person.avatar;
+  } else if (data.name !== undefined && String(data.name).trim()) {
+    const person = normalizeRegisteredPerson({ name: String(data.name).trim() });
+    user.firstName = person.firstName;
+    user.lastName = person.lastName;
+    user.name = person.name;
+    user.avatar = person.avatar;
+  }
   const allowed = user.role === 'provider'
-    ? ['name', 'phone', 'bio', 'email', ...(user.clientEnabled !== false ? ['address'] : [])]
-    : ['name', 'phone', 'address'];
+    ? ['phone', 'bio', 'email', ...(user.clientEnabled !== false ? ['address'] : [])]
+    : ['phone', 'address'];
   allowed.forEach(key => {
     if (data[key] !== undefined && String(data[key]).trim()) {
       user[key] = String(data[key]).trim();
     }
   });
-  if (user.role === 'provider' && user.name) {
-    user.avatar = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  }
+  enrichPersonFields(user);
   repository.persist(() => repository.saveUser(user), `usuario ${user.id}`);
   return user;
 }
@@ -2677,7 +2715,14 @@ function getArrivalDisplay(requestOrTier, labelOverride = null, locale = 'es') {
   };
 }
 
-function previewVisitPrice(tierId, valorBase, { localTime, timeZone, skipWorkFloor } = {}) {
+function previewVisitPrice(tierId, valorBase, {
+  localTime,
+  timeZone,
+  skipWorkFloor,
+  lat,
+  lng,
+  serviceId
+} = {}) {
   const opts = {};
   if (valorBase != null && Number.isFinite(valorBase) && valorBase > 0) {
     opts.valorBase = valorBase;
@@ -2687,12 +2732,35 @@ function previewVisitPrice(tierId, valorBase, { localTime, timeZone, skipWorkFlo
   }
   if (timeZone) opts.timeZone = String(timeZone);
   if (skipWorkFloor) opts.skipWorkFloor = true;
+  const jobLat = parseFloat(lat);
+  const jobLng = parseFloat(lng);
+  if (Number.isFinite(jobLat) && Number.isFinite(jobLng)) {
+    opts.lat = jobLat;
+    opts.lng = jobLng;
+    if (serviceId) {
+      opts.serviceId = serviceId;
+      const pricing = getPricingConfig();
+      const { normalizeZonePricing } = require('../lib/zonePricing');
+      const zoneCfg = normalizeZonePricing(pricing.zonePricing);
+      if (zoneCfg.supply.enabled) {
+        opts.supplyCount = countReadyTechniciansNearJob(
+          jobLat,
+          jobLng,
+          serviceId,
+          zoneCfg.supply.radiusKm
+        );
+      }
+    }
+  }
   return calculateVisitPricing(getPricingConfig(), tierId, opts);
 }
 
 function getUserById(id) {
   const user = USERS.find(u => u.id === id);
-  if (user?.role === 'provider') ensureProviderFields(user);
+  if (!user) return null;
+  if (user.role === 'provider') ensureProviderFields(user);
+  const { enrichPersonFields } = require('../lib/personName');
+  enrichPersonFields(user);
   return user;
 }
 
@@ -3800,16 +3868,22 @@ function attachProviderRegistrationDocuments(provider, {
 }
 
 async function registerUser({
-  name, email, password, phone, role, address, addressLat, addressLng, addressPlaceId, specialties,
+  name, firstName, lastName, email, password, phone, role, address, addressLat, addressLng, addressPlaceId, specialties,
   addressUnit, addressRegion, addressCommune, companyRut, companyLegalName, repRut, repName, providerDocuments,
   clientBillingType, clientRut, clientLegalName, clientGiro,
   otherServiceName, otherServiceDescription
 }) {
-  name = (name || '').trim();
+  const { normalizeRegisteredPerson } = require('../lib/personName');
+  const person = normalizeRegisteredPerson({ firstName, lastName, name });
+  name = person.name;
+  firstName = person.firstName;
+  lastName = person.lastName;
   email = (email || '').trim().toLowerCase();
   password = password || '';
   role = role === 'provider' ? 'provider' : 'client';
 
+  if (!firstName || firstName.length < 2) return { errorKey: 'register.error_first_name' };
+  if (!lastName || lastName.length < 2) return { errorKey: 'register.error_last_name' };
   if (!name || !email || !password) return { errorKey: 'register.error_incomplete' };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { errorKey: 'register.error_invalid_email' };
   if (password.length < 8) return { errorKey: 'register.error_password_short' };
@@ -3978,6 +4052,9 @@ async function registerUser({
     email,
     password: hashedPassword,
     name,
+    firstName,
+    lastName,
+    avatar: person.avatar,
     role,
     phone: (phone || '').trim() || null,
     onboardingCompleted: false,
@@ -4023,7 +4100,7 @@ async function registerUser({
       rating: null,
       reviewsCount: 0,
       online: false,
-      avatar: name.split(/\s+/).map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+      avatar: person.avatar,
       bio: '',
       reviews: [],
       verification: defaultProviderVerification(),
@@ -4073,6 +4150,25 @@ function getReadyTechniciansForService(socioId, serviceId) {
     if (!Array.isArray(t.specialties) || !t.specialties.includes(serviceId)) return false;
     return canTechnicianOperate(t).ok;
   });
+}
+
+function countReadyTechniciansNearJob(lat, lng, serviceId, radiusKm = 14) {
+  const jobLat = parseFloat(lat);
+  const jobLng = parseFloat(lng);
+  if (!Number.isFinite(jobLat) || !Number.isFinite(jobLng) || !serviceId) return 0;
+  const r = Math.max(1, parseFloat(radiusKm) || 14);
+  let count = 0;
+  for (const u of USERS) {
+    if (u.role !== 'provider' || u.active === false) continue;
+    if (!Array.isArray(u.specialties) || !u.specialties.includes(serviceId)) continue;
+    const ready = getReadyTechniciansForService(u.id, serviceId);
+    if (!ready.length) continue;
+    const plat = parseFloat(u.addressLat);
+    const plng = parseFloat(u.addressLng);
+    if (!Number.isFinite(plat) || !Number.isFinite(plng)) continue;
+    if (haversineKm(jobLat, jobLng, plat, plng) <= r) count += ready.length;
+  }
+  return count;
 }
 
 function hasTechnicianCoverage(socioId, serviceId) {
@@ -4234,11 +4330,16 @@ async function createTechnician(socioId, { name, email, password, phone, special
   }
 
   const hashedPassword = await hashPassword(passwordToHash);
+  const { normalizeRegisteredPerson } = require('../lib/personName');
+  const techPerson = normalizeRegisteredPerson({ name });
   const tecnico = {
     id: `tecnico-${uuidv4().slice(0, 8)}`,
     email,
     password: hashedPassword,
-    name,
+    name: techPerson.name,
+    firstName: techPerson.firstName,
+    lastName: techPerson.lastName,
+    avatar: techPerson.avatar,
     role: 'tecnico',
     parentId: socioId,
     parentIds: [socioId],
@@ -4247,7 +4348,6 @@ async function createTechnician(socioId, { name, email, password, phone, special
     rating: null,
     reviewsCount: 0,
     online: false,
-    avatar: name.split(/\s+/).map(n => n[0]).join('').slice(0, 2).toUpperCase(),
     bio: '',
     reviews: [],
     verification: {
@@ -4369,8 +4469,12 @@ async function activateTechnicianInvite(token, { password, phone, name } = {}) {
 
   const nameVal = String(name || '').trim();
   if (nameVal.length >= 2) {
-    tecnico.name = nameVal.slice(0, 80);
-    tecnico.avatar = tecnico.name.split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+    const { normalizeRegisteredPerson } = require('../lib/personName');
+    const p = normalizeRegisteredPerson({ name: nameVal.slice(0, 80) });
+    tecnico.name = p.name;
+    tecnico.firstName = p.firstName;
+    tecnico.lastName = p.lastName;
+    tecnico.avatar = p.avatar;
   }
 
   tecnico.password = await hashPassword(pwd);
@@ -4738,7 +4842,7 @@ async function enableSelfOperator(providerId) {
     rating: null,
     reviewsCount: 0,
     online: false,
-    avatar: provider.avatar || provider.name.split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
+    avatar: provider.avatar || require('../lib/personName').personInitials(provider.firstName, provider.lastName, provider.name),
     bio: 'Operador del socio (visitas propias)',
     reviews: [],
     verification: {
@@ -8424,8 +8528,12 @@ async function updateTechnicianForProvider(socioId, tecnicoId, { name, phone, pa
   }
   const nextName = String(name || '').trim();
   if (nextName && nextName.length >= 2) {
-    tecnico.name = nextName.slice(0, 80);
-    tecnico.avatar = nextName.split(/\s+/).map((p) => p[0]).join('').slice(0, 2).toUpperCase() || tecnico.avatar;
+    const { normalizeRegisteredPerson } = require('../lib/personName');
+    const p = normalizeRegisteredPerson({ name: nextName.slice(0, 80) });
+    tecnico.name = p.name;
+    tecnico.firstName = p.firstName;
+    tecnico.lastName = p.lastName;
+    tecnico.avatar = p.avatar;
   }
   if (phone != null) {
     tecnico.phone = String(phone).trim().slice(0, 32);
@@ -9821,6 +9929,7 @@ module.exports = {
   saveTechnicianOwnDocument,
   getReadyTechniciansForService,
   hasTechnicianCoverage,
+  countReadyTechniciansNearJob,
   getProviderServicesStatus,
   updateProviderSpecialties,
   updateTechnicianSpecialties,

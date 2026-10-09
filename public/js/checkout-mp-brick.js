@@ -10,6 +10,30 @@
     return String(id || '').toLowerCase() === 'mercadopago';
   }
 
+  /** Paleta Fandez — evita el azul del theme bootstrap en el loading del botón Pagar */
+  const FANDEZ_MP_VISUAL = {
+    theme: 'default',
+    customVariables: {
+      baseColor: '#C45C14',
+      baseColorFirstVariant: '#A84E10',
+      baseColorSecondVariant: '#D97318',
+      buttonTextColor: '#FFFFFF',
+      outlinePrimaryColor: 'rgba(196, 92, 20, 0.4)',
+      outlineSecondaryColor: 'rgba(196, 92, 20, 0.12)',
+      textPrimaryColor: '#1A1814',
+      textSecondaryColor: '#6B7280',
+      inputBackgroundColor: '#FFFFFF',
+      formBackgroundColor: 'transparent',
+      errorColor: '#B83A2E',
+      successColor: '#2F6B4F',
+      borderRadiusSmall: '10px',
+      borderRadiusMedium: '14px',
+      borderRadiusLarge: '16px',
+      inputFocusedBoxShadow: '0 0 0 3px rgba(196, 92, 20, 0.16)',
+      fontWeightSemiBold: '600'
+    }
+  };
+
   function shouldUseBrick(ctx) {
     if (!ctx.embed || !ctx.publicKey) return false;
     if (ctx.paymentMethod !== 'card') return false;
@@ -49,12 +73,7 @@
         },
         customization: {
           visual: {
-            style: {
-              theme: 'bootstrap',
-              customVariables: {
-                baseColor: '#C45C14'
-              }
-            },
+            style: FANDEZ_MP_VISUAL,
             texts: {
               formTitle: 'Tarjeta crédito, débito o prepago'
             }
@@ -69,6 +88,9 @@
             if (typeof ctx.onBeforeSubmit === 'function') {
               const block = ctx.onBeforeSubmit();
               if (block) {
+                if (window.FandezNotify) {
+                  FandezNotify.show({ type: 'warning', title: block, kicker: 'Antes de pagar' });
+                }
                 return Promise.reject(new Error(block));
               }
             }

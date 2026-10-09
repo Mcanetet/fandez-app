@@ -9,8 +9,8 @@ window.FandezNotify = {
   KICKER: {
     success: 'Listo',
     info: 'Fandez',
-    warning: 'Atención',
-    error: 'Algo falló'
+    warning: 'Revisa esto',
+    error: 'Pago'
   },
   // Íconos propios (no check genérico de Material)
   ICONS: {
@@ -28,6 +28,37 @@ window.FandezNotify = {
       this.container.setAttribute('aria-relevant', 'additions');
       document.body.appendChild(this.container);
     }
+  },
+
+  splitLongMessage(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return { title: '', body: '' };
+    if (raw.length <= 72 && !raw.includes('Hostinger') && !raw.includes('MP_')) {
+      return { title: raw, body: '' };
+    }
+    const cut = raw.search(/[:.]\s+/);
+    if (cut > 24 && cut < 100) {
+      return {
+        title: raw.slice(0, cut + 1).trim(),
+        body: raw.slice(cut + 1).trim()
+      };
+    }
+    return {
+      title: raw.slice(0, 68).trim() + (raw.length > 68 ? '…' : ''),
+      body: raw.length > 68 ? raw : ''
+    };
+  },
+
+  showPaymentError(payload) {
+    const p = payload && typeof payload === 'object' ? payload : {};
+    const title = String(p.errorTitle || p.error || 'No se pudo completar el pago').trim();
+    const body = String(p.errorDetail || (p.errorTitle ? p.error : '') || '').trim();
+    this.show({
+      type: 'error',
+      kicker: 'Mercado Pago',
+      title,
+      body
+    });
   },
 
   /**
@@ -53,10 +84,19 @@ window.FandezNotify = {
     kind = ['success', 'info', 'warning', 'error'].includes(kind) ? kind : 'info';
     if (!kicker) kicker = this.KICKER[kind] || 'Fandez';
 
-    // Una sola línea: usarla como título tipográfico
     if (!title && body) {
-      title = body;
-      body = '';
+      if (kind === 'error' || kind === 'warning') {
+        const split = this.splitLongMessage(body);
+        title = split.title;
+        body = split.body;
+      } else {
+        title = body;
+        body = '';
+      }
+    } else if (title && !body && (kind === 'error' || kind === 'warning') && title.length > 80) {
+      const split = this.splitLongMessage(title);
+      title = split.title;
+      body = split.body;
     }
 
     // Evitar dos toasts idénticos apilados
@@ -92,8 +132,20 @@ window.FandezNotify = {
     copy.appendChild(titleEl);
     copy.appendChild(bodyEl);
 
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.className = 'toast-dismiss';
+    dismiss.setAttribute('aria-label', 'Cerrar');
+    dismiss.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+
+    const progress = document.createElement('span');
+    progress.className = 'toast-progress';
+    progress.setAttribute('aria-hidden', 'true');
+
     toast.appendChild(icon);
     toast.appendChild(copy);
+    toast.appendChild(dismiss);
+    toast.appendChild(progress);
     this.container.appendChild(toast);
 
     // Máximo 2 visibles: saca la más vieja
@@ -105,14 +157,28 @@ window.FandezNotify = {
     }
 
     const ms = this.DURATION[kind] || 3800;
-    const removeAt = setTimeout(() => {
+    progress.style.animationDuration = `${ms}ms`;
+
+    const dismissToast = () => {
       toast.classList.add('toast-leaving');
       setTimeout(() => toast.remove(), 280);
-    }, ms);
+    };
 
-    toast.addEventListener('click', () => {
+    let removeAt = setTimeout(dismissToast, ms);
+
+    const clearAndDismiss = () => {
       clearTimeout(removeAt);
-      toast.remove();
+      dismissToast();
+    };
+
+    dismiss.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearAndDismiss();
+    }, { once: true });
+
+    toast.addEventListener('click', (e) => {
+      if (e.target.closest('.toast-dismiss')) return;
+      clearAndDismiss();
     }, { once: true });
   }
 };

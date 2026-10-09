@@ -5,10 +5,10 @@
     <div class="app-session-header__row client-session-header__row">
       <a href="/cliente/perfil" class="app-session-header__identity client-session-header__identity group">
         <div class="app-session-header__avatar client-session-header__avatar group-hover:border-zilo-accent/40 transition">
-          <%= typeof profile !== 'undefined' ? profile.name.split(' ').map(n=>n[0]).join('').slice(0,2) : '?' %>
+          <%= typeof profile !== 'undefined' ? (profile.avatar || '?') : '?' %>
         </div>
         <div class="app-session-header__meta client-session-header__meta">
-          <h1 class="client-session-header__name"><%= user.name.split(' ')[0] %></h1>
+          <h1 class="client-session-header__name"><%= typeof profile !== 'undefined' ? (profile.displayFirstName || profile.firstName || user.name.split(' ')[0]) : user.name.split(' ')[0] %></h1>
           <p class="client-session-header__role"><%= t('session.role.client') %></p>
         </div>
       </a>

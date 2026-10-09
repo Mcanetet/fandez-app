@@ -14,7 +14,7 @@
 
     <div class="text-center py-6 zilo-page-enter-delay-1">
       <div class="w-24 h-24 mx-auto rounded-2xl zilo-card-premium flex items-center justify-center text-2xl font-semibold text-zilo-accent border border-zilo-accent/25 mb-4">
-        <%= profile.name.split(' ').map(n=>n[0]).join('').slice(0,2) %>
+        <%= profile.avatar || '?' %>
       </div>
       <h2 class="zilo-display text-2xl"><%= profile.name %></h2>
       <p class="text-sm text-zilo-muted mt-1"><%= profile.email %></p>
@@ -42,9 +42,15 @@
 
     <form id="profileForm" class="space-y-4 p-5 rounded-2xl zilo-card-premium zilo-page-enter-delay-2">
       <p class="zilo-label"><%= t('client.profile.personal') %></p>
-      <div>
-        <label class="zilo-label block mb-1.5"><%= t('client.profile.name') %></label>
-        <input type="text" name="name" value="<%= profile.name %>" required class="zilo-input">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="zilo-label block mb-1.5"><%= t('register.first_name') %></label>
+          <input type="text" name="first_name" value="<%= profile.firstName || '' %>" required autocomplete="given-name" class="zilo-input">
+        </div>
+        <div>
+          <label class="zilo-label block mb-1.5"><%= t('register.last_name') %></label>
+          <input type="text" name="last_name" value="<%= profile.lastName || '' %>" required autocomplete="family-name" class="zilo-input">
+        </div>
       </div>
       <div>
         <label class="zilo-label block mb-1.5"><%= t('client.profile.phone') %></label>

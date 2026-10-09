@@ -1071,8 +1071,20 @@ router.post('/operational-phase', requireRole('admin'), requireAdminPermission('
   }
   try {
     const operationalPhaseStore = require('../lib/operationalPhaseStore');
-    const result = await operationalPhaseStore.persistOperationalPhase(req.body.phase);
+    const purgeOperational = req.body.purgeOperational === true || req.body.purgeOperational === 'true';
+    const result = await operationalPhaseStore.persistOperationalPhase(req.body.phase, {
+      purgeOperational,
+      confirmGoLive: req.body.confirmGoLive,
+      store
+    });
     store.logSecurityEvent('operational_phase_change', result.phase, req);
+    if (result.operationalReset) {
+      store.logSecurityEvent(
+        'productivo_operational_reset',
+        JSON.stringify(result.operationalReset),
+        req
+      );
+    }
     res.json(result);
   } catch (err) {
     res.status(400).json({ success: false, error: err.message || 'No se pudo guardar.' });
@@ -1097,8 +1109,20 @@ router.post('/modo', requireRole('admin'), requireAdminPermission('equipo.manage
     if (req.body.mode === 'production') {
       phase = req.body.phase === 'productivo' || req.body.productivo === true ? 'productivo' : 'demo';
     }
-    const phaseStatus = await operationalPhaseStore.persistOperationalPhase(phase);
+    const purgeOperational = req.body.purgeOperational === true || req.body.purgeOperational === 'true';
+    const phaseStatus = await operationalPhaseStore.persistOperationalPhase(phase, {
+      purgeOperational,
+      confirmGoLive: req.body.confirmGoLive,
+      store
+    });
     store.logSecurityEvent('app_mode_change', `${status.mode}:${phase}`, req);
+    if (phaseStatus.operationalReset) {
+      store.logSecurityEvent(
+        'productivo_operational_reset',
+        JSON.stringify(phaseStatus.operationalReset),
+        req
+      );
+    }
     res.json({ success: true, ...status, operationalPhase: phaseStatus });
   } catch (err) {
     console.error('[admin/modo]', err.message);
@@ -2285,6 +2309,60 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
       tardePercent: parseInt(body.scheduleTardePercent, 10),
       nocturnoPercent: parseInt(body.scheduleNocturnoPercent, 10)
     },
+    zonePricing: (() => {
+      const bandMax = Array.isArray(body.zoneBandMaxKm)
+        ? body.zoneBandMaxKm
+        : (body.zoneBandMaxKm ? [body.zoneBandMaxKm] : []);
+      const bandPct = Array.isArray(body.zoneBandPercent)
+        ? body.zoneBandPercent
+        : (body.zoneBandPercent ? [body.zoneBandPercent] : []);
+      const bands = [];
+      for (let i = 0; i < bandMax.length; i++) {
+        const maxKm = parseFloat(bandMax[i]);
+        if (!Number.isFinite(maxKm) || maxKm <= 0) continue;
+        bands.push({
+          maxKm,
+          percent: parseFloat(bandPct[i]) || 0
+        });
+      }
+      const supMin = Array.isArray(body.zoneSupplyMinTechs)
+        ? body.zoneSupplyMinTechs
+        : (body.zoneSupplyMinTechs ? [body.zoneSupplyMinTechs] : []);
+      const supPct = Array.isArray(body.zoneSupplyPercent)
+        ? body.zoneSupplyPercent
+        : (body.zoneSupplyPercent ? [body.zoneSupplyPercent] : []);
+      const supplyTiers = [];
+      for (let i = 0; i < supMin.length; i++) {
+        supplyTiers.push({
+          minTechs: parseInt(supMin[i], 10) || 0,
+          percent: parseFloat(supPct[i]) || 0
+        });
+      }
+      return {
+        enabled: body.zoneEnabled === 'on',
+        origin: {
+          label: body.zoneOriginLabel || 'Ñuñoa',
+          lat: parseFloat(body.zoneOriginLat),
+          lng: parseFloat(body.zoneOriginLng),
+          regionCode: body.zoneOriginRegionCode || 'region-metropolitana',
+          communeCode: body.zoneOriginCommuneCode || 'nunoa'
+        },
+        distance: {
+          mode: body.zoneDistanceMode === 'per_km' ? 'per_km' : 'bands',
+          freeKm: parseFloat(body.zoneFreeKm),
+          percentPerKm: parseFloat(body.zonePercentPerKm),
+          maxDistancePercent: parseFloat(body.zoneMaxDistancePercent),
+          roadFactor: parseFloat(body.zoneRoadFactor),
+          bands
+        },
+        supply: {
+          enabled: body.zoneSupplyEnabled === 'on',
+          radiusKm: parseFloat(body.zoneSupplyRadiusKm),
+          tiers: supplyTiers
+        },
+        maxTotalPercent: parseFloat(body.zoneMaxTotalPercent)
+      };
+    })(),
     urgencyTiers: tiers.length ? tiers : undefined,
     catalogPrices,
     catalogMarketRefs,

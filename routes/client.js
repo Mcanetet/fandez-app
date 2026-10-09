@@ -326,7 +326,17 @@ router.post('/perfil', requireRole('client'), (req, res) => {
   const user = store.updateUserProfile(req.session.user.id, req.body);
   if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
   syncSessionUser(req, user);
-  res.json({ success: true, user: { name: user.name, phone: user.phone, address: user.address } });
+  res.json({
+    success: true,
+    user: {
+      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatar: user.avatar,
+      phone: user.phone,
+      address: user.address
+    }
+  });
 });
 
 router.post('/facturacion', requireRole('client'), (req, res) => {
@@ -435,6 +445,8 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
   );
   const { resolveServicePath } = require('../lib/homeServicePaths');
   const resolvedServicePath = resolveServicePath(req.query.camino, serviceRaw.id);
+  const mp = require('../lib/mercadopago');
+  const cardCheckout = require('../lib/payments/cardCheckout');
   res.render('client/service', {
     title: `${service.name} — Fandez`,
     user: req.session.user,
@@ -452,19 +464,30 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     tracking: req.query.tracking || null,
     checkoutDraft,
     cancellationReasons: CANCELLATION_REASONS,
-    resolvedServicePath
+    resolvedServicePath,
+    mpEmbedCheckout: mp.isEmbedCheckoutAvailable(),
+    mpPublicKey: mp.getPublicKey(),
+    mpTokenConfigured: cardCheckout.isAnyCardGatewayConfigured(pricing),
+    maxCardInstallments: pricing.maxCardInstallments || 3
   });
 });
 
 router.get('/precio-preview', requireRole('client'), (req, res) => {
   const base = parseInt(req.query.base, 10);
   const valorBase = Number.isFinite(base) && base > 0 ? base : undefined;
+  const lat = parseFloat(req.query.lat);
+  const lng = parseFloat(req.query.lng);
+  const serviceId = (req.query.serviceId || '').trim() || undefined;
   const preview = store.previewVisitPrice(req.query.tier || 'scheduled', valorBase, {
     localTime: req.query.localTime,
     timeZone: req.query.timeZone,
-    skipWorkFloor: req.query.skipFloor === '1' || req.query.skipFloor === 'true'
+    skipWorkFloor: req.query.skipFloor === '1' || req.query.skipFloor === 'true',
+    lat: Number.isFinite(lat) ? lat : undefined,
+    lng: Number.isFinite(lng) ? lng : undefined,
+    serviceId
   });
   if (!preview) return res.status(400).json({ error: 'Opción de llegada no válida' });
+  const zoneAmt = preview.zone?.adjustmentAmount || 0;
   res.json({
     success: true,
     preview: {
@@ -474,6 +497,7 @@ router.get('/precio-preview', requireRole('client'), (req, res) => {
         adjustment: store.formatCLP(preview.adjustmentAmount),
         scheduleAdjustment: store.formatCLP(preview.scheduleAdjustmentAmount || 0),
         urgencyOnlyAdjustment: store.formatCLP(preview.urgencyOnlyAdjustmentAmount || 0),
+        zoneAdjustment: store.formatCLP(zoneAmt),
         visitTotal: store.formatCLP(preview.visitTotal),
         servicePrice: store.formatCLP(preview.servicePrice),
         estimatedTotal: store.formatCLP(preview.estimatedTotal),

@@ -264,6 +264,7 @@ router.get('/checkout', requireRole('client'), (req, res) => {
     mpSandboxPayments: mp.usesSandboxPayments(),
     mpSandboxMissingTestPk: mp.isSandboxMissingTestPublicKey(),
     mpSandboxMissingTestToken: mp.isSandboxMissingTestAccessToken(),
+    mpCredentialStatus: mp.getCredentialAdminStatus(),
     cardGateway: gateways.getActiveCardGateway(pricing),
     enabledCardGateways,
     gatewayStatus,
@@ -274,12 +275,18 @@ router.get('/checkout', requireRole('client'), (req, res) => {
 });
 
 router.get('/mp/brick-config', requireRole('client'), (req, res) => {
+  const status = mp.getCredentialAdminStatus();
+  const publicKey = mp.getPublicKey();
   res.json({
     success: true,
     embed: mp.isEmbedCheckoutAvailable(),
-    publicKey: mp.getPublicKey(),
-    sandbox: process.env.MP_SANDBOX === 'true',
-    redirectOnly: process.env.MP_CHECKOUT_REDIRECT === 'true'
+    publicKey,
+    sandbox: mp.usesSandboxPayments(),
+    redirectOnly: process.env.MP_CHECKOUT_REDIRECT === 'true',
+    credentialProfile: status.profile,
+    credentialMismatch: mp.isCredentialPairMismatch(),
+    missingTestPublicKey: status.missingTestPublicKey,
+    missingTestAccessToken: status.missingTestAccessToken
   });
 });
 
@@ -505,13 +512,22 @@ router.post('/mp/tarjeta', requireRole('client'), async (req, res) => {
     return res.json({ success: true, free: true, redirect: paymentSuccessPath(requestId) });
   }
 
-  const gatewayId = req.body.cardGateway || null;
+  const gatewayId = String(req.body.cardGateway || 'mercadopago').toLowerCase();
   const status = gateways.getGatewayStatus(pricing);
-  const gateway = gatewayId && status[gatewayId]?.enabled
-    ? status[gatewayId]
-    : gateways.getActiveCardGateway(pricing);
+  let gateway = status[gatewayId]?.enabled ? status[gatewayId] : null;
+  if (!gateway && gatewayId === 'mercadopago' && mp.isEmbedCheckoutAvailable()) {
+    gateway = status.mercadopago || { id: 'mercadopago' };
+  }
+  if (!gateway) {
+    gateway = gateways.getActiveCardGateway(pricing);
+  }
   if (!gateway || gateway.id !== 'mercadopago') {
-    return res.status(400).json({ success: false, error: 'Selecciona Mercado Pago como pasarela.' });
+    return res.status(400).json({
+      success: false,
+      error: 'Mercado Pago no está disponible.',
+      errorTitle: 'Pasarela de pago',
+      errorDetail: 'En modo demo basta MP_TEST_PUBLIC_KEY y MP_TEST_ACCESS_TOKEN. Para producción, vuelve a añadir MP_PUBLIC_KEY y MP_ACCESS_TOKEN y activa Productivo 2.0 en Admin.'
+    });
   }
 
   const service = store.getServiceById(request.serviceId);
@@ -551,10 +567,10 @@ router.post('/mp/tarjeta', requireRole('client'), async (req, res) => {
       error: `Pago no aprobado (${detail}). Revisa los datos de la tarjeta.`
     });
   } catch (err) {
-    const error = mp.formatMercadoPagoError(err);
-    console.error('[pagos/mp/tarjeta]', error, err?.cause || err);
+    const clientErr = mp.paymentErrorForClient(err);
+    console.error('[pagos/mp/tarjeta]', clientErr.error, err?.cause || err);
     const status = String(err?.message || '').startsWith('MP_VALIDATION:') ? 400 : 502;
-    return res.status(status).json({ success: false, error });
+    return res.status(status).json({ success: false, ...clientErr });
   }
 });
 

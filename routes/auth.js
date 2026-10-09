@@ -292,8 +292,18 @@ function resolveRegisterError(req, result) {
 
 function registerFormFromBody(body) {
   const rawSpecialties = body.specialties || [];
+  let firstName = body.first_name || body.firstName || '';
+  let lastName = body.last_name || body.lastName || '';
+  if (!firstName && !lastName && body.name) {
+    const { splitFullName } = require('../lib/personName');
+    const split = splitFullName(body.name);
+    firstName = split.firstName;
+    lastName = split.lastName;
+  }
   return {
     name: body.name,
+    firstName,
+    lastName,
     email: body.email,
     password: body.password,
     phone: body.phone,
@@ -515,7 +525,7 @@ router.get('/registro', (req, res) => {
 router.post('/registro', async (req, res) => {
   try {
   const form = registerFormFromBody(req.body);
-  const { name, email, password, phone, role, address, addressUnit, addressLat, addressLng, addressPlaceId, addressRegion, addressCommune, specialties,
+  const { name, firstName, lastName, email, password, phone, role, address, addressUnit, addressLat, addressLng, addressPlaceId, addressRegion, addressCommune, specialties,
     companyRut, companyLegalName, repRut, repName, clientBillingType, clientRut, clientLegalName, clientGiro,
     otherServiceName, otherServiceDescription } = form;
   const providerDocuments = req.body.provider_documents || req.body.providerDocuments;
@@ -540,7 +550,7 @@ router.post('/registro', async (req, res) => {
   }
 
   const result = await store.registerUser({
-    name, email, password, phone, role, address,
+    name, firstName, lastName, email, password, phone, role, address,
     addressUnit, addressLat, addressLng, addressPlaceId, addressRegion, addressCommune, specialties,
     companyRut, companyLegalName, repRut, repName, providerDocuments,
     clientBillingType, clientRut, clientLegalName, clientGiro,

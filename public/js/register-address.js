@@ -29,6 +29,8 @@
   const coverageInterestStatus = document.getElementById('coverageInterestStatus');
   const addressLabel = document.getElementById('addressLabel');
   const addressHint = document.getElementById('addressHint');
+  const communeZone = document.querySelector('.register-zone__commune');
+  const communeFieldAlert = document.getElementById('addressCommuneFieldAlert');
   const roleInputs = document.querySelectorAll('input[name="role"]');
   const emailInput = document.getElementById('email');
   const phoneInput = document.getElementById('phone');
@@ -61,6 +63,54 @@
     if (!coverageAlert) return;
     coverageAlert.classList.add('hidden');
     coverageAlert.textContent = '';
+  }
+
+  function communeHasValidSelection() {
+    if (!getCommuneCode() || !communeSearch) return false;
+    const opt = communeSelect?.selectedOptions?.[0];
+    const selectedName = opt ? opt.textContent.trim() : '';
+    return normalizeSearch(communeSearch.value) === normalizeSearch(selectedName);
+  }
+
+  function findCommuneMatchForText(text) {
+    const q = normalizeSearch(text);
+    if (!q || !communeCatalog.length) return null;
+    const exact = communeCatalog.find((c) => normalizeSearch(c.name) === q);
+    if (exact) return exact;
+    const starts = communeCatalog.filter((c) => normalizeSearch(c.name).startsWith(q));
+    if (starts.length === 1) return starts[0];
+    const includes = communeCatalog.filter((c) => normalizeSearch(c.name).includes(q));
+    if (includes.length === 1) return includes[0];
+    return null;
+  }
+
+  function shouldShowCommuneMismatchAlert() {
+    if (!communeSearch || communeSearch.disabled || !communeCatalog.length) return false;
+    const value = communeSearch.value.trim();
+    if (!value) return false;
+    if (communeHasValidSelection()) return false;
+    if (findCommuneMatchForText(value)) return false;
+    const q = normalizeSearch(value);
+    return !communeCatalog.some((c) => normalizeSearch(c.name).includes(q));
+  }
+
+  function setCommuneFieldAlert(active) {
+    if (!communeSearch) return;
+    const show = Boolean(active);
+    communeSearch.classList.toggle('register-commune-input--alert', show);
+    if (communeZone) communeZone.classList.toggle('register-zone__commune--alert', show);
+    if (communeFieldAlert) {
+      communeFieldAlert.classList.toggle('hidden', !show);
+      if (show) {
+        communeFieldAlert.textContent = t('register.commune_not_in_region')
+          || 'Esa comuna no corresponde a la región seleccionada. Elige una de la lista.';
+      }
+    }
+    communeSearch.setAttribute('aria-invalid', show ? 'true' : 'false');
+  }
+
+  function updateCommuneFieldAlert() {
+    setCommuneFieldAlert(shouldShowCommuneMismatchAlert());
   }
 
   let lastCoverage = null;
@@ -267,6 +317,7 @@
     if (!enabled) {
       communeSearch.value = '';
       hideCommuneSuggestions();
+      setCommuneFieldAlert(false);
     }
   }
 
@@ -297,6 +348,7 @@
       communeSearch.setCustomValidity('');
     }
     if (close) hideCommuneSuggestions();
+    setCommuneFieldAlert(false);
     loadCommune(commune.code);
   }
 
@@ -351,6 +403,7 @@
       return an.localeCompare(bn);
     });
     renderCommuneSuggestions(matches.slice(0, 40), query);
+    updateCommuneFieldAlert();
   }
 
   function syncCommuneSearchFromSelect() {
@@ -495,6 +548,7 @@
     communeSelect.value = '';
     communeSelect.disabled = true;
     setCommuneSearchEnabled(false, placeholder);
+    setCommuneFieldAlert(false);
   }
 
   function fillCommuneOptions(communes, selectedCode) {
@@ -846,9 +900,12 @@
         setMapStatus('');
       }
 
+      if (!value) setCommuneFieldAlert(false);
+
       clearTimeout(communeFilterTimer);
       communeFilterTimer = setTimeout(() => {
         filterCommunes(value, { showAllIfEmpty: !value });
+        updateCommuneFieldAlert();
       }, 120);
     });
 
@@ -886,7 +943,15 @@
     });
 
     communeSearch.addEventListener('blur', () => {
-      setTimeout(() => hideCommuneSuggestions(), 150);
+      setTimeout(() => {
+        hideCommuneSuggestions();
+        if (communeSearch.value.trim() && !getCommuneCode()) {
+          if (resolveTypedCommune() && getCommuneCode()) {
+            loadCommune(getCommuneCode());
+          }
+        }
+        updateCommuneFieldAlert();
+      }, 150);
     });
   }
 
@@ -1078,6 +1143,7 @@
       return;
     }
     if (!getCommuneCode()) {
+      updateCommuneFieldAlert();
       if (communeSelect) communeSelect.disabled = false;
       if (communeSearch) {
         communeSearch.disabled = false;

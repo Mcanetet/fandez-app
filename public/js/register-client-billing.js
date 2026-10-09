@@ -13,8 +13,6 @@
   const clientLegalName = document.getElementById('client_legal_name');
   const clientGiro = document.getElementById('client_giro');
   const rutHint = document.getElementById('clientRutHint');
-  const nameLabel = document.getElementById('nameLabel');
-  const nameInput = document.getElementById('name');
   const rutFieldWrap = clientRut ? clientRut.closest('div') : null;
 
   function t(key, fallback) {
@@ -121,25 +119,6 @@
       rutHint.textContent = company
         ? t('register.client_rut_hint_company', 'Obligatorio para factura a la empresa.')
         : t('register.client_rut_hint_natural', 'Opcional. Lo puedes completar al pedir la visita.');
-    }
-
-    if (nameLabel) {
-      if (isClient) {
-        nameLabel.textContent = nameLabel.dataset.labelClient
-          || nameLabel.dataset.labelCompany
-          || t('register.contact_name', 'Tu nombre');
-      } else {
-        nameLabel.textContent = nameLabel.dataset.labelNatural || t('register.name', 'Nombre completo');
-      }
-    }
-    if (nameInput) {
-      if (isClient) {
-        nameInput.placeholder = nameInput.dataset.placeholderClient
-          || nameInput.dataset.placeholderCompany
-          || t('register.contact_name_placeholder', 'Ej: María López');
-      } else {
-        nameInput.placeholder = nameInput.dataset.placeholderNatural || t('register.name_placeholder', 'Tu nombre');
-      }
     }
 
     if (!isClient) showRutError('');

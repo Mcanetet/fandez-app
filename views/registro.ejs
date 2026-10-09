@@ -81,15 +81,14 @@
 
       <div class="register-form__fields register-form__fields--account">
         <div>
-          <label for="name" id="nameLabel" class="register-form__label"
-            data-label-natural="<%= t('register.name') %>"
-            data-label-company="<%= t('register.contact_name') %>"
-            data-label-client="<%= t('register.contact_name') %>"><%= form.role === 'client' ? t('register.contact_name') : t('register.name') %></label>
-          <input type="text" id="name" name="name" required autocomplete="name"
-            data-placeholder-natural="<%= t('register.name_placeholder') %>"
-            data-placeholder-company="<%= t('register.contact_name_placeholder') %>"
-            data-placeholder-client="<%= t('register.contact_name_placeholder') %>"
-            placeholder="<%= form.role === 'client' ? t('register.contact_name_placeholder') : t('register.name_placeholder') %>" class="zilo-input" value="<%= form.name || '' %>">
+          <label for="first_name" class="register-form__label"><%= t('register.first_name') %></label>
+          <input type="text" id="first_name" name="first_name" required autocomplete="given-name"
+            placeholder="<%= t('register.first_name_placeholder') %>" class="zilo-input" value="<%= form.firstName || '' %>">
+        </div>
+        <div>
+          <label for="last_name" class="register-form__label"><%= t('register.last_name') %></label>
+          <input type="text" id="last_name" name="last_name" required autocomplete="family-name"
+            placeholder="<%= t('register.last_name_placeholder') %>" class="zilo-input" value="<%= form.lastName || '' %>">
         </div>
         <div>
           <label for="email" class="register-form__label"><%= t('auth.email') %></label>
@@ -189,6 +188,7 @@
             <div id="communeSuggestions" class="hidden absolute left-0 right-0 top-full mt-1 z-30 rounded-xl border border-zilo-border bg-white shadow-zilo max-h-52 overflow-y-auto" role="listbox"></div>
           </div>
           <p class="register-form__field-hint register-commune-hint"><%= t('register.commune_hint') %></p>
+          <p id="addressCommuneFieldAlert" class="register-commune-field-alert hidden" role="status" aria-live="polite"></p>
         </div>
         <div class="relative register-zone__street">
           <label for="address" id="addressLabel" class="register-form__label"><%= t('register.address_street') %></label>
@@ -448,6 +448,7 @@
   'register.commune_search_placeholder': t('register.commune_search_placeholder'),
   'register.commune_hint': t('register.commune_hint'),
   'register.commune_no_results': t('register.commune_no_results'),
+  'register.commune_not_in_region': t('register.commune_not_in_region'),
   'register.validation_region_required': t('register.validation_region_required'),
   'register.commune_loading': t('register.commune_loading'),
   'register.commune_selected': t('register.commune_selected'),

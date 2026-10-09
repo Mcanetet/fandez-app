@@ -1,5 +1,10 @@
 <%- include('../partials/head') %>
-<% const mpGwOnly = (typeof enabledCardGateways !== 'undefined' && enabledCardGateways.some(g => g.id === 'mercadopago')) || (typeof cardGateway !== 'undefined' && cardGateway?.id === 'mercadopago'); %>
+<% const mpGwOnly = (typeof enabledCardGateways !== 'undefined' && enabledCardGateways.some(g => g.id === 'mercadopago'))
+  || (typeof cardGateway !== 'undefined' && cardGateway?.id === 'mercadopago')
+  || (typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout); %>
+<% const mpCanShowBrick = Boolean(typeof mpPublicKey !== 'undefined' && mpPublicKey); %>
+<% const paymentFirst = Boolean(typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout && mpGwOnly); %>
+<% const hidePaymentPicker = paymentFirst && !(summary.transferEnabled); %>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col pb-8 zilo-page-enter" id="checkoutPage"
   data-request-id="<%= request.id %>"
@@ -11,16 +16,24 @@
   data-mp-token-configured="<%= mpConfigured ? '1' : '0' %>"
   data-mp-gw-only="<%= mpGwOnly ? '1' : '0' %>"
   data-default-card-gateway="<%= (enabledCardGateways && enabledCardGateways[0] && enabledCardGateways[0].id) || (cardGateway && cardGateway.id) || '' %>"
-  data-max-installments="<%= Number(summary.maxCardInstallments) || 3 %>">
+  data-max-installments="<%= Number(summary.maxCardInstallments) || 3 %>"
+  data-initial-amount="<%= Number(summary.amountDue) || 0 %>"
+  data-mp-can-brick="<%= mpCanShowBrick ? '1' : '0' %>">
+
+  <% if (mpGwOnly || mpCanShowBrick) { %>
+  <input type="hidden" id="hiddenPaymentMethodCard" value="card">
+  <input type="hidden" id="defaultCardGatewayInput" value="mercadopago">
+  <% } %>
 
   <header class="sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border px-5 py-4">
     <div class="flex items-center gap-3">
       <a href="/cliente/servicio/<%= request.serviceId %>?resume=<%= request.id %>" class="w-10 h-10 rounded-full zilo-card-premium flex items-center justify-center">
         <svg class="w-5 h-5 text-zilo-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       </a>
-      <div>
+      <div class="min-w-0">
         <p class="zilo-label"><%= t('checkout.title') %></p>
-        <h1 class="font-semibold"><%= service.name %></h1>
+        <h1 class="font-semibold truncate"><%= service.name %></h1>
+        <% if (paymentFirst) { %><p class="text-[11px] text-zilo-muted mt-0.5"><%= t('checkout.pay_subtitle') %></p><% } %>
       </div>
     </div>
   </header>
@@ -31,10 +44,132 @@
       <p class="text-xs text-amber-900/90 leading-relaxed"><%= t('checkout.inapp_body') %></p>
     </div>
     <%- include('../partials/checkout-progress', { checkoutStep: 2 }) %>
-    <%- include('../partials/trust-strip', { trustStats: typeof trustStats !== 'undefined' ? trustStats : {} }) %>
 
-    <div class="zilo-card-premium rounded-2xl p-5">
-        <p class="text-xs text-zilo-muted mb-1"><%= request.address %></p>
+    <% const billing = summary.billingSnapshot || profile.billing || { type: 'natural', rut: '', legalName: profile.name, giro: '', fiscalAddress: profile.address || '', invoiceEmail: profile.email }; %>
+    <% const billingComplete = Boolean(billing.rut && billing.legalName && billing.fiscalAddress && billing.invoiceEmail && (billing.type !== 'empresa' || billing.giro)); %>
+
+    <section class="checkout-pay-hero zilo-card-premium rounded-2xl p-5 border border-zilo-accent/20 bg-gradient-to-br from-white to-zilo-accent/[0.04]" aria-labelledby="checkoutPayTotal">
+      <p class="text-xs text-zilo-muted truncate mb-2"><%= request.address %></p>
+      <div class="flex items-end justify-between gap-3">
+        <div>
+          <p id="checkoutPayTotal" class="text-[10px] font-semibold uppercase tracking-wide text-zilo-muted"><%= paymentFirst ? t('checkout.pay_subtitle') : 'Total a pagar' %></p>
+          <p class="text-3xl font-bold text-zilo-accent tabular-nums leading-none mt-1" id="lineTotalHero"><%= formatCLP(summary.amountDue) %></p>
+          <p class="text-[10px] text-zilo-muted mt-1.5">IVA incluido · visita técnica</p>
+        </div>
+      </div>
+    </section>
+
+    <% if (!billingComplete) { %>
+    <section class="zilo-card-premium rounded-2xl p-5" id="billingSection" data-complete="0">
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <h2 class="zilo-label mb-0"><%= t('checkout.billing_title') %></h2>
+          <p class="text-[11px] text-zilo-muted mt-1">Necesarios para pagar y emitir boleta</p>
+        </div>
+      </div>
+      <div id="billingFields">
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer billing-type-option text-xs <%= billing.type !== 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
+            <input type="radio" name="billingType" value="natural" <%= billing.type !== 'empresa' ? 'checked' : '' %> class="accent-[#C45C14]">
+            <%= t('checkout.billing_natural') %>
+          </label>
+          <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer billing-type-option text-xs <%= billing.type === 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
+            <input type="radio" name="billingType" value="empresa" <%= billing.type === 'empresa' ? 'checked' : '' %> class="accent-[#C45C14]">
+            <%= t('checkout.billing_company') %>
+          </label>
+        </div>
+        <div class="space-y-2">
+          <input type="text" id="billRut" value="<%= billing.rut %>" placeholder="RUT" class="zilo-input !py-2 text-sm">
+          <input type="text" id="billLegalName" value="<%= billing.legalName %>" placeholder="Nombre o razón social" class="zilo-input !py-2 text-sm">
+          <input type="text" id="billGiro" value="<%= billing.giro %>" placeholder="Giro comercial (empresa)" class="zilo-input !py-2 text-sm <%= billing.type === 'empresa' ? '' : 'hidden' %>">
+          <input type="text" id="billFiscalAddress" value="<%= billing.fiscalAddress %>" placeholder="Dirección fiscal" class="zilo-input !py-2 text-sm">
+          <input type="email" id="billInvoiceEmail" value="<%= billing.invoiceEmail %>" placeholder="Email facturación" class="zilo-input !py-2 text-sm">
+        </div>
+      </div>
+    </section>
+    <% } %>
+
+    <% const mpCred = typeof mpCredentialStatus !== 'undefined' ? mpCredentialStatus : {}; %>
+    <% if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments && mpCred.sandboxCredentialSource === 'prod_in_demo_blocked') { %>
+    <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpProdInDemoWarn">
+      <strong>Demo no usa credenciales de producción.</strong> Tienes <code>MP_PUBLIC_KEY</code> / <code>MP_ACCESS_TOKEN</code> pero faltan <code>MP_TEST_PUBLIC_KEY</code> y <code>MP_TEST_ACCESS_TOKEN</code> (bloque «Credenciales de prueba»). Puedes dejar las de producción en Hostinger; en demo solo se leen las <code>MP_TEST_*</code>.
+    </p>
+    <% } else if (typeof mpSandboxMissingTestPk !== 'undefined' && mpSandboxMissingTestPk) { %>
+    <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpSandboxTestPkWarn">
+      <strong>Pago en prueba bloqueado:</strong> falta <code>MP_TEST_PUBLIC_KEY</code> en Hostinger. Mercado Pago Developers → tu app → <strong>Credenciales de prueba</strong> → copia <strong>Public Key</strong> ahí. Reinicia la app.
+    </p>
+    <% } else if (typeof mpSandboxMissingTestToken !== 'undefined' && mpSandboxMissingTestToken) { %>
+    <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpSandboxTestTokenWarn">
+      <strong>Falta el Access Token de prueba:</strong> crea <code>MP_TEST_ACCESS_TOKEN</code> en Hostinger con el valor de <strong>Credenciales de prueba → Access Token</strong> (misma pantalla que la Public Key). No uses <code>MP_ACCESS_TOKEN</code> de producción en DEMO.
+    </p>
+    <% } else if (typeof mpCredentialMismatch !== 'undefined' && mpCredentialMismatch) { %>
+    <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpCredentialMismatchWarn">
+      <strong>Credenciales Mercado Pago mezcladas.</strong> En Hostinger, <code>MP_PUBLIC_KEY</code> y <code>MP_ACCESS_TOKEN</code> deben copiarse del <strong>mismo bloque</strong> (Credenciales de prueba o de producción) en Mercado Pago Developers. Si no, aparece «Card Token not found».
+    </p>
+    <% } else if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments && mpCred.testEnvPresent) { %>
+    <p class="text-xs text-sky-900 p-3 rounded-xl border border-sky-200 bg-sky-50 text-center">
+      Modo <strong>demo</strong> — cobro con <code>MP_TEST_*</code> y tarjetas de prueba (APRO). Las credenciales de producción en Hostinger no se usan hasta Productivo 2.0.
+    </p>
+    <% } else if (typeof mpSandboxPayments !== 'undefined' && !mpSandboxPayments) { %>
+    <p class="text-xs text-amber-900 p-3 rounded-xl border border-amber-200 bg-amber-50 text-center">
+      Modo <strong>productivo</strong> — las tarjetas de prueba de Mercado Pago no funcionan. Usa tarjeta real o cambia a Demo en Admin.
+    </p>
+    <% } else if (mpGwOnly && mpConfigured && !mpEmbedCheckout) { %>
+    <p class="text-xs text-amber-900 p-3 rounded-xl border border-amber-200 bg-amber-50 text-center" id="mpEmbedSetupWarn">
+      Falta <strong>MP_PUBLIC_KEY</strong> en el servidor para el formulario de tarjeta en Fandez. Mientras tanto no uses el botón que abre Mercado Pago: configura la clave pública en Hostinger o paga por transferencia.
+    </p>
+    <% } %>
+
+    <section id="mpEmbedSection" class="<%= mpEmbedCheckout ? '' : 'hidden' %> zilo-card-premium rounded-2xl p-4 sm:p-5 checkout-mp-block" aria-label="Pago con tarjeta Mercado Pago">
+      <h2 class="zilo-label mb-1"><%= t('checkout.payment_title') %></h2>
+      <p class="text-xs text-zilo-muted mb-3">Pagas sin salir de Fandez. Mercado Pago procesa el cobro de forma segura.</p>
+      <p id="mpBrickLoading" class="hidden text-xs text-zilo-muted py-6 text-center">Cargando formulario de tarjeta…</p>
+      <div id="mpCardPaymentBrick"></div>
+      <p class="text-[10px] text-zilo-muted mt-3 text-center">Fandez no guarda datos de tu tarjeta</p>
+    </section>
+
+    <% if (billingComplete) { %>
+    <section class="zilo-card-premium rounded-2xl p-4" id="billingSection" data-complete="1">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="zilo-label mb-0"><%= t('checkout.billing_compact') %></h2>
+          <p class="text-[11px] text-zilo-muted mt-1 truncate" id="billingSummaryLine">
+            <%= billing.legalName %> · <%= billing.rut %>
+          </p>
+        </div>
+        <button type="button" id="btnEditBilling" class="text-xs font-semibold text-zilo-accent shrink-0"><%= t('checkout.billing_edit') %></button>
+      </div>
+      <div id="billingFields" class="hidden mt-3">
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer billing-type-option text-xs <%= billing.type !== 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
+            <input type="radio" name="billingType" value="natural" <%= billing.type !== 'empresa' ? 'checked' : '' %> class="accent-[#C45C14]">
+            <%= t('checkout.billing_natural') %>
+          </label>
+          <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer billing-type-option text-xs <%= billing.type === 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
+            <input type="radio" name="billingType" value="empresa" <%= billing.type === 'empresa' ? 'checked' : '' %> class="accent-[#C45C14]">
+            <%= t('checkout.billing_company') %>
+          </label>
+        </div>
+        <div class="space-y-2">
+          <input type="text" id="billRut" value="<%= billing.rut %>" placeholder="RUT" class="zilo-input !py-2 text-sm">
+          <input type="text" id="billLegalName" value="<%= billing.legalName %>" placeholder="Nombre o razón social" class="zilo-input !py-2 text-sm">
+          <input type="text" id="billGiro" value="<%= billing.giro %>" placeholder="Giro comercial (empresa)" class="zilo-input !py-2 text-sm <%= billing.type === 'empresa' ? '' : 'hidden' %>">
+          <input type="text" id="billFiscalAddress" value="<%= billing.fiscalAddress %>" placeholder="Dirección fiscal" class="zilo-input !py-2 text-sm">
+          <input type="email" id="billInvoiceEmail" value="<%= billing.invoiceEmail %>" placeholder="Email facturación" class="zilo-input !py-2 text-sm">
+        </div>
+      </div>
+      <p class="text-[11px] text-emerald-700 mt-2" id="billingUseProfileHint"><%= t('checkout.billing_use_profile') %></p>
+    </section>
+    <% } %>
+
+    <details class="checkout-details zilo-card-premium rounded-2xl overflow-hidden group">
+      <summary class="p-4 cursor-pointer list-none flex items-center justify-between gap-2 text-sm font-semibold text-zilo-text">
+        <span><%= t('checkout.detail_toggle') %></span>
+        <span class="text-zilo-muted text-xs font-normal group-open:hidden"><%= service.name %></span>
+      </summary>
+      <div class="px-4 pb-4 pt-0 space-y-2 border-t border-zilo-border/80">
+    <div class="pt-3 text-xs text-zilo-muted">
+        <p class="mb-1"><%= request.address %></p>
       <% if (request.squareMeters) { %>
         <p class="text-xs text-zilo-muted mt-1"><%= request.squareMeters %> m² · <%= request.activityName || service.name %></p>
       <% } %>
@@ -90,124 +225,8 @@
       <% } %>
     </div>
 
-    <!-- Facturación -->
-    <% const billing = summary.billingSnapshot || profile.billing || { type: 'natural', rut: '', legalName: profile.name, giro: '', fiscalAddress: profile.address || '', invoiceEmail: profile.email }; %>
-    <% const billingComplete = Boolean(billing.rut && billing.legalName && billing.fiscalAddress && billing.invoiceEmail && (billing.type !== 'empresa' || billing.giro)); %>
-    <section class="zilo-card-premium rounded-2xl p-5" id="billingSection" data-complete="<%= billingComplete ? '1' : '0' %>">
-      <div class="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <h2 class="zilo-label mb-0"><%= t('checkout.billing_title') %></h2>
-          <% if (billingComplete) { %>
-          <p class="text-[11px] text-zilo-muted mt-1" id="billingSummaryLine">
-            <%= billing.legalName %> · <%= billing.rut %> · <%= billing.invoiceEmail %>
-          </p>
-          <% } %>
-        </div>
-        <% if (billingComplete) { %>
-        <button type="button" id="btnEditBilling" class="text-xs font-semibold text-zilo-accent shrink-0"><%= t('checkout.billing_edit') %></button>
-        <% } %>
-      </div>
-      <div id="billingFields" class="<%= billingComplete ? 'hidden' : '' %>">
-        <div class="grid grid-cols-2 gap-2 mb-3">
-          <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer billing-type-option text-xs <%= billing.type !== 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
-            <input type="radio" name="billingType" value="natural" <%= billing.type !== 'empresa' ? 'checked' : '' %> class="accent-[#C45C14]">
-            <%= t('checkout.billing_natural') %>
-          </label>
-          <label class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer billing-type-option text-xs <%= billing.type === 'empresa' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>">
-            <input type="radio" name="billingType" value="empresa" <%= billing.type === 'empresa' ? 'checked' : '' %> class="accent-[#C45C14]">
-            <%= t('checkout.billing_company') %>
-          </label>
-        </div>
-        <div class="space-y-2">
-          <input type="text" id="billRut" value="<%= billing.rut %>" placeholder="RUT" class="zilo-input !py-2 text-sm">
-          <input type="text" id="billLegalName" value="<%= billing.legalName %>" placeholder="Nombre o razón social" class="zilo-input !py-2 text-sm">
-          <input type="text" id="billGiro" value="<%= billing.giro %>" placeholder="Giro comercial (empresa)" class="zilo-input !py-2 text-sm <%= billing.type === 'empresa' ? '' : 'hidden' %>">
-          <input type="text" id="billFiscalAddress" value="<%= billing.fiscalAddress %>" placeholder="Dirección fiscal" class="zilo-input !py-2 text-sm">
-          <input type="email" id="billInvoiceEmail" value="<%= billing.invoiceEmail %>" placeholder="Email facturación" class="zilo-input !py-2 text-sm">
-        </div>
-      </div>
-      <% if (billingComplete) { %>
-      <p class="text-[11px] text-emerald-700" id="billingUseProfileHint"><%= t('checkout.billing_use_profile') %></p>
-      <% } %>
-    </section>
-
-    <!-- Método de pago -->
-    <section class="zilo-card-premium rounded-2xl p-5 space-y-3">
-      <h2 class="zilo-label"><%= t('checkout.payment_title') %></h2>
-      <% if (summary.cardEnabled && typeof enabledCardGateways !== 'undefined' && enabledCardGateways.length) { %>
-      <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer payment-option <%= (summary.paymentMethod || 'card') === 'card' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-method="card">
-        <input type="radio" name="paymentMethod" value="card" <%= (summary.paymentMethod || 'card') === 'card' ? 'checked' : '' %> class="mt-0.5 accent-[#C45C14]">
-        <div class="flex-1">
-          <strong class="text-sm block">Tarjeta débito / crédito</strong>
-          <span class="text-xs text-zilo-muted">Pago seguro · crédito hasta <%= Number(summary.maxCardInstallments) || 3 %> cuotas · sin recargo en el total</span>
-          <% if (enabledCardGateways.length === 1) { %>
-            <p class="text-[10px] text-zilo-muted mt-0.5">Procesado por <%= enabledCardGateways[0].label %></p>
-          <% } %>
-        </div>
-      </label>
-      <% if (enabledCardGateways.length > 1) { %>
-      <div id="cardGatewayPicker" class="ml-4 pl-3 border-l-2 border-zilo-border space-y-2 <%= (summary.paymentMethod || 'card') === 'card' ? '' : 'hidden' %>">
-        <p class="text-[10px] text-zilo-muted">Pasarela de pago</p>
-        <% enabledCardGateways.forEach((gw, i) => { %>
-          <label class="flex items-center gap-2 text-xs cursor-pointer">
-            <input type="radio" name="cardGateway" value="<%= gw.id %>" <%= i === 0 ? 'checked' : '' %> class="accent-[#C45C14]">
-            <%= gw.label %>
-          </label>
-        <% }); %>
-      </div>
-      <% } else if (enabledCardGateways.length === 1) { %>
-      <input type="hidden" name="cardGateway" value="<%= enabledCardGateways[0].id %>" id="defaultCardGatewayInput">
-      <% } %>
-      <% } %>
-      <% if (summary.transferEnabled) { %>
-      <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer payment-option <%= summary.paymentMethod === 'transfer' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-method="transfer">
-        <input type="radio" name="paymentMethod" value="transfer" <%= summary.paymentMethod === 'transfer' ? 'checked' : '' %> class="mt-0.5 accent-[#C45C14]">
-        <div class="flex-1">
-          <strong class="text-sm block">Transferencia bancaria</strong>
-          <span class="text-xs text-emerald-600">Sin recargo</span>
-        </div>
-      </label>
-      <% } %>
-    </section>
-
-    <!-- Descuentos -->
-    <section class="zilo-card-premium rounded-2xl p-5 space-y-4">
-      <h2 class="zilo-label">Beneficios Fandez</h2>
-
-      <% if (referral.creditsCLP > 0 && mod('client_referidos')) { %>
-      <label class="flex items-center justify-between gap-3 cursor-pointer">
-        <div>
-          <strong class="text-sm block">Usar crédito</strong>
-          <span class="text-xs text-zilo-success"><%= formatCLP(referral.creditsCLP) %> disponible</span>
-        </div>
-        <input type="checkbox" id="useCredits" class="w-5 h-5 rounded accent-[#C45C14]" checked>
-      </label>
-      <% } %>
-
-      <% if (mod('client_puntos') && referral.points > 0) { %>
-      <label class="flex items-center justify-between gap-3 cursor-pointer <%= (referral.creditsCLP > 0 && mod('client_referidos')) ? 'pt-3 border-t border-gray-200' : '' %>">
-        <div>
-          <strong class="text-sm block">Canjear Puntos Fandez</strong>
-          <span class="text-xs text-zilo-muted"><%= referral.points %> pts = <%= formatCLP(referral.points * pointsValue) %></span>
-        </div>
-        <input type="checkbox" id="usePoints" class="w-5 h-5 rounded accent-[#C45C14]">
-      </label>
-      <% } %>
-
-      <div class="<%= ((referral.creditsCLP > 0 && mod('client_referidos')) || (mod('client_puntos') && referral.points > 0)) ? 'pt-3 border-t border-gray-200' : '' %>">
-        <label class="zilo-label block mb-2">Código promocional</label>
-        <div class="flex gap-2">
-          <input type="text" id="promoCode" placeholder="Ingresa tu código" maxlength="24" autocomplete="off"
-            class="zilo-input flex-1 uppercase font-mono text-sm">
-          <button type="button" id="btnApplyPromo" class="zilo-btn-ghost shrink-0">Aplicar</button>
-        </div>
-        <p id="promoFeedback" class="hidden text-[11px] mt-1.5"></p>
-      </div>
-    </section>
-
-    <!-- Resumen -->
-    <section class="zilo-card-premium rounded-2xl p-5" id="summaryBox">
-      <h2 class="zilo-label mb-4">Resumen</h2>
+    <section class="pt-3 mt-3 border-t border-zilo-border/80" id="summaryBox">
+      <h2 class="zilo-label mb-3 text-[10px]">Desglose</h2>
       <div class="space-y-2 text-sm">
         <div class="flex justify-between checkout-line pb-2">
           <span class="text-zilo-muted">Visita técnica (base)</span>
@@ -265,46 +284,99 @@
         <p class="text-[10px] text-zilo-muted mt-2 text-right">Precio final · IVA incluido</p>
       </div>
     </section>
+      </div>
+    </details>
+
+    <details class="checkout-details zilo-card-premium rounded-2xl overflow-hidden group">
+      <summary class="p-4 cursor-pointer list-none text-sm font-semibold text-zilo-text"><%= t('checkout.extras_toggle') %></summary>
+      <div class="px-4 pb-4 pt-0 border-t border-zilo-border/80 space-y-4">
+
+    <% if (hidePaymentPicker && summary.cardEnabled && enabledCardGateways && enabledCardGateways.length === 1) { %>
+    <input type="hidden" name="paymentMethod" value="card" id="hiddenPaymentMethodCard">
+    <input type="hidden" name="cardGateway" value="<%= enabledCardGateways[0].id %>" id="defaultCardGatewayInput">
+    <% } %>
+
+    <section class="pt-3 space-y-4">
+      <h2 class="zilo-label">Beneficios Fandez</h2>
+
+      <% if (referral.creditsCLP > 0 && mod('client_referidos')) { %>
+      <label class="flex items-center justify-between gap-3 cursor-pointer">
+        <div>
+          <strong class="text-sm block">Usar crédito</strong>
+          <span class="text-xs text-zilo-success"><%= formatCLP(referral.creditsCLP) %> disponible</span>
+        </div>
+        <input type="checkbox" id="useCredits" class="w-5 h-5 rounded accent-[#C45C14]" checked>
+      </label>
+      <% } %>
+
+      <% if (mod('client_puntos') && referral.points > 0) { %>
+      <label class="flex items-center justify-between gap-3 cursor-pointer <%= (referral.creditsCLP > 0 && mod('client_referidos')) ? 'pt-3 border-t border-gray-200' : '' %>">
+        <div>
+          <strong class="text-sm block">Canjear Puntos Fandez</strong>
+          <span class="text-xs text-zilo-muted"><%= referral.points %> pts = <%= formatCLP(referral.points * pointsValue) %></span>
+        </div>
+        <input type="checkbox" id="usePoints" class="w-5 h-5 rounded accent-[#C45C14]">
+      </label>
+      <% } %>
+
+      <div class="<%= ((referral.creditsCLP > 0 && mod('client_referidos')) || (mod('client_puntos') && referral.points > 0)) ? 'pt-3 border-t border-gray-200' : '' %>">
+        <label class="zilo-label block mb-2">Código promocional</label>
+        <div class="flex gap-2">
+          <input type="text" id="promoCode" placeholder="Ingresa tu código" maxlength="24" autocomplete="off"
+            class="zilo-input flex-1 uppercase font-mono text-sm">
+          <button type="button" id="btnApplyPromo" class="zilo-btn-ghost shrink-0">Aplicar</button>
+        </div>
+        <p id="promoFeedback" class="hidden text-[11px] mt-1.5"></p>
+      </div>
+    </section>
+      </div>
+    </details>
+
+    <section id="paymentMethodSection" class="zilo-card-premium rounded-2xl p-5 space-y-3 <%= hidePaymentPicker ? 'hidden' : '' %>">
+      <h2 class="zilo-label"><%= t('checkout.payment_title') %></h2>
+      <% if (summary.cardEnabled && typeof enabledCardGateways !== 'undefined' && enabledCardGateways.length) { %>
+      <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer payment-option <%= (summary.paymentMethod || 'card') === 'card' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-method="card">
+        <input type="radio" name="paymentMethod" value="card" <%= (summary.paymentMethod || 'card') === 'card' ? 'checked' : '' %> class="mt-0.5 accent-[#C45C14]">
+        <div class="flex-1">
+          <strong class="text-sm block">Tarjeta débito / crédito</strong>
+          <span class="text-xs text-zilo-muted">Pago seguro · crédito hasta <%= Number(summary.maxCardInstallments) || 3 %> cuotas</span>
+        </div>
+      </label>
+      <% if (enabledCardGateways.length > 1) { %>
+      <div id="cardGatewayPicker" class="ml-4 pl-3 border-l-2 border-zilo-border space-y-2 <%= (summary.paymentMethod || 'card') === 'card' ? '' : 'hidden' %>">
+        <% enabledCardGateways.forEach((gw, i) => { %>
+          <label class="flex items-center gap-2 text-xs cursor-pointer">
+            <input type="radio" name="cardGateway" value="<%= gw.id %>" <%= i === 0 ? 'checked' : '' %> class="accent-[#C45C14]">
+            <%= gw.label %>
+          </label>
+        <% }); %>
+      </div>
+      <% } else if (enabledCardGateways.length === 1 && !hidePaymentPicker) { %>
+      <input type="hidden" name="cardGateway" value="<%= enabledCardGateways[0].id %>" id="defaultCardGatewayInput">
+      <% } %>
+      <% } %>
+      <% if (summary.transferEnabled) { %>
+      <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer payment-option <%= summary.paymentMethod === 'transfer' ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-method="transfer">
+        <input type="radio" name="paymentMethod" value="transfer" <%= summary.paymentMethod === 'transfer' ? 'checked' : '' %> class="mt-0.5 accent-[#C45C14]">
+        <div class="flex-1">
+          <strong class="text-sm block">Transferencia bancaria</strong>
+          <span class="text-xs text-emerald-600">Sin recargo</span>
+        </div>
+      </label>
+      <% } %>
+    </section>
 
     <% if (!mpConfigured && (summary.paymentMethod || 'card') === 'card') { %>
     <p class="text-xs text-amber-800 p-3 rounded-xl border border-amber-200 bg-amber-50 text-center">
       Sin pasarela real — al tocar pagar se confirma un Mercado Pago de prueba y el pedido sigue
     </p>
-    <% } else if (cardGateway && (summary.paymentMethod || 'card') === 'card') { %>
+    <% } else if (!paymentFirst && cardGateway && (summary.paymentMethod || 'card') === 'card') { %>
     <p class="text-xs text-zilo-muted p-3 rounded-xl border border-zilo-border bg-zilo-bg/50 text-center" id="checkoutGatewayHint">
-      Pago seguro con <strong><%= cardGateway.label %></strong>. Fandez no almacena datos de tu tarjeta.
+      Pago seguro con <strong><%= cardGateway.label %></strong>.
     </p>
     <% } %>
 
-    <% if (typeof mpSandboxMissingTestPk !== 'undefined' && mpSandboxMissingTestPk) { %>
-    <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpSandboxTestPkWarn">
-      <strong>Pago en prueba bloqueado:</strong> falta <code>MP_TEST_PUBLIC_KEY</code> en Hostinger. Mercado Pago Developers → tu app → <strong>Credenciales de prueba</strong> → copia <strong>Public Key</strong> ahí. Reinicia la app.
-    </p>
-    <% } else if (typeof mpSandboxMissingTestToken !== 'undefined' && mpSandboxMissingTestToken) { %>
-    <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpSandboxTestTokenWarn">
-      <strong>Falta el Access Token de prueba:</strong> crea <code>MP_TEST_ACCESS_TOKEN</code> en Hostinger con el valor de <strong>Credenciales de prueba → Access Token</strong> (misma pantalla que la Public Key). No uses <code>MP_ACCESS_TOKEN</code> de producción en DEMO.
-    </p>
-    <% } else if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments) { %>
-    <p class="text-xs text-sky-900 p-3 rounded-xl border border-sky-200 bg-sky-50 text-center">
-      Modo <strong>prueba</strong> activo — cobro con tarjetas de prueba Mercado Pago.
-    </p>
-    <% } %>
-    <% if (typeof mpCredentialMismatch !== 'undefined' && mpCredentialMismatch) { %>
-    <p class="text-xs text-red-900 p-3 rounded-xl border border-red-200 bg-red-50 text-center" id="mpCredentialMismatchWarn">
-      <strong>Credenciales Mercado Pago mezcladas.</strong> En Hostinger, <code>MP_PUBLIC_KEY</code> y <code>MP_ACCESS_TOKEN</code> deben copiarse del <strong>mismo bloque</strong> (Credenciales de prueba o de producción) en Mercado Pago Developers. Si no, aparece «Card Token not found».
-    </p>
-    <% } else if (mpGwOnly && mpConfigured && !mpEmbedCheckout) { %>
-    <p class="text-xs text-amber-900 p-3 rounded-xl border border-amber-200 bg-amber-50 text-center" id="mpEmbedSetupWarn">
-      Falta <strong>MP_PUBLIC_KEY</strong> en el servidor para el formulario de tarjeta en Fandez. Mientras tanto no uses el botón que abre Mercado Pago: configura la clave pública en Hostinger o paga por transferencia.
-    </p>
-    <% } %>
-
-    <section id="mpEmbedSection" class="hidden zilo-card-premium rounded-2xl p-5" aria-label="Pago con tarjeta Mercado Pago">
-      <p class="text-xs text-zilo-muted mb-3">Pagas sin salir de Fandez. Mercado Pago procesa el cobro de forma segura.</p>
-      <div id="mpCardPaymentBrick"></div>
-    </section>
-
-    <button type="button" id="btnPay" class="zilo-btn-primary">
+    <button type="button" id="btnPay" class="zilo-btn-primary <%= (mpCanShowBrick && mpEmbedCheckout) ? 'hidden' : '' %>">
       <span id="btnPayLabel"><%= t('checkout.continue') %></span>
     </button>
     <a href="/cliente" class="block text-center text-sm text-zilo-muted hover:text-gray-700 py-2">Cancelar</a>
@@ -321,404 +393,9 @@
   </div>
 </div>
 
-<% if (mpGwOnly) { %>
+<% if (mpEmbedCheckout) { %>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 <script src="/js/checkout-mp-brick.js"></script>
 <% } %>
 
-<script>
-(function () {
-  const page = document.getElementById('checkoutPage');
-  const requestId = page.dataset.requestId;
-  let mpEmbed = page.dataset.mpEmbed === '1';
-  let mpPublicKey = page.dataset.mpPublicKey || '';
-  const mpTokenConfigured = page.dataset.mpTokenConfigured === '1';
-  const mpGwOnlyActive = page.dataset.mpGwOnly === '1';
-  const defaultCardGateway = page.dataset.defaultCardGateway || '';
-  const maxInstallments = parseInt(page.dataset.maxInstallments, 10) || 3;
-  let lastAmountDue = <%= Number(summary.amountDue) || 0 %>;
-  let mpBrickActive = false;
-  let mpConfigFetched = false;
-
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      if (document.querySelector(`script[src="${src}"]`)) {
-        resolve();
-        return;
-      }
-      const s = document.createElement('script');
-      s.src = src;
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error('No se pudo cargar ' + src));
-      document.body.appendChild(s);
-    });
-  }
-
-  async function refreshMpEmbedConfig() {
-    if (mpConfigFetched) return;
-    try {
-      const res = await fetch('/pagos/mp/brick-config', { headers: { Accept: 'application/json' } });
-      const data = await res.json().catch(() => ({}));
-      mpConfigFetched = true;
-      if (data.success && data.embed && data.publicKey) {
-        mpEmbed = true;
-        mpPublicKey = data.publicKey;
-        if (!window.MercadoPago) {
-          await loadScript('https://sdk.mercadopago.com/js/v2');
-        }
-        if (!window.FandezMpBrick) {
-          await loadScript('/js/checkout-mp-brick.js');
-        }
-        const warn = document.getElementById('mpEmbedSetupWarn');
-        if (warn) warn.classList.add('hidden');
-      }
-    } catch (_) { /* noop */ }
-  }
-  const fmt = n => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
-
-  const useCredits = document.getElementById('useCredits');
-  const usePoints = document.getElementById('usePoints');
-  const promoCode = document.getElementById('promoCode');
-  const promoFeedback = document.getElementById('promoFeedback');
-  const btnPay = document.getElementById('btnPay');
-  const billGiro = document.getElementById('billGiro');
-  const billingFields = document.getElementById('billingFields');
-  const btnEditBilling = document.getElementById('btnEditBilling');
-  const billingUseProfileHint = document.getElementById('billingUseProfileHint');
-
-  btnEditBilling?.addEventListener('click', () => {
-    billingFields?.classList.remove('hidden');
-    billingUseProfileHint?.classList.add('hidden');
-    btnEditBilling.classList.add('hidden');
-    document.getElementById('billRut')?.focus();
-  });
-
-  function selectedPaymentMethod() {
-    return document.querySelector('input[name="paymentMethod"]:checked')?.value || 'card';
-  }
-
-  function selectedCardGateway() {
-    const picked = document.querySelector('input[name="cardGateway"]:checked')?.value
-      || document.getElementById('defaultCardGatewayInput')?.value;
-    return picked || defaultCardGateway || null;
-  }
-
-  function isMercadoPagoGateway() {
-    return selectedCardGateway() === 'mercadopago';
-  }
-
-  function getBillingPayload() {
-    const type = document.querySelector('input[name="billingType"]:checked')?.value || 'natural';
-    return {
-      type,
-      rut: document.getElementById('billRut').value.trim(),
-      legalName: document.getElementById('billLegalName').value.trim(),
-      giro: document.getElementById('billGiro').value.trim(),
-      fiscalAddress: document.getElementById('billFiscalAddress').value.trim(),
-      invoiceEmail: document.getElementById('billInvoiceEmail').value.trim()
-    };
-  }
-
-  document.querySelectorAll('input[name="billingType"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      const isEmpresa = radio.value === 'empresa' && radio.checked;
-      document.querySelectorAll('.billing-type-option').forEach(el => {
-        const active = el.querySelector('input').value === (isEmpresa ? 'empresa' : 'natural');
-        el.classList.toggle('border-zilo-accent', active);
-        el.classList.toggle('bg-zilo-accent/5', active);
-        el.classList.toggle('border-zilo-border', !active);
-      });
-      billGiro.classList.toggle('hidden', !isEmpresa);
-    });
-  });
-
-  document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      document.querySelectorAll('.payment-option').forEach(el => {
-        const active = el.dataset.method === selectedPaymentMethod();
-        el.classList.toggle('border-zilo-accent', active);
-        el.classList.toggle('bg-zilo-accent/5', active);
-        el.classList.toggle('border-zilo-border', !active);
-      });
-      const picker = document.getElementById('cardGatewayPicker');
-      if (picker) picker.classList.toggle('hidden', selectedPaymentMethod() !== 'card');
-      recalc();
-      updatePayLabel();
-    });
-  });
-
-  document.querySelectorAll('input[name="cardGateway"]').forEach(radio => {
-    radio.addEventListener('change', () => recalc());
-  });
-
-  function setClassicPayVisible(visible) {
-    btnPay.classList.toggle('hidden', !visible);
-    const stickyBtn = document.getElementById('btnPaySticky');
-    const stickyBar = document.getElementById('stickyCheckoutBar');
-    if (stickyBtn) stickyBtn.classList.toggle('hidden', !visible);
-    if (stickyBar && mpEmbed) stickyBar.classList.toggle('is-visible', visible || mpBrickActive);
-  }
-
-  function billingReady() {
-    const b = getBillingPayload();
-    const type = b.type || 'natural';
-    if (!b.rut || !b.legalName || !b.fiscalAddress || !b.invoiceEmail) return false;
-    if (type === 'empresa' && !b.giro) return false;
-    return true;
-  }
-
-  async function syncMpBrick(amountDue) {
-    if (isMercadoPagoGateway() && mpTokenConfigured) {
-      await refreshMpEmbedConfig();
-    }
-    if (!mpEmbed || !window.FandezMpBrick) {
-      mpBrickActive = false;
-      const hidePay = isMercadoPagoGateway() && mpTokenConfigured && mpEmbed;
-      setClassicPayVisible(!hidePay);
-      return;
-    }
-    lastAmountDue = amountDue;
-    const result = await FandezMpBrick.sync({
-      embed: mpEmbed,
-      publicKey: mpPublicKey,
-      amount: amountDue,
-      maxInstallments,
-      paymentMethod: selectedPaymentMethod(),
-      cardGateway: selectedCardGateway(),
-      payerEmail: document.getElementById('billInvoiceEmail')?.value?.trim() || '',
-      onBeforeSubmit: () => {
-        if (!billingReady()) {
-          document.getElementById('billingSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          billingFields?.classList.remove('hidden');
-          return 'Completa los datos de facturación antes de pagar.';
-        }
-        return null;
-      },
-      submitPayment: (formData) => {
-        const code = promoCode?.value.trim() || '';
-        return fetch('/pagos/mp/tarjeta', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            requestId,
-            formData,
-            useCredits: useCredits?.checked,
-            usePoints: usePoints?.checked,
-            promoCode: code,
-            paymentMethod: 'card',
-            cardGateway: 'mercadopago',
-            billing: getBillingPayload()
-          })
-        })
-          .then(async (res) => {
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.success) {
-              const msg = data.error || 'No se pudo procesar el pago.';
-              FandezNotify.show(msg, 'error');
-              throw new Error(msg);
-            }
-            if (data.redirect) {
-              window.location.href = data.redirect;
-            }
-            return data;
-          });
-      }
-    });
-    mpBrickActive = Boolean(result.active);
-    setClassicPayVisible(!mpBrickActive);
-  }
-
-  function updatePayLabel(total) {
-    const method = selectedPaymentMethod();
-    const amount = total ?? 0;
-    const label = document.getElementById('btnPayLabel');
-    if (amount === 0) {
-      label.textContent = 'Confirmar servicio gratis';
-    } else if (method === 'transfer') {
-      label.textContent = `Ver datos transferencia · ${fmt(amount)}`;
-    } else {
-      label.textContent = `Pagar con tarjeta · ${fmt(amount)}`;
-    }
-  }
-
-  async function recalc() {
-    const code = promoCode?.value.trim() || '';
-    const res = await fetch('/pagos/calcular', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestId,
-        useCredits: useCredits?.checked,
-        usePoints: usePoints?.checked,
-        promoCode: code,
-        paymentMethod: selectedPaymentMethod(),
-        cardGateway: selectedCardGateway()
-      })
-    });
-    const data = await res.json();
-    if (!data.success) {
-      if (promoFeedback) {
-        promoFeedback.textContent = data.error || 'Código no válido';
-        promoFeedback.classList.remove('hidden', 'text-zilo-success');
-        promoFeedback.classList.add('text-red-600');
-      }
-      FandezNotify.show(data.error || 'Error al calcular', 'warning');
-      return;
-    }
-    if (promoFeedback) {
-      if (code && data.summary.discountPromo > 0) {
-        promoFeedback.textContent = `Descuento aplicado (−${fmt(data.summary.discountPromo)})`;
-        promoFeedback.classList.remove('hidden', 'text-red-600');
-        promoFeedback.classList.add('text-zilo-success');
-      } else if (code) {
-        promoFeedback.textContent = '';
-        promoFeedback.classList.add('hidden');
-      } else {
-        promoFeedback.textContent = '';
-        promoFeedback.classList.add('hidden');
-      }
-    }
-    const s = data.summary;
-    document.getElementById('lineVisitBase').textContent = fmt(s.visitBasePrice || s.visitSubtotal);
-    document.getElementById('lineBase').textContent = fmt(s.basePrice);
-
-    if (s.servicePriceBase) document.getElementById('lineService').textContent = fmt(s.servicePriceBase);
-    const schRow = document.getElementById('lineScheduleRow');
-    const scheduleAmt = Number(s.scheduleAdjustmentAmount) || 0;
-    if (schRow) {
-      if (scheduleAmt) {
-        schRow.classList.remove('hidden');
-        const band = s.scheduleBand === 'tarde' ? 'tarde' : (s.scheduleBand === 'nocturno' ? 'madrugada' : 'horario');
-        const pct = Math.abs(Number(s.scheduleAdjustmentPercent) || 0);
-        document.getElementById('lineScheduleLabel').textContent =
-          (scheduleAmt > 0 ? 'Recargo ' : 'Ajuste ') + band + (pct ? ` (${scheduleAmt > 0 ? '+' : ''}${pct}%)` : '');
-        document.getElementById('lineSchedule').textContent = (scheduleAmt > 0 ? '+' : '') + fmt(scheduleAmt);
-      } else {
-        schRow.classList.add('hidden');
-      }
-    }
-    const urgRow = document.getElementById('lineUrgencyRow');
-    const urgencyAmt = s.urgencyOnlyAdjustmentAmount != null
-      ? Number(s.urgencyOnlyAdjustmentAmount) || 0
-      : (Number(s.urgencyAdjustmentAmount) || 0) - scheduleAmt;
-    if (urgRow) {
-      if (urgencyAmt) {
-        urgRow.classList.remove('hidden');
-        const upct = s.urgencyOnlyPercent != null ? Math.abs(Number(s.urgencyOnlyPercent) || 0) : null;
-        const baseLabel = s.urgencyTierLabel || 'Ajuste urgencia';
-        document.getElementById('lineUrgencyLabel').textContent =
-          baseLabel + (upct ? ` (${urgencyAmt > 0 ? '+' : ''}${upct}%)` : '');
-        document.getElementById('lineUrgency').textContent = (urgencyAmt > 0 ? '+' : '') + fmt(urgencyAmt);
-      } else {
-        urgRow.classList.add('hidden');
-      }
-    }
-    document.getElementById('lineTotal').textContent = fmt(s.amountDue);
-    const stickyTotal = document.getElementById('stickyCheckoutTotal');
-    if (stickyTotal) stickyTotal.textContent = fmt(s.amountDue);
-    updatePayLabel(s.amountDue);
-
-    const show = (id, val) => {
-      const row = document.getElementById(id + 'Row');
-      const el = document.getElementById(id);
-      if (val > 0) { row.classList.remove('hidden'); el.textContent = '−' + fmt(val); }
-      else row.classList.add('hidden');
-    };
-    show('linePromo', s.discountPromo);
-    show('lineCredits', s.discountCredits);
-    show('linePoints', s.discountPoints);
-    await syncMpBrick(s.amountDue);
-  }
-
-  [useCredits, usePoints].forEach(el => el?.addEventListener('change', recalc));
-  document.getElementById('btnApplyPromo')?.addEventListener('click', recalc);
-  promoCode?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      recalc();
-    }
-  });
-
-  btnPay.addEventListener('click', async () => {
-    if (mpBrickActive) {
-      document.getElementById('mpEmbedSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
-    }
-    if (selectedPaymentMethod() === 'card' && isMercadoPagoGateway() && mpTokenConfigured) {
-      await refreshMpEmbedConfig();
-      await syncMpBrick(lastAmountDue);
-      if (mpBrickActive) {
-        document.getElementById('mpEmbedSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return;
-      }
-      if (!mpEmbed) {
-        FandezNotify.show('El pago con tarjeta en Fandez aún no está listo. Usa transferencia o avisa a soporte.', 'warning');
-        document.getElementById('mpEmbedSetupWarn')?.classList.remove('hidden');
-        return;
-      }
-    }
-    btnPay.disabled = true;
-    document.getElementById('btnPaySticky')?.setAttribute('disabled', 'disabled');
-    const code = promoCode?.value.trim() || '';
-    try {
-      const res = await fetch('/pagos/crear', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          requestId,
-          useCredits: useCredits?.checked,
-          usePoints: usePoints?.checked,
-          promoCode: code,
-          paymentMethod: selectedPaymentMethod(),
-          cardGateway: selectedCardGateway(),
-          billing: getBillingPayload()
-        })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) {
-        FandezNotify.show(data.error || 'No se pudo crear el pago. Intenta nuevamente.', 'error');
-        return;
-      }
-      if (data.free || data.redirect) {
-        window.location.href = data.redirect;
-        return;
-      }
-      if (data.checkoutUrl) {
-        if (selectedPaymentMethod() === 'card' && isMercadoPagoGateway()) {
-          if (!mpEmbed) {
-            FandezNotify.show('Falta MP_PUBLIC_KEY en el servidor. Añádela en Hostinger para pagar aquí sin ir a Mercado Pago.', 'warning');
-            document.getElementById('mpEmbedSetupWarn')?.classList.remove('hidden');
-            return;
-          }
-          FandezNotify.show('Usa el formulario de tarjeta en esta página (no hace falta ir a Mercado Pago).', 'warning');
-          await syncMpBrick(lastAmountDue);
-          document.getElementById('mpEmbedSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          return;
-        }
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-      FandezNotify.show('No se recibió el enlace de pago', 'error');
-    } catch (err) {
-      FandezNotify.show(err.message || 'Error de red al pagar', 'error');
-    } finally {
-      btnPay.disabled = false;
-      document.getElementById('btnPaySticky')?.removeAttribute('disabled');
-    }
-  });
-
-  (async () => {
-    if (mpGwOnlyActive && mpTokenConfigured) await refreshMpEmbedConfig();
-    await recalc();
-  })();
-
-  document.getElementById('btnPaySticky')?.addEventListener('click', () => btnPay.click());
-
-  if (window.FandezMobile?.isInAppBrowser?.()) {
-    const warn = document.getElementById('checkoutInAppWarn');
-    if (warn) warn.classList.remove('hidden');
-  }
-})();
-</script>
-
-<%- include('../partials/footer') %>
+<%- include('../partials/footer', { extraScripts: ['/js/checkout-page.js'] }) %>

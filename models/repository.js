@@ -336,6 +336,8 @@ function rowToUser(row) {
     email: row.email,
     password: row.password,
     name: row.name,
+    firstName: row.first_name || null,
+    lastName: row.last_name || null,
     role: row.role,
     parentId: row.parent_id || null,
     parentIds: normalizeParentIds(row.parent_ids, row.parent_id),
@@ -382,12 +384,13 @@ function rowToUser(row) {
     user.adminAccess = parseJson(row.admin_access, null);
   }
 
+  user.avatar = row.avatar || null;
+
   if (row.role === 'provider' || row.role === 'tecnico') {
     user.specialties = parseJson(row.specialties, []);
     user.rating = row.rating != null ? Number(row.rating) : null;
     user.reviewsCount = row.reviews_count;
     user.online = Boolean(row.online);
-    user.avatar = row.avatar;
     user.bio = row.bio;
     user.reviews = parseJson(row.reviews, []);
     user.verification = parseJson(row.verification, defaultProviderVerification());
@@ -402,15 +405,20 @@ function rowToUser(row) {
     }
   }
 
-  return user;
+  const { enrichPersonFields } = require('../lib/personName');
+  return enrichPersonFields(user);
 }
 
 function userToRow(user) {
+  const { enrichPersonFields } = require('../lib/personName');
+  enrichPersonFields(user);
   return {
     id: user.id,
     email: user.email,
     password: user.password,
     name: user.name,
+    first_name: user.firstName || null,
+    last_name: user.lastName || null,
     role: user.role,
     parent_id: user.parentId || null,
     parent_ids: JSON.stringify(
@@ -642,6 +650,21 @@ async function migrate() {
   await ensurePasswordResetColumns();
   await ensureWallDismissedColumn();
   await ensureCoverageInterestTable();
+  await ensureUserNamePartsColumns();
+}
+
+async function ensureUserNamePartsColumns() {
+  const alters = [
+    'ALTER TABLE users ADD COLUMN first_name VARCHAR(80) NULL',
+    'ALTER TABLE users ADD COLUMN last_name VARCHAR(80) NULL'
+  ];
+  for (const statement of alters) {
+    try {
+      await db.raw(statement);
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+    }
+  }
 }
 
 async function ensureCoverageInterestTable() {
@@ -1235,18 +1258,20 @@ async function saveUser(user) {
   const row = userToRow(user);
   await db.query(
     `INSERT INTO users (
-      id, email, password, name, role, parent_id, parent_ids, phone, address, address_lat, address_lng, address_place_id, referral_code,
+      id, email, password, name, first_name, last_name, role, parent_id, parent_ids, phone, address, address_lat, address_lng, address_place_id, referral_code,
       zilo_points, credits_clp, referrals_count, services_count,
       used_welcome_promo, used_referral, member_since,
       onboarding_completed, onboarding_completed_at,
       specialties, rating, reviews_count, online, avatar, bio, reviews, verification, location_share, billing, mfa, admin_access, provider_contract, wall_dismissed, active,
       email_verified_at, email_verification_code_hash, email_verification_expires_at, email_verification_sent_at,
       password_reset_token_hash, password_reset_expires_at, password_reset_sent_at, client_enabled
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       email = VALUES(email),
       password = VALUES(password),
       name = VALUES(name),
+      first_name = VALUES(first_name),
+      last_name = VALUES(last_name),
       role = VALUES(role),
       parent_id = VALUES(parent_id),
       parent_ids = VALUES(parent_ids),
@@ -1289,7 +1314,7 @@ async function saveUser(user) {
       password_reset_sent_at = VALUES(password_reset_sent_at),
       client_enabled = VALUES(client_enabled)`,
     [
-      row.id, row.email, row.password, row.name, row.role, row.parent_id, row.parent_ids, row.phone, row.address, row.address_lat, row.address_lng, row.address_place_id, row.referral_code,
+      row.id, row.email, row.password, row.name, row.first_name, row.last_name, row.role, row.parent_id, row.parent_ids, row.phone, row.address, row.address_lat, row.address_lng, row.address_place_id, row.referral_code,
       row.zilo_points, row.credits_clp, row.referrals_count, row.services_count,
       row.used_welcome_promo ? 1 : 0, row.used_referral ? 1 : 0, row.member_since,
       row.onboarding_completed ? 1 : 0, row.onboarding_completed_at,

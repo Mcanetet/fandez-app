@@ -231,8 +231,19 @@
     if (mapStatus) mapStatus.textContent = t('client.js.pin_adjusted');
   }
 
+  function ensureAddressMapSize() {
+    const map = FandezMap?.maps?.addressMap;
+    if (!map) return;
+    requestAnimationFrame(() => {
+      map.invalidateSize(true);
+      setTimeout(() => map.invalidateSize(true), 200);
+    });
+  }
+
   function showAddressOnMap(lat, lng, label, { approximate = false } = {}) {
     if (typeof FandezMap === 'undefined') return;
+    const mapEl = document.getElementById('addressMap');
+    if (!mapEl) return;
     const zoom = approximate ? 17 : 18;
     const opts = {
       zoom,
@@ -240,7 +251,7 @@
       onMarkerDrag: onAddressPinDrag
     };
     if (!FandezMap.maps.addressMap) {
-      FandezMap.init(document.getElementById('addressMap'), {
+      FandezMap.init(mapEl, {
         lat, lng, label: label || '', interactive: true, ...opts
       });
     } else {
@@ -250,13 +261,30 @@
       draggable: true,
       onMarkerDrag: onAddressPinDrag
     });
+    ensureAddressMapSize();
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (typeof FandezMap !== 'undefined') {
-      showAddressOnMap(SANTIAGO.lat, SANTIAGO.lng, 'Santiago, Chile', { approximate: true });
-      const map = FandezMap.maps.addressMap;
-      if (map) map.setZoom(15);
+    const mapEl = document.getElementById('addressMap');
+    if (mapEl && typeof IntersectionObserver !== 'undefined') {
+      const mapObserver = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) ensureAddressMapSize();
+      }, { threshold: 0.12 });
+      mapObserver.observe(mapEl);
+    }
+
+    const profLat = parseFloat(page?.dataset?.addressLat);
+    const profLng = parseFloat(page?.dataset?.addressLng);
+    const addr = addressInput?.value?.trim() || '';
+    if (typeof FandezMap !== 'undefined' && addr.length >= 5) {
+      if (Number.isFinite(profLat) && Number.isFinite(profLng)) {
+        if (latInput) latInput.value = String(profLat);
+        if (lngInput) lngInput.value = String(profLng);
+        showAddressOnMap(profLat, profLng, addr, { approximate: false });
+        if (mapStatus) mapStatus.textContent = t('client.js.location_found');
+      } else {
+        geocodeAddress();
+      }
     }
 
     updatePricePreview();
@@ -366,8 +394,7 @@
       card.classList.toggle('ring-zilo-accent/30', Boolean(on));
       const dot = card.querySelector('.activity-card__dot');
       const ring = card.querySelector('.activity-card__radio');
-      if (dot) dot.classList.toggle('scale-100', Boolean(on));
-      if (dot) dot.classList.toggle('scale-0', !on);
+      if (dot) dot.classList.toggle('is-on', Boolean(on));
       if (ring) ring.classList.toggle('border-zilo-accent', Boolean(on));
     });
     const panel = document.getElementById('activitySelectedPanel');
@@ -721,6 +748,7 @@
       updatePricePreview();
     });
   });
+  syncActivityHiddenFromCards();
   if (activitySelect && activitySelect.tagName === 'SELECT') {
     activitySelect.addEventListener('change', () => {
       toggleClientOtherFields();
@@ -814,6 +842,14 @@
       });
       if (base) params.set('base', String(base));
       if (page?.dataset?.pricingUnit === 'm2') params.set('skipFloor', '1');
+      const sid = page?.dataset?.serviceId;
+      if (sid) params.set('serviceId', sid);
+      const aLat = parseFloat(page?.dataset?.addressLat);
+      const aLng = parseFloat(page?.dataset?.addressLng);
+      if (Number.isFinite(aLat) && Number.isFinite(aLng)) {
+        params.set('lat', String(aLat));
+        params.set('lng', String(aLng));
+      }
       const res = await fetch(`/cliente/precio-preview?${params.toString()}`);
       const data = await res.json();
       if (!data.success) return;
@@ -899,6 +935,31 @@
         } else {
           adjRow.classList.add('hidden');
           adjRow.classList.remove('flex');
+        }
+      }
+
+      const zoneRow = document.getElementById('zoneAdjustmentRow');
+      const zoneMeta = p.zone;
+      const zoneAmt = Number(zoneMeta?.adjustmentAmount) || 0;
+      if (zoneRow) {
+        if (zoneMeta && zoneAmt !== 0) {
+          zoneRow.classList.remove('hidden');
+          zoneRow.classList.add('flex');
+          const origin = zoneMeta.originLabel || 'Ñuñoa';
+          const km = zoneMeta.distanceKm != null ? zoneMeta.distanceKm : '—';
+          const totalPct = zoneMeta.totalPercent != null ? zoneMeta.totalPercent : 0;
+          document.getElementById('zoneAdjustmentLabel').textContent = t('client.js.zone_surcharge_detail', {
+            origin,
+            km,
+            percent: Math.abs(totalPct),
+            techs: zoneMeta.supplyCount != null ? zoneMeta.supplyCount : '—'
+          });
+          const zoneEl = document.getElementById('displayZoneAdj');
+          zoneEl.textContent = `+${f.zoneAdjustment || zoneAmt}`;
+          zoneEl.className = 'text-orange-600';
+        } else {
+          zoneRow.classList.add('hidden');
+          zoneRow.classList.remove('flex');
         }
       }
     } catch (_) { /* silent */ }
@@ -3646,6 +3707,16 @@
         throw new Error(data.error || t('client.js.process_error'));
       }
 
+      resumeRequestId = data.request.id;
+      const url = new URL(window.location.href);
+      url.searchParams.set('resume', data.request.id);
+      url.searchParams.set('pay', '1');
+      window.history.replaceState({}, '', url.pathname + url.search);
+      if (window.FandezServiceInlinePay?.open) {
+        await window.FandezServiceInlinePay.open(data.request.id);
+        setBusy(false);
+        return;
+      }
       window.location.href = `/pagos/checkout?ref=${data.request.id}`;
     } catch (err) {
       setBusy(false);
@@ -3676,46 +3747,6 @@
       setTimeout(() => el.classList.remove('ring-2', 'ring-zilo-accent/40'), 1600);
     }
   });
-
-  (function initCheckoutWizard() {
-    const form = document.getElementById('requestForm');
-    if (!form || form.dataset.checkoutWizard !== '1') return;
-    let step = 1;
-    const panels = form.querySelectorAll('[data-co-panel]');
-    const tabs = form.querySelectorAll('.co-step-tab');
-    function refreshReview() {
-      const act = document.getElementById('activityId');
-      const actLabel = act?.selectedOptions?.[0]?.textContent?.trim() || '—';
-      const addr = document.getElementById('address')?.value?.trim() || '—';
-      const total = document.getElementById('stickyTotal')?.textContent || document.getElementById('priceVisit')?.textContent || '—';
-      const elAct = document.getElementById('coReviewActivity');
-      const elAddr = document.getElementById('coReviewAddress');
-      const elTot = document.getElementById('coReviewTotal');
-      if (elAct) elAct.textContent = actLabel;
-      if (elAddr) elAddr.textContent = addr;
-      if (elTot) elTot.textContent = total;
-    }
-    function showStep(n) {
-      step = Math.max(1, Math.min(3, Number(n) || 1));
-      panels.forEach((p) => p.classList.toggle('hidden', String(p.dataset.coPanel) !== String(step)));
-      tabs.forEach((tab) => {
-        const on = String(tab.dataset.coGoto) === String(step);
-        tab.classList.toggle('bg-white', on);
-        tab.classList.toggle('text-zilo-accent', on);
-        tab.classList.toggle('shadow-sm', on);
-        tab.classList.toggle('text-zilo-muted', !on);
-      });
-      if (step === 3) refreshReview();
-      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    form.querySelectorAll('[data-co-next]').forEach((btn) => {
-      btn.addEventListener('click', () => showStep(btn.dataset.coNext));
-    });
-    tabs.forEach((tab) => {
-      tab.addEventListener('click', () => showStep(tab.dataset.coGoto));
-    });
-    showStep(1);
-  })();
 
   document.getElementById('btnNoProviderContinue')?.addEventListener('click', () => {
     const id = document.getElementById('noProviderChoicePanel')?.dataset?.requestId || currentRequestId;
@@ -3775,12 +3806,6 @@
   });
 
   document.getElementById('btnRequestSticky')?.addEventListener('click', () => {
-    const form = document.getElementById('requestForm');
-    const reviewPanel = form?.querySelector('[data-co-panel="3"]');
-    if (form?.dataset.checkoutWizard === '1' && reviewPanel?.classList.contains('hidden')) {
-      form.querySelector('[data-co-goto="3"]')?.click();
-      return;
-    }
     submitRequest();
   });
 
