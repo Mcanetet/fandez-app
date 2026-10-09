@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title><%= title || 'Admin · modo seguro' %></title>
+  <style>
+    :root { --bg:#0a0a0c; --card:#151518; --line:#2a2a30; --text:#f4f4f5; --muted:#a1a1aa; --amber:#c45c14; --ok:#22c55e; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family: system-ui, sans-serif; min-height:100vh; padding:20px 16px 40px; }
+    .wrap { max-width:520px; margin:0 auto; }
+    h1 { font-size:1.25rem; margin:0 0 6px; }
+    p { color:var(--muted); font-size:0.875rem; line-height:1.45; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin:14px 0; }
+    .err { background:#2a1515; border-color:#5c2626; color:#fecaca; font-size:12px; word-break:break-word; }
+    .actions { display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+    a.btn { display:block; text-align:center; text-decoration:none; border-radius:999px; padding:12px 16px; font-weight:600; font-size:14px; }
+    .btn-amber { background:var(--amber); color:#fff; }
+    .btn-dim { background:#222228; color:var(--text); border:1px solid var(--line); }
+    .btn-out { background:#2a1515; color:#fca5a5; border:1px solid #5c2626; }
+    code { font-size:11px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Admin · modo seguro</h1>
+    <p>El panel completo falló al renderizar. Puedes seguir operando desde estos accesos.</p>
+    <% if (typeof errorDetail !== 'undefined' && errorDetail) { %>
+      <div class="card err"><strong>Detalle:</strong> <%= errorDetail %></div>
+    <% } %>
+    <div class="card">
+      <p style="margin:0 0 8px;color:var(--text);font-weight:600;">Accesos</p>
+      <div class="actions">
+        <a class="btn btn-amber" href="<%= adminBase %>/app">Bandeja de avisos</a>
+        <a class="btn btn-dim" href="<%= adminBase %>/precios">Precios</a>
+        <a class="btn btn-dim" href="<%= adminBase %>/comercial">Comercial</a>
+        <a class="btn btn-dim" href="<%= adminBase %>">Reintentar panel completo</a>
+        <a class="btn btn-out" href="/logout">Cerrar sesión</a>
+      </div>
+    </div>
+    <% if (typeof appVersion !== 'undefined' && appVersion) { %>
+      <p style="font-size:11px;"><code><%= appVersion.label || appVersion.version %></code></p>
+    <% } %>
+  </div>
+</body>
+</html>

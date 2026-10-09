@@ -753,6 +753,11 @@ router.get('/', requireRole('admin'), async (req, res) => {
     managedUsers: safeAdminCall('managedUsers', () => store.getManagedUsers({ limit: 30 }), []),
     florenciaConnections: safeAdminCall('florencia.connections', () => florencia.connectionsStatus(), {}),
     canAccessPanel: (panelId) => canAccessPanel(access, panelId),
+    hasPerm: (key) => Boolean(
+      access.isSuperAdmin
+      || access.isFullAccess
+      || (access.permissions || []).includes(key)
+    ),
     initialTab,
     attentionInbox: safeAdminCall('attentionInbox', () => buildAdminAttentionInbox(store, req.locale || 'es'), []),
     serviceBriefs,
@@ -761,13 +766,25 @@ router.get('/', requireRole('admin'), async (req, res) => {
   } catch (err) {
     console.error('[admin/dashboard]', err.message);
     if (err.stack) console.error(err.stack);
-    const hint = String(err.message || 'error desconocido').slice(0, 180);
-    return res.status(500).render('error', {
-      title: 'Error en el panel',
-      message: `No se pudo cargar el panel de administración (${hint}). Si acabas de actualizar, redeploya la app completa en Hostinger.`,
-      code: 500,
-      retryPath: req.originalUrl || adminUrl()
-    });
+    const hint = String(err.message || 'error desconocido').slice(0, 220);
+    // Fallback usable: no dejar al founder sin panel.
+    try {
+      return res.status(200).render('admin/emergency', {
+        title: 'Admin · modo seguro',
+        user: req.session.user,
+        adminBase: adminUrl(),
+        errorDetail: hint,
+        csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
+        appVersion: getAppVersionInfo()
+      });
+    } catch (err2) {
+      return res.status(500).render('error', {
+        title: 'Error en el panel',
+        message: `No se pudo cargar el panel (${hint}).`,
+        code: 500,
+        retryPath: req.originalUrl || adminUrl()
+      });
+    }
   }
 });
 

@@ -21,8 +21,11 @@ const as = typeof adminStrings !== 'undefined' ? adminStrings : { panels: {}, re
 const dl = (typeof locale !== 'undefined' && locale === 'en') ? 'en-US' : 'es-CL';
 const canManageTeam = adminAccess.isSuperAdmin || adminAccess.isFullAccess || (adminAccess.permissions || []).indexOf('equipo.manage') !== -1;
 const canManageProfiles = canManageTeam || adminAccess.isSuperAdmin || adminAccess.isFullAccess || (adminAccess.permissions || []).indexOf('perfiles.manage') !== -1;
-function hasPerm(key) {
-  return adminAccess.isSuperAdmin || adminAccess.isFullAccess || (adminAccess.permissions || []).indexOf(key) !== -1;
+// Exponer en locals para partials (include no hereda funciones locales del padre).
+if (typeof hasPerm !== 'function') {
+  hasPerm = function(key) {
+    return adminAccess.isSuperAdmin || adminAccess.isFullAccess || (adminAccess.permissions || []).indexOf(key) !== -1;
+  };
 }
 %>
 
@@ -1719,7 +1722,7 @@ function hasPerm(key) {
     <!-- CORREO MASIVO -->
     <section class="<%= panelClass('correos') %>" data-panel="correos"
       data-subtitle="Envía el mismo mensaje por email a clientes, socios, técnicos o a todos.">
-      <%- include('./partials/correo-masivo') %>
+      <%- include('./partials/correo-masivo', { hasPerm: hasPerm }) %>
     </section>
 
     <!-- RED OPERATIVA -->

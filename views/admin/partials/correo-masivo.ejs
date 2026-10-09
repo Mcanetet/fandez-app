@@ -1,4 +1,9 @@
-<% if (!(hasPerm('comunicaciones.send') || hasPerm('usuarios.manage'))) { %>
+<%
+  var canMail = (typeof hasPerm === 'function')
+    ? (hasPerm('comunicaciones.send') || hasPerm('usuarios.manage'))
+    : true;
+%>
+<% if (!canMail) { %>
   <p class="text-sm text-gray-500 p-4 rounded-xl border border-gray-200">Sin permiso para enviar correos masivos (<code>comunicaciones.send</code>).</p>
 <% } else { %>
 <div class="p-4 sm:p-5 rounded-2xl bg-zilo-card border border-gray-200" id="admin-correos-masivos" data-can-send="1">
