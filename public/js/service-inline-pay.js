@@ -175,8 +175,9 @@
       mpBrickActive = Boolean(result?.active);
       const openFullBtn = document.getElementById('inlineOpenFullCheckout');
       if (!mpBrickActive) {
-        setInlineBrickError('No pudimos cargar el formulario aquí.');
+        setInlineBrickError('No pudimos cargar el formulario aquí. Redirigiendo al checkout…');
         openFullBtn?.classList.remove('hidden');
+        setTimeout(() => goFullCheckout(), 800);
       } else {
         openFullBtn?.classList.add('hidden');
       }

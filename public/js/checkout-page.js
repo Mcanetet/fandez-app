@@ -51,22 +51,59 @@
     document.getElementById('mpBrickLoading')?.classList.toggle('hidden', !on);
   }
 
+  async function ensureMpScripts() {
+    if (!window.MercadoPago) await loadScript('https://sdk.mercadopago.com/js/v2');
+    if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js');
+  }
+
   async function refreshMpEmbedConfig(force) {
     if (mpConfigFetched && !force) return;
     try {
       const res = await fetch('/pagos/mp/brick-config', { headers: { Accept: 'application/json' } });
       const data = await res.json().catch(() => ({}));
-      mpConfigFetched = true;
       if (data.success) {
+        mpConfigFetched = true;
         if (data.publicKey) mpPublicKey = data.publicKey;
         if (typeof data.embed === 'boolean') mpEmbed = data.embed;
-        if (mpEmbed) {
-          if (!window.MercadoPago) await loadScript('https://sdk.mercadopago.com/js/v2');
-          if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js');
+        if (data.credentialMismatch) {
+          toast({
+            type: 'error',
+            title: 'Credenciales Mercado Pago mezcladas',
+            body: 'Usa Public Key y Access Token del mismo bloque (Credenciales de prueba) en Hostinger.',
+            kicker: 'Pago'
+          });
+        }
+        if (mpEmbed && mpPublicKey) {
+          await ensureMpScripts();
           document.getElementById('mpEmbedSetupWarn')?.classList.add('hidden');
         }
       }
     } catch (_) { /* noop */ }
+  }
+
+  async function fallbackMercadoPagoRedirect() {
+    toast({ type: 'info', title: 'Abriendo Mercado Pago…', body: 'El formulario embebido no cargó; continuarás en la página segura de MP.', kicker: 'Pago' });
+    const res = await fetch('/pagos/crear', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        requestId,
+        useCredits: useCredits?.checked,
+        usePoints: usePoints?.checked,
+        promoCode: promoCode?.value.trim() || '',
+        paymentMethod: selectedPaymentMethod(),
+        cardGateway: selectedCardGateway(),
+        billing: getBillingPayload(),
+        forceRedirect: true
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.checkoutUrl) {
+      window.location.href = data.checkoutUrl;
+      return true;
+    }
+    toast(data.error || 'No se pudo abrir Mercado Pago.', 'error');
+    return false;
   }
 
   const fmt = (n) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
@@ -178,26 +215,41 @@
       setMpBrickLoading(false);
       return;
     }
-    await refreshMpEmbedConfig(reveal);
+    await refreshMpEmbedConfig(true);
     if (!mpPublicKey) mpPublicKey = page.dataset.mpPublicKey || '';
     if (!mpEmbed && mpPublicKey) mpEmbed = true;
-    if (!mpEmbed || !window.FandezMpBrick || !mpPublicKey) {
+    const amount = Math.round(Number(amountDue) || 0);
+    if (!mpEmbed || !mpPublicKey) {
       mpBrickActive = false;
       setMpBrickLoading(false);
       setClassicPayVisible(true);
       return;
     }
+    try {
+      await ensureMpScripts();
+    } catch (err) {
+      console.error('[checkout] MP scripts', err);
+      mpBrickActive = false;
+      setMpBrickLoading(false);
+      return;
+    }
+    if (!window.FandezMpBrick) {
+      mpBrickActive = false;
+      setMpBrickLoading(false);
+      return;
+    }
     if (reveal) revealMpEmbedSection();
     setMpBrickLoading(true);
-    lastAmountDue = amountDue;
+    lastAmountDue = amount;
     const result = await window.FandezMpBrick.sync({
       embed: true,
       publicKey: mpPublicKey,
-      amount: amountDue,
+      amount,
       maxInstallments,
       paymentMethod: 'card',
       cardGateway: 'mercadopago',
       payerEmail: document.getElementById('billInvoiceEmail')?.value?.trim() || '',
+      onReady: () => setMpBrickLoading(false),
       onBeforeSubmit: () => {
         if (!billingReady()) {
           document.getElementById('billingSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -258,13 +310,17 @@
         document.getElementById('mpEmbedSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return true;
       }
-      toast({
-        type: 'warning',
-        title: 'No pudimos abrir el formulario de tarjeta.',
-        body: 'Verifica MP_TEST_PUBLIC_KEY y MP_TEST_ACCESS_TOKEN en Hostinger, reinicia la app y recarga.',
-        kicker: 'Pago'
-      });
-      document.getElementById('mpEmbedSetupWarn')?.classList.remove('hidden');
+      if (!mpPublicKey) {
+        toast({
+          type: 'warning',
+          title: 'Falta la Public Key de prueba',
+          body: 'En Hostinger define MP_TEST_PUBLIC_KEY (Credenciales de prueba) y reinicia la app.',
+          kicker: 'Pago'
+        });
+        document.getElementById('mpEmbedSetupWarn')?.classList.remove('hidden');
+        return false;
+      }
+      await fallbackMercadoPagoRedirect();
       return true;
     } finally {
       setMpBrickLoading(false);

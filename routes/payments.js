@@ -360,12 +360,14 @@ router.post('/crear', requireRole('client'), async (req, res) => {
 
   const service = store.getServiceById(request.serviceId);
   try {
+    const forceRedirect = req.body.forceRedirect === true || req.body.forceRedirect === 'true';
     const payment = await cardCheckout.createCardPayment({
       request: updated,
       service,
       baseUrl,
       pricingConfig: pricing,
-      gatewayId: req.body.cardGateway || null
+      gatewayId: req.body.cardGateway || null,
+      forceRedirect
     });
 
     if (payment.mode === 'demo') {
@@ -410,7 +412,7 @@ router.post('/crear', requireRole('client'), async (req, res) => {
     }
 
     if (payment.mode === 'mercadopago') {
-      if (mp.isEmbedCheckoutAvailable()) {
+      if (mp.isEmbedCheckoutAvailable() && !forceRedirect) {
         return res.status(400).json({
           success: false,
           error: 'Completa el pago con el formulario de tarjeta en esta pantalla.',
