@@ -534,12 +534,16 @@ router.get('/precio-preview', requireRole('client'), (req, res) => {
   });
   if (!preview) return res.status(400).json({ error: 'Opción de llegada no válida' });
   const zoneAmt = preview.zone?.adjustmentAmount || 0;
+  const baseBeforeZone = preview.zone?.baseBeforeZone != null
+    ? preview.zone.baseBeforeZone
+    : Math.max(0, (Number(preview.baseVisit) || 0) - zoneAmt);
   res.json({
     success: true,
     preview: {
       ...preview,
       formatted: {
         baseVisit: store.formatCLP(preview.baseVisit),
+        baseBeforeZone: store.formatCLP(baseBeforeZone),
         adjustment: store.formatCLP(preview.adjustmentAmount),
         scheduleAdjustment: store.formatCLP(preview.scheduleAdjustmentAmount || 0),
         urgencyOnlyAdjustment: store.formatCLP(preview.urgencyOnlyAdjustmentAmount || 0),

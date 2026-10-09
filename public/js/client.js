@@ -229,6 +229,21 @@
     if (latInput) latInput.value = Number(lat).toFixed(6);
     if (lngInput) lngInput.value = Number(lng).toFixed(6);
     if (mapStatus) mapStatus.textContent = t('client.js.pin_adjusted');
+    updatePricePreview();
+  }
+
+  function resolvePreviewCoords() {
+    const fromFormLat = parseFloat(latInput?.value);
+    const fromFormLng = parseFloat(lngInput?.value);
+    if (Number.isFinite(fromFormLat) && Number.isFinite(fromFormLng)) {
+      return { lat: fromFormLat, lng: fromFormLng };
+    }
+    const fromProfileLat = parseFloat(page?.dataset?.addressLat);
+    const fromProfileLng = parseFloat(page?.dataset?.addressLng);
+    if (Number.isFinite(fromProfileLat) && Number.isFinite(fromProfileLng)) {
+      return { lat: fromProfileLat, lng: fromProfileLng };
+    }
+    return null;
   }
 
   function ensureAddressMapSize() {
@@ -884,11 +899,10 @@
       if (page?.dataset?.pricingUnit === 'm2' || isEscombrosService()) params.set('skipFloor', '1');
       const sid = page?.dataset?.serviceId;
       if (sid) params.set('serviceId', sid);
-      const aLat = parseFloat(page?.dataset?.addressLat);
-      const aLng = parseFloat(page?.dataset?.addressLng);
-      if (Number.isFinite(aLat) && Number.isFinite(aLng)) {
-        params.set('lat', String(aLat));
-        params.set('lng', String(aLng));
+      const coords = resolvePreviewCoords();
+      if (coords) {
+        params.set('lat', String(coords.lat));
+        params.set('lng', String(coords.lng));
       }
       const res = await fetch(`/cliente/precio-preview?${params.toString()}`);
       const data = await res.json();
@@ -897,6 +911,11 @@
       const f = data.preview.formatted;
       const meta = selectedActivityMeta();
       const unitSuffix = meta?.unit === 'm3' ? ' / m³' : (meta?.unit === 'm2' || page?.dataset?.pricingUnit === 'm2' ? ' / m²' : '');
+      const zoneMetaEarly = p.zone;
+      const zoneAmtEarly = Number(zoneMetaEarly?.adjustmentAmount) || 0;
+      const baseBeforeZone = zoneMetaEarly?.baseBeforeZone != null
+        ? Number(zoneMetaEarly.baseBeforeZone)
+        : Math.max(0, (Number(p.baseVisit) || 0) - zoneAmtEarly);
       if (unitSuffix && (page?.dataset?.pricingUnit === 'm2' || isEscombrosService())) {
         if (isLandscapeSelected()) {
           const stdOpt = document.getElementById('landscapeStandard')?.selectedOptions?.[0];
@@ -914,6 +933,14 @@
             visitEl.textContent = f.baseVisit;
           }
         }
+      } else if (zoneAmtEarly > 0 && Number.isFinite(baseBeforeZone) && baseBeforeZone > 0) {
+        // baseVisit ya incluye zona: en desglose mostramos base sin zona + fila de adicional.
+        const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
+        visitEl.textContent = new Intl.NumberFormat(locale, {
+          style: 'currency',
+          currency: 'CLP',
+          maximumFractionDigits: 0
+        }).format(baseBeforeZone);
       } else {
         visitEl.textContent = f.baseVisit;
       }
@@ -990,13 +1017,32 @@
           zoneRow.classList.add('flex');
           const origin = zoneMeta.originLabel || 'Ñuñoa';
           const km = zoneMeta.distanceKm != null ? zoneMeta.distanceKm : '—';
-          const totalPct = zoneMeta.totalPercent != null ? zoneMeta.totalPercent : 0;
-          document.getElementById('zoneAdjustmentLabel').textContent = t('client.js.zone_surcharge_detail', {
+          const distPct = Number(zoneMeta.distancePercent) || 0;
+          const supplyPct = Number(zoneMeta.supplyPercent) || 0;
+          const totalPct = zoneMeta.totalPercent != null ? zoneMeta.totalPercent : (distPct + supplyPct);
+          const techs = zoneMeta.supplyCount;
+          let label = t('client.js.zone_surcharge_detail', {
             origin,
             km,
             percent: Math.abs(totalPct),
-            techs: zoneMeta.supplyCount != null ? zoneMeta.supplyCount : '—'
+            techs: techs != null ? techs : '—'
           });
+          if (distPct > 0 && supplyPct > 0 && techs != null) {
+            label = t('client.js.zone_surcharge_split', {
+              origin,
+              km,
+              distPercent: Math.abs(distPct),
+              supplyPercent: Math.abs(supplyPct),
+              techs
+            });
+          } else if (distPct > 0 && (!supplyPct || techs == null)) {
+            label = t('client.js.zone_surcharge_distance', {
+              origin,
+              km,
+              percent: Math.abs(distPct || totalPct)
+            });
+          }
+          document.getElementById('zoneAdjustmentLabel').textContent = label;
           const zoneEl = document.getElementById('displayZoneAdj');
           zoneEl.textContent = `+${f.zoneAdjustment || zoneAmt}`;
           zoneEl.className = 'text-orange-600';
@@ -1215,6 +1261,7 @@
             : (data.displayName || t('client.js.location_found'));
         }
         setCoverageState(data.coverage);
+        updatePricePreview();
       }
     } catch (_) {
       mapStatus.textContent = t('client.js.geocode_fail');

@@ -1154,10 +1154,22 @@ function getCheckoutSummary(userId, requestId) {
   const basePrice = visitSubtotal;
   const discounts = (request.discountCredits || 0) + (request.discountPoints || 0) + (request.discountPromo || 0);
   const amountDue = Math.max(0, basePrice - discounts);
+  const zoneMeta = request.zonePricing && typeof request.zonePricing === 'object' ? request.zonePricing : null;
+  const zoneAdjustmentAmount = Math.max(
+    0,
+    parseInt(request.zoneAdjustmentAmount != null ? request.zoneAdjustmentAmount : (zoneMeta?.adjustmentAmount || 0), 10) || 0
+  );
+  const visitBaseRaw = request.visitBasePrice ?? visitSubtotal;
+  const visitBaseBeforeZone = zoneMeta?.baseBeforeZone != null
+    ? Math.max(0, parseInt(zoneMeta.baseBeforeZone, 10) || 0)
+    : Math.max(0, (parseInt(visitBaseRaw, 10) || 0) - zoneAdjustmentAmount);
   return {
     visitSubtotal,
     basePrice,
-    visitBasePrice: request.visitBasePrice ?? visitSubtotal,
+    visitBasePrice: visitBaseRaw,
+    visitBaseBeforeZone,
+    zoneAdjustmentAmount,
+    zone: zoneMeta,
     urgencyAdjustmentAmount: request.urgencyAdjustmentAmount || 0,
     urgencyTier: request.urgencyTier || null,
     urgencyTierLabel: request.urgencyTierLabel || null,

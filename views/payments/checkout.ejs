@@ -248,7 +248,22 @@
       <div class="space-y-2 text-sm">
         <div class="flex justify-between checkout-line pb-2">
           <span class="text-zilo-muted">Visita técnica (base)</span>
-          <span id="lineVisitBase"><%= formatCLP(summary.visitBasePrice || summary.visitSubtotal) %></span>
+          <span id="lineVisitBase"><%= formatCLP(summary.visitBaseBeforeZone != null ? summary.visitBaseBeforeZone : (summary.visitBasePrice || summary.visitSubtotal)) %></span>
+        </div>
+        <% const zoneAmt = Number(summary.zoneAdjustmentAmount) || 0; const zoneMeta = summary.zone || null; %>
+        <div class="flex justify-between checkout-line pb-2 <%= zoneAmt ? '' : 'hidden' %>" id="lineZoneRow">
+          <span class="text-zilo-muted" id="lineZoneLabel">
+            <% if (zoneAmt && zoneMeta) {
+              const km = zoneMeta.distanceKm != null ? zoneMeta.distanceKm : '—';
+              const origin = zoneMeta.originLabel || 'Ñuñoa';
+              const pct = Math.abs(zoneMeta.totalPercent || zoneMeta.distancePercent || 0);
+            %>
+              Adicional por zona / distancia (<%= origin %> · <%= km %> km<% if (pct) { %> · +<%= pct %>%<% } %>)
+            <% } else { %>
+              Adicional por zona / distancia
+            <% } %>
+          </span>
+          <span id="lineZone" class="text-orange-600"><%= zoneAmt ? ('+' + formatCLP(zoneAmt)) : '—' %></span>
         </div>
         <div class="flex justify-between checkout-line pb-2 <%= summary.scheduleAdjustmentAmount ? '' : 'hidden' %>" id="lineScheduleRow">
           <span class="text-zilo-muted" id="lineScheduleLabel">
