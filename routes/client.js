@@ -487,6 +487,7 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     serviceRaw.id,
     req.query.resume || null
   );
+  const inlinePayFlow = String(req.query.pay || '') === '1' && Boolean(checkoutDraft?.id);
   const { resolveServicePath } = require('../lib/homeServicePaths');
   const resolvedServicePath = resolveServicePath(req.query.camino, serviceRaw.id);
   const mp = require('../lib/mercadopago');
@@ -507,6 +508,7 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     formatCLP: store.formatCLP,
     tracking: req.query.tracking || null,
     checkoutDraft,
+    inlinePayFlow,
     cancellationReasons: CANCELLATION_REASONS,
     resolvedServicePath,
     mpEmbedCheckout: mp.isEmbedCheckoutAvailable(),

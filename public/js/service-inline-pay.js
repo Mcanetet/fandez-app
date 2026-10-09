@@ -6,7 +6,7 @@
   if (!page) return;
 
   const params = new URLSearchParams(window.location.search);
-  const payFlow = params.get('pay') === '1';
+  const payFlow = params.get('pay') === '1' || page.dataset.payFlow === '1';
   if (page.dataset.tracking && !payFlow) return;
 
   const orderSections = document.getElementById('serviceOrderSections');
@@ -18,23 +18,84 @@
   let mpEmbed = page.dataset.mpEmbed === '1';
   let mpPublicKey = page.dataset.mpPublicKey || '';
   let mpBrickActive = false;
+  let scriptsPromise = null;
 
   function loadScript(src) {
     return new Promise((resolve, reject) => {
-      if (document.querySelector(`script[src="${src}"]`)) {
-        resolve();
+      const isMpSdk = src.includes('sdk.mercadopago.com');
+      const isBrickHelper = src.includes('checkout-mp-brick');
+      if (isMpSdk && window.MercadoPago) return resolve();
+      if (isBrickHelper && window.FandezMpBrick) return resolve();
+
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        const done = () => {
+          if (isMpSdk && !window.MercadoPago) {
+            reject(new Error('SDK Mercado Pago no disponible'));
+            return;
+          }
+          resolve();
+        };
+        // Script ya en DOM: si el global ya existe, listo; si no, esperar load o un poll corto.
+        if ((isMpSdk && window.MercadoPago) || (isBrickHelper && window.FandezMpBrick) || existing.dataset.loaded === '1') {
+          return done();
+        }
+        existing.addEventListener('load', () => {
+          existing.dataset.loaded = '1';
+          done();
+        }, { once: true });
+        existing.addEventListener('error', () => reject(new Error('No se pudo cargar ' + src)), { once: true });
+        let tries = 0;
+        const poll = setInterval(() => {
+          tries += 1;
+          if ((isMpSdk && window.MercadoPago) || (isBrickHelper && window.FandezMpBrick) || tries > 40) {
+            clearInterval(poll);
+            done();
+          }
+        }, 50);
         return;
       }
       const s = document.createElement('script');
       s.src = src;
-      s.onload = () => resolve();
+      s.async = true;
+      s.onload = () => {
+        s.dataset.loaded = '1';
+        resolve();
+      };
       s.onerror = () => reject(new Error('No se pudo cargar ' + src));
-      document.body.appendChild(s);
+      document.head.appendChild(s);
     });
   }
 
+  function ensureMpScripts() {
+    if (window.MercadoPago && window.FandezMpBrick) {
+      return Promise.resolve();
+    }
+    if (scriptsPromise) return scriptsPromise;
+    scriptsPromise = (async () => {
+      if (!window.MercadoPago) {
+        await loadScript('https://sdk.mercadopago.com/js/v2');
+      }
+      if (!window.FandezMpBrick) {
+        await loadScript('/js/checkout-mp-brick.js');
+      }
+    })().catch((err) => {
+      scriptsPromise = null;
+      throw err;
+    });
+    return scriptsPromise;
+  }
+
+  // Precarga en cuanto hay flujo de pago o embed disponible (no espera al click).
+  if (payFlow || (mpEmbed && mpPublicKey)) {
+    ensureMpScripts().catch(() => { /* se reintenta al montar */ });
+  }
+
   function setInlineBrickLoading(on) {
-    document.getElementById('inlineMpBrickLoading')?.classList.toggle('hidden', !on);
+    const el = document.getElementById('inlineMpBrickLoading');
+    if (!el) return;
+    el.classList.toggle('hidden', !on);
+    el.setAttribute('aria-busy', on ? 'true' : 'false');
   }
 
   function setInlineBrickError(message) {
@@ -51,6 +112,11 @@
 
   async function refreshMpEmbedConfig(force) {
     if (mpConfigFetched && !force) return;
+    if (mpEmbed && mpPublicKey && !force) {
+      mpConfigFetched = true;
+      await ensureMpScripts();
+      return;
+    }
     try {
       const res = await fetch('/pagos/mp/brick-config', { headers: { Accept: 'application/json' } });
       const data = await res.json().catch(() => ({}));
@@ -58,10 +124,7 @@
       if (!data.success) return;
       if (typeof data.embed === 'boolean') mpEmbed = data.embed;
       if (data.publicKey) mpPublicKey = data.publicKey;
-      if (mpEmbed && mpPublicKey) {
-        if (!window.MercadoPago) await loadScript('https://sdk.mercadopago.com/js/v2');
-        if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js');
-      }
+      if (mpEmbed && mpPublicKey) await ensureMpScripts();
     } catch (_) { /* noop */ }
   }
 
@@ -92,20 +155,68 @@
     }
   }
 
+  function revealPayUi() {
+    page.classList.add('service-pay-flow');
+    page.dataset.payFlow = '1';
+    orderSections?.classList.add('hidden');
+    document.getElementById('requestForm')?.classList.add('hidden');
+    document.getElementById('resumeDraftBanner')?.classList.add('hidden');
+    document.querySelectorAll('#urgencyOptions, #alandChatSection').forEach((el) => el?.classList.add('hidden'));
+    const sticky = document.getElementById('stickyOrderBar');
+    sticky?.classList.remove('is-visible');
+    sticky?.classList.add('service-pay-flow-hide');
+    sticky?.setAttribute('aria-hidden', 'true');
+    inlineRoot.classList.remove('hidden');
+    setInlineBrickLoading(true);
+    setProgressStep(2);
+  }
+
   async function recalcAndMount() {
     if (!requestId) return;
     setInlineBrickError('');
-    const res = await fetch('/pagos/calcular', {
+    setInlineBrickLoading(true);
+
+    const billing = getBillingPayload();
+    const scriptsReady = ensureMpScripts().catch(() => null);
+
+    const calcPromise = fetch('/pagos/calcular', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ requestId, paymentMethod: 'card', cardGateway: 'mercadopago' })
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
     });
-    const data = await res.json().catch(() => ({}));
-    if (!data.success || !data.summary) {
-      FandezNotify?.show(data.error || 'No se pudo calcular el total', 'error');
+
+    const initPromise = fetch('/pagos/mp/brick-init', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        requestId,
+        paymentMethod: 'card',
+        billing
+      })
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
+    }).catch(() => ({ res: null, data: {} }));
+
+    const configPromise = refreshMpEmbedConfig(false);
+
+    const [{ res: calcRes, data: calcData }, initResult] = await Promise.all([
+      calcPromise,
+      initPromise,
+      configPromise,
+      scriptsReady
+    ]);
+
+    if (!calcData.success || !calcData.summary) {
+      setInlineBrickLoading(false);
+      FandezNotify?.show(calcData.error || 'No se pudo calcular el total', 'error');
       return;
     }
-    const amount = data.summary.amountDue || 0;
+
+    let amount = calcData.summary.amountDue || 0;
     const totalEl = document.getElementById('inlinePayTotal');
     if (totalEl) totalEl.textContent = fmt(amount);
 
@@ -114,51 +225,36 @@
       return;
     }
 
-    await refreshMpEmbedConfig(true);
+    const initData = initResult?.data || {};
+    if (initResult?.res?.ok && initData.success) {
+      if (initData.publicKey) mpPublicKey = initData.publicKey;
+      amount = Math.round(Number(initData.amount) || amount);
+      if (totalEl) totalEl.textContent = fmt(amount);
+    }
 
     if (!mpEmbed || !mpPublicKey || page.dataset.mpTokenConfigured !== '1') {
       goFullCheckout();
       return;
     }
 
+    await ensureMpScripts().catch(() => null);
     if (!window.FandezMpBrick) {
       goFullCheckout();
       return;
     }
 
-    setInlineBrickLoading(true);
     try {
-      let preferenceId = '';
-      let brickAmount = Math.round(Number(amount) || 0);
-      try {
-        const initRes = await fetch('/pagos/mp/brick-init', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            requestId,
-            paymentMethod: 'card',
-            billing: getBillingPayload()
-          })
-        });
-        const initData = await initRes.json().catch(() => ({}));
-        if (initRes.ok && initData.success) {
-          if (initData.publicKey) mpPublicKey = initData.publicKey;
-          preferenceId = initData.preferenceId || '';
-          brickAmount = Math.round(Number(initData.amount) || brickAmount);
-        }
-      } catch (_) { /* noop */ }
-
       const brickCtx = {
         embed: true,
         publicKey: mpPublicKey,
-        amount: brickAmount,
-        preferenceId,
+        amount: Math.round(Number(amount) || 0),
+        preferenceId: initData.preferenceId || '',
         maxInstallments: parseInt(page.dataset.maxInstallments, 10) || 3,
         paymentMethod: 'card',
         cardGateway: 'mercadopago',
         containerId: 'inlineMpCardPaymentBrick',
         sectionId: 'inlineMpEmbedSection',
-        payerEmail: getBillingPayload().invoiceEmail,
+        payerEmail: billing.invoiceEmail,
         onReady: () => setInlineBrickLoading(false),
         onBeforeSubmit: () => {
           if (!billingReady()) {
@@ -224,15 +320,7 @@
 
   async function openInlineCheckout(id) {
     requestId = id;
-    orderSections?.classList.add('hidden');
-    document.getElementById('requestForm')?.classList.add('hidden');
-    document.getElementById('resumeDraftBanner')?.classList.add('hidden');
-    document.querySelectorAll('#urgencyOptions, #alandChatSection').forEach((el) => el?.classList.add('hidden'));
-    const sticky = document.getElementById('stickyOrderBar');
-    sticky?.classList.remove('is-visible');
-    sticky?.setAttribute('aria-hidden', 'true');
-    inlineRoot.classList.remove('hidden');
-    setProgressStep(2);
+    revealPayUi();
     inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
     await recalcAndMount();
   }
@@ -261,7 +349,10 @@
   if (payFlow) {
     const rid = params.get('resume') || page.dataset.resumeId;
     if (rid) {
-      openInlineCheckout(rid);
+      // Primera pintura ya es checkout: montar brick sin esperar interacción.
+      requestId = rid;
+      revealPayUi();
+      recalcAndMount();
     }
   }
 })();

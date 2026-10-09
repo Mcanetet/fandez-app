@@ -1,4 +1,5 @@
-<%- include('../partials/head', { useMap: true }) %>
+<% const payFlowNow = typeof inlinePayFlow !== 'undefined' && inlinePayFlow; %>
+<%- include('../partials/head', { useMap: !payFlowNow, preloadMp: typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout }) %>
 
 <% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria', 'paisajismo', 'limpieza', 'escombros', 'fotovoltaico', 'piscinas']; %>
 <% const brandOptional = brandOptionalServices.indexOf(String(service.id || '').toLowerCase()) !== -1; %>
@@ -9,7 +10,10 @@
 <% const servicePath = typeof resolvedServicePath !== 'undefined' ? resolvedServicePath : 'now'; %>
 <% const isProjectPath = servicePath === 'project' || isGarden || isFv; %>
 <% const perM2 = isCleaning || (!isGarden && !isFv && !isEscombros && service.pricingUnit === 'm2'); %>
-<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="servicePage"
+<% const draftAmount = (typeof checkoutDraft !== 'undefined' && checkoutDraft)
+  ? (checkoutDraft.amountDue || checkoutDraft.visitTotal || checkoutDraft.basePrice || 0)
+  : 0; %>
+<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter<%= payFlowNow ? ' service-pay-flow' : '' %>" id="servicePage"
   data-service-id="<%= service.id %>"
   data-service-name="<%= service.name %>"
   data-client-id="<%= user && user.id ? user.id : '' %>"
@@ -25,6 +29,7 @@
   data-min-m2="<%= isGarden ? 100 : (isCleaning ? 20 : (isEscombros ? 1 : 10)) %>"
   data-tracking="<%= typeof tracking !== 'undefined' ? tracking : '' %>"
   data-resume-id="<%= typeof checkoutDraft !== 'undefined' && checkoutDraft ? checkoutDraft.id : '' %>"
+  data-pay-flow="<%= payFlowNow ? '1' : '0' %>"
   data-whatsapp="<%= company.whatsapp %>"
   data-brand-optional="<%= brandOptional ? '1' : '0' %>"
   data-user-name="<%= user && user.name ? user.name : 'Cliente' %>"
@@ -228,8 +233,8 @@
     </section>
     <% } %>
 
-    <section id="requestForm" class="space-y-4 zilo-page-enter-delay-2">
-      <div id="serviceOrderSections" class="space-y-4">
+    <section id="requestForm" class="space-y-4 zilo-page-enter-delay-2<%= payFlowNow ? ' hidden' : '' %>">
+      <div id="serviceOrderSections" class="space-y-4<%= payFlowNow ? ' hidden' : '' %>">
       <% if (mod('client_regalo')) { %>
       <div class="p-4 rounded-2xl zilo-gift-card">
         <label class="flex items-center gap-3 cursor-pointer">
@@ -439,10 +444,10 @@
     </section>
 
     <% const billInline = (typeof profile !== 'undefined' && profile.billing) ? profile.billing : { type: 'natural', rut: '', legalName: profile.name, giro: '', fiscalAddress: profile.address || '', invoiceEmail: profile.email }; %>
-    <section id="inlineCheckout" class="hidden space-y-4 zilo-page-enter-delay-2" aria-label="<%= t('client.service.inline_pay_aria') %>">
+    <section id="inlineCheckout" class="<%= payFlowNow ? '' : 'hidden' %> space-y-4 zilo-page-enter-delay-2" aria-label="<%= t('client.service.inline_pay_aria') %>">
       <div class="checkout-pay-hero zilo-card-premium rounded-2xl p-5 border border-zilo-accent/20">
         <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-muted"><%= t('checkout.pay_subtitle') %></p>
-        <p class="text-3xl font-bold text-zilo-accent tabular-nums mt-1" id="inlinePayTotal">—</p>
+        <p class="text-3xl font-bold text-zilo-accent tabular-nums mt-1" id="inlinePayTotal"><%= draftAmount > 0 ? formatCLP(draftAmount) : '—' %></p>
         <p class="text-[10px] text-zilo-muted mt-1"><%= t('client.service.secure_pay') %></p>
       </div>
       <div class="zilo-card-premium rounded-2xl p-4 space-y-2">
@@ -464,8 +469,20 @@
         <input type="email" id="inlineBillInvoiceEmail" value="<%= billInline.invoiceEmail || profile.email %>" placeholder="Email facturación" class="zilo-input !py-2 text-sm">
       </div>
       <section id="inlineMpEmbedSection" class="zilo-card-premium rounded-2xl p-4 checkout-mp-block">
-        <h2 class="zilo-label mb-3"><%= t('checkout.payment_title') %></h2>
-        <p id="inlineMpBrickLoading" class="hidden text-xs text-zilo-muted py-4 text-center">Cargando formulario de tarjeta…</p>
+        <h2 class="zilo-label mb-1"><%= t('checkout.payment_title') %></h2>
+        <p class="text-xs text-zilo-muted mb-3">Pagas sin salir de Fandez. Mercado Pago procesa el cobro de forma segura.</p>
+        <div id="inlineMpBrickLoading" class="mp-brick-skeleton<%= payFlowNow ? '' : ' hidden' %>" aria-live="polite" aria-busy="true">
+          <p class="text-sm font-semibold text-zilo-text mb-1">Preparando formulario seguro…</p>
+          <p class="text-[11px] text-zilo-muted mb-4">Tu pago se carga en esta misma pantalla. No cierres ni vuelvas atrás.</p>
+          <div class="mp-brick-skeleton__field"></div>
+          <div class="mp-brick-skeleton__row">
+            <div class="mp-brick-skeleton__field"></div>
+            <div class="mp-brick-skeleton__field"></div>
+          </div>
+          <div class="mp-brick-skeleton__field"></div>
+          <div class="mp-brick-skeleton__field"></div>
+          <div class="mp-brick-skeleton__btn"></div>
+        </div>
         <p id="inlineMpBrickError" class="hidden text-xs text-amber-900 py-2 text-center"></p>
         <div id="inlineMpCardPaymentBrick" class="min-h-[120px]"></div>
         <button type="button" id="inlineOpenFullCheckout" class="hidden w-full mt-3 zilo-btn-primary !py-2.5 !text-sm">Abrir formulario de tarjeta</button>
@@ -473,7 +490,7 @@
       <a href="#" id="inlineCheckoutFallback" class="block text-center text-xs text-zilo-accent font-medium"><%= t('client.service.checkout_full_link') %></a>
     </section>
 
-    <div id="stickyOrderBar" class="sticky-order-bar" aria-hidden="true">
+    <div id="stickyOrderBar" class="sticky-order-bar<%= payFlowNow ? ' service-pay-flow-hide' : '' %>" aria-hidden="true">
       <div class="sticky-order-inner max-w-lg mx-auto">
         <div class="min-w-0">
           <p class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= t('client.service.visit_est') %></p>
@@ -1101,7 +1118,11 @@
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 <script src="/js/checkout-mp-brick.js"></script>
 <% } %>
+<% if (payFlowNow) { %>
+<%- include('../partials/footer', { pageScript: '/js/service-inline-pay.js', extraScripts: ['/js/client.js'] }) %>
+<% } else { %>
 <%- include('../partials/footer', { pageScript: '/js/client.js', extraScripts: ['/js/image-upload.js', '/js/job-chat.js', '/js/webrtc-call.js', '/js/service-inline-pay.js'] }) %>
+<% } %>
 <% if (typeof mod === 'function' && mod('client_aland')) { %>
 <script src="/js/aland-chat.js"></script>
 <% } %>

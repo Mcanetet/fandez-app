@@ -3905,7 +3905,14 @@
   const requestFormEl = document.getElementById('requestForm');
   if (stickyBar && requestFormEl && !trackingId) {
     const observer = new IntersectionObserver(([entry]) => {
-      const visible = !entry.isIntersecting;
+      // En flujo de pago el sticky “Continuar al pago” confunde: el brick ya está en pantalla.
+      if (page?.dataset?.payFlow === '1' || page?.classList?.contains('service-pay-flow')) {
+        stickyBar.classList.remove('is-visible');
+        stickyBar.classList.add('service-pay-flow-hide');
+        stickyBar.setAttribute('aria-hidden', 'true');
+        return;
+      }
+      const visible = !entry.isIntersecting && !requestFormEl.classList.contains('hidden');
       stickyBar.classList.toggle('is-visible', visible);
       stickyBar.setAttribute('aria-hidden', visible ? 'false' : 'true');
     }, { threshold: 0, rootMargin: '0px 0px -80px 0px' });

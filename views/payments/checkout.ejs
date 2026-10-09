@@ -130,7 +130,18 @@
         Prueba: titular <strong>APRO</strong> · RUT <strong>123456789</strong> · CVV 123 · vencimiento futuro.
       </p>
       <% } %>
-      <p id="mpBrickLoading" class="hidden text-xs text-zilo-muted py-6 text-center">Cargando formulario de tarjeta…</p>
+      <div id="mpBrickLoading" class="mp-brick-skeleton" aria-live="polite" aria-busy="true">
+        <p class="text-sm font-semibold text-zilo-text mb-1">Preparando formulario seguro…</p>
+        <p class="text-[11px] text-zilo-muted mb-4">Tu pago se carga en esta misma pantalla. No cierres ni vuelvas atrás.</p>
+        <div class="mp-brick-skeleton__field"></div>
+        <div class="mp-brick-skeleton__row">
+          <div class="mp-brick-skeleton__field"></div>
+          <div class="mp-brick-skeleton__field"></div>
+        </div>
+        <div class="mp-brick-skeleton__field"></div>
+        <div class="mp-brick-skeleton__field"></div>
+        <div class="mp-brick-skeleton__btn"></div>
+      </div>
       <div id="mpCardPaymentBrick"></div>
       <p class="text-[10px] text-zilo-muted mt-3 text-center">Fandez no guarda datos de tu tarjeta</p>
     </section>
