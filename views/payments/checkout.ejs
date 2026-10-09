@@ -256,11 +256,16 @@
             <% if (zoneAmt && zoneMeta) {
               const km = zoneMeta.distanceKm != null ? zoneMeta.distanceKm : '—';
               const origin = zoneMeta.originLabel || 'Ñuñoa';
-              const pct = Math.abs(zoneMeta.totalPercent || zoneMeta.distancePercent || 0);
+              const commune = zoneMeta.communeName || '';
+              const pct = Math.abs(zoneMeta.totalPercent || zoneMeta.communePercent || zoneMeta.distancePercent || 0);
             %>
-              Adicional por zona / distancia (<%= origin %> · <%= km %> km<% if (pct) { %> · +<%= pct %>%<% } %>)
+              <% if (zoneMeta.mode === 'commune' || commune) { %>
+                Adicional por comuna (<%= commune || 'zona' %><% if (pct) { %> · +<%= pct %>%<% } %>)
+              <% } else { %>
+                Adicional por zona / distancia (<%= origin %> · <%= km %> km<% if (pct) { %> · +<%= pct %>%<% } %>)
+              <% } %>
             <% } else { %>
-              Adicional por zona / distancia
+              Adicional por comuna
             <% } %>
           </span>
           <span id="lineZone" class="text-orange-600"><%= zoneAmt ? ('+' + formatCLP(zoneAmt)) : '—' %></span>
@@ -428,7 +433,7 @@
 
 <% if (mpEmbedCheckout) { %>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
-<script src="/js/checkout-mp-brick.js"></script>
+<script src="/js/checkout-mp-brick.js?v=20261009-visa"></script>
 <% } %>
 
 <%- include('../partials/footer', { extraScripts: ['/js/checkout-page.js'] }) %>
