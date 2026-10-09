@@ -137,7 +137,13 @@
             }
           },
           paymentMethods: {
-            maxInstallments: ctx.maxInstallments || 3
+            // MP (mar-2025): prepaid_card es un tipo aparte. Sin incluirlo, Visa prepago/débito
+            // falla con «No pudimos obtener la información de pago».
+            maxInstallments: ctx.maxInstallments || 3,
+            minInstallments: 1,
+            types: {
+              included: ['credit_card', 'debit_card', 'prepaid_card']
+            }
           }
         },
         callbacks: {

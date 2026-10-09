@@ -279,7 +279,8 @@
       embed: true,
       publicKey: mpPublicKey,
       amount: brickAmount,
-      preferenceId,
+      // Brick de tarjeta no depende de preferenceId; evita filtrar Visa/prepago.
+      preferenceId: '',
       maxInstallments,
       paymentMethod: 'card',
       cardGateway: 'mercadopago',

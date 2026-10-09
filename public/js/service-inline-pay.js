@@ -248,7 +248,8 @@
         embed: true,
         publicKey: mpPublicKey,
         amount: Math.round(Number(amount) || 0),
-        preferenceId: initData.preferenceId || '',
+        // Card Payment Brick + /v1/payments: no atar a preferenceId (puede filtrar medios).
+        preferenceId: '',
         maxInstallments: parseInt(page.dataset.maxInstallments, 10) || 3,
         paymentMethod: 'card',
         cardGateway: 'mercadopago',
