@@ -471,7 +471,8 @@
       </div>
       <section id="inlineMpEmbedSection" class="zilo-card-premium rounded-2xl p-4 checkout-mp-block">
         <h2 class="zilo-label mb-1"><%= t('checkout.payment_title') %></h2>
-        <p class="text-xs text-zilo-muted mb-3">Pagas sin salir de Fandez. Mercado Pago procesa el cobro de forma segura.</p>
+        <p class="text-xs text-zilo-muted mb-2">Pagas sin salir de Fandez. Mercado Pago procesa el cobro de forma segura.</p>
+        <%- include('../partials/mp-card-brands') %>
         <div id="inlineMpBrickLoading" class="mp-brick-skeleton<%= payFlowNow ? '' : ' hidden' %>" aria-live="polite" aria-busy="true">
           <p class="text-sm font-semibold text-zilo-text mb-1">Preparando formulario seguro…</p>
           <p class="text-[11px] text-zilo-muted mb-4">Tu pago se carga en esta misma pantalla. No cierres ni vuelvas atrás.</p>
@@ -1131,7 +1132,7 @@
 <%- include('../partials/call-overlay') %>
 <% if (typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout) { %>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
-<script src="/js/checkout-mp-brick.js?v=20261009-visa2"></script>
+<script src="/js/checkout-mp-brick.js?v=20261009-visa3"></script>
 <% } %>
 <% if (payFlowNow) { %>
 <%- include('../partials/footer', { pageScript: '/js/service-inline-pay.js', extraScripts: ['/js/client.js'] }) %>

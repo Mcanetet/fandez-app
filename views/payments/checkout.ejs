@@ -124,7 +124,8 @@
 
     <section id="mpEmbedSection" class="<%= mpEmbedCheckout ? '' : 'hidden' %> zilo-card-premium rounded-2xl p-4 sm:p-5 checkout-mp-block" aria-label="Pago con tarjeta Mercado Pago">
       <h2 class="zilo-label mb-1"><%= t('checkout.payment_title') %></h2>
-      <p class="text-xs text-zilo-muted mb-3">Pagas sin salir de Fandez. Mercado Pago procesa el cobro de forma segura.</p>
+      <p class="text-xs text-zilo-muted mb-2">Pagas sin salir de Fandez. Mercado Pago procesa el cobro de forma segura.</p>
+      <%- include('../partials/mp-card-brands') %>
       <% if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments) { %>
       <p class="text-[11px] text-sky-900 mb-3 p-2 rounded-lg bg-sky-50 border border-sky-100">
         Prueba: titular <strong>APRO</strong> · RUT <strong>123456789</strong> · CVV 123 · vencimiento futuro.
@@ -433,7 +434,7 @@
 
 <% if (mpEmbedCheckout) { %>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
-<script src="/js/checkout-mp-brick.js?v=20261009-visa2"></script>
+<script src="/js/checkout-mp-brick.js?v=20261009-visa3"></script>
 <% } %>
 
 <%- include('../partials/footer', { extraScripts: ['/js/checkout-page.js'] }) %>

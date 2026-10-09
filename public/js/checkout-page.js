@@ -54,7 +54,7 @@
 
   async function ensureMpScripts() {
     if (!window.MercadoPago) await loadScript('https://sdk.mercadopago.com/js/v2');
-    if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js?v=20261009-visa2');
+    if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js?v=20261009-visa3');
   }
 
   async function refreshMpEmbedConfig(force) {
@@ -275,6 +275,14 @@
       || payerEmailFallback
       || '';
 
+    try {
+      const cfgRes = await fetch('/pagos/mp/brick-config', { headers: { Accept: 'application/json' } });
+      const cfg = await cfgRes.json().catch(() => ({}));
+      if (cfg.cardBrands && cfg.cardBrands.visa === false) {
+        console.warn('[checkout] Visa no activa en cuenta MP', cfg.cardMethodIds || []);
+      }
+    } catch (_) { /* noop */ }
+
     const result = await window.FandezMpBrick.sync({
       embed: true,
       publicKey: mpPublicKey,
@@ -284,6 +292,9 @@
       maxInstallments,
       paymentMethod: 'card',
       cardGateway: 'mercadopago',
+      creditCardIds: ['visa', 'master', 'amex'],
+      debitCardIds: ['debvisa', 'debmaster'],
+      prepaidCardIds: ['visa', 'master'],
       payerEmail,
       payerEmailFallback,
       onReady: () => setMpBrickLoading(false),

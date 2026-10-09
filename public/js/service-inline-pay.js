@@ -77,7 +77,7 @@
         await loadScript('https://sdk.mercadopago.com/js/v2');
       }
       if (!window.FandezMpBrick) {
-        await loadScript('/js/checkout-mp-brick.js?v=20261009-visa2');
+        await loadScript('/js/checkout-mp-brick.js?v=20261009-visa3');
       }
     })().catch((err) => {
       scriptsPromise = null;
@@ -124,8 +124,24 @@
       if (!data.success) return;
       if (typeof data.embed === 'boolean') mpEmbed = data.embed;
       if (data.publicKey) mpPublicKey = data.publicKey;
+      window.__fandezMpCardBrands = data.cardBrands || null;
+      window.__fandezMpCardMethodIds = Array.isArray(data.cardMethodIds) ? data.cardMethodIds : null;
+      if (data.cardBrands && data.cardBrands.visa === false) {
+        console.warn('[inline-pay] Visa no activa en cuenta MP', data.cardMethodIds || []);
+        setInlineBrickError('Visa no está activa en Mercado Pago de esta cuenta. Actívala en MP → Medios de pago, o prueba otra tarjeta.');
+      }
       if (mpEmbed && mpPublicKey) await ensureMpScripts();
     } catch (_) { /* noop */ }
+  }
+
+  function chileCardIdsFromConfig() {
+    // Siempre pedir Visa (crédito/débito/prepago). No filtrar por API:
+    // si la cuenta no la tiene, el Brick falla y el aviso de brick-config lo explica.
+    return {
+      creditCardIds: ['visa', 'master', 'amex'],
+      debitCardIds: ['debvisa', 'debmaster'],
+      prepaidCardIds: ['visa', 'master']
+    };
   }
 
   function getBillingPayload() {
@@ -244,6 +260,7 @@
     }
 
     try {
+      const chileIds = chileCardIdsFromConfig();
       const brickCtx = {
         embed: true,
         publicKey: mpPublicKey,
@@ -253,6 +270,7 @@
         maxInstallments: parseInt(page.dataset.maxInstallments, 10) || 3,
         paymentMethod: 'card',
         cardGateway: 'mercadopago',
+        ...chileIds,
         containerId: 'inlineMpCardPaymentBrick',
         sectionId: 'inlineMpEmbedSection',
         payerEmail: billing.invoiceEmail,

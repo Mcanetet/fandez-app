@@ -138,22 +138,34 @@
       payer: payerEmail ? { email: payerEmail } : undefined
     };
 
+    // Chile: IDs explícitos (visa/debvisa) para forzar marca Visa en el Brick.
+    const creditIds = Array.isArray(ctx.creditCardIds) && ctx.creditCardIds.length
+      ? ctx.creditCardIds
+      : ['visa', 'master', 'amex'];
+    const debitIds = Array.isArray(ctx.debitCardIds) && ctx.debitCardIds.length
+      ? ctx.debitCardIds
+      : ['debvisa', 'debmaster'];
+    const prepaidIds = Array.isArray(ctx.prepaidCardIds) && ctx.prepaidCardIds.length
+      ? ctx.prepaidCardIds
+      : ['visa', 'master'];
+
     mountingById[containerId] = bricksBuilder
       .create('payment', containerId, {
         initialization,
         customization: {
           visual: {
+            // Oculta la fila de logos incompleta de MP; Fandez muestra Visa/MC/Amex arriba.
+            hideFormTitle: true,
             style: FANDEZ_MP_VISUAL,
             texts: {
               formTitle: 'Tarjeta crédito, débito o prepago'
             }
           },
           paymentMethods: {
-            // MP mar-2025: prepaidCard debe ir explícito o Visa prepago falla
-            // con «No pudimos obtener la información de pago».
-            creditCard: 'all',
-            debitCard: 'all',
-            prepaidCard: 'all',
+            // MP mar-2025: prepaidCard explícito + IDs Chile (visa, debvisa).
+            creditCard: creditIds,
+            debitCard: debitIds,
+            prepaidCard: prepaidIds,
             maxInstallments: ctx.maxInstallments || 3,
             minInstallments: 1
           }

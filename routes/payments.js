@@ -274,7 +274,7 @@ router.get('/checkout', requireRole('client'), (req, res) => {
   });
 });
 
-router.get('/mp/brick-config', requireRole('client'), (req, res) => {
+router.get('/mp/brick-config', requireRole('client'), async (req, res) => {
   const status = mp.getCredentialAdminStatus();
   const publicKey = mp.getPublicKey();
   const sandbox = mp.usesSandboxPayments();
@@ -284,6 +284,13 @@ router.get('/mp/brick-config', requireRole('client'), (req, res) => {
       const pair = mp.getCredentialAdminStatus().sandboxCredentialSource;
       credentialSource = pair || 'unknown';
     } catch (_) { /* noop */ }
+  }
+  let cardMethods = { ok: false, brands: {}, methods: [] };
+  try {
+    cardMethods = await mp.listCardPaymentMethods();
+  } catch (_) { /* noop */ }
+  if (cardMethods?.brands && cardMethods.brands.visa === false) {
+    console.warn('[mp/brick-config] Visa no figura activa en /v1/payment_methods de esta cuenta MP');
   }
   res.json({
     success: true,
@@ -299,7 +306,10 @@ router.get('/mp/brick-config', requireRole('client'), (req, res) => {
     productionEnvPresent: status.productionEnvPresent,
     testEnvPresent: status.testEnvPresent,
     accessTokenConfigured: status.accessTokenConfigured,
-    payerEmailFallback: String(process.env.MP_PAYER_EMAIL || '').trim() || null
+    payerEmailFallback: String(process.env.MP_PAYER_EMAIL || '').trim() || null,
+    cardBrands: cardMethods.brands || {},
+    cardMethodsOk: Boolean(cardMethods.ok),
+    cardMethodIds: (cardMethods.methods || []).map((m) => m.id)
   });
 });
 
