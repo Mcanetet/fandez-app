@@ -355,19 +355,26 @@ router.post('/mp/brick-init', requireRole('client'), async (req, res) => {
       gateway: 'mercadopago',
       preferenceId: preference.id
     });
+    let tokenProbe = null;
+    try {
+      tokenProbe = await mp.probeAccessTokenKind();
+    } catch (_) { /* noop */ }
+
     return res.json({
       success: true,
       publicKey: mp.getPublicKey(),
       preferenceId: preference.id,
       amount,
-      sandbox: mp.usesSandboxPayments()
+      sandbox: mp.usesSandboxPayments(),
+      tokenProbe
     });
   } catch (err) {
     console.error('[mp/brick-init]', err.message);
+    const clientErr = typeof mp.paymentErrorForClient === 'function' ? mp.paymentErrorForClient(err) : null;
     return res.status(503).json({
       success: false,
-      error: (typeof mp.paymentErrorForClient === 'function' ? mp.paymentErrorForClient(err) : null)
-        || 'No se pudo preparar Mercado Pago.'
+      error: clientErr?.error || 'No se pudo preparar Mercado Pago.',
+      ...(clientErr && typeof clientErr === 'object' ? clientErr : {})
     });
   }
 });
@@ -653,6 +660,31 @@ router.post('/mp/tarjeta', requireRole('client'), async (req, res) => {
   } catch (err) {
     const clientErr = mp.paymentErrorForClient(err);
     console.error('[pagos/mp/tarjeta]', clientErr.error, err?.cause || err);
+
+    // Demo 2.0: si MP_TEST_* trae token de producción, no trabar la venta de prueba.
+    // Aprueba el pedido en Fandez (sin cobro real) para reclutamiento / soft-launch.
+    if (
+      mp.usesSandboxPayments()
+      && (
+        clientErr.code === 'mp_live_credentials_in_test'
+        || mp.isUnauthorizedLiveCredentialsError(err)
+      )
+    ) {
+      const demoPaymentId = `mpago-demo-livecred-${Date.now()}`;
+      console.warn(
+        `[pagos] Demo fallback (live credentials en MP_TEST_*) request=${requestId} id=${demoPaymentId}`
+      );
+      store.markPaymentApproved(requestId, demoPaymentId, { demoFallback: 'live_credentials' });
+      store.activateRequest(requestId);
+      notifyProviders(req, store.requests.find((r) => r.id === requestId));
+      return res.json({
+        success: true,
+        demo: true,
+        demoFallback: 'live_credentials',
+        redirect: paymentSuccessPath(requestId)
+      });
+    }
+
     const status = String(err?.message || '').startsWith('MP_VALIDATION:') ? 400 : 502;
     return res.status(status).json({ success: false, ...clientErr });
   }

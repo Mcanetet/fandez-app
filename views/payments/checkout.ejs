@@ -108,7 +108,9 @@
     </p>
     <% } else if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments && mpCred.testEnvPresent) { %>
     <p class="text-xs text-sky-900 p-3 rounded-xl border border-sky-200 bg-sky-50 text-center">
-      Modo <strong>demo</strong> — cobro con <code>MP_TEST_*</code> y tarjetas de prueba (APRO). Las credenciales de producción en Hostinger no se usan hasta Productivo 2.0.
+      Modo <strong>demo</strong> — usa el bloque <strong>Credenciales de prueba</strong> de Mercado Pago en <code>MP_TEST_*</code>.
+      En el formulario: nombre del titular <strong>APRO</strong>, RUT <strong>123456789</strong>, CVV cualquiera.
+      Si MP dice «producción en modo prueba», el valor de <code>MP_TEST_ACCESS_TOKEN</code> es de producción: vuelve a copiarlo del bloque amarillo de prueba y reinicia la app.
     </p>
     <% } else if (typeof mpSandboxPayments !== 'undefined' && !mpSandboxPayments) { %>
     <p class="text-xs text-amber-900 p-3 rounded-xl border border-amber-200 bg-amber-50 text-center">
@@ -123,6 +125,11 @@
     <section id="mpEmbedSection" class="<%= mpEmbedCheckout ? '' : 'hidden' %> zilo-card-premium rounded-2xl p-4 sm:p-5 checkout-mp-block" aria-label="Pago con tarjeta Mercado Pago">
       <h2 class="zilo-label mb-1"><%= t('checkout.payment_title') %></h2>
       <p class="text-xs text-zilo-muted mb-3">Pagas sin salir de Fandez. Mercado Pago procesa el cobro de forma segura.</p>
+      <% if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments) { %>
+      <p class="text-[11px] text-sky-900 mb-3 p-2 rounded-lg bg-sky-50 border border-sky-100">
+        Prueba: titular <strong>APRO</strong> · RUT <strong>123456789</strong> · CVV 123 · vencimiento futuro.
+      </p>
+      <% } %>
       <p id="mpBrickLoading" class="hidden text-xs text-zilo-muted py-6 text-center">Cargando formulario de tarjeta…</p>
       <div id="mpCardPaymentBrick"></div>
       <p class="text-[10px] text-zilo-muted mt-3 text-center">Fandez no guarda datos de tu tarjeta</p>
