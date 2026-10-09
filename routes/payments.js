@@ -277,16 +277,28 @@ router.get('/checkout', requireRole('client'), (req, res) => {
 router.get('/mp/brick-config', requireRole('client'), (req, res) => {
   const status = mp.getCredentialAdminStatus();
   const publicKey = mp.getPublicKey();
+  const sandbox = mp.usesSandboxPayments();
+  let credentialSource = sandbox ? 'live' : 'n/a';
+  if (sandbox) {
+    try {
+      const pair = mp.getCredentialAdminStatus().sandboxCredentialSource;
+      credentialSource = pair || 'unknown';
+    } catch (_) { /* noop */ }
+  }
   res.json({
     success: true,
     embed: mp.isEmbedCheckoutAvailable(),
     publicKey,
-    sandbox: mp.usesSandboxPayments(),
+    sandbox,
     redirectOnly: process.env.MP_CHECKOUT_REDIRECT === 'true',
     credentialProfile: status.profile,
+    credentialSource: status.sandboxCredentialSource || credentialSource,
     credentialMismatch: mp.isCredentialPairMismatch(),
     missingTestPublicKey: status.missingTestPublicKey,
     missingTestAccessToken: status.missingTestAccessToken,
+    productionEnvPresent: status.productionEnvPresent,
+    testEnvPresent: status.testEnvPresent,
+    accessTokenConfigured: status.accessTokenConfigured,
     payerEmailFallback: String(process.env.MP_PAYER_EMAIL || '').trim() || null
   });
 });
