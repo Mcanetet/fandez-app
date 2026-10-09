@@ -1,8 +1,9 @@
 /**
- * Mercado Pago Card Payment Brick — checkout embebido en Fandez (sin redirect a MP).
+ * Mercado Pago Payment Brick (solo tarjetas) — checkout embebido en Fandez.
+ * Usa Payment Brick (no Card Payment Brick) para aceptar prepaid_card (Visa prepago CL, MP 2025).
  */
 (function () {
-  /** @type {Record<string, { controller: object, amount: number, preferenceId?: string }>} */
+  /** @type {Record<string, { controller: object, amount: number }>} */
   const slots = {};
   /** @type {Record<string, Promise<unknown>|null>} */
   const mountingById = {};
@@ -81,13 +82,25 @@
     await Promise.all(Object.keys(slots).map((id) => unmountSlot(id)));
   }
 
-  function slotMounted(containerId, amount, preferenceId) {
+  function slotMounted(containerId, amount) {
     const slot = slots[containerId];
     const el = document.getElementById(containerId);
     if (!slot?.controller || !el || el.children.length === 0) return false;
     if (slot.amount !== amount) return false;
-    if (preferenceId && slot.preferenceId !== preferenceId) return false;
     return true;
+  }
+
+  /** Payment Brick entrega { selectedPaymentMethod, formData }; Card Brick entregaba formData plano. */
+  function unwrapSubmitPayload(payload) {
+    if (!payload || typeof payload !== 'object') return payload;
+    if (payload.formData && typeof payload.formData === 'object') {
+      return {
+        ...payload.formData,
+        selectedPaymentMethod: payload.selectedPaymentMethod,
+        paymentType: payload.selectedPaymentMethod || payload.formData.paymentType
+      };
+    }
+    return payload;
   }
 
   async function mount(ctx) {
@@ -98,8 +111,7 @@
     if (!container) return false;
 
     const amount = Math.round(Number(ctx.amount) || 0);
-    const preferenceId = ctx.preferenceId ? String(ctx.preferenceId) : '';
-    if (slotMounted(containerId, amount, preferenceId || undefined)) return true;
+    if (slotMounted(containerId, amount)) return true;
 
     if (section) section.classList.remove('hidden');
     await waitUntilVisible(section || container);
@@ -107,7 +119,7 @@
     if (mountingById[containerId]) {
       try {
         await mountingById[containerId];
-        return slotMounted(containerId, amount, preferenceId || undefined);
+        return slotMounted(containerId, amount);
       } catch (_) {
         return false;
       }
@@ -120,14 +132,14 @@
     const mp = new MercadoPago(ctx.publicKey, { locale: 'es-CL' });
     const bricksBuilder = mp.bricks();
 
-    // Solo amount + payer. preferenceId puede filtrar medios (Visa/prepago) en Card Brick.
+    // Sin preferenceId: evita filtrar Visa. Solo tarjetas (crédito/débito/prepago).
     const initialization = {
       amount,
       payer: payerEmail ? { email: payerEmail } : undefined
     };
 
     mountingById[containerId] = bricksBuilder
-      .create('cardPayment', containerId, {
+      .create('payment', containerId, {
         initialization,
         customization: {
           visual: {
@@ -137,20 +149,20 @@
             }
           },
           paymentMethods: {
-            // Card Brick solo admite types.excluded (no "included").
-            // Lista vacía = crédito + débito + prepaid_card (MP 2025).
+            // MP mar-2025: prepaidCard debe ir explícito o Visa prepago falla
+            // con «No pudimos obtener la información de pago».
+            creditCard: 'all',
+            debitCard: 'all',
+            prepaidCard: 'all',
             maxInstallments: ctx.maxInstallments || 3,
-            minInstallments: 1,
-            types: {
-              excluded: []
-            }
+            minInstallments: 1
           }
         },
         callbacks: {
           onReady: () => {
             if (typeof ctx.onReady === 'function') ctx.onReady();
           },
-          onSubmit: (cardFormData) => {
+          onSubmit: (payload) => {
             if (typeof ctx.onBeforeSubmit === 'function') {
               const block = ctx.onBeforeSubmit();
               if (block) {
@@ -160,7 +172,7 @@
                 return Promise.reject(new Error(block));
               }
             }
-            return ctx.submitPayment(cardFormData);
+            return ctx.submitPayment(unwrapSubmitPayload(payload));
           },
           onError: (error) => {
             console.error('[mp-brick]', containerId, error);
@@ -171,7 +183,7 @@
         }
       })
       .then((ctrl) => {
-        slots[containerId] = { controller: ctrl, amount, preferenceId: preferenceId || undefined };
+        slots[containerId] = { controller: ctrl, amount };
         mountingById[containerId] = null;
         return ctrl;
       })
@@ -182,7 +194,7 @@
       });
 
     await mountingById[containerId];
-    return slotMounted(containerId, amount, preferenceId || undefined);
+    return slotMounted(containerId, amount);
   }
 
   window.FandezMpBrick = {
