@@ -457,6 +457,8 @@
       </div>
       <section id="mpEmbedSection" class="zilo-card-premium rounded-2xl p-4 checkout-mp-block">
         <h2 class="zilo-label mb-3"><%= t('checkout.payment_title') %></h2>
+        <p id="inlineMpBrickLoading" class="hidden text-xs text-zilo-muted py-4 text-center">Cargando formulario de tarjeta…</p>
+        <p id="inlineMpBrickError" class="hidden text-xs text-amber-900 py-2 text-center"></p>
         <div id="mpCardPaymentBrick"></div>
       </section>
       <a href="#" id="inlineCheckoutFallback" class="block text-center text-xs text-zilo-accent font-medium"><%= t('client.service.checkout_full_link') %></a>
@@ -1054,6 +1056,10 @@
 </div>
 
 <%- include('../partials/call-overlay') %>
+<% if (typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout) { %>
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+<script src="/js/checkout-mp-brick.js"></script>
+<% } %>
 <%- include('../partials/footer', { pageScript: '/js/client.js', extraScripts: ['/js/image-upload.js', '/js/job-chat.js', '/js/webrtc-call.js', '/js/service-inline-pay.js'] }) %>
 <% if (typeof mod === 'function' && mod('client_aland')) { %>
 <script src="/js/aland-chat.js"></script>

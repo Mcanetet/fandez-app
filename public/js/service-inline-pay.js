@@ -3,7 +3,11 @@
  */
 (function () {
   const page = document.getElementById('servicePage');
-  if (!page || page.dataset.tracking) return;
+  if (!page) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const payFlow = params.get('pay') === '1';
+  if (page.dataset.tracking && !payFlow) return;
 
   const orderSections = document.getElementById('serviceOrderSections');
   const inlineRoot = document.getElementById('inlineCheckout');
@@ -29,15 +33,32 @@
     });
   }
 
-  async function refreshMpEmbedConfig() {
-    if (mpConfigFetched) return;
+  function setInlineBrickLoading(on) {
+    document.getElementById('inlineMpBrickLoading')?.classList.toggle('hidden', !on);
+  }
+
+  function setInlineBrickError(message) {
+    const el = document.getElementById('inlineMpBrickError');
+    if (!el) return;
+    if (message) {
+      el.textContent = message;
+      el.classList.remove('hidden');
+    } else {
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
+  }
+
+  async function refreshMpEmbedConfig(force) {
+    if (mpConfigFetched && !force) return;
     try {
       const res = await fetch('/pagos/mp/brick-config', { headers: { Accept: 'application/json' } });
       const data = await res.json().catch(() => ({}));
       mpConfigFetched = true;
-      if (data.success && data.embed && data.publicKey) {
-        mpEmbed = true;
-        mpPublicKey = data.publicKey;
+      if (!data.success) return;
+      if (typeof data.embed === 'boolean') mpEmbed = data.embed;
+      if (data.publicKey) mpPublicKey = data.publicKey;
+      if (mpEmbed && mpPublicKey) {
         if (!window.MercadoPago) await loadScript('https://sdk.mercadopago.com/js/v2');
         if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js');
       }
@@ -65,8 +86,15 @@
 
   const fmt = (n) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 
+  function goFullCheckout() {
+    if (requestId) {
+      window.location.href = `/pagos/checkout?ref=${encodeURIComponent(requestId)}`;
+    }
+  }
+
   async function recalcAndMount() {
     if (!requestId) return;
+    setInlineBrickError('');
     const res = await fetch('/pagos/calcular', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -86,58 +114,70 @@
       return;
     }
 
-    if (!mpEmbed || page.dataset.mpTokenConfigured !== '1') {
-      window.location.href = `/pagos/checkout?ref=${encodeURIComponent(requestId)}`;
+    await refreshMpEmbedConfig(true);
+
+    if (!mpEmbed || !mpPublicKey || page.dataset.mpTokenConfigured !== '1') {
+      goFullCheckout();
       return;
     }
 
-    await refreshMpEmbedConfig();
     if (!window.FandezMpBrick) {
-      window.location.href = `/pagos/checkout?ref=${encodeURIComponent(requestId)}`;
+      goFullCheckout();
       return;
     }
 
-    const result = await window.FandezMpBrick.sync({
-      embed: mpEmbed,
-      publicKey: mpPublicKey,
-      amount,
-      maxInstallments: parseInt(page.dataset.maxInstallments, 10) || 3,
-      paymentMethod: 'card',
-      cardGateway: 'mercadopago',
-      payerEmail: getBillingPayload().invoiceEmail,
-      onBeforeSubmit: () => {
-        if (!billingReady()) {
-          inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          return 'Completa RUT y datos de facturación para pagar.';
-        }
-        return null;
-      },
-      submitPayment: (formData) => fetch('/pagos/mp/tarjeta', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          requestId,
-          formData,
-          paymentMethod: 'card',
-          cardGateway: 'mercadopago',
-          billing: getBillingPayload()
-        })
-      }).then(async (r) => {
-        const payload = await r.json().catch(() => ({}));
-        if (!r.ok || !payload.success) {
-          const msg = payload.error || 'No se pudo procesar el pago.';
-          if (window.FandezNotify?.showPaymentError) {
-            FandezNotify.showPaymentError(payload);
-          } else {
-            FandezNotify?.show(msg, 'error');
+    setInlineBrickLoading(true);
+    try {
+      const result = await window.FandezMpBrick.sync({
+        embed: true,
+        publicKey: mpPublicKey,
+        amount,
+        maxInstallments: parseInt(page.dataset.maxInstallments, 10) || 3,
+        paymentMethod: 'card',
+        cardGateway: 'mercadopago',
+        payerEmail: getBillingPayload().invoiceEmail,
+        onBeforeSubmit: () => {
+          if (!billingReady()) {
+            inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return 'Completa RUT y datos de facturación para pagar.';
           }
-          throw new Error(msg);
-        }
-        if (payload.redirect) window.location.href = payload.redirect;
-        return payload;
-      })
-    });
-    mpBrickActive = Boolean(result.active);
+          return null;
+        },
+        submitPayment: (formData) => fetch('/pagos/mp/tarjeta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            requestId,
+            formData,
+            paymentMethod: 'card',
+            cardGateway: 'mercadopago',
+            billing: getBillingPayload()
+          })
+        }).then(async (r) => {
+          const payload = await r.json().catch(() => ({}));
+          if (!r.ok || !payload.success) {
+            const msg = payload.error || 'No se pudo procesar el pago.';
+            if (window.FandezNotify?.showPaymentError) {
+              FandezNotify.showPaymentError(payload);
+            } else {
+              FandezNotify?.show(msg, 'error');
+            }
+            throw new Error(msg);
+          }
+          if (payload.redirect) window.location.href = payload.redirect;
+          return payload;
+        })
+      });
+      mpBrickActive = Boolean(result?.active);
+      if (!mpBrickActive) {
+        setInlineBrickError('No pudimos cargar el formulario aquí. Usa el enlace de abajo o abre el checkout completo.');
+      }
+    } catch (err) {
+      console.error('[inline-pay]', err);
+      setInlineBrickError('Error al cargar el pago. Toca el enlace de checkout completo.');
+    } finally {
+      setInlineBrickLoading(false);
+    }
     document.getElementById('inlineCheckoutFallback')?.classList.toggle('hidden', mpBrickActive);
   }
 
@@ -165,7 +205,7 @@
     await recalcAndMount();
   }
 
-  window.FandezServiceInlinePay = { open: openInlineCheckout };
+  window.FandezServiceInlinePay = { open: openInlineCheckout, remount: recalcAndMount };
 
   document.querySelectorAll('#inlineCheckout input[name="billingType"]').forEach((radio) => {
     radio.addEventListener('change', () => {
@@ -176,7 +216,7 @@
 
   document.getElementById('inlineCheckoutFallback')?.addEventListener('click', (e) => {
     e.preventDefault();
-    if (requestId) window.location.href = `/pagos/checkout?ref=${encodeURIComponent(requestId)}`;
+    goFullCheckout();
   });
 
   document.getElementById('btnResumePay')?.addEventListener('click', () => {
@@ -184,8 +224,7 @@
     if (id) openInlineCheckout(id);
   });
 
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('pay') === '1') {
+  if (payFlow) {
     const rid = params.get('resume') || page.dataset.resumeId;
     if (rid) {
       openInlineCheckout(rid);
