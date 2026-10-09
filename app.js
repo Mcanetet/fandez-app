@@ -101,6 +101,7 @@ app.get('/health', async (req, res) => {
     ok: store.isReady() && dbOk,
     app: 'fandez',
     version: version.version,
+    gitCommit: version.gitCommit || null,
     mode: mode.mode,
     ready: store.isReady(),
     database: dbOk ? 'connected' : (dbConfigured ? 'connecting' : 'not_configured'),

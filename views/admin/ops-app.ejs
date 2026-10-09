@@ -47,7 +47,14 @@
     header img { width: 36px; height: 36px; border-radius: 10px; }
     header h1 { font-size: 16px; margin: 0; letter-spacing: -0.02em; }
     header p { margin: 2px 0 0; font-size: 11px; color: var(--muted); }
-    .actions { margin-left: auto; display: flex; gap: 8px; }
+    .actions {
+      margin-left: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      max-width: 58%;
+    }
     button, .btn {
       border: 0;
       border-radius: 999px;
@@ -62,7 +69,24 @@
       background: #222228;
     }
     .btn-amber { background: var(--amber); color: #fff; }
+    .btn-logout {
+      background: #2a1515;
+      border: 1px solid #5c2626;
+      color: #fca5a5;
+    }
     main { padding: 14px 14px 100px; max-width: 640px; margin: 0 auto; }
+    .session-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #111114;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .session-bar strong { color: var(--text); font-weight: 600; }
     .stats {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -157,8 +181,14 @@
     <div class="actions">
       <button type="button" id="btnPush" class="btn-amber">Activar avisos</button>
       <a class="btn" href="<%= adminBase %>">Panel</a>
+      <a class="btn btn-logout" href="/logout" id="btnLogout">Salir</a>
     </div>
   </header>
+
+  <div class="session-bar">
+    <span>Sesión: <strong><%= (user && (user.name || user.email)) ? (user.name || user.email) : 'Admin' %></strong></span>
+    <a class="btn btn-logout" href="/logout" style="padding:6px 10px;font-size:11px;">Cerrar sesión</a>
+  </div>
 
   <% if (typeof showDemoRibbon !== 'undefined' ? showDemoRibbon : (typeof appModeStatus !== 'undefined' && appModeStatus && appModeStatus.isDemo)) { %>
   <div style="background:linear-gradient(90deg,#A84E10,#C45C14,#B47814);color:#fff;text-align:center;font-size:11px;font-weight:600;padding:8px 12px;line-height:1.35;" role="status">
