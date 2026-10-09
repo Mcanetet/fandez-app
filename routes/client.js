@@ -18,8 +18,11 @@ const { CANCELLATION_REASONS } = require('../lib/pricing');
 
 function isAlreadyNoProviderRefund(request) {
   if (!request) return false;
-  if (request.noProviderDecisionStatus === 'resolved' && request.noProviderChoice === 'refund') return true;
-  if (['requested', 'processed', 'completed', 'paid'].includes(String(request.refundStatus || ''))) {
+  if (
+    request.noProviderDecisionStatus === 'resolved'
+    && (request.noProviderChoice === 'refund' || request.noProviderChoice === 'credit')
+  ) return true;
+  if (['requested', 'processing', 'processed', 'completed', 'paid', 'credited'].includes(String(request.refundStatus || ''))) {
     return request.cancelReason === 'no_provider_available'
       || request.cancelReason === 'client_cancelled_search'
       || request.status === 'cancelled';
@@ -27,25 +30,36 @@ function isAlreadyNoProviderRefund(request) {
   return false;
 }
 
+function alreadyNoProviderMessage(choice, request) {
+  const c = request?.noProviderChoice || choice;
+  if (c === 'credit' || request?.refundStatus === 'credited') {
+    return 'Tu abono Fandez ya quedó acreditado. Puedes usarlo en el próximo servicio al pagar.';
+  }
+  if (c === 'refund' || request?.refundStatus === 'requested') {
+    return 'La devolución ya estaba solicitada. Suele verse en tu tarjeta o banco entre 48 y 72 horas hábiles (según el emisor).';
+  }
+  return 'Ya registramos tu elección de seguir buscando.';
+}
+
 function respondAlreadyNoProvider(req, res, request, choice = 'refund') {
   const payload = { request: store.enrichRequestForClient(request, req.locale || 'es') };
+  const resolvedChoice = request.noProviderChoice || choice;
   if (wantsJson(req)) {
     return res.json({
       success: true,
       already: true,
-      choice: request.noProviderChoice || choice,
+      choice: resolvedChoice,
       request: payload.request,
-      message: choice === 'refund' || request.noProviderChoice === 'refund'
-        ? 'La devolución ya estaba solicitada. Administración la procesará al mismo medio de pago.'
-        : 'Ya registramos tu elección de seguir buscando.'
+      message: alreadyNoProviderMessage(resolvedChoice, request)
     });
   }
   return res.render('client/no-provider-choice', {
     title: 'Respuesta recibida — Fandez',
     request,
     token: '',
-    selectedChoice: request.noProviderChoice || choice,
-    completed: true
+    selectedChoice: resolvedChoice,
+    completed: true,
+    formatCLP: store.formatCLP
   });
 }
 
@@ -119,7 +133,8 @@ router.get('/solicitud/:id/sin-socio', (req, res) => {
     title: 'Elige cómo continuar — Fandez',
     request,
     token: String(req.query.token || ''),
-    selectedChoice: ['refund', 'continue'].includes(req.query.choice) ? req.query.choice : null
+    selectedChoice: ['refund', 'credit', 'continue'].includes(req.query.choice) ? req.query.choice : null,
+    formatCLP: store.formatCLP
   });
 });
 
@@ -172,18 +187,34 @@ router.post('/solicitud/:id/sin-socio', async (req, res) => {
     notifications.notify({
       event: 'service.refund_requested',
       to: company.supportEmail,
-      subject: `Devolución solicitada — ${updated.serviceName}`,
-      text: `El cliente ${updated.clientName} solicitó la devolución de la solicitud ${updated.id} porque no hubo socio disponible. Fecha comprometida: ${updated.refundScheduledDate}. Monto pagado: ${store.formatCLP(updated.visitPricePaid || updated.amountDue || 0)}. Procesar al mismo medio de pago.`,
+      subject: `Devolución a tarjeta — ${updated.serviceName}`,
+      text: `El cliente ${updated.clientName} pidió devolución a su medio de pago (solicitud ${updated.id}, sin socio). Monto: ${store.formatCLP(updated.refundAmount || updated.visitPricePaid || 0)}. Plazo informado al cliente: 48–72 horas hábiles. Programada: ${updated.refundScheduledDate || 'n/a'}.`,
       requestId: updated.id,
       userId: updated.clientId,
-      meta: { refundScheduledDate: updated.refundScheduledDate, reason: 'no_provider_available' }
+      meta: {
+        refundScheduledDate: updated.refundScheduledDate,
+        reason: 'no_provider_available',
+        refundDestination: 'card'
+      }
+    }).catch(() => {});
+  } else if (result.choice === 'credit') {
+    notifications.notify({
+      event: 'service.refund_requested',
+      to: company.supportEmail,
+      subject: `Abono Fandez — ${updated.serviceName}`,
+      text: `El cliente ${updated.clientName} dejó ${store.formatCLP(updated.creditsGrantedCLP || updated.refundAmount || 0)} como crédito Fandez (solicitud ${updated.id}, sin socio). No hay reembolso bancario pendiente.`,
+      requestId: updated.id,
+      userId: updated.clientId,
+      meta: { reason: 'no_provider_available', refundDestination: 'credit' }
     }).catch(() => {});
   }
   let message = null;
   if (updated.alandConversationId) {
-    const body = result.choice === 'refund'
-      ? `Recibí tu elección. La devolución de tu servicio ${updated.serviceName} se inicia el siguiente día hábil (${updated.refundScheduledDate}) al mismo medio. En crédito suele verse en el estado de cuenta; en débito, en tu cuenta bancaria (plazos del banco).`
-      : `Recibí tu elección. Seguiremos intentando encontrar un socio para tu servicio ${updated.serviceName} y te avisaremos apenas alguien lo tome.`;
+    const body = result.choice === 'credit'
+      ? `Listo. Dejé ${store.formatCLP(updated.creditsGrantedCLP || updated.refundAmount || 0)} como abono Fandez por ${updated.serviceName}. Queda disponible de inmediato para tu próximo servicio al pagar.`
+      : result.choice === 'refund'
+        ? `Recibí tu elección. La devolución de ${updated.serviceName} (${store.formatCLP(updated.refundAmount || 0)}) va al mismo medio de pago. Suele demorar entre 48 y 72 horas hábiles (a veces hasta el próximo estado de cuenta, según tu banco). Te avisamos cuando la marquemos como procesada.`
+        : `Recibí tu elección. Seguiremos intentando encontrar un socio para tu servicio ${updated.serviceName} y te avisaremos apenas alguien lo tome.`;
     try {
       message = await aland.addMessage({
         conversationId: updated.alandConversationId,
@@ -210,14 +241,27 @@ router.post('/solicitud/:id/sin-socio', async (req, res) => {
   }
 
   if (wantsJson(req)) {
-    return res.json({ success: true, choice: result.choice, request: payload.request });
+    return res.json({
+      success: true,
+      choice: result.choice,
+      request: payload.request,
+      refundAmount: updated.refundAmount || 0,
+      refundLabel: store.formatCLP(updated.refundAmount || 0),
+      refundDestination: updated.refundDestination || (result.choice === 'credit' ? 'credit' : 'card'),
+      message: result.choice === 'credit'
+        ? alreadyNoProviderMessage('credit', updated)
+        : result.choice === 'refund'
+          ? 'Devolución solicitada. Suele demorar entre 48 y 72 horas hábiles en verse en tu tarjeta o banco.'
+          : null
+    });
   }
   res.render('client/no-provider-choice', {
     title: 'Respuesta recibida — Fandez',
     request: updated,
     token: '',
     selectedChoice: result.choice,
-    completed: true
+    completed: true,
+    formatCLP: store.formatCLP
   });
 });
 
@@ -724,17 +768,23 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
   try {
     const reasonCode = req.body?.reasonCode || req.body?.reason;
     const reasonText = req.body?.reasonText || '';
-    const result = store.cancelClientSearch(req.params.id, req.session.user.id, { reasonCode, reasonText });
+    const refundDestination = req.body?.refundDestination === 'credit' ? 'credit' : 'card';
+    const result = store.cancelClientSearch(req.params.id, req.session.user.id, {
+      reasonCode,
+      reasonText,
+      refundDestination
+    });
     if (result.error) return res.status(400).json({ success: false, error: result.error });
 
     const updated = result.request;
     const retention = updated.cancellationFeeCharged || 0;
     const refundAmt = updated.refundAmount != null ? updated.refundAmount : 0;
+    const dest = updated.refundDestination || refundDestination;
     notifications.notify({
       event: 'service.refund_requested',
       to: company.supportEmail,
       subject: `Cancelación — ${updated.serviceName}`,
-      text: `El cliente ${updated.clientName} canceló la ${updated.cancelReason === 'client_cancelled_scheduled' ? 'visita programada' : 'búsqueda'} de la solicitud ${updated.id}. Motivo: ${updated.cancelReasonLabel || reasonCode || '—'}. Retención: ${store.formatCLP(retention)}. Devolución: ${store.formatCLP(refundAmt)} (fecha: ${updated.refundScheduledDate || 'n/a'}).`,
+      text: `El cliente ${updated.clientName} canceló la ${updated.cancelReason === 'client_cancelled_scheduled' ? 'visita programada' : 'búsqueda'} de la solicitud ${updated.id}. Motivo: ${updated.cancelReasonLabel || reasonCode || '—'}. Retención: ${store.formatCLP(retention)}. Destino: ${dest === 'credit' ? 'crédito Fandez (inmediato)' : 'tarjeta/banco (48–72 h hábiles)'}. Monto: ${store.formatCLP(refundAmt)}.`,
       requestId: updated.id,
       userId: updated.clientId,
       meta: {
@@ -743,6 +793,7 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
         reasonCode: updated.cancelReasonCode,
         retentionFee: retention,
         refundAmount: refundAmt,
+        refundDestination: dest,
         tier: updated.cancellationTier
       }
     }).catch(() => {});
@@ -784,6 +835,7 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
       retentionLabel: store.formatCLP(retention),
       refundAmount: refundAmt,
       refundLabel: store.formatCLP(refundAmt),
+      refundDestination: dest,
       tier: result.tier || updated.cancellationTier
     });
   } catch (err) {
@@ -817,23 +869,30 @@ router.post('/solicitud/:id/cancelar', requireRole('client'), async (req, res) =
   try {
     const reasonCode = req.body?.reasonCode || req.body?.reason;
     const reasonText = req.body?.reasonText || '';
-    const result = store.cancelClientRequest(req.params.id, req.session.user.id, { reasonCode, reasonText });
+    const refundDestination = req.body?.refundDestination === 'credit' ? 'credit' : 'card';
+    const result = store.cancelClientRequest(req.params.id, req.session.user.id, {
+      reasonCode,
+      reasonText,
+      refundDestination
+    });
     if (result.error) return res.status(400).json({ success: false, error: result.error });
 
     const updated = result.request;
     const retention = updated.cancellationFeeCharged || 0;
     const refundAmt = updated.refundAmount != null ? updated.refundAmount : 0;
+    const dest = updated.refundDestination || refundDestination;
     notifications.notify({
       event: 'service.refund_requested',
       to: company.supportEmail,
       subject: `Cancelación de servicio — ${updated.serviceName}`,
-      text: `El cliente ${updated.clientName} canceló la solicitud ${updated.id}. Motivo: ${updated.cancelReasonLabel || reasonCode}. Escalón: ${updated.cancellationTier}. Retención: ${store.formatCLP(retention)}. Devolución: ${store.formatCLP(refundAmt)}.`,
+      text: `El cliente ${updated.clientName} canceló la solicitud ${updated.id}. Motivo: ${updated.cancelReasonLabel || reasonCode}. Escalón: ${updated.cancellationTier}. Retención: ${store.formatCLP(retention)}. Destino: ${dest === 'credit' ? 'crédito Fandez' : 'tarjeta (48–72 h)'}. Monto: ${store.formatCLP(refundAmt)}.`,
       requestId: updated.id,
       userId: updated.clientId,
       meta: {
         reasonCode: updated.cancelReasonCode,
         retentionFee: retention,
         refundAmount: refundAmt,
+        refundDestination: dest,
         tier: updated.cancellationTier
       }
     }).catch(() => {});
@@ -883,6 +942,7 @@ router.post('/solicitud/:id/cancelar', requireRole('client'), async (req, res) =
       retentionLabel: store.formatCLP(retention),
       refundAmount: refundAmt,
       refundLabel: store.formatCLP(refundAmt),
+      refundDestination: dest,
       tier: result.tier || updated.cancellationTier
     });
   } catch (err) {

@@ -1486,6 +1486,8 @@
 
   function hideNoProviderChoice() {
     document.getElementById('noProviderChoicePanel')?.classList.add('hidden');
+    document.getElementById('noProviderMainActions')?.classList.remove('hidden');
+    document.getElementById('noProviderMoneyPanel')?.classList.add('hidden');
   }
 
   function formatScheduledWhen(iso) {
@@ -1694,6 +1696,8 @@
         ? t('client.service.cancel_loss_hint', { fee: data.feeLabel || fmt(fee) })
         : t('client.service.cancel_loss_hint_free');
     }
+    const destBox = document.getElementById('cancelRefundDestination');
+    destBox?.classList.toggle('hidden', refund < 1);
     moneyCard?.classList.remove('hidden');
   }
 
@@ -1746,11 +1750,12 @@
     if (btnSearch) btnSearch.disabled = true;
     if (btnScheduled) btnScheduled.disabled = true;
     try {
+      const refundDestination = document.querySelector('input[name="cancelRefundDest"]:checked')?.value || 'credit';
       const response = await fetch(`/cliente/solicitud/${encodeURIComponent(cancelTargetId)}/cancelar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ reasonCode })
+        body: JSON.stringify({ reasonCode, refundDestination })
       });
       const raw = await response.text();
       let data = {};
@@ -1767,22 +1772,42 @@
       const paidLabel = data.paidLabel || ('$' + Number(data.paid || 0).toLocaleString('es-CL'));
       const retentionLabel = data.retentionLabel || ('$' + Number(data.retentionFee || 0).toLocaleString('es-CL'));
       const refundLabel = data.refundLabel || ('$' + Number(data.refundAmount || 0).toLocaleString('es-CL'));
-      const okBody = t('client.service.cancel_search_ok_breakdown', {
+      const dest = data.refundDestination || refundDestination;
+      const refundAmt = Number(data.refundAmount || 0);
+      let okTitle = t('client.service.cancel_search_ok_title');
+      let okBody = t('client.service.cancel_search_ok_breakdown', {
         paid: paidLabel,
         retention: retentionLabel,
         refund: refundLabel
       });
+      if (refundAmt > 0 && dest === 'credit') {
+        okTitle = t('client.service.cancel_ok_credit_title');
+        okBody = t('client.service.cancel_ok_credit_body', {
+          paid: paidLabel,
+          retention: retentionLabel,
+          refund: refundLabel
+        });
+      } else if (refundAmt > 0) {
+        okTitle = t('client.service.cancel_ok_card_title');
+        okBody = t('client.service.cancel_ok_card_body', {
+          paid: paidLabel,
+          retention: retentionLabel,
+          refund: refundLabel
+        });
+      }
       if (window.FandezAlerts) {
         FandezAlerts.notify({
           type: 'success',
-          title: t('client.service.cancel_search_ok_title'),
+          title: okTitle,
           body: okBody,
           toast: 'success'
         });
+      } else if (window.FandezNotify?.show) {
+        FandezNotify.show({ type: 'success', title: okTitle, body: okBody, kicker: 'Postventa' });
       } else {
         FandezNotify.show(okBody, 'success');
       }
-      setTimeout(() => { window.location.href = '/cliente'; }, 1800);
+      setTimeout(() => { window.location.href = '/cliente'; }, refundAmt > 0 && dest === 'card' ? 3500 : 2200);
     } catch (err) {
       if (btn) btn.disabled = !cancelSelectedReason;
       if (keepBtn) keepBtn.disabled = false;
@@ -1899,6 +1924,11 @@
   document.getElementById('safetyModalBackdrop')?.addEventListener('click', closeSafetyModal);
   document.getElementById('safetyModalSubmit')?.addEventListener('click', submitSafetyModal);
 
+  function showNoProviderMoneyPanel(show) {
+    document.getElementById('noProviderMainActions')?.classList.toggle('hidden', show);
+    document.getElementById('noProviderMoneyPanel')?.classList.toggle('hidden', !show);
+  }
+
   async function submitNoProviderChoice(choice, requestId) {
     const panel = document.getElementById('noProviderChoicePanel');
     const buttons = panel?.querySelectorAll('button') || [];
@@ -1921,20 +1951,24 @@
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success) throw new Error(data.error || t('client.js.no_provider_error'));
       hideNoProviderChoice();
+      showNoProviderMoneyPanel(false);
       searchTimeoutTriggered = false;
-      const refundDone = choice === 'refund' || data.choice === 'refund' || data.already;
-      if (refundDone && (choice === 'refund' || data.choice === 'refund')) {
+      const resolved = data.choice || choice;
+      const moneyDone = resolved === 'refund' || resolved === 'credit';
+      if (moneyDone) {
+        const isCredit = resolved === 'credit';
+        const title = isCredit
+          ? t('client.js.credit_granted_title')
+          : t('client.js.refund_requested_title');
         const body = data.already
-          ? (data.message || t('client.js.refund_requested_body'))
-          : t('client.js.refund_requested_body');
-        if (window.FandezAlerts) FandezAlerts.notify({
-          type: 'success',
-          title: t('client.js.refund_requested_title'),
-          body,
-          toast: 'success'
-        });
-        else FandezNotify.show(body, 'success');
-        setTimeout(() => { window.location.href = '/cliente'; }, 1200);
+          ? (data.message || (isCredit ? t('client.js.credit_granted_body') : t('client.js.refund_requested_body')))
+          : (data.message || (isCredit ? t('client.js.credit_granted_body') : t('client.js.refund_requested_body')));
+        if (window.FandezAlerts) {
+          FandezAlerts.notify({ type: 'success', title, body, toast: 'success' });
+        } else {
+          FandezNotify.show({ type: 'success', title, body, kicker: 'Postventa' });
+        }
+        setTimeout(() => { window.location.href = '/cliente'; }, isCredit ? 2200 : 3200);
       } else {
         if (window.FandezAlerts) FandezAlerts.notify({
           type: 'update',
@@ -3751,6 +3785,16 @@
   document.getElementById('btnNoProviderContinue')?.addEventListener('click', () => {
     const id = document.getElementById('noProviderChoicePanel')?.dataset?.requestId || currentRequestId;
     if (id) submitNoProviderChoice('continue', id);
+  });
+  document.getElementById('btnNoProviderMoney')?.addEventListener('click', () => {
+    showNoProviderMoneyPanel(true);
+  });
+  document.getElementById('btnNoProviderMoneyBack')?.addEventListener('click', () => {
+    showNoProviderMoneyPanel(false);
+  });
+  document.getElementById('btnNoProviderCredit')?.addEventListener('click', () => {
+    const id = document.getElementById('noProviderChoicePanel')?.dataset?.requestId || currentRequestId;
+    if (id) submitNoProviderChoice('credit', id);
   });
   document.getElementById('btnNoProviderRefund')?.addEventListener('click', () => {
     const id = document.getElementById('noProviderChoicePanel')?.dataset?.requestId || currentRequestId;

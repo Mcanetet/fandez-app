@@ -11,12 +11,25 @@
     <% if (typeof completed !== 'undefined' && completed) { %>
       <p class="zilo-label text-aland-strong mb-1">Aland IA</p>
       <h1 class="text-xl font-semibold mb-3">Recibimos tu elección</h1>
-      <% if (selectedChoice === 'refund') { %>
+      <% if (selectedChoice === 'credit') { %>
         <p class="text-sm text-zilo-muted leading-relaxed">
-          La devolución de <strong><%= request.serviceName %></strong> se inicia el siguiente día hábil
-          (<strong><%= request.refundScheduledDate %></strong>) al mismo medio de pago.
-          En <strong>crédito</strong> suele verse en el estado de cuenta o próximo ciclo; en <strong>débito</strong>, en tu cuenta bancaria. Los plazos los define tu banco, no Fandez.
+          Dejamos <strong><%= formatCLP ? formatCLP(request.creditsGrantedCLP || request.refundAmount || request.visitPricePaid || 0) : ('$' + (request.creditsGrantedCLP || request.refundAmount || 0)) %></strong>
+          como <strong>abono Fandez</strong> por <strong><%= request.serviceName %></strong>.
+          Queda disponible <strong>de inmediato</strong> para tu próximo servicio (lo verás al pagar en checkout).
         </p>
+      <% } else if (selectedChoice === 'refund') { %>
+        <p class="text-sm text-zilo-muted leading-relaxed mb-3">
+          Solicitamos la devolución de <strong><%= request.serviceName %></strong>
+          (<strong><%= formatCLP ? formatCLP(request.refundAmount || request.visitPricePaid || 0) : '' %></strong>)
+          al mismo medio de pago.
+        </p>
+        <div class="p-3 rounded-xl border border-amber-200 bg-amber-50 text-left mb-2">
+          <p class="text-xs font-semibold text-amber-950 mb-1">Plazo habitual</p>
+          <p class="text-xs text-amber-900/90 leading-relaxed">
+            Entre <strong>48 y 72 horas hábiles</strong> suele verse el movimiento. En tarjeta de crédito a veces aparece en el
+            <strong>próximo estado de cuenta</strong>. El banco o la pasarela definen el plazo exacto; Fandez inicia el reembolso de inmediato.
+          </p>
+        </div>
       <% } else { %>
         <p class="text-sm text-zilo-muted leading-relaxed">
           Seguiremos buscando un técnico para <strong><%= request.serviceName %></strong> y te avisaremos apenas alguien tome la solicitud.
@@ -28,7 +41,7 @@
       <h1 class="text-xl font-semibold mb-3">Los técnicos cercanos están ocupados</h1>
       <p class="text-sm text-zilo-muted leading-relaxed mb-5">
         Han pasado más de <%= typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15 %> minutos y todavía nadie ha tomado tu solicitud de
-        <strong><%= request.serviceName %></strong>. ¿Quieres que sigamos buscando?
+        <strong><%= request.serviceName %></strong>. Elige cómo continuar:
       </p>
 
       <form method="POST" action="/cliente/solicitud/<%= request.id %>/sin-socio" class="space-y-3">
@@ -38,10 +51,15 @@
           <strong class="text-sm block text-zilo-accent">Sí, seguir buscando</strong>
           <span class="text-xs text-zilo-muted">Seguimos buscando y te notificamos en la app y por correo apenas alguien acepte.</span>
         </button>
+        <button type="submit" name="choice" value="credit"
+          class="w-full text-left p-4 rounded-2xl border <%= selectedChoice === 'credit' ? 'border-emerald-400 bg-emerald-50' : 'border-emerald-200 bg-white' %> hover:border-emerald-300 transition">
+          <strong class="text-sm block text-emerald-800">Dejar como abono Fandez</strong>
+          <span class="text-xs text-zilo-muted">Queda disponible ya para otro servicio. Sin esperar al banco.</span>
+        </button>
         <button type="submit" name="choice" value="refund"
           class="w-full text-left p-4 rounded-2xl border <%= selectedChoice === 'refund' ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white' %> hover:border-red-300 transition">
-          <strong class="text-sm block text-red-700">Solicitar devolución</strong>
-          <span class="text-xs text-zilo-muted">La iniciamos el siguiente día hábil. Crédito → estado de cuenta; débito → cuenta bancaria (plazos del banco).</span>
+          <strong class="text-sm block text-red-700">Devolver a mi medio de pago</strong>
+          <span class="text-xs text-zilo-muted">Iniciamos el reembolso ahora. Suele verse en <strong>48–72 horas hábiles</strong> (según tu banco).</span>
         </button>
       </form>
     <% } %>

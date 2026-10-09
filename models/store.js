@@ -1247,7 +1247,8 @@ function applyCheckoutDiscounts(userId, requestId, { useCredits, usePoints, prom
     appliedPromo = code;
   }
 
-  if (useCredits && isReferralsEnabled() && (user.creditsCLP || 0) > 0 && remaining > 0) {
+  // Créditos: referidos o abono por cancelación/devolución (creditsCLP > 0).
+  if (useCredits && (user.creditsCLP || 0) > 0 && remaining > 0) {
     discountCredits = Math.min(user.creditsCLP, remaining);
     remaining -= discountCredits;
   }
@@ -1903,12 +1904,64 @@ function applyCancellationWithRetention(request, {
     request.refundStatus = 'requested';
     request.refundRequestedAt = now;
     request.refundScheduledDate = nextBusinessDayIso(new Date());
+    request.refundDestination = request.refundDestination || 'card';
+    request.refundEtaNote = '48_72_hours';
   } else {
     request.refundStatus = 'not_applicable';
     request.refundRequestedAt = now;
     request.refundScheduledDate = null;
+    request.refundDestination = null;
   }
   return { paid, retentionFee, refundAmount, tier, policyFee };
+}
+
+function addUserCredits(userId, amountClp, meta = {}) {
+  const user = getUserById(userId);
+  if (!user) return { error: 'Usuario no encontrado.' };
+  const amount = Math.max(0, Math.round(Number(amountClp) || 0));
+  if (amount < 1) {
+    return { success: true, creditsCLP: user.creditsCLP || 0, added: 0 };
+  }
+  user.creditsCLP = (user.creditsCLP || 0) + amount;
+  if (!Array.isArray(user.creditLedger)) user.creditLedger = [];
+  user.creditLedger.unshift({
+    at: new Date().toISOString(),
+    amount,
+    reason: meta.reason || 'credit',
+    requestId: meta.requestId || null,
+    note: meta.note ? String(meta.note).slice(0, 200) : null
+  });
+  user.creditLedger = user.creditLedger.slice(0, 80);
+  repository.persist(() => repository.saveUser(user), `crédito +${amount} ${userId}`);
+  return { success: true, creditsCLP: user.creditsCLP, added: amount };
+}
+
+function applyRefundDestination(request, destination = 'card') {
+  const dest = String(destination || 'card').toLowerCase() === 'credit' ? 'credit' : 'card';
+  const amount = Math.max(0, parseInt(request.refundAmount != null ? request.refundAmount : 0, 10) || 0);
+  request.refundDestination = dest;
+  if (dest === 'credit' && amount > 0) {
+    const credited = addUserCredits(request.clientId, amount, {
+      reason: 'service_refund_credit',
+      requestId: request.id,
+      note: 'Abono Fandez por cancelación / sin técnico'
+    });
+    if (credited.error) return credited;
+    request.refundStatus = 'credited';
+    request.refundProcessedAt = new Date().toISOString();
+    request.refundScheduledDate = null;
+    request.refundEtaNote = 'instant_credit';
+    request.creditsGrantedCLP = amount;
+    return { success: true, destination: 'credit', amount, creditsCLP: credited.creditsCLP };
+  }
+  if (amount > 0) {
+    request.refundStatus = 'requested';
+    request.refundEtaNote = '48_72_hours';
+    if (!request.refundScheduledDate) {
+      request.refundScheduledDate = nextBusinessDayIso(new Date());
+    }
+  }
+  return { success: true, destination: 'card', amount };
 }
 
 function promoteDueScheduledSearches(now = Date.now()) {
@@ -1968,7 +2021,11 @@ function expireStaleUnassignedRequests(now = Date.now(), maxOpenHours = null) {
   return expired;
 }
 
-function cancelClientSearch(requestId, clientId, { reasonCode = null, reasonText = null } = {}) {
+function cancelClientSearch(requestId, clientId, {
+  reasonCode = null,
+  reasonText = null,
+  refundDestination = 'card'
+} = {}) {
   const request = requests.find((r) => r.id === requestId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (request.clientId !== clientId) return { error: 'No autorizado.' };
@@ -1989,8 +2046,12 @@ function cancelClientSearch(requestId, clientId, { reasonCode = null, reasonText
     reasonCode,
     reasonText
   });
+  const destResult = applyRefundDestination(request, refundDestination);
+  if (destResult.error) return destResult;
   repository.persist(() => repository.saveRequest(request), `cancelar búsqueda ${requestId}`);
-  afterEvent((ev) => ev.onRefundRequested?.(request));
+  if (request.refundDestination !== 'credit' && (request.refundAmount || 0) > 0) {
+    afterEvent((ev) => ev.onRefundRequested?.(request));
+  }
   let safetyIncident = null;
   if (reasonCode === 'safety_concern') {
     safetyIncident = createSafetyIncident({
@@ -2002,11 +2063,21 @@ function cancelClientSearch(requestId, clientId, { reasonCode = null, reasonText
       notes: reasonText || 'Cancelación con motivo de seguridad / comodidad'
     });
   }
-  return { success: true, request, ...money, safetyIncident: safetyIncident?.complaint || null };
+  return {
+    success: true,
+    request,
+    ...money,
+    refundDestination: request.refundDestination || 'card',
+    safetyIncident: safetyIncident?.complaint || null
+  };
 }
 
 /** Cancelación con escalera de fee cuando ya hay socio/técnico. */
-function cancelClientRequest(requestId, clientId, { reasonCode = null, reasonText = null } = {}) {
+function cancelClientRequest(requestId, clientId, {
+  reasonCode = null,
+  reasonText = null,
+  refundDestination = 'card'
+} = {}) {
   const request = requests.find((r) => r.id === requestId);
   if (!request) return { error: 'Solicitud no encontrada.' };
   if (request.clientId !== clientId) return { error: 'No autorizado.' };
@@ -2022,7 +2093,7 @@ function cancelClientRequest(requestId, clientId, { reasonCode = null, reasonTex
 
   // Sin asignación: misma lógica que cancelar búsqueda
   if (!request.providerId && ['searching', 'scheduled'].includes(request.status)) {
-    return cancelClientSearch(requestId, clientId, { reasonCode, reasonText });
+    return cancelClientSearch(requestId, clientId, { reasonCode, reasonText, refundDestination });
   }
 
   const money = applyCancellationWithRetention(request, {
@@ -2031,10 +2102,14 @@ function cancelClientRequest(requestId, clientId, { reasonCode = null, reasonTex
     reasonCode,
     reasonText
   });
+  const destResult = applyRefundDestination(request, refundDestination);
+  if (destResult.error) return destResult;
   // Liberar técnico/socio del pedido cancelado
   request.techStatus = request.techStatus || null;
   repository.persist(() => repository.saveRequest(request), `cancelar servicio ${requestId}`);
-  afterEvent((ev) => ev.onRefundRequested?.(request));
+  if (request.refundDestination !== 'credit' && (request.refundAmount || 0) > 0) {
+    afterEvent((ev) => ev.onRefundRequested?.(request));
+  }
   let safetyIncident = null;
   if (reasonCode === 'safety_concern') {
     safetyIncident = createSafetyIncident({
@@ -2046,7 +2121,13 @@ function cancelClientRequest(requestId, clientId, { reasonCode = null, reasonTex
       notes: reasonText || 'Cancelación con motivo de seguridad / comodidad'
     });
   }
-  return { success: true, request, ...money, safetyIncident: safetyIncident?.complaint || null };
+  return {
+    success: true,
+    request,
+    ...money,
+    refundDestination: request.refundDestination || 'card',
+    safetyIncident: safetyIncident?.complaint || null
+  };
 }
 
 function previewCancellationFee(requestId, clientId) {
@@ -8013,10 +8094,20 @@ function respondNoProviderChoice(requestId, { clientId, tokenHash, choice } = {}
   }
   if (!clientId && !tokenHash) return { error: 'No autorizado.' };
   if (
-    (request.noProviderDecisionStatus === 'resolved' && request.noProviderChoice === 'refund')
-    || (request.status === 'cancelled' && (request.refundStatus === 'requested' || request.cancelReason === 'no_provider_available'))
+    (request.noProviderDecisionStatus === 'resolved'
+      && (request.noProviderChoice === 'refund' || request.noProviderChoice === 'credit'))
+    || (request.status === 'cancelled' && (
+      request.refundStatus === 'requested'
+      || request.refundStatus === 'credited'
+      || request.cancelReason === 'no_provider_available'
+    ))
   ) {
-    return { success: true, already: true, choice: 'refund', request };
+    return {
+      success: true,
+      already: true,
+      choice: request.noProviderChoice || 'refund',
+      request
+    };
   }
   if (request.noProviderDecisionStatus !== 'pending') {
     return { error: 'Esta solicitud no tiene una decisión pendiente.' };
@@ -8024,14 +8115,24 @@ function respondNoProviderChoice(requestId, { clientId, tokenHash, choice } = {}
 
   const normalizedChoice = String(choice || '').trim().toLowerCase();
   const now = new Date().toISOString();
-  if (normalizedChoice === 'refund') {
+  const paid = Math.max(0, parseInt(request.visitPricePaid || request.amountDue || 0, 10) || 0);
+
+  if (normalizedChoice === 'refund' || normalizedChoice === 'credit') {
     request.status = 'cancelled';
     request.cancelledAt = now;
     request.cancelReason = 'no_provider_available';
-    request.refundStatus = 'requested';
+    request.cancellationFeeCharged = 0;
+    request.refundAmount = paid;
+    request.refundBreakdown = {
+      visitPaid: paid,
+      retentionFee: 0,
+      refundAmount: paid,
+      formula: 'full_visit_no_provider'
+    };
     request.refundRequestedAt = now;
-    request.refundScheduledDate = nextBusinessDayIso(new Date());
     request.noProviderDecisionStatus = 'resolved';
+    const destResult = applyRefundDestination(request, normalizedChoice === 'credit' ? 'credit' : 'card');
+    if (destResult.error) return destResult;
   } else if (normalizedChoice === 'continue') {
     if (request.status !== 'searching' || request.providerId) {
       return { error: 'La solicitud ya cambió de estado.' };
@@ -9416,7 +9517,7 @@ function updateProviderPayoutCadence(providerId, cadenceRaw) {
 }
 
 const REFUND_OPEN_STATUSES = new Set(['requested', 'pending', 'processing']);
-const REFUND_ALLOWED_STATUSES = new Set(['requested', 'processing', 'paid', 'failed']);
+const REFUND_ALLOWED_STATUSES = new Set(['requested', 'processing', 'paid', 'failed', 'credited']);
 
 function summarizeRefundForAdmin(r) {
   const amount = Math.max(
@@ -10085,6 +10186,8 @@ module.exports = {
   getProviderPayoutSetupForUser,
   updateProviderBankAccount,
   updateProviderPayoutCadence,
+  addUserCredits,
+  applyRefundDestination,
   getAdminRefundQueue,
   updateRefundStatus,
   getAdminRequestCase,
