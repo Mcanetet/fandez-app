@@ -24,7 +24,7 @@ En el panel de la app (Environment variables), ajusta:
 
 Mantén las existentes: `DB_*`, `MP_ACCESS_TOKEN`, `SMTP_*`, `SESSION_SECRET`, etc.
 
-Opcional: `MP_CHECKOUT_REDIRECT=true` fuerza el checkout clásico en el sitio de Mercado Pago (sin Brick embebido).
+Por defecto el pago con tarjeta va **embebido en Fandez** (Brick) si hay Public Key + Access Token del mismo par. Opcional: `MP_CHECKOUT_REDIRECT=true` fuerza redirect a mercadopago.cl/sandbox (sin Brick).
 
 **Pruebas (DEMO / `MP_SANDBOX=true`):** no mezcles Public Key de **producción** con Access Token de **prueba** (error «Unauthorized use of live credentials»). Usa el par de **Credenciales de prueba** en `MP_TEST_PUBLIC_KEY` + `MP_TEST_ACCESS_TOKEN`, o pega ese par en `MP_PUBLIC_KEY` + `MP_ACCESS_TOKEN`.
 
