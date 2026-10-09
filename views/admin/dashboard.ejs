@@ -3030,72 +3030,67 @@ if (typeof hasPerm !== 'function') {
     <!-- SEGURIDAD -->
     <section class="<%= panelClass('seguridad') %>" data-panel="seguridad">
       <% const modePanel = typeof appModeStatus !== 'undefined' ? appModeStatus : { mode: 'demo', label: 'Demo local', isDemo: true, canToggle: true, adminBasePath: '/admin' }; %>
-      <div class="p-4 rounded-2xl border mb-4 <%= modePanel.isProductive2 ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-amber-500/10 border-amber-500/30' %>">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="min-w-0 flex-1">
-            <h4 class="text-sm font-semibold"><%= modePanel.label || (modePanel.isDemo ? 'Demo local' : 'Demo 2.0') %></h4>
-            <p class="text-xs text-gray-600 mt-1">
-              <% if (modePanel.isDemo) { %>
-                Demo local (legado): pagos simulados. Ya no hay atajos de login públicos. Preferir <strong>Demo 2.0</strong> en el servidor.
-              <% } else if (modePanel.isProductive2) { %>
-                Productivo 2.0: pagos reales, sin huincha. Al activarlo se <strong>limpia el historial operativo</strong> (solicitudes y pagos de prueba); se conservan clientes y socios inscritos.
-              <% } else { %>
-                Demo 2.0: pagos reales, reclutamiento de socios. Cuando lances, pon <code>SHOW_DEMO_RIBBON=false</code> → pasa a Productivo 2.0.
-              <% } %>
-            </p>
-            <ul class="mt-2 text-[11px] text-gray-600 space-y-1 list-disc pl-4">
-              <li>Atajos demo antiguos en login: <strong>eliminados</strong></li>
-              <li>Mismo RUT cliente + socio: <strong>permitido</strong> (bloqueo solo entre dos clientes o dos socios)</li>
-              <li>Mercado Pago: <strong><%= typeof operationalPhaseStatus !== 'undefined' && operationalPhaseStatus.isProductivoPhase ? 'credenciales producción' : 'credenciales prueba' %></strong></li>
-              <li>Pagos APP_MODE: <strong><%= modePanel.isDemo ? 'simulados (local)' : 'servidor production' %></strong></li>
-              <li>Huincha pública: <strong><%= modePanel.isDemo2 || modePanel.isDemo ? 'Demo 2.0' : 'oculta (Productivo 2.0)' %></strong></li>
-            </ul>
-            <p class="text-[11px] text-gray-500 mt-2">URL admin: <code class="bg-white/70 px-1 rounded"><%= modePanel.adminBasePath %>/login</code>
-              <% if (modePanel.overrideActive) { %> · override activo (env: <%= modePanel.envMode %>)<% } %>
-            </p>
-            <% if (!modePanel.canToggle) { %>
-              <p class="text-[11px] text-amber-800 mt-2 rounded-lg bg-amber-50 border border-amber-200 px-2 py-1.5">
-                El cambio de <code>APP_MODE</code> desde admin está bloqueado en el servidor.
-                Demo 2.0 → Productivo 2.0: <code>SHOW_DEMO_RIBBON=false</code> y reinicia.
-              </p>
-            <% } %>
-          </div>
-          <% if (modePanel.canToggle && (adminAccess.isSuperAdmin || adminAccess.isFullAccess)) { %>
-            <% const opPhase = typeof operationalPhaseStatus !== 'undefined' ? operationalPhaseStatus : { isDemoPhase: true, isProductivoPhase: false }; %>
-            <div class="flex flex-wrap gap-2 shrink-0">
-              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isDemo ? 'bg-white border-amber-400' : 'bg-white/50' %>" data-mode="demo" data-phase="demo" title="Solo desarrollo local">Demo local</button>
-              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= modePanel.isProduction && opPhase.isDemoPhase ? 'bg-white border-amber-400' : 'bg-white/50' %>" data-mode="production" data-phase="demo" title="MP prueba + huincha">Demo 2.0</button>
-              <button type="button" class="btn-set-app-mode text-xs px-3 py-1.5 rounded-lg border font-semibold <%= opPhase.isProductivoPhase ? 'bg-white border-emerald-500' : 'bg-white/50' %>" data-mode="production" data-phase="productivo" title="MP producción">Productivo 2.0</button>
-            </div>
+      <% const opPhase = typeof operationalPhaseStatus !== 'undefined' ? operationalPhaseStatus : { isDemoPhase: true, isProductivoPhase: false }; %>
+      <% const httpsOn = (typeof appModeStatus !== 'undefined' && appModeStatus && appModeStatus.isProduction) || (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production'); %>
+      <% const ipList = Array.isArray(adminIpAllowlist) ? adminIpAllowlist : []; %>
+      <% const mfaOn = typeof mfaStatus !== 'undefined' && mfaStatus && mfaStatus.enabled; %>
+
+      <div class="space-y-4">
+      <div class="p-4 rounded-2xl border <%= modePanel.isProductive2 ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-amber-500/10 border-amber-500/30' %>">
+        <h4 class="text-sm font-semibold leading-snug"><%= modePanel.label || (modePanel.isDemo ? 'Demo local' : 'Demo 2.0') %></h4>
+        <p class="text-xs text-gray-600 mt-1.5 leading-relaxed">
+          <% if (modePanel.isDemo) { %>
+            Demo local (legado): pagos simulados. Preferir <strong>Demo 2.0</strong> en el servidor.
+          <% } else if (modePanel.isProductive2) { %>
+            Productivo 2.0: pagos reales, sin huincha. Al activarlo se limpia el historial operativo de prueba.
+          <% } else { %>
+            Demo 2.0: pagos reales y reclutamiento. Al lanzar, pasa a Productivo 2.0.
           <% } %>
-        </div>
+        </p>
+        <dl class="mt-3 grid grid-cols-1 gap-1.5 text-[11px] text-gray-600">
+          <div class="flex justify-between gap-3"><dt class="text-gray-500">Mercado Pago</dt><dd class="font-semibold text-right"><%= opPhase.isProductivoPhase ? 'Producción' : 'Prueba' %></dd></div>
+          <div class="flex justify-between gap-3"><dt class="text-gray-500">Pagos APP_MODE</dt><dd class="font-semibold text-right"><%= modePanel.isDemo ? 'Simulados' : 'Servidor' %></dd></div>
+          <div class="flex justify-between gap-3"><dt class="text-gray-500">Huincha pública</dt><dd class="font-semibold text-right"><%= modePanel.isDemo2 || modePanel.isDemo ? 'Demo 2.0' : 'Oculta' %></dd></div>
+          <div class="flex justify-between gap-3 min-w-0"><dt class="text-gray-500 shrink-0">URL admin</dt><dd class="font-mono text-[10px] text-right truncate"><%= modePanel.adminBasePath %>/login</dd></div>
+        </dl>
+        <% if (modePanel.canToggle && (adminAccess.isSuperAdmin || adminAccess.isFullAccess)) { %>
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button type="button" class="btn-set-app-mode w-full text-xs px-3 py-2.5 rounded-xl border font-semibold <%= modePanel.isDemo ? 'bg-white border-amber-400 shadow-sm' : 'bg-white/60 border-amber-200/80' %>" data-mode="demo" data-phase="demo">Demo local</button>
+            <button type="button" class="btn-set-app-mode w-full text-xs px-3 py-2.5 rounded-xl border font-semibold <%= modePanel.isProduction && opPhase.isDemoPhase ? 'bg-white border-amber-400 shadow-sm' : 'bg-white/60 border-amber-200/80' %>" data-mode="production" data-phase="demo">Demo 2.0</button>
+            <button type="button" class="btn-set-app-mode w-full text-xs px-3 py-2.5 rounded-xl border font-semibold <%= opPhase.isProductivoPhase ? 'bg-white border-emerald-500 shadow-sm' : 'bg-white/60 border-emerald-200/80' %>" data-mode="production" data-phase="productivo">Productivo 2.0</button>
+          </div>
+        <% } else if (!modePanel.canToggle) { %>
+          <p class="text-[11px] text-amber-800 mt-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 leading-relaxed">
+            El cambio de modo desde admin está bloqueado en el servidor.
+          </p>
+        <% } %>
       </div>
 
       <% if (typeof mfaMessage !== 'undefined' && mfaMessage === 'enabled') { %>
-        <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 text-sm">MFA activado correctamente.</div>
+        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 text-sm">MFA activado correctamente.</div>
       <% } %>
       <% if (typeof mfaMessage !== 'undefined' && mfaMessage === 'disabled') { %>
-        <div class="mb-4 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/25 text-yellow-700 text-sm">MFA desactivado.</div>
+        <div class="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/25 text-yellow-700 text-sm">MFA desactivado.</div>
       <% } %>
       <% if (typeof mfaError !== 'undefined' && mfaError) { %>
-        <div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-700 text-sm"><%= mfaError %></div>
+        <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-700 text-sm"><%= mfaError %></div>
       <% } %>
 
-      <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4">
+      <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200">
         <h4 class="text-sm font-semibold mb-1">Cambiar contraseña</h4>
         <p class="text-xs text-gray-500 mb-3">Actualiza la clave de tu cuenta de administración.</p>
         <form id="passwordChangeForm" class="space-y-3">
           <div>
             <label class="text-[10px] text-gray-500 uppercase block mb-1">Contraseña actual</label>
-            <input type="password" name="currentPassword" required autocomplete="current-password" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
+            <input type="password" name="currentPassword" required autocomplete="current-password" class="w-full px-3 py-2.5 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
           </div>
           <div>
             <label class="text-[10px] text-gray-500 uppercase block mb-1">Nueva contraseña</label>
-            <input type="password" name="newPassword" required minlength="8" autocomplete="new-password" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
+            <input type="password" name="newPassword" required minlength="8" autocomplete="new-password" class="w-full px-3 py-2.5 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
           </div>
           <div>
             <label class="text-[10px] text-gray-500 uppercase block mb-1">Confirmar</label>
-            <input type="password" name="confirmPassword" required minlength="8" autocomplete="new-password" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
+            <input type="password" name="confirmPassword" required minlength="8" autocomplete="new-password" class="w-full px-3 py-2.5 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
           </div>
           <p id="passwordChangeError" class="hidden text-xs text-red-600"></p>
           <button type="submit" class="w-full py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-sm font-medium text-blue-700">Actualizar contraseña</button>
@@ -3137,18 +3132,18 @@ if (typeof hasPerm !== 'function') {
       })();
       </script>
 
-      <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4">
+      <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200">
         <div class="flex items-start justify-between gap-3 mb-3">
-          <div>
-            <h4 class="text-sm font-semibold">Autenticación en dos pasos (TOTP)</h4>
-            <p class="text-xs text-gray-500 mt-1">Protege el panel con Google Authenticator. No se envían códigos por correo al admin.</p>
+          <div class="min-w-0">
+            <h4 class="text-sm font-semibold">Autenticación en dos pasos</h4>
+            <p class="text-xs text-gray-500 mt-1 leading-relaxed">Google Authenticator (TOTP). Sin códigos por correo.</p>
           </div>
-          <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full <%= mfaStatus.enabled ? 'bg-emerald-500/15 text-emerald-600' : 'bg-gray-100 text-gray-500' %>">
-            <%= mfaStatus.enabled ? 'Activo' : 'Inactivo' %>
+          <span class="shrink-0 text-[10px] font-bold uppercase px-2 py-1 rounded-full <%= mfaOn ? 'bg-emerald-500/15 text-emerald-600' : 'bg-gray-100 text-gray-500' %>">
+            <%= mfaOn ? 'Activo' : 'Inactivo' %>
           </span>
         </div>
 
-        <% if (!mfaStatus.enabled) { %>
+        <% if (!mfaOn) { %>
           <a href="<%= adminBase %>/mfa/setup" class="inline-flex items-center justify-center w-full py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-sm font-medium text-blue-700 hover:border-blue-500/50">
             Configurar MFA
           </a>
@@ -3158,71 +3153,76 @@ if (typeof hasPerm !== 'function') {
             <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
             <div>
               <label class="text-[10px] text-gray-500 uppercase block mb-1">Contraseña actual</label>
-              <input type="password" name="password" required autocomplete="current-password" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
+              <input type="password" name="password" required autocomplete="current-password" class="w-full px-3 py-2.5 rounded-xl bg-zilo-bg border border-gray-200 text-sm">
             </div>
             <div>
               <label class="text-[10px] text-gray-500 uppercase block mb-1">Código MFA</label>
-              <input type="text" name="code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" class="w-full px-3 py-2 rounded-xl bg-zilo-bg border border-gray-200 text-sm text-center font-mono tracking-widest">
+              <input type="text" name="code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" class="w-full px-3 py-2.5 rounded-xl bg-zilo-bg border border-gray-200 text-sm text-center font-mono tracking-widest">
             </div>
             <button type="submit" class="w-full py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-sm font-medium text-red-700">Desactivar MFA</button>
           </form>
         <% } %>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 mb-4">
+      <div class="grid grid-cols-2 gap-2">
         <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-          <span class="text-[9px] text-gray-500 uppercase block">Protección web</span>
-          <strong class="text-sm text-emerald-600">Activa</strong>
+          <span class="text-[9px] text-gray-500 uppercase block leading-tight">Protección web</span>
+          <strong class="text-sm text-emerald-600 block mt-1">Activa</strong>
         </div>
         <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-          <span class="text-[9px] text-gray-500 uppercase block">Sesión segura</span>
-          <strong class="text-sm text-emerald-600">Activa</strong>
+          <span class="text-[9px] text-gray-500 uppercase block leading-tight">Sesión segura</span>
+          <strong class="text-sm text-emerald-600 block mt-1">Activa</strong>
         </div>
         <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-          <span class="text-[9px] text-gray-500 uppercase block">Límite de intentos</span>
-          <strong class="text-sm text-emerald-600">Activo</strong>
+          <span class="text-[9px] text-gray-500 uppercase block leading-tight">Límite intentos</span>
+          <strong class="text-sm text-emerald-600 block mt-1">Activo</strong>
         </div>
         <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-          <span class="text-[9px] text-gray-500 uppercase block">HTTPS reforzado</span>
-          <strong class="text-sm text-emerald-600"><%= process.env.NODE_ENV === 'production' ? 'Activo' : 'Solo en producción' %></strong>
+          <span class="text-[9px] text-gray-500 uppercase block leading-tight">HTTPS</span>
+          <strong class="text-sm text-emerald-600 block mt-1"><%= httpsOn ? 'Activo' : 'Local' %></strong>
         </div>
-        <div class="p-3 rounded-xl <%= adminIpAllowlist.length ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-gray-50 border-gray-200' %> border text-center">
-          <span class="text-[9px] text-gray-500 uppercase block">IPs permitidas (admin)</span>
-          <strong class="text-sm <%= adminIpAllowlist.length ? 'text-emerald-600' : 'text-gray-500' %>"><%= adminIpAllowlist.length ? 'Activo (' + adminIpAllowlist.length + ')' : 'Desactivado' %></strong>
+        <div class="p-3 rounded-xl col-span-2 <%= ipList.length ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-gray-50 border-gray-200' %> border text-center">
+          <span class="text-[9px] text-gray-500 uppercase block leading-tight">IPs permitidas (admin)</span>
+          <strong class="text-sm <%= ipList.length ? 'text-emerald-600' : 'text-gray-500' %> block mt-1"><%= ipList.length ? ('Activo · ' + ipList.length) : 'Desactivado' %></strong>
         </div>
       </div>
 
-      <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-4 text-xs text-gray-600">
+      <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 text-xs text-gray-600">
         <h4 class="text-sm font-semibold text-gray-800 mb-2"><%= t('admin.seguridad.ip_restriction') %></h4>
-        <p class="mb-2"><%= t('admin.seguridad.your_ip') %>: <code class="font-mono bg-gray-100 px-1.5 py-0.5 rounded"><%= clientIp %></code></p>
-        <% if (adminIpAllowlist.length) { %>
-          <p class="mb-2"><%= t('admin.seguridad.authorized_ips') %>: <code class="font-mono"><%= adminIpAllowlist.join(', ') %></code></p>
+        <p class="mb-2 break-all"><%= t('admin.seguridad.your_ip') %>: <code class="font-mono bg-gray-100 px-1.5 py-0.5 rounded"><%= clientIp %></code></p>
+        <% if (ipList.length) { %>
+          <p class="mb-2 break-all"><%= t('admin.seguridad.authorized_ips') %>: <code class="font-mono"><%= ipList.join(', ') %></code></p>
         <% } else { %>
-          <p class="mb-2"><%= t('admin.seguridad.activate_hint') %></p>
-          <code class="block bg-gray-100 p-2 rounded font-mono text-[10px] break-all">ADMIN_IP_ALLOWLIST=<%= clientIp %></code>
-          <p class="mt-2 text-gray-500">Solo se aplica con <code>NODE_ENV=production</code>. En local usa <code>ADMIN_IP_ALLOWLIST_ENFORCE=true</code> para probar.</p>
+          <p class="mb-2 leading-relaxed"><%= t('admin.seguridad.activate_hint') %></p>
+          <code class="block bg-gray-100 p-2.5 rounded-xl font-mono text-[10px] break-all leading-relaxed">ADMIN_IP_ALLOWLIST=<%= clientIp %></code>
         <% } %>
       </div>
 
-      <h4 class="text-sm font-semibold mb-2"><%= t('admin.seguridad.audit') %></h4>
-      <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200 mb-3">
-        <div class="admin-filters admin-filters-wide mb-3">
-          <input type="search" id="auditSearch" class="admin-filter-q" placeholder="Buscar evento, usuario, IP o detalle" value="" autocomplete="off">
-          <input type="text" id="auditEvent" class="admin-filter-q admin-filter-event" placeholder="evento (opcional)" autocomplete="off">
-          <button type="button" id="btnAuditSearch" class="admin-filter-btn">Filtrar</button>
-          <a id="btnAuditExport" href="<%= adminBase %>/auditoria/export.csv" class="admin-filter-btn admin-filter-btn-ghost">Exportar CSV</a>
+      <div>
+        <h4 class="text-sm font-semibold mb-2"><%= t('admin.seguridad.audit') %></h4>
+        <div class="p-4 rounded-2xl bg-zilo-card border border-gray-200">
+          <div class="admin-filters admin-filters-flush mb-3">
+            <input type="search" id="auditSearch" class="admin-filter-q" placeholder="Buscar evento, usuario, IP o detalle" value="" autocomplete="off">
+            <input type="text" id="auditEvent" class="admin-filter-q admin-filter-event" placeholder="evento (opcional)" autocomplete="off">
+            <button type="button" id="btnAuditSearch" class="admin-filter-btn">Filtrar</button>
+            <a id="btnAuditExport" href="<%= adminBase %>/auditoria/export.csv" class="admin-filter-btn admin-filter-btn-ghost">Exportar CSV</a>
+          </div>
+          <p id="auditMeta" class="text-[11px] text-gray-500 mb-2">Cargando auditoría…</p>
+          <div id="auditLogList" class="space-y-1.5 max-h-96 overflow-y-auto">
+            <% (securityLogs || []).forEach(log => { %>
+              <div class="p-3 rounded-xl bg-zilo-bg border border-gray-200 text-xs">
+                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span class="font-mono text-blue-600 font-semibold"><%= log.event %></span>
+                  <span class="text-gray-500"><%= log.user || '—' %></span>
+                  <span class="text-gray-400"><%= log.ip || '—' %></span>
+                </div>
+                <span class="text-gray-500 block mt-0.5"><%= new Date(log.createdAt).toLocaleString('es-CL') %></span>
+                <% if (log.detail) { %><span class="text-gray-400 block mt-0.5 break-words"><%= log.detail %></span><% } %>
+              </div>
+            <% }); %>
+          </div>
         </div>
-        <p id="auditMeta" class="text-[11px] text-gray-500 mb-2">Cargando auditoría…</p>
-        <div id="auditLogList" class="space-y-1 max-h-96 overflow-y-auto">
-          <% securityLogs.forEach(log => { %>
-            <div class="p-3 rounded-lg bg-zilo-bg border border-gray-200 text-xs font-mono">
-              <span class="text-blue-600"><%= log.event %></span>
-              <span class="text-gray-500"> · <%= log.user || '—' %> · <%= log.ip || '—' %></span>
-              <span class="text-gray-500 block"><%= new Date(log.createdAt).toLocaleString('es-CL') %></span>
-              <% if (log.detail) { %><span class="text-gray-400 block truncate"><%= log.detail %></span><% } %>
-            </div>
-          <% }); %>
-        </div>
+      </div>
       </div>
     </section>
 
