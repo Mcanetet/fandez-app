@@ -144,7 +144,7 @@
         initialization,
         customization: {
           visual: {
-            hideFormTitle: true,
+            // No ocultar título/banderas del Brick: MP pinta logos desde payment_methods.
             style: FANDEZ_MP_VISUAL,
             texts: {
               formTitle: 'Tarjeta crédito, débito o prepago'

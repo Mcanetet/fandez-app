@@ -54,7 +54,7 @@
 
   async function ensureMpScripts() {
     if (!window.MercadoPago) await loadScript('https://sdk.mercadopago.com/js/v2');
-    if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js?v=20261009-visa4');
+    if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js?v=20261009-visa5');
   }
 
   async function refreshMpEmbedConfig(force) {

@@ -1158,8 +1158,26 @@ router.get('/modo', requireRole('admin'), requireAdminPermission('seguridad.view
     mercadopago: mp.getCredentialAdminStatus(),
     suggestedAdminPath: require('../lib/appMode').suggestAdminPath(),
     mpCardBrands: cardMethods.brands || {},
-    mpCardMethodIds: (cardMethods.methods || []).map((m) => m.id),
-    mpCardMethodsOk: Boolean(cardMethods.ok)
+    mpCardMethodIds: (cardMethods.active || cardMethods.methods || []).map((m) => m.id),
+    mpCardMethodsOk: Boolean(cardMethods.ok),
+    mpCardLogos: cardMethods.logos || [],
+    mpVisaDiagnosis: cardMethods.visa || null,
+    mpCardMethods: (cardMethods.methods || []).slice(0, 40)
+  });
+});
+
+/** Diagnóstico MP para soporte: GET /v1/payment_methods (Visa activa sí/no). */
+router.get('/mp/payment-methods', requireRole('admin'), requireAdminPermission('precios.manage', 'seguridad.view'), async (req, res) => {
+  const mp = require('../lib/mercadopago');
+  const cardMethods = await mp.listCardPaymentMethods();
+  res.json({
+    success: Boolean(cardMethods.ok),
+    credentialProfile: mp.getCredentialAdminStatus().profile,
+    brands: cardMethods.brands || {},
+    visa: cardMethods.visa || null,
+    logos: cardMethods.logos || [],
+    methods: cardMethods.methods || [],
+    httpStatus: cardMethods.status || null
   });
 });
 

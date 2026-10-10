@@ -77,7 +77,7 @@
         await loadScript('https://sdk.mercadopago.com/js/v2');
       }
       if (!window.FandezMpBrick) {
-        await loadScript('/js/checkout-mp-brick.js?v=20261009-visa4');
+        await loadScript('/js/checkout-mp-brick.js?v=20261009-visa5');
       }
     })().catch((err) => {
       scriptsPromise = null;
@@ -126,9 +126,12 @@
       if (data.publicKey) mpPublicKey = data.publicKey;
       window.__fandezMpCardBrands = data.cardBrands || null;
       window.__fandezMpCardMethodIds = Array.isArray(data.cardMethodIds) ? data.cardMethodIds : null;
-      if (data.cardBrands && data.cardBrands.visa === false) {
-        console.warn('[inline-pay] Visa no activa en cuenta MP', data.cardMethodIds || []);
-        setInlineBrickError('Visa no está activa en Mercado Pago de esta cuenta. Actívala en MP → Medios de pago, o prueba otra tarjeta.');
+      if (typeof window.FandezRenderMpCardBrands === 'function') {
+        window.FandezRenderMpCardBrands(data);
+      }
+      if (data.visaDiagnosis && !data.visaDiagnosis.active) {
+        console.warn('[inline-pay]', data.visaDiagnosis.diagnosis, data.cardMethodIds || []);
+        setInlineBrickError(data.visaDiagnosis.diagnosis || 'Visa no está activa en esta cuenta Mercado Pago.');
       }
       if (mpEmbed && mpPublicKey) await ensureMpScripts();
     } catch (_) { /* noop */ }

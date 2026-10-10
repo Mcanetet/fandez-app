@@ -289,8 +289,8 @@ router.get('/mp/brick-config', requireRole('client'), async (req, res) => {
   try {
     cardMethods = await mp.listCardPaymentMethods();
   } catch (_) { /* noop */ }
-  if (cardMethods?.brands && cardMethods.brands.visa === false) {
-    console.warn('[mp/brick-config] Visa no figura activa en /v1/payment_methods de esta cuenta MP');
+  if (cardMethods?.visa && !cardMethods.visa.active) {
+    console.warn('[mp/brick-config]', cardMethods.visa.diagnosis, cardMethods.visa.rows || []);
   }
   res.json({
     success: true,
@@ -309,7 +309,9 @@ router.get('/mp/brick-config', requireRole('client'), async (req, res) => {
     payerEmailFallback: String(process.env.MP_PAYER_EMAIL || '').trim() || null,
     cardBrands: cardMethods.brands || {},
     cardMethodsOk: Boolean(cardMethods.ok),
-    cardMethodIds: (cardMethods.methods || []).map((m) => m.id)
+    cardMethodIds: (cardMethods.active || cardMethods.methods || []).map((m) => m.id),
+    cardLogos: cardMethods.logos || [],
+    visaDiagnosis: cardMethods.visa || null
   });
 });
 

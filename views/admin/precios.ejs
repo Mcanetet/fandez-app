@@ -836,8 +836,10 @@
         } else {
           const b = data.mpCardBrands || {};
           const flag = (on) => (on ? 'OK' : 'NO');
-          brandsLine.innerHTML = 'Marcas activas en tu cuenta MP: Visa <strong>' + flag(b.visa) + '</strong> · Mastercard <strong>' + flag(b.master) + '</strong> · Amex <strong>' + flag(b.amex) + '</strong>'
-            + (b.visa ? '' : ' — <span class="text-amber-700">Sin Visa el Brick no la acepta; actívala en Mercado Pago → Medios de pago.</span>');
+          const visa = data.mpVisaDiagnosis || {};
+          brandsLine.innerHTML = 'GET /v1/payment_methods → Visa <strong>' + flag(b.visa) + '</strong> · Mastercard <strong>' + flag(b.master) + '</strong> · Amex <strong>' + flag(b.amex) + '</strong>'
+            + (visa.diagnosis ? '<br><span class="text-amber-800">' + visa.diagnosis + '</span>' : '')
+            + '<br><span class="text-gray-400">Detalle JSON: ' + base + '/mp/payment-methods</span>';
         }
       }
     } catch (_) {
