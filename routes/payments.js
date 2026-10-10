@@ -348,27 +348,8 @@ router.post('/mp/brick-init', requireRole('client'), async (req, res) => {
     return res.status(400).json({ success: false, error: 'Monto inválido para tarjeta.' });
   }
 
-  const service = store.getServiceById(request.serviceId);
-  const baseUrl = getBaseUrl(req);
-  const pricing = store.getPricingConfig();
-
+  // Payment Brick no usa Preference (cobro vía /pagos/mp/tarjeta). Solo prepara monto + PK.
   try {
-    const preference = await mp.createPreference({
-      request: updated,
-      service,
-      baseUrl,
-      maxInstallments: pricing.maxCardInstallments
-    });
-    if (!preference?.id) {
-      return res.status(503).json({
-        success: false,
-        error: 'Mercado Pago no pudo preparar el formulario. Revisa MP_TEST_ACCESS_TOKEN.'
-      });
-    }
-    store.setCardPaymentSession(request.id, {
-      gateway: 'mercadopago',
-      preferenceId: preference.id
-    });
     let tokenProbe = null;
     try {
       tokenProbe = await mp.probeAccessTokenKind();
@@ -377,10 +358,10 @@ router.post('/mp/brick-init', requireRole('client'), async (req, res) => {
     return res.json({
       success: true,
       publicKey: mp.getPublicKey(),
-      preferenceId: preference.id,
       amount,
       sandbox: mp.usesSandboxPayments(),
-      tokenProbe
+      tokenProbe,
+      mode: 'payment_brick'
     });
   } catch (err) {
     console.error('[mp/brick-init]', err.message);
