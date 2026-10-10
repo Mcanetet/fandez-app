@@ -633,6 +633,14 @@ async function createRequest({
   if (cleaningSummary && !notes.includes('Limpieza:')) {
     notesAugmented = `${notesAugmented}\n\n${cleaningSummary}`.trim();
   }
+  if (Array.isArray(activityMatch?.packageLineIds) && activityMatch.packageLineIds.length
+    && !notesAugmented.includes('Paquete cliente:')) {
+    const lineNames = activityMatch.packageLineIds.map((lineId) => {
+      const line = activities.find((a) => a.id === lineId);
+      return line?.name || lineId;
+    });
+    notesAugmented = `${notesAugmented}\n\nPaquete cliente: ${activityMatch.name}. Alcance típico: ${lineNames.join('; ')}.`.trim();
+  }
   const notesWithLandscape = notesAugmented;
 
   const request = {

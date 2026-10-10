@@ -478,7 +478,9 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
   const pricing = store.getPricingConfig();
   const urgencyTiers = store.getUrgencyTiersForClient();
   const { enrichActivityForClient } = require('../lib/activityBlurbs');
-  const activities = store.getActivitiesForService(serviceRaw.id).map(enrichActivityForClient);
+  const { filterActivitiesForClient } = require('../lib/serviceCatalogData');
+  const activities = filterActivitiesForClient(store.getActivitiesForService(serviceRaw.id))
+    .map(enrichActivityForClient);
   const serviceSummary = store.getServicePriceSummary(serviceRaw.id);
   const serviceFromPrice = serviceSummary.fromPrice != null
     ? serviceSummary.fromPrice

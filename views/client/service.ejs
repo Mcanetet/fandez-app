@@ -302,18 +302,27 @@
       <% } else if (isFv) { %>
         <%- include('../partials/fv-intake') %>
       <% } else if (typeof activities !== 'undefined' && activities.length) { %>
+      <%
+        const usesPackages = activities.some(function (a) {
+          const mode = String(a.quoteMode || '');
+          return mode === 'client_package' || mode === 'escombros_package' || String(a.id || '').indexOf('-pkg-') !== -1;
+        });
+        const hideGenericOtro = usesPackages || isEscombros;
+      %>
       <div id="activityPickerBlock">
-        <p class="zilo-label mb-1"><%= t('client.service.subservice') %> *</p>
-        <p class="text-[11px] text-zilo-muted mb-3"><%= t('client.service.subservice_pick_hint') %></p>
-        <div class="space-y-2" id="activityCardList" role="radiogroup" aria-label="<%= t('client.service.subservice') %>">
+        <p class="zilo-label mb-1"><%= usesPackages ? t('client.service.package_label') : t('client.service.subservice') %> *</p>
+        <p class="text-[11px] text-zilo-muted mb-3"><%= usesPackages ? t('client.service.package_hint') : t('client.service.subservice_pick_hint') %></p>
+        <div class="space-y-2" id="activityCardList" role="radiogroup" aria-label="<%= usesPackages ? t('client.service.package_label') : t('client.service.subservice') %>">
           <% activities.forEach(function(act) {
             const unit = act.pricingUnit || 'job';
-            const priceLabel = unit === 'm2'
+            const rawPrice = unit === 'm2'
               ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m²')
               : (unit === 'm3'
                 ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m³')
                 : formatCLP(act.basePrice));
+            const priceLabel = usesPackages ? ('desde ' + rawPrice.replace(/^desde\s+/i, '')) : rawPrice;
             const blurb = act.clientBlurb || act.description || '';
+            const isPkg = Boolean(act.suggested) || String(act.quoteMode || '') === 'escombros_package' || String(act.quoteMode || '') === 'client_package';
           %>
             <label class="activity-card group flex gap-3 p-3.5 rounded-2xl border border-zilo-border bg-white cursor-pointer transition hover:border-zilo-accent/35 hover:bg-zilo-accent/[0.03]"
               data-activity-card
@@ -323,23 +332,30 @@
               data-per-m2="<%= act.pricePerM2 || act.basePrice %>"
               data-min-m2="<%= act.minM2 || (unit === 'm3' || unit === 'm2' ? 1 : 15) %>"
               data-quote-mode="<%= act.quoteMode || '' %>"
+              data-suggested="<%= act.suggested ? '1' : '' %>"
               data-blurb="<%= String(blurb).replace(/"/g, '&quot;') %>"
               data-price-label="<%= priceLabel %>">
-              <input type="radio" name="activityPick" value="<%= act.id %>" class="sr-only activity-card-radio" data-activity-radio>
+              <input type="radio" name="activityPick" value="<%= act.id %>" class="sr-only activity-card-radio" data-activity-radio<%= act.suggested ? ' checked' : '' %>>
               <span class="activity-card__radio mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 border-zilo-border flex items-center justify-center" aria-hidden="true">
                 <span class="activity-card__dot w-2.5 h-2.5 rounded-full bg-zilo-accent"></span>
               </span>
               <span class="min-w-0 flex-1">
                 <span class="flex items-start justify-between gap-3">
-                  <span class="text-sm font-semibold text-zilo-text leading-snug"><%= act.name %></span>
+                  <span class="min-w-0">
+                    <span class="text-sm font-semibold text-zilo-text leading-snug"><%= act.name %></span>
+                    <% if (act.suggested) { %>
+                    <span class="ml-1.5 inline-flex align-middle text-[9px] font-bold uppercase tracking-wide text-zilo-accent bg-zilo-accent/10 px-1.5 py-0.5 rounded-full"><%= t('client.service.package_popular') %></span>
+                    <% } %>
+                  </span>
                   <span class="text-sm font-bold text-zilo-accent tabular-nums whitespace-nowrap"><%= priceLabel %></span>
                 </span>
                 <% if (blurb) { %>
-                <span class="block text-[11px] text-zilo-muted mt-1 leading-relaxed line-clamp-2"><%= blurb %></span>
+                <span class="block text-[11px] text-zilo-muted mt-1 leading-relaxed <%= isPkg ? '' : 'line-clamp-2' %>"><%= blurb %></span>
                 <% } %>
               </span>
             </label>
           <% }); %>
+          <% if (!hideGenericOtro) { %>
           <label class="activity-card group flex gap-3 p-3.5 rounded-2xl border border-dashed border-zilo-border bg-[#f7f3ee]/60 cursor-pointer transition hover:border-zilo-accent/35"
             data-activity-card
             data-id="otro"
@@ -362,6 +378,7 @@
               <span class="block text-[11px] text-zilo-muted mt-1 leading-relaxed"><%= t('client.service.subservice_other_blurb') %></span>
             </span>
           </label>
+          <% } %>
         </div>
         <input type="hidden" id="activityId" name="activityId" value="" required>
 
