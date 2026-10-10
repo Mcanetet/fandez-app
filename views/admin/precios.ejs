@@ -23,6 +23,21 @@
       <div class="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-sm text-emerald-700">Precios actualizados correctamente.</div>
     <% } %>
 
+    <!-- Test Visa / marcas MP: arriba del todo para no perderse entre precios -->
+    <section id="mpVisaTestBox" class="mb-5 p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 shadow-sm">
+      <p class="text-[10px] font-bold uppercase tracking-wide text-amber-900 mb-1">Test Visa · Mercado Pago</p>
+      <h2 class="text-base font-semibold text-amber-950 mb-2">¿Tu cuenta acepta Visa?</h2>
+      <p class="text-xs text-amber-950/80 mb-3">Esto consulta <code class="text-[11px]">GET /v1/payment_methods</code> con el Access Token del servidor. Si Visa sale NO, el Brick del cliente no la va a leer.</p>
+      <p class="text-sm text-gray-800 mb-2" id="mpCredProfileLine">Cargando perfil…</p>
+      <p class="text-sm font-medium text-gray-900 mb-3" id="mpCardBrandsLine">Marcas tarjeta: cargando…</p>
+      <div class="flex flex-wrap gap-2 mb-2">
+        <button type="button" class="btn-mp-phase text-[11px] px-2.5 py-1.5 rounded-lg border border-amber-500 bg-white font-semibold" data-phase="demo">Credenciales de prueba</button>
+        <button type="button" class="btn-mp-phase text-[11px] px-2.5 py-1.5 rounded-lg border border-emerald-600 bg-white font-semibold" data-phase="productivo">Credenciales de producción</button>
+        <a id="mpPaymentMethodsJsonLink" href="<%= typeof adminBase !== 'undefined' ? adminBase : '/admin' %>/mp/payment-methods" target="_blank" rel="noopener" class="text-[11px] px-2.5 py-1.5 rounded-lg border border-zilo-accent/40 text-zilo-accent font-semibold">Abrir JSON completo</a>
+      </div>
+      <p class="text-[10px] text-amber-900/70">También: Admin (icono $ Precios) → esta caja amarilla al inicio. URL directa: <code class="text-[10px]">/admin/precios#mpVisaTestBox</code></p>
+    </section>
+
     <form method="POST" action="<%= typeof adminBase !== 'undefined' ? adminBase : '/admin' %>/precios" id="pricingForm" class="space-y-5">
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
         <h2 class="text-sm font-semibold mb-4">Tarifas base</h2>
@@ -208,15 +223,10 @@
             </div>
           <% }); %>
         </div>
-        <div class="mt-4 p-3 rounded-xl border border-gray-200 bg-white text-xs" id="mpCredProfileBox">
-          <p class="font-semibold text-gray-700 mb-1">Mercado Pago — perfil activo</p>
-          <p class="text-gray-500 mb-2" id="mpCredProfileLine">Cargando…</p>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" class="btn-mp-phase text-[11px] px-2.5 py-1 rounded-lg border border-amber-400 bg-amber-50 font-semibold" data-phase="demo">Usar credenciales de prueba</button>
-            <button type="button" class="btn-mp-phase text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500 bg-emerald-50 font-semibold" data-phase="productivo">Usar credenciales de producción</button>
-          </div>
-          <p class="text-[10px] text-gray-400 mt-2">En Hostinger: prueba → <code>MP_TEST_PUBLIC_KEY</code> + <code>MP_TEST_ACCESS_TOKEN</code> · producción → <code>MP_PUBLIC_KEY</code> + <code>MP_ACCESS_TOKEN</code></p>
-          <p class="text-[11px] text-gray-600 mt-3" id="mpCardBrandsLine">Marcas tarjeta: cargando…</p>
+        <div class="mt-4 p-3 rounded-xl border border-amber-200 bg-amber-50/50 text-xs">
+          <p class="font-semibold text-amber-950 mb-1">Test Visa</p>
+          <p class="text-amber-900/80">El diagnóstico de marcas (Visa OK/NO) está en la <a href="#mpVisaTestBox" class="underline font-semibold text-zilo-accent">caja amarilla al inicio de esta página</a>.</p>
+          <p class="text-[10px] text-gray-500 mt-2">Hostinger: prueba → <code>MP_TEST_PUBLIC_KEY</code> + <code>MP_TEST_ACCESS_TOKEN</code> · producción → <code>MP_PUBLIC_KEY</code> + <code>MP_ACCESS_TOKEN</code></p>
         </div>
         <p class="text-[10px] text-gray-400 mt-3">
           Transbank: <code>TRANSBANK_COMMERCE_CODE</code>, <code>TRANSBANK_API_KEY</code>, <code>TRANSBANK_ENV</code> ·
