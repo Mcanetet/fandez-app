@@ -245,27 +245,20 @@
     <section class="pt-3 mt-3 border-t border-zilo-border/80" id="summaryBox">
       <h2 class="zilo-label mb-3 text-[10px]">Desglose</h2>
       <div class="space-y-2 text-sm">
+        <% const zoneAmt = Number(summary.zoneAdjustmentAmount) || 0; const isGiftCheckout = Boolean(request && request.isGift); %>
         <div class="flex justify-between checkout-line pb-2">
           <span class="text-zilo-muted">Visita técnica (base)</span>
-          <span id="lineVisitBase"><%= formatCLP(summary.visitBaseBeforeZone != null ? summary.visitBaseBeforeZone : (summary.visitBasePrice || summary.visitSubtotal)) %></span>
+          <span id="lineVisitBase"><%= formatCLP(
+            (isGiftCheckout && zoneAmt && summary.visitBaseBeforeZone != null)
+              ? summary.visitBaseBeforeZone
+              : (summary.visitBasePrice || summary.visitSubtotal)
+          ) %></span>
         </div>
-        <% const zoneAmt = Number(summary.zoneAdjustmentAmount) || 0; const zoneMeta = summary.zone || null; %>
-        <div class="flex justify-between checkout-line pb-2 <%= zoneAmt ? '' : 'hidden' %>" id="lineZoneRow">
+        <%# Nunca mostrar desglose técnico Ñuñoa/km. En regalo: “Costo de traslado”. %>
+        <div class="flex justify-between checkout-line pb-2 <%= (zoneAmt && isGiftCheckout) ? '' : 'hidden' %>" id="lineZoneRow">
           <span class="text-zilo-muted" id="lineZoneLabel">
-            <% if (zoneAmt && zoneMeta) {
-              const km = zoneMeta.distanceKm != null ? zoneMeta.distanceKm : '—';
-              const origin = zoneMeta.originLabel || 'Ñuñoa';
-              const commune = zoneMeta.communeName || '';
-              const pct = Math.abs(zoneMeta.totalPercent || zoneMeta.communePercent || zoneMeta.distancePercent || 0);
-            %>
-              <% if (zoneMeta.mode === 'commune' || commune) { %>
-                Adicional por comuna (<%= commune || 'zona' %><% if (pct) { %> · +<%= pct %>%<% } %>)
-              <% } else { %>
-                Adicional por zona / distancia (<%= origin %> · <%= km %> km<% if (pct) { %> · +<%= pct %>%<% } %>)
-              <% } %>
-            <% } else { %>
-              Adicional por comuna
-            <% } %>
+            Costo de traslado
+            <span class="block text-[10px] text-zilo-muted/80 mt-0.5">Diferencia por la dirección de destino. Ya incluida en el total.</span>
           </span>
           <span id="lineZone" class="text-orange-600"><%= zoneAmt ? ('+' + formatCLP(zoneAmt)) : '—' %></span>
         </div>

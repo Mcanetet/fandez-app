@@ -187,7 +187,8 @@
     if (draft.isGift && giftToggle) {
       giftToggle.checked = true;
       giftFields?.classList.remove('hidden');
-      if (addressLabel) addressLabel.textContent = t('client.js.gift_address');
+      if (addressLabel) addressLabel.textContent = t('client.service.gift_destination_address');
+      document.getElementById('giftDestinationHint')?.classList.remove('hidden');
       if (draft.gift) {
         const n = document.getElementById('giftName');
         const p = document.getElementById('giftPhone');
@@ -364,7 +365,9 @@
     if (new URLSearchParams(window.location.search).get('gift') === '1' && giftToggle) {
       giftToggle.checked = true;
       giftFields.classList.remove('hidden');
-      if (addressLabel) addressLabel.textContent = t('client.js.gift_address');
+      if (addressLabel) addressLabel.textContent = t('client.service.gift_destination_address');
+      document.getElementById('giftDestinationHint')?.classList.remove('hidden');
+      updatePricePreview();
     }
 
     if (trackingId) {
@@ -388,8 +391,13 @@
       const isGift = giftToggle.checked;
       giftFields.classList.toggle('hidden', !isGift);
       if (addressLabel) {
-        addressLabel.textContent = isGift ? t('client.js.gift_address') : t('client.js.service_address');
+        addressLabel.textContent = isGift
+          ? t('client.service.gift_destination_address')
+          : t('client.js.service_address');
       }
+      const addressHint = document.getElementById('giftDestinationHint');
+      if (addressHint) addressHint.classList.toggle('hidden', !isGift);
+      updatePricePreview();
     });
   }
 
@@ -1069,54 +1077,30 @@
         }
       }
 
+      // Nunca mostrar desglose técnico de zona (Ñuñoa / km / técnicos).
+      // El recargo ya va en el total. Solo en regalo informamos “Costo de traslado”.
       const zoneRow = document.getElementById('zoneAdjustmentRow');
+      if (zoneRow) {
+        zoneRow.classList.add('hidden');
+        zoneRow.classList.remove('flex');
+        zoneRow.setAttribute('aria-hidden', 'true');
+      }
       const zoneMeta = p.zone;
       const zoneAmt = Number(zoneMeta?.adjustmentAmount) || 0;
-      if (zoneRow) {
-        if (zoneMeta && zoneAmt !== 0) {
-          zoneRow.classList.remove('hidden');
-          zoneRow.classList.add('flex');
-          const origin = zoneMeta.originLabel || 'Ñuñoa';
-          const commune = zoneMeta.communeName || lastCoverage?.communeName || '';
-          const km = zoneMeta.distanceKm != null ? zoneMeta.distanceKm : '—';
-          const distPct = Number(zoneMeta.communePercent != null ? zoneMeta.communePercent : zoneMeta.distancePercent) || 0;
-          const supplyPct = Number(zoneMeta.supplyPercent) || 0;
-          const totalPct = zoneMeta.totalPercent != null ? zoneMeta.totalPercent : (distPct + supplyPct);
-          const techs = zoneMeta.supplyCount;
-          let label = t('client.js.zone_surcharge_detail', {
-            origin,
-            km,
-            percent: Math.abs(totalPct),
-            techs: techs != null ? techs : '—'
-          });
-          if (zoneMeta.mode === 'commune' || commune) {
-            label = t('client.js.zone_surcharge_commune', {
-              commune: commune || 'zona',
-              percent: Math.abs(totalPct),
-              origin
-            });
-          } else if (distPct > 0 && supplyPct > 0 && techs != null) {
-            label = t('client.js.zone_surcharge_split', {
-              origin,
-              km,
-              distPercent: Math.abs(distPct),
-              supplyPercent: Math.abs(supplyPct),
-              techs
-            });
-          } else if (distPct > 0 && (!supplyPct || techs == null)) {
-            label = t('client.js.zone_surcharge_distance', {
-              origin,
-              km,
-              percent: Math.abs(distPct || totalPct)
-            });
+      const isGift = Boolean(giftToggle?.checked);
+      const transferRow = document.getElementById('transferCostRow');
+      const transferEl = document.getElementById('displayTransferCost');
+      if (transferRow) {
+        if (isGift && zoneAmt > 0) {
+          transferRow.classList.remove('hidden');
+          transferRow.classList.add('flex');
+          if (transferEl) {
+            transferEl.textContent = `+${f.zoneAdjustment || zoneAmt}`;
+            transferEl.className = 'text-orange-600 whitespace-nowrap';
           }
-          document.getElementById('zoneAdjustmentLabel').textContent = label;
-          const zoneEl = document.getElementById('displayZoneAdj');
-          zoneEl.textContent = `+${f.zoneAdjustment || zoneAmt}`;
-          zoneEl.className = 'text-orange-600';
         } else {
-          zoneRow.classList.add('hidden');
-          zoneRow.classList.remove('flex');
+          transferRow.classList.add('hidden');
+          transferRow.classList.remove('flex');
         }
       }
     } catch (_) { /* silent */ }
@@ -1394,6 +1378,7 @@
   let paymentConfirmPoll = null;
   let lastSearchAudience = null;
   let searchOverlayMinimized = false;
+  let lastSearchRequest = null;
 
   function updateSearchViewersHint(audience) {
     const viewersEl = document.getElementById('searchViewersHint');
@@ -1406,8 +1391,55 @@
     viewersEl.classList.remove('hidden');
   }
 
+  function formatOrderAmount(request) {
+    const amount = Number(request?.amountDue || request?.visitTotal || request?.basePrice || 0);
+    if (!(amount > 0)) return '';
+    const fmt = (typeof window.formatCLP === 'function')
+      ? window.formatCLP
+      : (n) => new Intl.NumberFormat(document.documentElement.lang === 'en' ? 'en-US' : 'es-CL', {
+        style: 'currency',
+        currency: 'CLP',
+        maximumFractionDigits: 0
+      }).format(n);
+    return fmt(amount);
+  }
+
+  function fillWaitingOrderPanel(request) {
+    const serviceEl = document.getElementById('waitingOrderService');
+    const metaEl = document.getElementById('waitingOrderMeta');
+    const addressEl = document.getElementById('waitingOrderAddress');
+    const statusEl = document.getElementById('waitingOrderStatus');
+    const serviceName = request?.serviceName
+      || request?.activityName
+      || page?.dataset?.serviceName
+      || '';
+    if (serviceEl && serviceName) serviceEl.textContent = serviceName;
+    if (metaEl) {
+      const amountLabel = formatOrderAmount(request);
+      metaEl.textContent = amountLabel
+        ? t('client.service.waiting_order_paid', { amount: amountLabel })
+        : t('client.service.waiting_order_paid_plain');
+    }
+    if (addressEl) {
+      const address = String(request?.address || document.getElementById('address')?.value || '').trim();
+      addressEl.textContent = address || '';
+      addressEl.classList.toggle('hidden', !address);
+    }
+    if (statusEl) statusEl.textContent = t('client.service.search_minimized_status');
+  }
+
+  function hideWaitingOrderPanel() {
+    document.getElementById('waitingOrderPanel')?.classList.add('hidden');
+  }
+
+  function showWaitingOrderPanel(request) {
+    fillWaitingOrderPanel(request);
+    document.getElementById('waitingOrderPanel')?.classList.remove('hidden');
+  }
+
   function hideMinimizedSearchChrome() {
     document.body.classList.remove('is-search-minimized');
+    hideWaitingOrderPanel();
     const sticky = document.getElementById('stickyTrackBar');
     if (!sticky || sticky.dataset.mode !== 'search') return;
     sticky.classList.remove('is-visible');
@@ -1420,8 +1452,10 @@
     }
   }
 
-  function showMinimizedSearchChrome() {
+  function showMinimizedSearchChrome(request) {
     document.body.classList.add('is-search-minimized');
+    showWaitingOrderPanel(request);
+    requestForm?.classList.add('hidden');
     const sticky = document.getElementById('stickyTrackBar');
     const stickyStatus = document.getElementById('stickyTrackStatus');
     const stickyLabel = document.getElementById('stickyTrackLabel');
@@ -1429,10 +1463,7 @@
     const stickyChat = document.getElementById('stickyTrackChat');
     const stickyCall = document.getElementById('stickyTrackCall');
     if (stickyLabel) stickyLabel.textContent = t('client.service.search_minimized_label');
-    if (stickyStatus) {
-      stickyStatus.textContent = document.getElementById('loaderText')?.textContent
-        || t('client.service.searching');
-    }
+    if (stickyStatus) stickyStatus.textContent = t('client.service.search_minimized_status');
     if (stickyChat) stickyChat.classList.add('hidden');
     if (stickyCall) stickyCall.classList.add('hidden');
     if (stickyAction) {
@@ -1447,18 +1478,15 @@
     }
   }
 
-  function minimizeSearchOverlay() {
+  function minimizeSearchOverlay(request) {
     if (!loaderOverlay || loaderOverlay.classList.contains('hidden')) return;
     searchOverlayMinimized = true;
     loaderOverlay.classList.add('hidden');
-    requestForm?.classList.remove('hidden');
-    showMinimizedSearchChrome();
+    showMinimizedSearchChrome(request);
     requestAnimationFrame(() => {
-      requestForm?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('waitingOrderPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-    if (window.FandezNotify) {
-      FandezNotify.show(t('client.service.search_minimized_toast'), 'info');
-    }
   }
 
   function openSearchOverlay(request) {
@@ -1601,7 +1629,6 @@
       updateSearchProgress(elapsedMs);
       return phase;
     }
-    const isFirstPaint = searchCurrentPhase == null;
     searchCurrentPhase = phase.phase;
     setSearchSteps(phase.step, { busy: phase.phase === 'busy' });
     const titleEl = document.getElementById('loaderText');
@@ -1612,22 +1639,15 @@
     if (labelEl) labelEl.textContent = t(phase.label);
     updateSearchViewersHint();
     updateSearchProgress(elapsedMs);
-    // Toast solo si el usuario salió de la pantalla de búsqueda (evita duplicar título + aviso).
-    if (!isFirstPaint && searchOverlayMinimized) {
-      if (window.FandezAlerts) {
-        FandezAlerts.notify({
-          type: 'update',
-          title: t(phase.title),
-          body: t(phase.sub),
-          tag: 'fandez-search-' + phase.phase
-        });
-      } else if (window.FandezNotify) {
-        FandezNotify.show(t(phase.label), 'info');
-      }
+    // Sin toasts de fase: la barra / panel ya muestran “Buscando socios…”.
+    if (searchOverlayMinimized) {
+      const statusText = t('client.service.search_minimized_status');
       const stickyStatus = document.getElementById('stickyTrackStatus');
       if (stickyStatus && document.getElementById('stickyTrackBar')?.dataset.mode === 'search') {
-        stickyStatus.textContent = t(phase.title);
+        stickyStatus.textContent = statusText;
       }
+      const waitingStatus = document.getElementById('waitingOrderStatus');
+      if (waitingStatus) waitingStatus.textContent = statusText;
     }
     return phase;
   }
@@ -1639,7 +1659,7 @@
     tipEl.textContent = t(SEARCH_TIPS[searchTipIndex], { minutes: String(SEARCH_TIMEOUT_MINUTES) });
   }
 
-  function stopSearchExperience() {
+  function stopSearchTimers() {
     if (searchTimerInterval) {
       clearInterval(searchTimerInterval);
       searchTimerInterval = null;
@@ -1649,6 +1669,10 @@
       searchTipInterval = null;
     }
     searchCurrentPhase = null;
+  }
+
+  function stopSearchExperience() {
+    stopSearchTimers();
     searchOverlayMinimized = false;
     hideMinimizedSearchChrome();
   }
@@ -1669,16 +1693,9 @@
       || '';
     if (serviceEl && serviceName) serviceEl.textContent = serviceName;
     if (metaEl) {
-      const amount = Number(request?.amountDue || request?.visitTotal || request?.basePrice || 0);
-      const fmt = (typeof window.formatCLP === 'function')
-        ? window.formatCLP
-        : (n) => new Intl.NumberFormat(document.documentElement.lang === 'en' ? 'en-US' : 'es-CL', {
-          style: 'currency',
-          currency: 'CLP',
-          maximumFractionDigits: 0
-        }).format(n);
-      if (amount > 0) {
-        metaEl.textContent = t('client.service.search_order_paid_amount', { amount: fmt(amount) });
+      const amountLabel = formatOrderAmount(request);
+      if (amountLabel) {
+        metaEl.textContent = t('client.service.search_order_paid_amount', { amount: amountLabel });
       } else {
         metaEl.textContent = t('client.service.search_order_paid');
       }
@@ -1688,13 +1705,16 @@
       addressEl.textContent = address || '';
       addressEl.classList.toggle('hidden', !address);
     }
+    if (searchOverlayMinimized) fillWaitingOrderPanel(request);
   }
 
   function startSearchExperience(request) {
-    stopSearchExperience();
+    // No usar stopSearchExperience(): borraría el modo “pedido en espera”.
+    stopSearchTimers();
     searchTimeoutTriggered = false;
-    lastSearchAudience = request?.searchAudience || null;
-    fillSearchOrderSummary(request);
+    if (request) lastSearchRequest = request;
+    lastSearchAudience = request?.searchAudience || lastSearchAudience;
+    fillSearchOrderSummary(request || lastSearchRequest);
     syncSearchStartFromRequest(request);
     if (!searchStartedAt) searchStartedAt = Date.now();
     searchTipIndex = 0;
@@ -3662,8 +3682,9 @@
           hideScheduledPanel();
           if (data.request.searchAudience) updateSearchViewersHint(data.request.searchAudience);
           if (searchOverlayMinimized) {
+            lastSearchRequest = data.request;
             if (!searchTimerInterval) startSearchExperience(data.request);
-            showMinimizedSearchChrome();
+            showMinimizedSearchChrome(data.request);
           } else if (loaderOverlay?.classList.contains('hidden')) {
             openSearchOverlay(data.request);
           }
@@ -3772,9 +3793,10 @@
         hideNoProviderChoice();
         providerCard?.classList.add('hidden');
         if (searchOverlayMinimized) {
+          lastSearchRequest = payload.request;
           if (!searchTimerInterval) startSearchExperience(payload.request);
           else syncSearchStartFromRequest(payload.request);
-          showMinimizedSearchChrome();
+          showMinimizedSearchChrome(payload.request);
         } else {
           const wasHidden = loaderOverlay?.classList.contains('hidden');
           loaderOverlay?.classList.remove('hidden');
@@ -4107,13 +4129,19 @@
   document.getElementById('tripHeroChat')?.addEventListener('click', openTrackingChat);
   document.getElementById('stickyTrackChat')?.addEventListener('click', openTrackingChat);
   document.getElementById('btnSearchBack')?.addEventListener('click', () => {
-    minimizeSearchOverlay();
+    minimizeSearchOverlay(lastSearchRequest);
+  });
+  document.getElementById('btnWaitingReopenSearch')?.addEventListener('click', () => {
+    openSearchOverlay(lastSearchRequest);
+  });
+  document.getElementById('btnWaitingCancelSearch')?.addEventListener('click', () => {
+    cancelSearchOrSchedule(currentRequestId || page.dataset.tracking);
   });
 
   document.getElementById('stickyTrackAction')?.addEventListener('click', () => {
     const targetId = document.getElementById('stickyTrackAction')?.dataset.target;
     if (targetId === 'search-overlay') {
-      openSearchOverlay();
+      openSearchOverlay(lastSearchRequest);
       return;
     }
     const el = targetId ? document.getElementById(targetId) : null;
@@ -4252,9 +4280,10 @@
           hideNoProviderChoice();
           providerCard?.classList.add('hidden');
           if (searchOverlayMinimized) {
+            lastSearchRequest = data.request;
             if (!searchTimerInterval) startSearchExperience(data.request);
             else syncSearchStartFromRequest(data.request);
-            showMinimizedSearchChrome();
+            showMinimizedSearchChrome(data.request);
           } else {
             loaderOverlay?.classList.remove('hidden');
             if (!searchTimerInterval) startSearchExperience(data.request);

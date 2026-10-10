@@ -51,8 +51,36 @@
     <%- include('../partials/checkout-progress', { checkoutStep: typeof tracking !== 'undefined' && tracking ? 3 : 1 }) %>
     <%- include('../partials/trust-strip', { trustStats: typeof trustStats !== 'undefined' ? trustStats : {} }) %>
 
+    <section id="waitingOrderPanel" class="hidden waiting-order-panel" aria-live="polite">
+      <div class="waiting-order-status">
+        <span class="waiting-order-pulse" aria-hidden="true"></span>
+        <div class="min-w-0">
+          <p class="waiting-order-kicker"><%= t('client.service.search_minimized_label') %></p>
+          <strong id="waitingOrderStatus" class="waiting-order-title"><%= t('client.js.search_viewers_looking') %></strong>
+          <p class="waiting-order-hint"><%= t('client.service.waiting_order_hint') %></p>
+        </div>
+      </div>
+      <div class="waiting-order-card">
+        <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-zilo-muted mb-1"><%= t('client.service.search_order_label') %></p>
+        <strong id="waitingOrderService" class="text-base block text-zilo-text break-words"><%= service.name %></strong>
+        <p id="waitingOrderMeta" class="text-sm text-zilo-accent font-semibold mt-1"></p>
+        <p id="waitingOrderAddress" class="text-[13px] text-zilo-muted mt-2 leading-snug break-words"></p>
+      </div>
+      <div class="waiting-order-actions">
+        <button type="button" id="btnWaitingReopenSearch" class="waiting-order-primary">
+          <%= t('client.service.search_reopen') %>
+        </button>
+        <a href="/cliente" id="btnWaitingOtherService" class="waiting-order-secondary">
+          <%= t('client.service.waiting_order_other') %>
+        </a>
+        <button type="button" id="btnWaitingCancelSearch" class="waiting-order-ghost">
+          <%= t('client.service.cancel_search') %>
+        </button>
+      </div>
+    </section>
+
     <% if (!(typeof tracking !== 'undefined' && tracking)) { %>
-    <div class="mb-4 p-3 rounded-2xl border <%= isProjectPath ? 'border-emerald-200 bg-emerald-50/60' : 'border-amber-200 bg-amber-50/50' %>">
+    <div class="mb-4 p-3 rounded-2xl border service-sales-block <%= isProjectPath ? 'border-emerald-200 bg-emerald-50/60' : 'border-amber-200 bg-amber-50/50' %>">
       <p class="text-[11px] font-semibold uppercase tracking-wide <%= isProjectPath ? 'text-emerald-800' : 'text-amber-900' %> mb-0.5">
         <%= isProjectPath ? t('client.service.path_project_badge') : t('client.service.path_now_badge') %>
       </p>
@@ -96,9 +124,15 @@
         <span class="text-zilo-muted" id="urgencyAdjustmentLabel"><%= t('client.service.urgency_surcharge') %></span>
         <strong id="displayUrgencyAdj" class="text-orange-600">—</strong>
       </div>
-      <div id="zoneAdjustmentRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
-        <span class="text-zilo-muted" id="zoneAdjustmentLabel"><%= t('client.service.zone_surcharge') %></span>
-        <strong id="displayZoneAdj" class="text-orange-600">—</strong>
+      <!-- Zona/traslado: nunca mostrar desglose “desde Ñuñoa…”. El monto va en el total.
+           En regalo sí informamos “Costo de traslado” (la diferencia). -->
+      <div id="zoneAdjustmentRow" class="hidden" aria-hidden="true"></div>
+      <div id="transferCostRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
+        <span class="text-zilo-muted min-w-0 pr-3">
+          <span id="transferCostLabel"><%= t('client.service.transfer_cost') %></span>
+          <span id="transferCostHint" class="block text-[10px] text-zilo-muted/80 mt-0.5 leading-snug"><%= t('client.service.transfer_cost_hint') %></span>
+        </span>
+        <strong id="displayTransferCost" class="text-orange-600 whitespace-nowrap">—</strong>
       </div>
       <div class="flex justify-between py-3 border-b border-zilo-border hidden" id="servicePriceRow">
         <span class="text-zilo-muted text-sm"><%= t('client.service.service_est') %></span>
@@ -246,6 +280,7 @@
           </div>
         </label>
         <div id="giftFields" class="hidden mt-4 space-y-3 pt-3 border-t border-zilo-accent/15">
+          <p class="text-[11px] text-zilo-muted leading-relaxed"><%= t('client.service.gift_destination_intro') %></p>
           <div>
             <label class="zilo-label block mb-1"><%= t('client.service.beneficiary') %></label>
             <input type="text" id="giftName" placeholder="<%= t('client.service.gift_name_ph') %>" class="zilo-input">
@@ -427,6 +462,7 @@
       <div class="pt-2 border-t border-zilo-border space-y-3" id="serviceAddressBlock">
         <div>
           <label for="address" class="zilo-label block mb-1.5" id="addressLabel"><%= t('client.service.address') %></label>
+          <p id="giftDestinationHint" class="hidden text-[11px] text-zilo-muted leading-relaxed mb-1.5"><%= t('client.service.gift_destination_hint') %></p>
           <input type="text" id="address" placeholder="<%= t('client.service.address_ph') %>"
             value="<%= typeof profile !== 'undefined' ? profile.address : '' %>" class="zilo-input" autocomplete="street-address">
           <input type="hidden" id="lat"><input type="hidden" id="lng">
