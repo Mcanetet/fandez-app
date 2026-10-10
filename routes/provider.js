@@ -361,10 +361,17 @@ router.post('/accept/:requestId', requireRole('provider'), requireModule('provid
   const result = store.tryAcceptRequest(req.params.requestId, req.session.user.id, {
     technicianId: req.body?.technicianId,
     lat: req.body?.lat,
-    lng: req.body?.lng
+    lng: req.body?.lng,
+    proposedVisitAt: req.body?.proposedVisitAt,
+    visitDate: req.body?.visitDate,
+    visitTime: req.body?.visitTime
   });
   if (result.error) {
-    return res.status(result.code === 'taken' ? 409 : 400).json({ error: result.error, success: false });
+    return res.status(result.code === 'taken' ? 409 : 400).json({
+      error: result.error,
+      success: false,
+      code: result.code || null
+    });
   }
 
   const request = result.request;
@@ -391,8 +398,26 @@ router.post('/accept/:requestId', requireRole('provider'), requireModule('provid
     success: true,
     request: store.enrichRequestForProvider(request, req.locale),
     selfOperator: Boolean(result.selfOperator),
-    technicianId: request.technicianId
+    technicianId: request.technicianId,
+    needsScheduleConfirm: Boolean(result.needsScheduleConfirm),
+    chatMessage: result.chatMessage || null
   });
+});
+
+router.post('/trabajo/:requestId/agenda', requireRole('provider'), requireModule('provider_aceptar'), (req, res) => {
+  const result = store.proposeVisitSchedule(req.params.requestId, req.session.user.id, {
+    proposedVisitAt: req.body?.proposedVisitAt,
+    visitDate: req.body?.visitDate,
+    visitTime: req.body?.visitTime
+  });
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  const io = req.app.get('io');
+  const enriched = store.enrichRequestForProvider(result.request, req.locale);
+  emitRequestUpdateToParties(io, store, result.request, {
+    request: enriched,
+    chatMessage: result.chatMessage || null
+  });
+  res.json({ success: true, request: enriched, chatMessage: result.chatMessage || null });
 });
 
 router.get('/tecnicos-elegibles', requireRole('provider'), (req, res) => {

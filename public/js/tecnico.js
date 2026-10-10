@@ -244,11 +244,36 @@
 
   async function acceptFromWall(requestId, btn) {
     if (btn) btn.disabled = true;
-    const payload = await resolveAcceptPayload();
-    if (!payload) {
-      if (btn) btn.disabled = false;
-      return;
+    const wallItem = wallItems.get(requestId);
+    const tier = wallItem?.request?.urgencyTier || '';
+    const deferred = window.FandezVisitSchedule?.isDeferredTier?.(tier);
+    const payload = {};
+
+    if (deferred) {
+      const schedule = await window.FandezVisitSchedule.askCalendar({
+        urgencyTier: tier,
+        title: t('tecnico.js.schedule_title') || 'Agenda la visita con el cliente',
+        subtitle: t('tecnico.js.schedule_sub') || 'Propón día y hora. Luego confirma por chat.'
+      });
+      if (!schedule) {
+        if (btn) btn.disabled = false;
+        return;
+      }
+      Object.assign(payload, schedule);
+      try {
+        const coords = await getCurrentCoords();
+        payload.lat = coords.lat;
+        payload.lng = coords.lng;
+      } catch (_) { /* opcional en programados */ }
+    } else {
+      const acceptPayload = await resolveAcceptPayload();
+      if (!acceptPayload) {
+        if (btn) btn.disabled = false;
+        return;
+      }
+      Object.assign(payload, acceptPayload);
     }
+
     const res = await fetch(`/tecnico/accept/${requestId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -263,10 +288,12 @@
     }
     removeWallItem(requestId);
     stopRepeatingAlert();
-    const etaNote = data.request?.etaLabel ? ` · ETA ${data.request.etaLabel}` : '';
+    const etaNote = data.request?.scheduleLabel || data.request?.etaLabel
+      ? ` · ${data.request.scheduleLabel || data.request.etaLabel}`
+      : '';
     notify((t('tecnico.js.job_taken_reload') || 'Pedido tomado') + etaNote, 'success');
     setTimeout(() => {
-      window.location.href = `/tecnico/trabajo/${requestId}`;
+      window.location.href = `/tecnico/trabajo/${requestId}${deferred ? '?chat=1' : ''}`;
     }, 600);
   }
 
@@ -330,6 +357,7 @@
           </div>
         </div>
         <p class="text-xs text-zilo-muted truncate">${escapeHtml(req.zoneLabel || req.communeName || 'Zona disponible')}</p>
+        ${req.urgencyTierLabel ? `<p class="text-[11px] ${req.isDeferredSchedule || ['tomorrow','two_days','scheduled'].includes(String(req.urgencyTier||'')) ? 'text-amber-800 font-semibold' : 'text-zilo-muted'} mb-1">${escapeHtml(req.urgencyTierLabel)}${req.isDeferredSchedule || ['tomorrow','two_days','scheduled'].includes(String(req.urgencyTier||'')) ? ' · Agenda al tomar' : ''}</p>` : ''}
         ${notesHtml}
         <p class="text-xs font-semibold text-zilo-success">${t('provider.js.your_payout')}: ${fmt(req.providerPayout ?? req.estimatedVisit)}</p>
         <div class="hidden p-3 rounded-xl bg-zilo-bg/70 border border-zilo-border space-y-2" data-role="wall-detail">
@@ -404,16 +432,34 @@
     } catch (_) {}
 
     if (techStatus === 'aceptado') {
-      const payload = coords || await askEtaRange();
-      if (!payload) throw new Error('Activa el GPS o indica tu hora estimada de llegada');
-      const etaRes = await fetch(`/tecnico/trabajo/${jobId}/eta`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const etaData = await etaRes.json();
-      if (!etaRes.ok || !etaData.success) throw new Error(etaData.error || 'No se pudo guardar la ETA');
-      if (payload.lat != null) coords = payload;
+      const card = document.querySelector(`[data-job-id="${CSS.escape(jobId)}"]`);
+      const tier = card?.dataset?.urgencyTier || '';
+      const deferred = window.FandezVisitSchedule?.isDeferredTier?.(tier);
+      if (deferred) {
+        const schedule = await window.FandezVisitSchedule.askCalendar({
+          urgencyTier: tier,
+          title: t('tecnico.js.schedule_title') || 'Agenda la visita con el cliente'
+        });
+        if (!schedule) throw new Error('Propón fecha y hora para aceptar el pedido programado');
+        const schRes = await fetch(`/tecnico/trabajo/${jobId}/agenda`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(schedule)
+        });
+        const schData = await schRes.json();
+        if (!schRes.ok || !schData.success) throw new Error(schData.error || 'No se pudo guardar la agenda');
+      } else {
+        const payload = coords || await askEtaRange();
+        if (!payload) throw new Error('Activa el GPS o indica tu hora estimada de llegada');
+        const etaRes = await fetch(`/tecnico/trabajo/${jobId}/eta`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const etaData = await etaRes.json();
+        if (!etaRes.ok || !etaData.success) throw new Error(etaData.error || 'No se pudo guardar la ETA');
+        if (payload.lat != null) coords = payload;
+      }
     }
     return postStatus(jobId, techStatus, coords);
   }

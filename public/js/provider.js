@@ -205,6 +205,9 @@
         <p class="text-xs text-zilo-muted mb-1 truncate">${escapeHtml(req.zoneLabel || req.communeName || 'Zona disponible')}</p>
         ${whenHtml}
         ${urgency}
+        ${req.isDeferredSchedule || ['tomorrow','two_days','scheduled'].includes(String(req.urgencyTier||''))
+          ? `<p class="text-[10px] text-amber-800 font-semibold mb-1">Programado · al tomar se abre el calendario</p>`
+          : ''}
         ${notesHtml}
         <p class="text-xs font-semibold text-zilo-success mb-3">${t('provider.js.your_payout')}: ${fmt(req.providerPayout ?? req.estimatedVisit)}</p>
         <div class="flex gap-2">
@@ -633,7 +636,24 @@
 
   async function acceptRequest(requestId, btn) {
     if (btn) btn.disabled = true;
+    const wallItem = wallItems.get(requestId);
+    const tier = wallItem?.request?.urgencyTier || '';
+    const deferred = window.FandezVisitSchedule?.isDeferredTier?.(tier);
     const body = {};
+
+    if (deferred) {
+      const schedule = await window.FandezVisitSchedule.askCalendar({
+        urgencyTier: tier,
+        title: t('provider.js.schedule_title') || 'Agenda la visita con el cliente',
+        subtitle: t('provider.js.schedule_sub') || 'Propón día y hora. El cliente confirmará o pedirá otro horario por chat.'
+      });
+      if (!schedule) {
+        if (btn) btn.disabled = false;
+        return;
+      }
+      Object.assign(body, schedule);
+    }
+
     if (navigator.geolocation) {
       try {
         const pos = await new Promise((resolve, reject) => {
@@ -665,7 +685,9 @@
     closeModal();
 
     if (data.selfOperator) {
-      const etaNote = data.request?.etaLabel ? ` ETA ${data.request.etaLabel}.` : '';
+      const etaNote = data.request?.scheduleLabel || data.request?.etaLabel
+        ? ` ${data.request.scheduleLabel || data.request.etaLabel}.`
+        : '';
       FandezNotify.show(`Pedido tomado.${etaNote} Abriendo mapa y visita…`, 'success');
       try {
         const enter = await fetch('/proveedor/entrar-terreno', {
@@ -674,7 +696,7 @@
         });
         const enterData = await enter.json().catch(() => ({}));
         if (enter.ok && enterData.success) {
-          window.location.href = `/tecnico/trabajo/${encodeURIComponent(requestId)}`;
+          window.location.href = `/tecnico/trabajo/${encodeURIComponent(requestId)}${deferred ? '?chat=1' : ''}`;
           return;
         }
       } catch (_) { /* fall through */ }
@@ -684,7 +706,12 @@
 
     activeRequestId = requestId;
     startLocationWatch();
-    FandezNotify.show('Pedido tomado. Elige el técnico en Mando.', 'success');
+    FandezNotify.show(
+      deferred
+        ? 'Pedido tomado con horario propuesto. Elige el técnico en Mando y confirma por chat.'
+        : 'Pedido tomado. Elige el técnico en Mando.',
+      'success'
+    );
     setTimeout(() => {
       window.location.href = '/proveedor/mando';
     }, 400);
