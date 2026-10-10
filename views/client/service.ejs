@@ -127,8 +127,8 @@
         <span class="text-zilo-muted" id="urgencyAdjustmentLabel"><%= t('client.service.urgency_surcharge') %></span>
         <strong id="displayUrgencyAdj" class="text-orange-600">—</strong>
       </div>
-      <!-- Zona/traslado: nunca mostrar desglose “desde Ñuñoa…”. El monto va en el total.
-           En regalo sí informamos “Costo de traslado” (la diferencia). -->
+      <!-- Pedido normal: zona/traslado va en el total (sin km, peajes ni %).
+           Solo regalo + destino más lejos: “factores logísticos de traslado”. -->
       <div id="zoneAdjustmentRow" class="hidden" aria-hidden="true"></div>
       <div id="transferCostRow" class="hidden flex justify-between py-2 border-b border-zilo-border text-sm">
         <span class="text-zilo-muted min-w-0 pr-3">

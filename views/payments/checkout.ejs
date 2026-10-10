@@ -254,11 +254,11 @@
               : (summary.visitBasePrice || summary.visitSubtotal)
           ) %></span>
         </div>
-        <%# Nunca mostrar desglose técnico Ñuñoa/km. En regalo: “Costo de traslado”. %>
+        <%# Nunca distancia/peajes/%. Solo en regalo: factores logísticos de traslado. %>
         <div class="flex justify-between checkout-line pb-2 <%= (zoneAmt && isGiftCheckout) ? '' : 'hidden' %>" id="lineZoneRow">
           <span class="text-zilo-muted" id="lineZoneLabel">
-            Traslado hasta el destino
-            <span class="block text-[10px] text-zilo-muted/80 mt-0.5">Diferencia por llegar a esa dirección. Ya va en tu inversión.</span>
+            <%= t('client.service.transfer_cost') %>
+            <span class="block text-[10px] text-zilo-muted/80 mt-0.5"><%= t('client.service.transfer_cost_hint') %></span>
           </span>
           <span id="lineZone" class="text-orange-600"><%= zoneAmt ? ('+' + formatCLP(zoneAmt)) : '—' %></span>
         </div>

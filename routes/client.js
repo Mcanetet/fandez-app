@@ -558,10 +558,17 @@ router.get('/precio-preview', requireRole('client'), (req, res) => {
   const baseBeforeZone = preview.zone?.baseBeforeZone != null
     ? preview.zone.baseBeforeZone
     : Math.max(0, (Number(preview.baseVisit) || 0) - zoneAmt);
+  // Cliente: no exponer km, peajes, %, hub Ñuñoa ni oferta de técnicos.
+  // Solo montos necesarios para regalo (diferencia logística).
+  const clientZone = zoneAmt > 0
+    ? { adjustmentAmount: zoneAmt, baseBeforeZone }
+    : null;
+  const { zone: _zoneInternal, ...previewSafe } = preview;
   res.json({
     success: true,
     preview: {
-      ...preview,
+      ...previewSafe,
+      zone: clientZone,
       formatted: {
         baseVisit: store.formatCLP(preview.baseVisit),
         baseBeforeZone: store.formatCLP(baseBeforeZone),

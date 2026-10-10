@@ -980,6 +980,7 @@
       const f = data.preview.formatted;
       const meta = selectedActivityMeta();
       const unitSuffix = meta?.unit === 'm3' ? ' / m³' : (meta?.unit === 'm2' || page?.dataset?.pricingUnit === 'm2' ? ' / m²' : '');
+      const isGiftPreview = Boolean(giftToggle?.checked);
       const zoneMetaEarly = p.zone;
       const zoneAmtEarly = Number(zoneMetaEarly?.adjustmentAmount) || 0;
       const baseBeforeZone = zoneMetaEarly?.baseBeforeZone != null
@@ -1002,8 +1003,13 @@
             visitEl.textContent = f.baseVisit;
           }
         }
-      } else if (zoneAmtEarly > 0 && Number.isFinite(baseBeforeZone) && baseBeforeZone > 0) {
-        // baseVisit ya incluye zona: en desglose mostramos base sin zona + fila de adicional.
+      } else if (
+        isGiftPreview
+        && zoneAmtEarly > 0
+        && Number.isFinite(baseBeforeZone)
+        && baseBeforeZone > 0
+      ) {
+        // Solo en regalo: base sin traslado + fila “factores logísticos”. Nunca en pedido normal.
         const locale = document.documentElement.lang === 'en' ? 'en-US' : 'es-CL';
         visitEl.textContent = new Intl.NumberFormat(locale, {
           style: 'currency',
@@ -1011,6 +1017,7 @@
           maximumFractionDigits: 0
         }).format(baseBeforeZone);
       } else {
+        // Pedido normal: zona/traslado ya va dentro del total (sin desglose).
         visitEl.textContent = f.baseVisit;
       }
       document.getElementById('displayServicePrice').textContent = f.servicePrice;
@@ -1077,8 +1084,8 @@
         }
       }
 
-      // Nunca mostrar desglose técnico de zona (Ñuñoa / km / técnicos).
-      // El recargo ya va en el total. Solo en regalo informamos “Costo de traslado”.
+      // Nunca mostrar distancia, peajes, % ni Ñuñoa al cliente.
+      // Pedido normal: zona va en el total. Regalo + destino más lejos: solo “factores logísticos”.
       const zoneRow = document.getElementById('zoneAdjustmentRow');
       if (zoneRow) {
         zoneRow.classList.add('hidden');
@@ -1090,6 +1097,10 @@
       const isGift = Boolean(giftToggle?.checked);
       const transferRow = document.getElementById('transferCostRow');
       const transferEl = document.getElementById('displayTransferCost');
+      const transferLabel = document.getElementById('transferCostLabel');
+      const transferHint = document.getElementById('transferCostHint');
+      if (transferLabel) transferLabel.textContent = t('client.service.transfer_cost');
+      if (transferHint) transferHint.textContent = t('client.service.transfer_cost_hint');
       if (transferRow) {
         if (isGift && zoneAmt > 0) {
           transferRow.classList.remove('hidden');
