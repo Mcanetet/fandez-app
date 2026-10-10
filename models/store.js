@@ -8606,8 +8606,9 @@ function getLastCompletedRequest(clientId, locale = 'es') {
 function getClientTrustStats() {
   const providers = USERS.filter(u => u.role === 'provider');
   const completed = requests.filter(r => r.status === 'completed').length;
-  const avgRating = providers.length
-    ? (providers.reduce((s, p) => s + (p.rating || 0), 0) / providers.length).toFixed(1)
+  const rated = providers.filter((p) => Number(p.rating) > 0);
+  const avgRating = rated.length
+    ? (rated.reduce((s, p) => s + Number(p.rating), 0) / rated.length).toFixed(1)
     : '4.9';
   const verified = providers.filter(p => p.verification?.faceVerified || p.verification?.status === 'verified').length;
   return {

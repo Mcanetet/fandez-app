@@ -11,7 +11,7 @@
   <div class="trust-strip-item">
     <%- include('ui-icon', { name: 'star', size: 18, className: 'trust-strip-icon' }) %>
     <div>
-      <strong><%= t('trust.rating_title', { rating: stats.avgRating || '4.9' }) %></strong>
+      <strong><%= t('trust.rating_title', { rating: (stats.avgRating != null && Number(stats.avgRating) > 0) ? stats.avgRating : '4.9' }) %></strong>
       <span><%= t('trust.rating_sub', { count: stats.completedServices ? Number(stats.completedServices).toLocaleString(numLocale) + '+' : '1.200+' }) %></span>
     </div>
   </div>

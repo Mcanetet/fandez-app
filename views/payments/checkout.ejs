@@ -243,11 +243,11 @@
     </div>
 
     <section class="pt-3 mt-3 border-t border-zilo-border/80" id="summaryBox">
-      <h2 class="zilo-label mb-3 text-[10px]">Desglose</h2>
+      <h2 class="zilo-label mb-3 text-[10px]">Cómo se arma tu inversión</h2>
       <div class="space-y-2 text-sm">
         <% const zoneAmt = Number(summary.zoneAdjustmentAmount) || 0; const isGiftCheckout = Boolean(request && request.isGift); %>
         <div class="flex justify-between checkout-line pb-2">
-          <span class="text-zilo-muted">Visita técnica (base)</span>
+          <span class="text-zilo-muted">Valor base de la solución</span>
           <span id="lineVisitBase"><%= formatCLP(
             (isGiftCheckout && zoneAmt && summary.visitBaseBeforeZone != null)
               ? summary.visitBaseBeforeZone
@@ -257,8 +257,8 @@
         <%# Nunca mostrar desglose técnico Ñuñoa/km. En regalo: “Costo de traslado”. %>
         <div class="flex justify-between checkout-line pb-2 <%= (zoneAmt && isGiftCheckout) ? '' : 'hidden' %>" id="lineZoneRow">
           <span class="text-zilo-muted" id="lineZoneLabel">
-            Costo de traslado
-            <span class="block text-[10px] text-zilo-muted/80 mt-0.5">Diferencia por la dirección de destino. Ya incluida en el total.</span>
+            Traslado hasta el destino
+            <span class="block text-[10px] text-zilo-muted/80 mt-0.5">Diferencia por llegar a esa dirección. Ya va en tu inversión.</span>
           </span>
           <span id="lineZone" class="text-orange-600"><%= zoneAmt ? ('+' + formatCLP(zoneAmt)) : '—' %></span>
         </div>
@@ -268,9 +268,9 @@
               const band = summary.scheduleBand === 'tarde' ? 'tarde' : (summary.scheduleBand === 'nocturno' ? 'madrugada' : 'horario');
               const pct = Math.abs(summary.scheduleAdjustmentPercent || 0);
             %>
-              Recargo <%= band %><% if (pct) { %> (+<%= pct %>%)<% } %>
+              Ajuste <%= band %><% if (pct) { %> (+<%= pct %>%)<% } %>
             <% } else { %>
-              Recargo horario
+              Ajuste por horario
             <% } %>
           </span>
           <span id="lineSchedule"><%= summary.scheduleAdjustmentAmount ? ((summary.scheduleAdjustmentAmount > 0 ? '+' : '') + formatCLP(summary.scheduleAdjustmentAmount)) : '—' %></span>
@@ -288,11 +288,11 @@
           <span id="lineUrgency"><%= summary.urgencyOnlyAdjustmentAmount ? ((summary.urgencyOnlyAdjustmentAmount > 0 ? '+' : '') + formatCLP(summary.urgencyOnlyAdjustmentAmount)) : '—' %></span>
         </div>
         <div class="flex justify-between checkout-line pb-2 border-b border-zilo-border">
-          <span class="text-zilo-muted font-medium">Subtotal visita</span>
+          <span class="text-zilo-muted font-medium">Subtotal de tu solución</span>
           <span id="lineBase" class="font-medium"><%= formatCLP(summary.basePrice) %></span>
         </div>
         <div class="flex justify-between checkout-line pb-2 text-zilo-muted/80 <%= summary.servicePriceBase ? '' : 'hidden' %>">
-          <span class="text-xs">Servicio estimado <span class="text-[10px]">(se paga en sitio)</span></span>
+          <span class="text-xs">Trabajo en terreno <span class="text-[10px]">(se define en sitio)</span></span>
           <span id="lineService" class="text-xs"><%= formatCLP(summary.servicePriceBase || 0) %></span>
         </div>
         <div class="flex justify-between checkout-line pb-2 hidden" id="linePromoRow">
@@ -308,7 +308,7 @@
           <span id="linePoints" class="checkout-discount">—</span>
         </div>
         <div class="flex justify-between pt-2">
-          <strong>Total a pagar</strong>
+          <strong>Inversión de hoy</strong>
           <strong class="text-zilo-accent text-lg" id="lineTotal"><%= formatCLP(summary.amountDue) %></strong>
         </div>
         <p class="text-[10px] text-zilo-muted mt-2 text-right">Precio final · IVA incluido</p>
