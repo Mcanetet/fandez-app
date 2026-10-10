@@ -179,8 +179,8 @@
       if (!data.openaiConfigured) {
         appendMessage({
           senderType: 'system',
-          senderName: 'Sistema',
-          body: 'Sofía requiere OPENAI_API_KEY en el servidor.'
+          senderName: 'Sofía',
+          body: 'Estoy en modo asistencia rápida (sin IA). Igual te oriento con pedidos, pagos y cobertura.'
         });
       }
       return conversationId;
