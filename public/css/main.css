@@ -3130,9 +3130,37 @@ body.session-role--tecnico::before {
     linear-gradient(180deg, #FFFCF8 0%, #F7F3EE 48%, #EFE8DF 100%);
   min-height: 100vh;
   min-height: 100dvh;
-  padding-top: max(1.25rem, env(safe-area-inset-top, 0px));
+  /* Espacio seguro arriba: evita que el header sticky tape la tarjeta del pedido */
+  padding-top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.75rem));
   padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
+  z-index: 200;
+}
+/* Mientras busca técnico: ocultar header sticky (cortaba «Santiago…» / datos del pedido) */
+body.is-searching-tech .back-header-compact,
+body.is-searching-tech #stickyOrderBar,
+body.is-searching-tech #stickyTrackBar {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+/* Sofía por encima del overlay de búsqueda */
+body.is-searching-tech #alandFabRoot {
+  z-index: 220 !important;
+}
+#alandFabRoot {
+  z-index: 220;
+}
+#alandFabPanel {
+  max-height: min(70dvh, 28rem);
+  display: flex;
+  flex-direction: column;
+}
+#alandFabPanel.hidden {
+  display: none;
+}
+#alandFabMessages {
+  flex: 1 1 auto;
+  min-height: 10rem;
 }
 .search-overlay-orb,
 .search-overlay-grid {
@@ -3145,6 +3173,9 @@ body.session-role--tecnico::before {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(224, 215, 204, 0.95);
   box-shadow: 0 8px 24px rgba(26, 24, 20, 0.05);
+  overflow: visible;
+  position: relative;
+  z-index: 1;
 }
 .search-order-icon {
   display: flex;

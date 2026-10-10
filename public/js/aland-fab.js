@@ -8,10 +8,12 @@
   const messagesEl = document.getElementById('alandFabMessages');
   const form = document.getElementById('alandFabForm');
   const input = document.getElementById('alandFabInput');
+  const sendBtn = form?.querySelector('button[type="submit"]');
 
   let conversationId = null;
   let socket = null;
   let starting = false;
+  let sending = false;
   let clientId = null;
 
   function escapeHtml(s) {
@@ -40,14 +42,37 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
+  function setBusy(on) {
+    if (sendBtn) {
+      sendBtn.disabled = Boolean(on);
+      sendBtn.textContent = on ? 'Enviando…' : 'Enviar';
+    }
+    if (input) input.disabled = Boolean(on);
+  }
+
+  async function fetchJson(url, options, timeoutMs = 25000) {
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: ctrl?.signal,
+        credentials: 'same-origin'
+      });
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
   function ensureSocket(joinClientId) {
     if (!window.io) return null;
     if (!socket) {
-      socket = io();
+      socket = window.FandezSocket?.socket || io();
       socket.on('aland_message', (payload) => {
         if (!payload?.message) return;
         if (payload.conversationId && conversationId && payload.conversationId !== conversationId) {
-          // Cambio de conversación por journey: adoptar y abrir
           conversationId = payload.conversationId;
           messagesEl.innerHTML = '';
           appendMessage(payload.message);
@@ -108,14 +133,12 @@
     ensureSocket(clientId);
     if (socket) socket.emit('aland_join', { conversationId: id, clientId });
     try {
-      const res = await fetch(`/aland/client/start`, {
+      const { res, data } = await fetchJson('/aland/client/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        credentials: 'same-origin',
         body: JSON.stringify({ mode: 'support', conversationId: id })
       });
-      const data = await res.json();
-      if (data.success && data.messages) {
+      if (res.ok && data.success && data.messages) {
         messagesEl.innerHTML = '';
         data.messages.forEach(appendMessage);
         return;
@@ -128,17 +151,24 @@
   }
 
   async function startSupportChat() {
-    if (conversationId || starting) return;
+    if (conversationId) return conversationId;
+    if (starting) {
+      // Esperar un inicio en curso en vez de ignorar el envío.
+      for (let i = 0; i < 40 && starting; i += 1) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      if (conversationId) return conversationId;
+    }
     starting = true;
     try {
-      const res = await fetch('/aland/client/start', {
+      const { res, data } = await fetchJson('/aland/client/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        credentials: 'same-origin',
         body: JSON.stringify({ mode: 'support' })
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo iniciar Aland IA');
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'No se pudo iniciar Sofía');
+      }
       conversationId = data.conversation.id;
       clientId = data.conversation.clientId;
       messagesEl.innerHTML = '';
@@ -153,6 +183,7 @@
           body: 'Sofía requiere OPENAI_API_KEY en el servidor.'
         });
       }
+      return conversationId;
     } finally {
       starting = false;
     }
@@ -176,7 +207,6 @@
     panel.classList.add('hidden');
   }
 
-  // Escuchar journey incluso con el panel cerrado
   if (window.io) {
     const presetClientId = root.dataset.clientId || null;
     ensureSocket(presetClientId);
@@ -190,31 +220,49 @@
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     const text = (input?.value || '').trim();
-    if (!text) return;
-    if (!conversationId) {
-      try {
-        await startSupportChat();
-      } catch (err) {
-        if (window.FandezNotify) FandezNotify.show(err.message, 'error');
-        return;
-      }
-    }
+    if (!text || sending) return;
+
+    sending = true;
+    setBusy(true);
+    // Optimistic UI: el mensaje se ve al instante aunque el socket esté caído.
+    appendMessage({
+      senderType: 'client',
+      senderName: 'Tú',
+      body: text
+    });
     input.value = '';
+
     try {
-      const res = await fetch(`/aland/client/${conversationId}/message`, {
+      if (!conversationId) await startSupportChat();
+      if (!conversationId) throw new Error('No se pudo abrir la conversación con Sofía.');
+
+      const { res, data } = await fetchJson(`/aland/client/${conversationId}/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        credentials: 'same-origin',
         body: JSON.stringify({ message: text })
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo enviar');
-      if (data.clientMessage) appendMessage(data.clientMessage);
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'No se pudo enviar. Revisa la conexión e intenta de nuevo.');
+      }
+      // Evitar duplicar el mensaje del cliente (ya lo mostramos optimistic).
       if (data.alandMessage) appendMessage(data.alandMessage);
       if (data.handoffMessage) appendMessage(data.handoffMessage);
     } catch (err) {
-      if (window.FandezNotify) FandezNotify.show(err.message, 'error');
+      const msg = err?.name === 'AbortError'
+        ? 'Tiempo de espera agotado. Reintenta en unos segundos.'
+        : (err.message || 'No se pudo enviar');
+      appendMessage({
+        senderType: 'system',
+        senderName: 'Sistema',
+        body: msg
+      });
+      if (window.FandezNotify) FandezNotify.show(msg, 'error');
+    } finally {
+      sending = false;
+      setBusy(false);
+      input?.focus();
     }
   });
 

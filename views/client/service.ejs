@@ -526,7 +526,7 @@
       <div class="search-overlay-orb search-overlay-orb-a" aria-hidden="true"></div>
       <div class="search-overlay-orb search-overlay-orb-b" aria-hidden="true"></div>
       <div class="search-overlay-grid" aria-hidden="true"></div>
-      <div class="relative text-center px-4 pt-2 pb-6 max-w-sm w-full" id="searchExperience" data-timeout-ms="<%= (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) * 60 * 1000 %>">
+      <div class="relative text-center px-4 pt-3 pb-6 max-w-sm w-full" id="searchExperience" data-timeout-ms="<%= (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) * 60 * 1000 %>">
         <% const carouselServices = (typeof catalogServices !== 'undefined' && catalogServices.length)
           ? catalogServices
           : [service]; %>
@@ -538,9 +538,9 @@
             </div>
             <div class="min-w-0 flex-1">
               <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-zilo-muted mb-0.5"><%= t('client.service.search_order_label') %></p>
-              <strong id="searchOrderService" class="text-sm block text-zilo-text truncate"><%= service.name %></strong>
-              <p id="searchOrderMeta" class="text-[11px] text-zilo-muted mt-0.5 truncate"><%= t('client.service.search_order_paid') %></p>
-              <p id="searchOrderAddress" class="text-[11px] text-zilo-text mt-1.5 leading-snug line-clamp-2"></p>
+              <strong id="searchOrderService" class="text-sm block text-zilo-text break-words"><%= service.name %></strong>
+              <p id="searchOrderMeta" class="text-[11px] text-zilo-muted mt-0.5 break-words"><%= t('client.service.search_order_paid') %></p>
+              <p id="searchOrderAddress" class="text-[11px] text-zilo-text mt-1.5 leading-snug break-words"></p>
             </div>
             <span class="search-order-badge shrink-0"><%= t('client.service.search_order_badge') %></span>
           </div>

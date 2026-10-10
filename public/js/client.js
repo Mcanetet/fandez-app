@@ -30,6 +30,17 @@
   const trackingId = page.dataset.tracking;
   const btnRequest = document.getElementById('btnRequest');
   const loaderOverlay = document.getElementById('loaderOverlay');
+  function syncSearchingBodyClass() {
+    const on = Boolean(loaderOverlay && !loaderOverlay.classList.contains('hidden'));
+    document.body.classList.toggle('is-searching-tech', on);
+  }
+  if (loaderOverlay) {
+    syncSearchingBodyClass();
+    new MutationObserver(syncSearchingBodyClass).observe(loaderOverlay, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
   const scheduledPanel = document.getElementById('scheduledPanel');
   const providerCard = document.getElementById('providerCard');
   const requestForm = document.getElementById('requestForm');
