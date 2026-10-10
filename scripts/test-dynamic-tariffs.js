@@ -202,7 +202,7 @@ function run() {
   if (!isGardenService('jardineria')) throw new Error('jardineria debe ser servicio de jardín');
   assertEqual(getServiceFromPrice({}, 'jardineria'), GARDEN_EVAL_VISIT_CLP, 'Desde jardinería = evaluación técnica');
   assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 40), 140000, '40 m² con tarifa legacy');
-  assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 10), GARDEN_MIN_JOB_CLP, '10 m² aplica mínimo de salida $40.000');
+  assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 10), GARDEN_MIN_JOB_CLP, '10 m² aplica mínimo de salida $70.000');
 
   const gardenIntakeOk = normalizeGardenIntake({
     serviceTypes: ['diseno', 'mantencion'],
@@ -250,12 +250,12 @@ function run() {
   assertEqual(gardenQuote.visitTotal, GARDEN_EVAL_VISIT_CLP, 'Cotización evaluación diseño en horario normal');
 
   const gardenFloor = calculateDynamicTariff({
-    valorBase: 40000,
+    valorBase: GARDEN_EVAL_VISIT_CLP,
     horaSolicitud: '14:00',
     tiempoRespuestaMinutos: 180,
     skipWorkFloor: true
   });
-  assertEqual(gardenFloor.valorBaseAplicado, 40000, 'Jardinería no pisa el mínimo de $55.000');
+  assertEqual(gardenFloor.valorBaseAplicado, GARDEN_EVAL_VISIT_CLP, 'Evaluación jardín respeta base con skipWorkFloor');
 
   console.log('\n— Liquidación 15% IVA incl. + Mercado Pago —');
   const { computeRequestFinancials, calculatePaymentSurcharge } = require('../lib/pricing');

@@ -649,7 +649,7 @@
 
   function estimateCleaningBase(m2, hasPets, postEvent) {
     const area = Math.max(20, Number(m2) || 20);
-    let base = Math.max(30000, Math.round(area * 1500));
+    let base = Math.max(70000, Math.round(area * 1500));
     let mult = 1;
     if (hasPets) mult += 0.15;
     if (postEvent) mult += 0.15;

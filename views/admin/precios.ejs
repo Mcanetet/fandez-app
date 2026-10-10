@@ -49,8 +49,8 @@
           </div>
           <div>
             <label class="text-xs text-gray-500">Precio base del trabajo (CLP)</label>
-            <input type="number" name="servicePrice" value="<%= pricing.servicePrice %>" min="55000" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Fallback del cálculo dinámico (mín. $55.000). Los SKUs del catálogo tienen prioridad. Precios = total cliente IVA incluido.</p>
+            <input type="number" name="servicePrice" value="<%= pricing.servicePrice %>" min="70000" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Fallback del cálculo dinámico (mín. $70.000). Los SKUs del catálogo tienen prioridad. Precios = total cliente IVA incluido.</p>
           </div>
         </div>
       </section>
@@ -544,7 +544,7 @@
                           </td>
                           <td class="px-3 py-2.5">
                             <input type="number" name="catalogBasePrice" value="<%= activity.basePrice %>"
-                              min="<%= activity.pricingUnit === 'm2' ? 1000 : 55000 %>"
+                              min="<%= activity.pricingUnit === 'm2' ? 1000 : 70000 %>"
                               step="<%= activity.pricingUnit === 'm2' ? 100 : 1000 %>"
                               class="zilo-input !py-1.5 text-sm w-full js-fandez-price" required>
                           </td>

@@ -23,7 +23,7 @@
   "client.service.work_base_m2": "Price per m²",
   "client.service.area_m2": "Square meters of the area",
   "client.service.area_m2_ph": "E.g. 40",
-  "client.service.area_m2_hint": "Measure the patio or garden. Minimum 10 m². There is a $40,000 job minimum. Materials (soil, sod, plants) are quoted separately.",
+  "client.service.area_m2_hint": "Measure the patio or garden. Minimum 10 m². There is a $70,000 job minimum. Materials (soil, sod, plants) are quoted separately.",
   "client.service.area_m2_hint_landscape": "Landscape project area. Minimum 20 m². Total uses the standard and factors below.",
   "client.service.landscape_title": "Landscape project factors",
   "client.service.landscape_hint": "Quantify like the market: m² × standard × terrain × species + add-ons.",

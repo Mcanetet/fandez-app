@@ -781,12 +781,12 @@
     if (isGardenIntakeService()) {
       const fromAttr = page?.dataset?.fromPrice || page?.dataset?.visitPrice;
       const from = fromAttr ? parseInt(fromAttr, 10) : NaN;
-      return Number.isFinite(from) && from > 0 ? from : 40000;
+      return Number.isFinite(from) && from > 0 ? from : 70000;
     }
     if (isFvIntakeService()) {
       const fromAttr = page?.dataset?.fromPrice || page?.dataset?.visitPrice;
       const from = fromAttr ? parseInt(fromAttr, 10) : NaN;
-      return Number.isFinite(from) && from > 0 ? from : 49000;
+      return Number.isFinite(from) && from > 0 ? from : 70000;
     }
     const meta = selectedActivityMeta();
     const unitRate = page?.dataset?.pricingUnit === 'm2' || meta?.unit === 'm2' || meta?.unit === 'm3';
@@ -802,8 +802,8 @@
       const typed = parseFloat(document.getElementById('squareMeters')?.value || '');
       const m2 = Number.isFinite(typed) && typed >= minM2 ? typed : minM2;
       const floor = isCleaningService()
-        ? 30000
-        : (isEscombrosService() ? (parseInt(page?.dataset?.escombrosMin || '297500', 10) || 297500) : 40000);
+        ? 70000
+        : (isEscombrosService() ? (parseInt(page?.dataset?.escombrosMin || '297500', 10) || 297500) : 70000);
       const defaultRate = isCleaningService() ? 1500 : 5500;
       let n = (Number.isFinite(rate) && rate > 0 ? rate : defaultRate) * m2;
       n = Math.max(floor, Math.round(n));

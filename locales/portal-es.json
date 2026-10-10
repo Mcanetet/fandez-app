@@ -23,7 +23,7 @@
   "client.service.work_base_m2": "Precio por m²",
   "client.service.area_m2": "Metros cuadrados del área",
   "client.service.area_m2_ph": "Ej: 40",
-  "client.service.area_m2_hint": "Mide el patio o jardín a trabajar. Mínimo 10 m². Hay un mínimo de salida de $40.000. Materiales (tierra, pasto, plantas) se cotizan aparte.",
+  "client.service.area_m2_hint": "Mide el patio o jardín a trabajar. Mínimo 10 m². Hay un mínimo de salida de $70.000. Materiales (tierra, pasto, plantas) se cotizan aparte.",
   "client.service.area_m2_hint_landscape": "Área del proyecto de paisajismo. Mínimo 20 m². El total se calcula con el estándar y factores que elijas abajo.",
   "client.service.landscape_title": "Factores del proyecto de paisajismo",
   "client.service.landscape_hint": "Cuantifica el proyecto como en el mercado: m² × estándar × terreno × especies + partidas.",

@@ -17,8 +17,9 @@ describe('servicio limpieza', () => {
 
   test('cotiza $1.500 / m² con mínimo de trabajo', () => {
     const activity = { id: 'lim-hogar', pricingUnit: 'm2', pricePerM2: 1500, minM2: 20, basePrice: 1500 };
-    expect(resolveM2QuoteBase(activity, 20, { serviceId: 'limpieza' })).toBe(30000);
-    expect(resolveM2QuoteBase(activity, 40, { serviceId: 'limpieza' })).toBe(60000);
+    expect(resolveM2QuoteBase(activity, 20, { serviceId: 'limpieza' })).toBe(70000);
+    expect(resolveM2QuoteBase(activity, 40, { serviceId: 'limpieza' })).toBe(70000);
+    expect(resolveM2QuoteBase(activity, 50, { serviceId: 'limpieza' })).toBe(75000);
     expect(CLEANING_RATE_M2).toBe(1500);
   });
 
