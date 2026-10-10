@@ -32,7 +32,7 @@
 
   async function ensureScripts() {
     if (!window.MercadoPago) await loadScript('https://sdk.mercadopago.com/js/v2');
-    if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js?v=20261010-mp1');
+    if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js?v=20261010-card1');
   }
 
   async function fetchConfig() {
@@ -109,10 +109,16 @@
       return { active: false, publicKey, amount };
     }
 
+    const rounded = Math.round(Number(amount) || 0);
+    if (rounded > 0 && rounded < 50) {
+      console.warn('[mp-pay] monto demasiado bajo para tarjeta', rounded);
+      return { active: false, publicKey, amount: rounded, reason: 'amount_too_low' };
+    }
+
     const result = await window.FandezMpBrick.sync({
       embed: true,
       publicKey,
-      amount: Math.round(Number(amount) || 0),
+      amount: rounded,
       paymentMethod: 'card',
       cardGateway: 'mercadopago',
       containerId,
@@ -132,7 +138,13 @@
       })
     });
 
-    return { active: Boolean(result?.active), publicKey, amount };
+    return {
+      active: Boolean(result?.active),
+      publicKey,
+      amount: rounded,
+      reason: result?.reason || null,
+      mode: result?.mode || null
+    };
   }
 
   window.FandezMpPay = {

@@ -154,7 +154,11 @@
 
       if (result.publicKey) mpPublicKey = result.publicKey;
       if (!result.active) {
-        setError('No pudimos cargar el formulario. Usa el botón de abajo.');
+        if (result.reason === 'amount_too_low') {
+          setError('El monto es demasiado bajo para tarjeta. Revisa el total del servicio.');
+        } else {
+          setError('No pudimos cargar el formulario. Usa el botón de abajo.');
+        }
         showFallback(true);
       }
     } catch (err) {

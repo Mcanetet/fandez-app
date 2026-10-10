@@ -1,7 +1,9 @@
 /**
- * Payment Brick (Mercado Pago) — única UI embebida Fandez.
- * Métodos: crédito + débito + prepago (Visa Chile). 1 cuota.
- * Sin preferenceId (evita filtrar marcas). Cobro vía POST /pagos/mp/tarjeta.
+ * Checkout API — Card Payment Brick (tarjeta) → POST /pagos/mp/tarjeta.
+ *
+ * Importante: usar brick "cardPayment" (Checkout API), NO "payment"
+ * (Payment Brick genérico filtra marcas / muestra error Visa al BIN).
+ * Incluye crédito + débito + prepago (Visa Chile).
  */
 (function () {
   const slots = {};
@@ -41,7 +43,8 @@
     if (!ctx.embed || !ctx.publicKey) return false;
     if (ctx.paymentMethod !== 'card') return false;
     if (String(ctx.cardGateway || '').toLowerCase() !== 'mercadopago') return false;
-    return Math.round(Number(ctx.amount) || 0) >= 1;
+    // Montos de $1 suelen hacer que MP rechace Visa al digitar el BIN.
+    return Math.round(Number(ctx.amount) || 0) >= 50;
   }
 
   function visible(el) {
@@ -76,6 +79,7 @@
     return Boolean(slot?.controller && el?.children?.length && slot.amount === amount);
   }
 
+  /** Card Payment Brick entrega cardData plano; Payment Brick usaba formData. */
   function unwrap(payload) {
     if (!payload || typeof payload !== 'object') return payload;
     if (payload.formData && typeof payload.formData === 'object') {
@@ -118,31 +122,33 @@
     const email = String(ctx.payerEmail || ctx.payerEmailFallback || '').trim();
     const mp = new MercadoPago(ctx.publicKey, { locale: 'es-CL' });
 
+    // Checkout API oficial: brick "cardPayment" (solo tarjetas).
     mounting[containerId] = mp.bricks()
-      .create('payment', containerId, {
+      .create('cardPayment', containerId, {
         initialization: {
           amount,
           payer: email ? { email } : undefined
         },
         customization: {
-          visual: {
-            style: VISUAL,
-            hideRedirectionPanel: true,
-            texts: { formTitle: ' ' }
-          },
+          visual: { style: VISUAL },
           paymentMethods: {
-            creditCard: 'all',
-            debitCard: 'all',
-            prepaidCard: 'all',
             maxInstallments: 1,
-            minInstallments: 1
+            minInstallments: 1,
+            types: {
+              creditCard: 'all',
+              debitCard: 'all',
+              prepaidCard: 'all'
+            }
           }
         },
         callbacks: {
           onReady: () => {
             if (typeof ctx.onReady === 'function') ctx.onReady();
           },
-          onSubmit: (payload) => {
+          onBinChange: (bin) => {
+            if (bin) console.info('[mp-cardPayment] bin', String(bin).slice(0, 6));
+          },
+          onSubmit: (cardData) => {
             if (typeof ctx.onBeforeSubmit === 'function') {
               const block = ctx.onBeforeSubmit();
               if (block) {
@@ -152,10 +158,18 @@
                 return Promise.reject(new Error(block));
               }
             }
-            return ctx.submitPayment(unwrap(payload));
+            return ctx.submitPayment(unwrap(cardData));
           },
           onError: (error) => {
-            console.error('[mp-brick]', containerId, error);
+            console.error('[mp-cardPayment]', containerId, error);
+            if (window.FandezNotify && error?.message) {
+              FandezNotify.show({
+                type: 'error',
+                title: 'Formulario de tarjeta',
+                body: String(error.message).slice(0, 180),
+                kicker: 'Mercado Pago'
+              });
+            }
           }
         }
       })
@@ -166,7 +180,7 @@
       })
       .catch((err) => {
         mounting[containerId] = null;
-        console.error('[mp-brick] mount', containerId, err);
+        console.error('[mp-cardPayment] mount', containerId, err);
         throw err;
       });
 
@@ -181,12 +195,16 @@
       if (!canUse(ctx)) {
         if (section) section.classList.add('hidden');
         await unmountSlot(containerId);
-        return { active: false, reason: 'invalid_context' };
+        const amount = Math.round(Number(ctx.amount) || 0);
+        return {
+          active: false,
+          reason: amount > 0 && amount < 50 ? 'amount_too_low' : 'invalid_context'
+        };
       }
       if (section) section.classList.remove('hidden');
       try {
         const ok = await mount(ctx);
-        return { active: ok, mode: 'payment_brick' };
+        return { active: ok, mode: 'card_payment_brick' };
       } catch (err) {
         return { active: false, reason: err?.message || 'mount_failed' };
       }
