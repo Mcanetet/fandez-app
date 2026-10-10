@@ -1,9 +1,10 @@
 /**
- * Mercado Pago Payment Brick (solo tarjetas) — checkout embebido en Fandez.
+ * Mercado Pago Card Payment Brick — un solo formulario (crédito/débito/prepago).
  *
- * Card Payment Brick NO admite prepaid_card bien en Chile (mar-2025+):
- * Visa prepago falla con «No pudimos obtener la información de pago» y el logo
- * no aparece en el formulario. Payment Brick exige prepaidCard: 'all' explícito.
+ * NO usar Payment Brick aquí: crea el silo «Tarjeta de crédito» y en Chile
+ * Visa suele ser débito/prepago → falla el BIN y no muestra logo en el recuadro.
+ *
+ * Card Brick: un campo de número; al reconocer el BIN pinta el logo dentro del input.
  */
 (function () {
   /** @type {Record<string, { controller: object, amount: number }>} */
@@ -93,7 +94,6 @@
     return true;
   }
 
-  /** Payment Brick entrega { selectedPaymentMethod, formData }; unificamos para el backend. */
   function unwrapSubmitPayload(payload) {
     if (!payload || typeof payload !== 'object') return payload;
     if (payload.formData && typeof payload.formData === 'object') {
@@ -135,30 +135,24 @@
     const mp = new MercadoPago(ctx.publicKey, { locale: 'es-CL' });
     const bricksBuilder = mp.bricks();
 
-    // Sin preferenceId: evita filtrar marcas. Solo tarjetas.
     const initialization = {
       amount,
       payer: payerEmail ? { email: payerEmail } : undefined
     };
 
     mountingById[containerId] = bricksBuilder
-      .create('payment', containerId, {
+      .create('cardPayment', containerId, {
         initialization,
         customization: {
           visual: {
             style: FANDEZ_MP_VISUAL,
-            hidePaymentButton: false,
             texts: {
-              formTitle: 'Tarjeta crédito, débito o prepago'
+              formTitle: 'Datos de tu tarjeta'
             }
           },
           paymentMethods: {
-            // MP mar-2025: prepaidCard debe ir explícito o Visa prepago CL
-            // falla con «No pudimos obtener la información de pago».
-            creditCard: 'all',
-            debitCard: 'all',
-            prepaidCard: 'all',
-            // 1 cuota: evita bandejas «cuotas sin interés» que ocultan Visa.
+            // Default Card Brick = crédito + débito (un solo formulario, logo en el BIN).
+            // 1 cuota: evita «cuotas sin interés» que en Chile ocultan Visa.
             maxInstallments: 1,
             minInstallments: 1
           }

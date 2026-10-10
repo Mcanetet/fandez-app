@@ -1,13 +1,11 @@
-<%# Contenedor: se llena con secure_thumbnail de GET /v1/payment_methods (recomendación MP). %>
-<div id="mpCardBrands" class="mp-card-brands flex flex-wrap items-center gap-2 mb-3 min-h-[28px]" aria-label="Tarjetas aceptadas según Mercado Pago">
+<%# Logos de marcas — solo debajo del Brick (no duplicar arriba). %>
+<div id="mpCardBrands" class="mp-card-brands flex flex-wrap items-center justify-center gap-2 mt-4 pt-3 border-t border-zilo-border/70 min-h-[28px]" aria-label="Tarjetas aceptadas">
   <span class="text-[10px] text-zilo-muted" data-mp-brands-fallback>Cargando marcas…</span>
 </div>
-<p id="mpVisaDiagnosis" class="hidden text-[11px] text-amber-900 mb-3 p-2 rounded-lg border border-amber-200 bg-amber-50 leading-relaxed"></p>
 <script>
 (function () {
   function renderMpCardBrands(data) {
     const box = document.getElementById('mpCardBrands');
-    const diag = document.getElementById('mpVisaDiagnosis');
     if (!box) return;
     const logos = Array.isArray(data?.cardLogos) ? data.cardLogos : [];
     if (logos.length) {
@@ -18,25 +16,14 @@
         return '<span class="inline-flex items-center justify-center h-7 px-1.5 rounded-md border border-zilo-border bg-white" title="' + name + '">'
           + '<img src="' + src.replace(/"/g, '') + '" alt="' + name + '" height="18" style="height:18px;width:auto;max-width:48px" loading="lazy" referrerpolicy="no-referrer" />'
           + '</span>';
-      }).join('') + '<span class="text-[10px] text-zilo-muted">Según tu cuenta Mercado Pago · 1 cuota</span>';
+      }).join('');
     } else if (data && data.cardMethodsOk === false) {
-      box.innerHTML = '<span class="text-[10px] text-amber-800">No se pudieron leer medios de pago de Mercado Pago.</span>';
+      box.innerHTML = '<span class="text-[10px] text-zilo-muted">Visa · Mastercard · Amex</span>';
     } else {
-      box.innerHTML = '<span class="text-[10px] text-zilo-muted">Visa · Mastercard · Amex (cuando la cuenta los tenga activos)</span>';
-    }
-    if (diag && data?.visaDiagnosis) {
-      const v = data.visaDiagnosis;
-      if (v.active) {
-        diag.classList.add('hidden');
-        diag.textContent = '';
-      } else {
-        diag.textContent = v.diagnosis || 'Visa no está activa en /v1/payment_methods de esta cuenta.';
-        diag.classList.remove('hidden');
-      }
+      box.innerHTML = '<span class="text-[10px] text-zilo-muted">Visa · Mastercard · Amex</span>';
     }
   }
   window.FandezRenderMpCardBrands = renderMpCardBrands;
-  // Auto-carga si aún no hay datos (checkout / pago inline).
   if (!window.__fandezMpBrandsLoaded) {
     window.__fandezMpBrandsLoaded = true;
     fetch('/pagos/mp/brick-config', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
