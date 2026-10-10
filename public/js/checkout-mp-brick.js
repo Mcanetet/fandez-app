@@ -1,8 +1,9 @@
 /**
- * Mercado Pago Card Payment Brick — un solo formulario crédito/débito/prepago.
+ * Mercado Pago Payment Brick (solo tarjetas) — checkout embebido en Fandez.
  *
- * Payment Brick separaba «Tarjeta de crédito» y muchas Visa (prepago/débito) fallaban
- * al inferir el BIN. Card Brick + types.excluded:[] + 1 cuota evita ese silo.
+ * Card Payment Brick NO admite prepaid_card bien en Chile (mar-2025+):
+ * Visa prepago falla con «No pudimos obtener la información de pago» y el logo
+ * no aparece en el formulario. Payment Brick exige prepaidCard: 'all' explícito.
  */
 (function () {
   /** @type {Record<string, { controller: object, amount: number }>} */
@@ -92,6 +93,7 @@
     return true;
   }
 
+  /** Payment Brick entrega { selectedPaymentMethod, formData }; unificamos para el backend. */
   function unwrapSubmitPayload(payload) {
     if (!payload || typeof payload !== 'object') return payload;
     if (payload.formData && typeof payload.formData === 'object') {
@@ -133,24 +135,30 @@
     const mp = new MercadoPago(ctx.publicKey, { locale: 'es-CL' });
     const bricksBuilder = mp.bricks();
 
+    // Sin preferenceId: evita filtrar marcas. Solo tarjetas.
     const initialization = {
       amount,
       payer: payerEmail ? { email: payerEmail } : undefined
     };
 
     mountingById[containerId] = bricksBuilder
-      .create('cardPayment', containerId, {
+      .create('payment', containerId, {
         initialization,
         customization: {
           visual: {
             style: FANDEZ_MP_VISUAL,
+            hidePaymentButton: false,
             texts: {
               formTitle: 'Tarjeta crédito, débito o prepago'
             }
           },
           paymentMethods: {
-            // Solo types.excluded (API Card Brick). Vacío = crédito + débito + prepaid_card.
-            types: { excluded: [] },
+            // MP mar-2025: prepaidCard debe ir explícito o Visa prepago CL
+            // falla con «No pudimos obtener la información de pago».
+            creditCard: 'all',
+            debitCard: 'all',
+            prepaidCard: 'all',
+            // 1 cuota: evita bandejas «cuotas sin interés» que ocultan Visa.
             maxInstallments: 1,
             minInstallments: 1
           }
