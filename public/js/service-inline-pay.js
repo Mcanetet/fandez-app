@@ -77,7 +77,7 @@
         await loadScript('https://sdk.mercadopago.com/js/v2');
       }
       if (!window.FandezMpBrick) {
-        await loadScript('/js/checkout-mp-brick.js?v=20261009-visa5');
+        await loadScript('/js/checkout-mp-brick.js?v=20261009-visa6');
       }
     })().catch((err) => {
       scriptsPromise = null;

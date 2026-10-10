@@ -1,9 +1,8 @@
 /**
- * Mercado Pago Payment Brick (solo tarjetas) — checkout embebido en Fandez.
+ * Mercado Pago Card Payment Brick — un solo formulario crédito/débito/prepago.
  *
- * Importante (Chile): con maxInstallments > 1 el Brick entra en «Cuotas sin interés»
- * y solo muestra marcas con convenio (a menudo Master/Amex). Visa queda fuera.
- * Por eso el embed fuerza 1 cuota; el tope de cuotas del admin aplica en Checkout Pro.
+ * Payment Brick separaba «Tarjeta de crédito» y muchas Visa (prepago/débito) fallaban
+ * al inferir el BIN. Card Brick + types.excluded:[] + 1 cuota evita ese silo.
  */
 (function () {
   /** @type {Record<string, { controller: object, amount: number }>} */
@@ -140,22 +139,18 @@
     };
 
     mountingById[containerId] = bricksBuilder
-      .create('payment', containerId, {
+      .create('cardPayment', containerId, {
         initialization,
         customization: {
           visual: {
-            // No ocultar título/banderas del Brick: MP pinta logos desde payment_methods.
             style: FANDEZ_MP_VISUAL,
             texts: {
               formTitle: 'Tarjeta crédito, débito o prepago'
             }
           },
           paymentMethods: {
-            // all = no filtrar por convenio de cuotas / IDs incompletos
-            creditCard: 'all',
-            debitCard: 'all',
-            prepaidCard: 'all',
-            // 1 cuota: evita UI «Cuotas sin interés» que oculta Visa sin convenio
+            // Solo types.excluded (API Card Brick). Vacío = crédito + débito + prepaid_card.
+            types: { excluded: [] },
             maxInstallments: 1,
             minInstallments: 1
           }
