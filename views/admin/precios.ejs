@@ -27,9 +27,10 @@
     <section id="mpVisaTestBox" class="mb-5 p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 shadow-sm">
       <p class="text-[10px] font-bold uppercase tracking-wide text-amber-900 mb-1">Test Visa · Mercado Pago</p>
       <h2 class="text-base font-semibold text-amber-950 mb-2">¿Tu cuenta acepta Visa?</h2>
-      <p class="text-xs text-amber-950/80 mb-3">Esto consulta <code class="text-[11px]">GET /v1/payment_methods</code> con el Access Token del servidor. Si Visa sale NO, el Brick del cliente no la va a leer.</p>
+      <p class="text-xs text-amber-950/80 mb-3">Consulta <code class="text-[11px]">GET /v1/payment_methods</code> con el Access Token activo. Soporte MP pide: <strong>id + status + payment_type_id</strong> de Visa, Mastercard y Amex (prueba y producción).</p>
       <p class="text-sm text-gray-800 mb-2" id="mpCredProfileLine">Cargando perfil…</p>
-      <p class="text-sm font-medium text-gray-900 mb-3" id="mpCardBrandsLine">Marcas tarjeta: cargando…</p>
+      <p class="text-sm font-medium text-gray-900 mb-2" id="mpCardBrandsLine">Marcas tarjeta: cargando…</p>
+      <pre id="mpBrandAuditBox" class="hidden text-[11px] leading-relaxed p-3 rounded-xl bg-white border border-amber-200 text-gray-800 overflow-x-auto mb-3 whitespace-pre-wrap"></pre>
       <div class="flex flex-wrap gap-2 mb-2">
         <button type="button" class="btn-mp-phase text-[11px] px-2.5 py-1.5 rounded-lg border border-amber-500 bg-white font-semibold" data-phase="demo">Credenciales de prueba</button>
         <button type="button" class="btn-mp-phase text-[11px] px-2.5 py-1.5 rounded-lg border border-emerald-600 bg-white font-semibold" data-phase="productivo">Credenciales de producción</button>
@@ -827,6 +828,22 @@
   const base = '<%= typeof adminBase !== "undefined" ? adminBase : "/admin" %>';
   const line = document.getElementById('mpCredProfileLine');
   const brandsLine = document.getElementById('mpCardBrandsLine');
+  function renderBrandAudit(data) {
+    const auditBox = document.getElementById('mpBrandAuditBox');
+    if (!auditBox) return;
+    const rows = Array.isArray(data.brandAudit) ? data.brandAudit : [];
+    if (!rows.length) {
+      auditBox.classList.remove('hidden');
+      auditBox.textContent = 'brandAudit vacío: la API no devolvió visa/master/amex (o falló el token).';
+      return;
+    }
+    auditBox.classList.remove('hidden');
+    auditBox.textContent = 'Perfil: ' + (data.credentialProfile || '?') + '\n'
+      + rows.map(function (r) {
+        return r.id + ' | status=' + r.status + ' | payment_type_id=' + r.payment_type_id
+          + ' | secure_thumbnail=' + (r.secure_thumbnail ? 'sí' : 'no');
+      }).join('\n');
+  }
   async function refreshMpBrands() {
     if (!brandsLine) return;
     try {
@@ -843,7 +860,8 @@
         + ' · Mastercard <strong>' + flag(b.master) + '</strong>'
         + ' · Amex <strong>' + flag(b.amex) + '</strong>'
         + (visa.diagnosis ? '<br><span class="text-amber-800">' + visa.diagnosis + '</span>' : '')
-        + '<br><a class="text-zilo-accent font-semibold underline" href="' + base + '/mp/payment-methods" target="_blank" rel="noopener">Ver JSON completo</a>';
+        + '<br><a class="text-zilo-accent font-semibold underline" href="' + base + '/mp/payment-methods" target="_blank" rel="noopener">Ver JSON completo (brandAudit)</a>';
+      renderBrandAudit(data);
     } catch (_) {
       brandsLine.textContent = 'Error al cargar marcas MP.';
     }
@@ -871,8 +889,12 @@
             + ' · Mastercard <strong>' + flag(b.master) + '</strong>'
             + ' · Amex <strong>' + flag(b.amex) + '</strong>'
             + (visa.diagnosis ? '<br><span class="text-amber-800">' + visa.diagnosis + '</span>' : '')
-            + '<br><a class="text-zilo-accent font-semibold underline" href="' + base + '/mp/payment-methods" target="_blank" rel="noopener">Ver JSON completo</a>';
+            + '<br><a class="text-zilo-accent font-semibold underline" href="' + base + '/mp/payment-methods" target="_blank" rel="noopener">Ver JSON completo (brandAudit)</a>';
         }
+        renderBrandAudit({
+          credentialProfile: data.mercadopago && data.mercadopago.profile,
+          brandAudit: data.mpBrandAudit || []
+        });
       } else {
         await refreshMpBrands();
       }

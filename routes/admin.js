@@ -1162,6 +1162,7 @@ router.get('/modo', requireRole('admin'), requireAdminPermission('seguridad.view
     mpCardMethodsOk: Boolean(cardMethods.ok),
     mpCardLogos: cardMethods.logos || [],
     mpVisaDiagnosis: cardMethods.visa || null,
+    mpBrandAudit: cardMethods.brandAudit || [],
     mpCardMethods: (cardMethods.methods || []).slice(0, 40)
   });
 });
@@ -1174,6 +1175,8 @@ router.get('/mp/payment-methods', requireRole('admin'), requireAdminPermission('
     success: Boolean(cardMethods.ok),
     credentialProfile: mp.getCredentialAdminStatus().profile,
     brands: cardMethods.brands || {},
+    /** Solo visa/master/amex (+ débito): id, status, payment_type_id — para pegar a soporte MP. */
+    brandAudit: cardMethods.brandAudit || [],
     visa: cardMethods.visa || null,
     logos: cardMethods.logos || [],
     methods: cardMethods.methods || [],
