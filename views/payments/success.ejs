@@ -12,7 +12,20 @@
   <% const isAdditionalPayment = typeof additionalPayment !== 'undefined' && additionalPayment; %>
   <% const isApproxPay = isAdditionalPayment && (additionalPayment.approximate === true || additionalPayment.reason === 'materials_approx' || ((additionalPayment.materialsApproxBase || 0) > 0 && additionalPayment.reason !== 'materials')); %>
   <% const isTrueUpPay = isAdditionalPayment && additionalPayment.reason === 'materials' && !isApproxPay; %>
-  <h1 class="zilo-display text-3xl mb-2"><%= t('payments.success.title') %></h1>
+  <% const isSimulated = typeof simulatedPayment !== 'undefined' && simulatedPayment; %>
+  <% const isSandboxPay = typeof sandboxPayment !== 'undefined' && sandboxPayment; %>
+  <% if (isSimulated) { %>
+  <div class="w-full rounded-2xl border border-amber-300 bg-amber-50 p-4 mb-4 text-left" role="alert">
+    <p class="text-sm font-semibold text-amber-950 mb-1">Pago simulado — no se cobró la tarjeta</p>
+    <p class="text-xs text-amber-900/90 leading-relaxed">El pedido se activó en Fandez, pero Mercado Pago no debitó tu Visa. Estás en modo demo o el cobro se marcó como prueba. Para cobrar de verdad: Admin → Productivo 2.0 y credenciales de producción (<code>MP_PUBLIC_KEY</code> + <code>MP_ACCESS_TOKEN</code>).</p>
+  </div>
+  <% } else if (isSandboxPay) { %>
+  <div class="w-full rounded-2xl border border-sky-300 bg-sky-50 p-4 mb-4 text-left" role="alert">
+    <p class="text-sm font-semibold text-sky-950 mb-1">Ambiente de prueba Mercado Pago</p>
+    <p class="text-xs text-sky-900/90 leading-relaxed">Este cobro usó credenciales de prueba: no genera cargo real en la tarjeta. Para producción, cambia a Productivo 2.0.</p>
+  </div>
+  <% } %>
+  <h1 class="zilo-display text-3xl mb-2"><%= isSimulated || isSandboxPay ? 'Pago de prueba' : t('payments.success.title') %></h1>
   <p class="text-zilo-muted text-sm mb-1" id="successSubtext"><%= isAdditionalPayment
     ? (isTrueUpPay
       ? 'Diferencia por boleta o factura pagada. El precio del producto quedó validado.'
@@ -21,7 +34,9 @@
         : (additionalPayment.reason === 'materials'
           ? 'Materiales pagados. Gracias por completar el pago.'
           : 'El ajuste fue pagado y el trabajo puede continuar'))
-    : t('payments.success.searching') %></p>
+    : (isSimulated
+      ? 'Pedido activado sin cobro real en la tarjeta.'
+      : t('payments.success.searching')) %></p>
   <% if (!isAdditionalPayment && (typeof autoRedirect !== 'undefined' && autoRedirect)) { %>
   <p class="text-xs text-zilo-accent font-medium mb-4" id="successRedirectHint"><%= t('payments.success.redirecting') %></p>
   <% } %>

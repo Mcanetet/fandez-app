@@ -56,6 +56,16 @@
         else if (window.FandezNotify) FandezNotify.show(data.error || 'No se pudo procesar el pago.', 'error');
         throw new Error(data.error || 'pago');
       }
+      if (data.simulated || data.demo) {
+        if (window.FandezNotify) {
+          FandezNotify.show({
+            type: 'warning',
+            title: 'Pago simulado — sin cobro en la tarjeta',
+            body: 'El pedido se activó en demo. Para cobrar de verdad usa Productivo 2.0.',
+            kicker: 'Mercado Pago'
+          });
+        }
+      }
       if (data.redirect) window.location.href = data.redirect;
       return data;
     });

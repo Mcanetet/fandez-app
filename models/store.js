@@ -1476,6 +1476,13 @@ function markPaymentApproved(requestId, paymentId, extras = {}) {
   if (Number.isFinite(installments) && installments > 0) {
     request.cardInstallments = installments;
   }
+  if (extras.demoFallback) {
+    request.paymentExtras = {
+      ...(request.paymentExtras || {}),
+      demoFallback: extras.demoFallback,
+      simulated: true
+    };
+  }
   commitCheckoutDiscounts(request.clientId, requestId);
   repository.persist(() => repository.saveRequest(request), `solicitud ${requestId}`);
   afterEvent((ev) => ev.onPaymentApproved(request));

@@ -656,10 +656,12 @@ router.post('/mp/tarjeta', requireRole('client'), async (req, res) => {
     const clientErr = mp.paymentErrorForClient(err);
     console.error('[pagos/mp/tarjeta]', clientErr.error, err?.cause || err);
 
-    // Demo 2.0: si MP_TEST_* trae token de producción, no trabar la venta de prueba.
-    // Aprueba el pedido en Fandez (sin cobro real) para reclutamiento / soft-launch.
+    // Nunca aprobar en silencio sin cobro. Solo si Admin/Hostinger lo pide explícito
+    // (reclutamiento). Por defecto: error claro — la Visa real no debe "pasar" sin cargo.
+    const allowSimulated = process.env.MP_DEMO_APPROVE_ON_LIVE_CRED_ERROR === 'true';
     if (
-      mp.usesSandboxPayments()
+      allowSimulated
+      && mp.usesSandboxPayments()
       && (
         clientErr.code === 'mp_live_credentials_in_test'
         || mp.isUnauthorizedLiveCredentialsError(err)
@@ -667,7 +669,7 @@ router.post('/mp/tarjeta', requireRole('client'), async (req, res) => {
     ) {
       const demoPaymentId = `mpago-demo-livecred-${Date.now()}`;
       console.warn(
-        `[pagos] Demo fallback (live credentials en MP_TEST_*) request=${requestId} id=${demoPaymentId}`
+        `[pagos] Pago SIMULADO (MP_DEMO_APPROVE_ON_LIVE_CRED_ERROR) request=${requestId} id=${demoPaymentId}`
       );
       store.markPaymentApproved(requestId, demoPaymentId, { demoFallback: 'live_credentials' });
       store.activateRequest(requestId);
@@ -675,8 +677,25 @@ router.post('/mp/tarjeta', requireRole('client'), async (req, res) => {
       return res.json({
         success: true,
         demo: true,
+        simulated: true,
         demoFallback: 'live_credentials',
-        redirect: paymentSuccessPath(requestId)
+        redirect: `${paymentSuccessPath(requestId)}&simulated=1`
+      });
+    }
+
+    if (
+      mp.usesSandboxPayments()
+      && (
+        clientErr.code === 'mp_live_credentials_in_test'
+        || mp.isUnauthorizedLiveCredentialsError(err)
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: 'Estás en modo demo: la tarjeta real no se cobra. Usa tarjetas de prueba (Visa 4168…) o activa Productivo 2.0 con MP_PUBLIC_KEY + MP_ACCESS_TOKEN de producción.',
+        errorTitle: 'Sin cobro real (modo demo)',
+        errorDetail: 'Si viste un pago “exitoso” antes, era simulado. Para cobrar de verdad: Admin → Productivo 2.0 y credenciales de producción en Hostinger.',
+        code: 'mp_sandbox_no_real_charge'
       });
     }
 
@@ -917,9 +936,14 @@ router.get('/exito', requireRole('client'), async (req, res) => {
 
   const beneficiaryWhatsapp = company.beneficiaryWhatsappLink(fresh);
   const guardianUrl = company.guardianShareLink(fresh);
+  const pid = String(fresh?.paymentId || charge?.paymentId || '');
+  const simulatedPayment = req.query.simulated === '1'
+    || pid.startsWith('mpago-demo')
+    || Boolean(fresh?.paymentExtras?.demoFallback);
+  const sandboxMode = mp.usesSandboxPayments();
 
   res.render('payments/success', {
-    title: 'Pago exitoso — Fandez',
+    title: simulatedPayment || sandboxMode ? 'Pago de prueba — Fandez' : 'Pago exitoso — Fandez',
     request: fresh,
     formatCLP: store.formatCLP,
     beneficiaryWhatsapp,
@@ -928,7 +952,9 @@ router.get('/exito', requireRole('client'), async (req, res) => {
     additionalPayment: charge?.status === 'approved' ? charge : null,
     splitInvoicing: process.env.SPLIT_INVOICING !== 'false',
     checkoutStep: 3,
-    autoRedirect: approved && !charge && req.query.auto === '1'
+    autoRedirect: approved && !charge && req.query.auto === '1' && !simulatedPayment,
+    simulatedPayment,
+    sandboxPayment: sandboxMode && !simulatedPayment
   });
 });
 
