@@ -169,16 +169,16 @@ function run() {
 
   const nightImmediate = calculateVisitPricing({}, 'immediate', {
     horaSolicitud: '02:00',
-    valorBase: 70000,
+    valorBase: 80000,
     timeZone: 'America/Santiago'
   });
   assertEqual(nightImmediate.scheduleBand, 'nocturno', 'Inmediato en madrugada marca banda nocturno');
   assertEqual(nightImmediate.schedulePercent, 50, 'Madrugada +50%');
-  assertEqual(nightImmediate.scheduleAdjustmentAmount, 35000, 'Recargo madrugada separado $35.000');
+  assertEqual(nightImmediate.scheduleAdjustmentAmount, 40000, 'Recargo madrugada separado $40.000');
   assertEqual(nightImmediate.urgencyOnlyPercent, 25, 'Urgencia inmediato +25%');
-  assertEqual(nightImmediate.urgencyOnlyAdjustmentAmount, 26250, 'Recargo inmediato separado $26.250');
-  assertEqual(nightImmediate.adjustmentAmount, 61250, 'Ajuste total = madrugada + inmediato');
-  assertEqual(nightImmediate.visitTotal, 131250, 'Total $131.250 = base + desglose');
+  assertEqual(nightImmediate.urgencyOnlyAdjustmentAmount, 30000, 'Recargo inmediato separado $30.000');
+  assertEqual(nightImmediate.adjustmentAmount, 70000, 'Ajuste total = madrugada + inmediato');
+  assertEqual(nightImmediate.visitTotal, 150000, 'Total $150.000 = base + desglose');
 
   const catalogCount = SERVICE_CATALOG.reduce((n, s) => n + s.activities.length, 0);
   if (SERVICE_CATALOG.length < 5) throw new Error('Catálogo debe tener al menos 5 especialidades');
@@ -202,7 +202,7 @@ function run() {
   if (!isGardenService('jardineria')) throw new Error('jardineria debe ser servicio de jardín');
   assertEqual(getServiceFromPrice({}, 'jardineria'), GARDEN_EVAL_VISIT_CLP, 'Desde jardinería = evaluación técnica');
   assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 40), 140000, '40 m² con tarifa legacy');
-  assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 10), GARDEN_MIN_JOB_CLP, '10 m² aplica mínimo de salida $70.000');
+  assertEqual(resolveM2QuoteBase({ pricePerM2: 3500 }, 10), GARDEN_MIN_JOB_CLP, '10 m² aplica mínimo de salida $80.000');
 
   const gardenIntakeOk = normalizeGardenIntake({
     serviceTypes: ['diseno', 'mantencion'],

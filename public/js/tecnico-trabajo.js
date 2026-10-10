@@ -649,7 +649,7 @@
 
   function estimateCleaningBase(m2, hasPets, postEvent) {
     const area = Math.max(20, Number(m2) || 20);
-    let base = Math.max(70000, Math.round(area * 1500));
+    let base = Math.max(80000, Math.round(area * 1500));
     let mult = 1;
     if (hasPets) mult += 0.15;
     if (postEvent) mult += 0.15;
@@ -1457,4 +1457,44 @@
   } else {
     window.addEventListener('fandez:resume', () => resumeFieldJob());
   }
+
+  document.getElementById('btnScheduleOpenChat')?.addEventListener('click', () => openChat());
+  document.getElementById('btnProposeSchedule')?.addEventListener('click', async () => {
+    if (!window.FandezVisitSchedule?.askCalendar) {
+      notify('No se pudo abrir el calendario', 'error');
+      return;
+    }
+    const schedule = await window.FandezVisitSchedule.askCalendar({
+      urgencyTier: page.dataset.urgencyTier || 'tomorrow',
+      title: 'Propón visita al cliente'
+    });
+    if (!schedule) return;
+    try {
+      const res = await fetch(`${chatBase}/trabajo/${requestId}/agenda`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(schedule)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo guardar');
+      notify('Propuesta enviada al cliente', 'success');
+      const label = data.request?.scheduleLabel || '';
+      const card = document.getElementById('visitScheduleCard');
+      if (card && label) {
+        card.dataset.scheduleStatus = 'proposed';
+        card.dataset.scheduleLabel = label;
+      }
+      page.dataset.scheduleStatus = 'proposed';
+      openChat();
+    } catch (err) {
+      notify(err.message || 'No se pudo guardar la agenda', 'error');
+    }
+  });
+
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    if (params.get('chat') === '1') {
+      setTimeout(() => openChat(), 400);
+    }
+  } catch (_) {}
 })();
