@@ -1393,6 +1393,7 @@
   let searchTimeoutTriggered = false;
   let paymentConfirmPoll = null;
   let lastSearchAudience = null;
+  let searchOverlayMinimized = false;
 
   function updateSearchViewersHint(audience) {
     const viewersEl = document.getElementById('searchViewersHint');
@@ -1403,6 +1404,73 @@
     }
     viewersEl.textContent = t('client.js.search_viewers_looking');
     viewersEl.classList.remove('hidden');
+  }
+
+  function hideMinimizedSearchChrome() {
+    document.body.classList.remove('is-search-minimized');
+    const sticky = document.getElementById('stickyTrackBar');
+    if (!sticky || sticky.dataset.mode !== 'search') return;
+    sticky.classList.remove('is-visible');
+    sticky.setAttribute('aria-hidden', 'true');
+    sticky.dataset.mode = '';
+    const stickyAction = document.getElementById('stickyTrackAction');
+    if (stickyAction) {
+      stickyAction.classList.add('hidden');
+      stickyAction.dataset.target = '';
+    }
+  }
+
+  function showMinimizedSearchChrome() {
+    document.body.classList.add('is-search-minimized');
+    const sticky = document.getElementById('stickyTrackBar');
+    const stickyStatus = document.getElementById('stickyTrackStatus');
+    const stickyLabel = document.getElementById('stickyTrackLabel');
+    const stickyAction = document.getElementById('stickyTrackAction');
+    const stickyChat = document.getElementById('stickyTrackChat');
+    const stickyCall = document.getElementById('stickyTrackCall');
+    if (stickyLabel) stickyLabel.textContent = t('client.service.search_minimized_label');
+    if (stickyStatus) {
+      stickyStatus.textContent = document.getElementById('loaderText')?.textContent
+        || t('client.service.searching');
+    }
+    if (stickyChat) stickyChat.classList.add('hidden');
+    if (stickyCall) stickyCall.classList.add('hidden');
+    if (stickyAction) {
+      stickyAction.classList.remove('hidden');
+      stickyAction.textContent = t('client.service.search_reopen');
+      stickyAction.dataset.target = 'search-overlay';
+    }
+    if (sticky) {
+      sticky.dataset.mode = 'search';
+      sticky.classList.add('is-visible');
+      sticky.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  function minimizeSearchOverlay() {
+    if (!loaderOverlay || loaderOverlay.classList.contains('hidden')) return;
+    searchOverlayMinimized = true;
+    loaderOverlay.classList.add('hidden');
+    requestForm?.classList.remove('hidden');
+    showMinimizedSearchChrome();
+    requestAnimationFrame(() => {
+      requestForm?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    if (window.FandezNotify) {
+      FandezNotify.show(t('client.service.search_minimized_toast'), 'info');
+    }
+  }
+
+  function openSearchOverlay(request) {
+    searchOverlayMinimized = false;
+    hideMinimizedSearchChrome();
+    requestForm?.classList.add('hidden');
+    loaderOverlay?.classList.remove('hidden');
+    if (request) fillSearchOrderSummary(request);
+    if (!searchTimerInterval) startSearchExperience(request || undefined);
+    else if (request) syncSearchStartFromRequest(request);
+    pinSearchOverlayToTop();
+    requestAnimationFrame(pinSearchOverlayToTop);
   }
 
   function clearPaymentConfirmPoll() {
@@ -1544,15 +1612,22 @@
     if (labelEl) labelEl.textContent = t(phase.label);
     updateSearchViewersHint();
     updateSearchProgress(elapsedMs);
-    if (!isFirstPaint && window.FandezAlerts) {
-      FandezAlerts.notify({
-        type: 'update',
-        title: t(phase.title),
-        body: t(phase.sub),
-        tag: 'fandez-search-' + phase.phase
-      });
-    } else if (!isFirstPaint && window.FandezNotify) {
-      FandezNotify.show(t(phase.label), 'info');
+    // Toast solo si el usuario salió de la pantalla de búsqueda (evita duplicar título + aviso).
+    if (!isFirstPaint && searchOverlayMinimized) {
+      if (window.FandezAlerts) {
+        FandezAlerts.notify({
+          type: 'update',
+          title: t(phase.title),
+          body: t(phase.sub),
+          tag: 'fandez-search-' + phase.phase
+        });
+      } else if (window.FandezNotify) {
+        FandezNotify.show(t(phase.label), 'info');
+      }
+      const stickyStatus = document.getElementById('stickyTrackStatus');
+      if (stickyStatus && document.getElementById('stickyTrackBar')?.dataset.mode === 'search') {
+        stickyStatus.textContent = t(phase.title);
+      }
     }
     return phase;
   }
@@ -1574,6 +1649,8 @@
       searchTipInterval = null;
     }
     searchCurrentPhase = null;
+    searchOverlayMinimized = false;
+    hideMinimizedSearchChrome();
   }
 
   function syncSearchStartFromRequest(request) {
@@ -3584,9 +3661,11 @@
         if (data.request?.status === 'searching') {
           hideScheduledPanel();
           if (data.request.searchAudience) updateSearchViewersHint(data.request.searchAudience);
-          if (loaderOverlay?.classList.contains('hidden')) {
-            loaderOverlay.classList.remove('hidden');
-            startSearchExperience(data.request);
+          if (searchOverlayMinimized) {
+            if (!searchTimerInterval) startSearchExperience(data.request);
+            showMinimizedSearchChrome();
+          } else if (loaderOverlay?.classList.contains('hidden')) {
+            openSearchOverlay(data.request);
           }
         }
         if (data.request) syncSearchStartFromRequest(data.request);
@@ -3689,12 +3768,18 @@
         return;
       }
       if (payload.request?.status === 'searching') {
-        const wasHidden = loaderOverlay?.classList.contains('hidden');
         hideScheduledPanel();
         hideNoProviderChoice();
         providerCard?.classList.add('hidden');
-        loaderOverlay?.classList.remove('hidden');
-        if (wasHidden || !searchTimerInterval) startSearchExperience(payload.request);
+        if (searchOverlayMinimized) {
+          if (!searchTimerInterval) startSearchExperience(payload.request);
+          else syncSearchStartFromRequest(payload.request);
+          showMinimizedSearchChrome();
+        } else {
+          const wasHidden = loaderOverlay?.classList.contains('hidden');
+          loaderOverlay?.classList.remove('hidden');
+          if (wasHidden || !searchTimerInterval) startSearchExperience(payload.request);
+        }
       }
       if (payload.provider) {
         stopSearchExperience();
@@ -3785,6 +3870,10 @@
 
   async function submitRequest() {
     if (submitInFlight) return;
+    if (currentRequestId && (searchOverlayMinimized || searchTimerInterval || (loaderOverlay && !loaderOverlay.classList.contains('hidden')))) {
+      if (window.FandezNotify) FandezNotify.show(t('client.service.search_minimized_toast'), 'info');
+      return;
+    }
 
     const address = addressInput.value.trim();
     if (!address) {
@@ -4017,8 +4106,16 @@
 
   document.getElementById('tripHeroChat')?.addEventListener('click', openTrackingChat);
   document.getElementById('stickyTrackChat')?.addEventListener('click', openTrackingChat);
+  document.getElementById('btnSearchBack')?.addEventListener('click', () => {
+    minimizeSearchOverlay();
+  });
+
   document.getElementById('stickyTrackAction')?.addEventListener('click', () => {
     const targetId = document.getElementById('stickyTrackAction')?.dataset.target;
+    if (targetId === 'search-overlay') {
+      openSearchOverlay();
+      return;
+    }
     const el = targetId ? document.getElementById(targetId) : null;
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -4154,9 +4251,15 @@
           hideScheduledPanel();
           hideNoProviderChoice();
           providerCard?.classList.add('hidden');
-          loaderOverlay?.classList.remove('hidden');
-          if (!searchTimerInterval) startSearchExperience(data.request);
-          else syncSearchStartFromRequest(data.request);
+          if (searchOverlayMinimized) {
+            if (!searchTimerInterval) startSearchExperience(data.request);
+            else syncSearchStartFromRequest(data.request);
+            showMinimizedSearchChrome();
+          } else {
+            loaderOverlay?.classList.remove('hidden');
+            if (!searchTimerInterval) startSearchExperience(data.request);
+            else syncSearchStartFromRequest(data.request);
+          }
         }
         if (data.request) {
           syncTripFromRequest(data.request);

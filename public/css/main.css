@@ -3158,6 +3158,31 @@ body.session-role--tecnico::before {
   box-sizing: border-box;
   flex: 0 0 auto;
 }
+.search-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 0.85rem;
+}
+.search-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.85rem 0.55rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(224, 215, 204, 0.95);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--zilo-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgba(26, 24, 20, 0.06);
+  transition: background 0.15s, border-color 0.15s;
+}
+.search-back-btn:active {
+  background: #fff;
+  border-color: rgba(196, 92, 20, 0.35);
+}
 /* Mientras busca: quitar huincha Demo + header (tapaban la tarjeta del pedido) */
 body.is-searching-tech .demo-mode-ribbon,
 body.is-searching-tech .back-header-compact,
@@ -3169,6 +3194,16 @@ body.is-searching-tech .checkout-progress {
 }
 body.is-searching-tech {
   overflow: hidden;
+}
+/* Pedido visible con búsqueda en segundo plano */
+body.is-search-minimized #stickyOrderBar {
+  display: none !important;
+}
+body.is-search-minimized #requestForm button[type="submit"],
+body.is-search-minimized #btnRequest,
+body.is-search-minimized #btnRequestSticky {
+  pointer-events: none;
+  opacity: 0.45;
 }
 /* Sofía por encima del overlay de búsqueda */
 body.is-searching-tech #alandFabRoot {

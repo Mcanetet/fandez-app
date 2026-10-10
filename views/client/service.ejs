@@ -527,9 +527,12 @@
       <div class="search-overlay-orb search-overlay-orb-b" aria-hidden="true"></div>
       <div class="search-overlay-grid" aria-hidden="true"></div>
       <div class="relative text-center w-full" id="searchExperience" data-timeout-ms="<%= (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) * 60 * 1000 %>">
-        <% const carouselServices = (typeof catalogServices !== 'undefined' && catalogServices.length)
-          ? catalogServices
-          : [service]; %>
+        <div class="search-top-bar">
+          <button type="button" id="btnSearchBack" class="search-back-btn" aria-label="<%= t('client.service.search_back_aria') %>">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            <span><%= t('client.service.search_back') %></span>
+          </button>
+        </div>
 
         <div class="search-order-card text-left mb-4" id="searchOrderCard">
           <div class="flex items-start gap-3">
@@ -546,21 +549,8 @@
           </div>
         </div>
 
-        <div class="search-services-marquee mb-4" aria-hidden="true">
-          <div class="search-services-track">
-            <% [0, 1].forEach(function () { %>
-              <% carouselServices.forEach(function (s) { %>
-                <span class="search-services-chip">
-                  <%- include('../partials/service-icon', { icon: s.icon, size: 'xs' }) %>
-                  <span><%= s.name %></span>
-                </span>
-              <% }); %>
-            <% }); %>
-          </div>
-        </div>
-
-        <div class="search-hero-card mb-4">
-          <div class="relative w-32 h-32 mx-auto flex items-center justify-center">
+        <div class="search-hero-card mb-3">
+          <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
             <div class="search-hero-core w-full h-full rounded-full flex flex-col items-center justify-center">
               <div class="zilo-radar-wrap" aria-hidden="true">
                 <div class="zilo-radar"></div>
@@ -577,12 +567,12 @@
           </div>
         </div>
 
-        <p id="searchPhaseLabel" class="search-phase-pill mb-2.5"><%= t('client.service.search_phase_near') %></p>
-        <h3 id="loaderText" class="zilo-display text-[1.3rem] mb-1.5 leading-snug tracking-tight"><%= t('client.service.searching') %></h3>
-        <p id="loaderSub" class="text-sm text-zilo-muted mb-2 leading-relaxed px-1"><%= t('client.service.searching_sub') %></p>
+        <p id="searchPhaseLabel" class="search-phase-pill mb-2"><%= t('client.service.search_phase_near') %></p>
+        <h3 id="loaderText" class="zilo-display text-[1.25rem] mb-1 leading-snug tracking-tight"><%= t('client.service.searching') %></h3>
+        <p id="loaderSub" class="sr-only"><%= t('client.service.searching_sub') %></p>
         <p id="searchViewersHint" class="text-[11px] text-zilo-accent font-medium mb-4"><%= t('client.js.search_viewers_looking') %></p>
 
-        <div class="mb-4 px-1">
+        <div class="mb-5 px-1">
           <div class="flex justify-between text-[10px] text-zilo-muted mb-1.5">
             <span><%= t('client.service.search_progress_start') %></span>
             <span id="searchProgressLabel" class="font-medium text-zilo-accent">0 / 15 min</span>
@@ -592,31 +582,17 @@
           </div>
         </div>
 
-        <div class="search-timeline mb-4 text-left" id="searchSteps">
-          <div id="step1" class="search-timeline-item is-active">
-            <span class="search-timeline-marker" aria-hidden="true"></span>
-            <span class="search-timeline-copy"><%= t('client.service.loader_locating') %></span>
-          </div>
-          <div id="step2" class="search-timeline-item">
-            <span class="search-timeline-marker" aria-hidden="true"></span>
-            <span class="search-timeline-copy"><%= t('client.service.loader_filtering') %></span>
-          </div>
-          <div id="step3" class="search-timeline-item">
-            <span class="search-timeline-marker" aria-hidden="true"></span>
-            <span class="search-timeline-copy"><%= t('client.service.loader_waiting') %></span>
-          </div>
-          <div id="step4" class="search-timeline-item">
-            <span class="search-timeline-marker" aria-hidden="true"></span>
-            <span class="search-timeline-copy"><%= t('client.service.loader_busy') %></span>
-          </div>
+        <!-- Timeline/tips ocultos: se siguen actualizando en JS para fases internas -->
+        <div class="hidden" id="searchSteps" aria-hidden="true">
+          <div id="step1" class="search-timeline-item is-active"></div>
+          <div id="step2" class="search-timeline-item"></div>
+          <div id="step3" class="search-timeline-item"></div>
+          <div id="step4" class="search-timeline-item"></div>
+        </div>
+        <div id="searchTipCard" class="hidden" aria-hidden="true">
+          <p id="searchTipText" class="hidden"><%= t('client.service.search_tip_1') %></p>
         </div>
 
-        <div id="searchTipCard" class="search-tip-card text-left mb-4 min-h-[3.25rem]">
-          <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-zilo-muted mb-1"><%= t('client.service.search_tip_label') %></p>
-          <p id="searchTipText" class="text-xs text-zilo-text leading-relaxed"><%= t('client.service.search_tip_1') %></p>
-        </div>
-
-        <p class="text-[11px] text-zilo-muted mb-3 px-2"><%= t('client.service.searching_hint') %></p>
         <div class="flex flex-col gap-2.5 pb-3">
           <button type="button" id="btnCancelSearch" class="search-cancel-btn">
             <%= t('client.service.cancel_search') %>
