@@ -3128,24 +3128,47 @@ body.session-role--tecnico::before {
     radial-gradient(720px 360px at 12% -10%, rgba(196, 92, 20, 0.14), transparent 55%),
     radial-gradient(640px 320px at 100% 8%, rgba(47, 107, 79, 0.1), transparent 50%),
     linear-gradient(180deg, #FFFCF8 0%, #F7F3EE 48%, #EFE8DF 100%);
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding-top: max(1.25rem, calc(env(safe-area-inset-top, 0px) + 1rem));
-  padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+  /* Sin padding en el scrollport: el espacio va en #searchExperience para que no se “coma” al scrollear */
+  padding: 0;
   box-sizing: border-box;
   z-index: 9500 !important;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+}
+#searchExperience {
+  width: 100%;
+  max-width: 24rem;
+  margin: 0 auto;
+  /* Espacio seguro DENTRO del contenido (no se pierde al hacer scroll) */
+  padding-top: max(1.75rem, calc(env(safe-area-inset-top, 0px) + 1.25rem));
+  padding-bottom: max(2rem, calc(env(safe-area-inset-bottom, 0px) + 1.5rem));
+  padding-left: 1rem;
+  padding-right: 1rem;
+  box-sizing: border-box;
+  flex: 0 0 auto;
 }
 /* Mientras busca: quitar huincha Demo + header (tapaban la tarjeta del pedido) */
 body.is-searching-tech .demo-mode-ribbon,
 body.is-searching-tech .back-header-compact,
+body.is-searching-tech header.sticky,
 body.is-searching-tech #stickyOrderBar,
 body.is-searching-tech #stickyTrackBar,
 body.is-searching-tech .checkout-progress {
   display: none !important;
+}
+body.is-searching-tech {
+  overflow: hidden;
 }
 /* Sofía por encima del overlay de búsqueda */
 body.is-searching-tech #alandFabRoot {
@@ -3174,12 +3197,14 @@ body.is-searching-tech #alandFabRoot {
 .search-order-card {
   padding: 0.85rem 0.95rem;
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.92);
+  background: #ffffff;
   border: 1px solid rgba(224, 215, 204, 0.95);
   box-shadow: 0 8px 24px rgba(26, 24, 20, 0.05);
   overflow: visible;
   position: relative;
   z-index: 1;
+  margin-top: 0;
+  scroll-margin-top: 0;
 }
 .search-order-icon {
   display: flex;
@@ -3200,31 +3225,6 @@ body.is-searching-tech #alandFabRoot {
   background: rgba(47, 107, 79, 0.12);
   border: 1px solid rgba(47, 107, 79, 0.28);
 }
-.search-trust-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.45rem;
-  text-align: left;
-}
-.search-trust-item {
-  padding: 0.7rem 0.85rem;
-  border-radius: 0.9rem;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(224, 215, 204, 0.9);
-}
-.search-trust-item strong {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--zilo-text);
-  margin-bottom: 0.15rem;
-}
-.search-trust-item span {
-  display: block;
-  font-size: 0.7rem;
-  line-height: 1.35;
-  color: var(--zilo-muted);
-}
-
 .search-hero-card {
   position: relative;
   overflow: hidden;

@@ -522,11 +522,11 @@
       </div>
     </div>
 
-    <div id="loaderOverlay" class="hidden fixed inset-0 z-[9500] search-overlay flex items-start justify-center overflow-y-auto overscroll-contain">
+    <div id="loaderOverlay" class="hidden fixed inset-0 z-[9500] search-overlay flex">
       <div class="search-overlay-orb search-overlay-orb-a" aria-hidden="true"></div>
       <div class="search-overlay-orb search-overlay-orb-b" aria-hidden="true"></div>
       <div class="search-overlay-grid" aria-hidden="true"></div>
-      <div class="relative text-center px-4 pt-4 pb-8 max-w-sm w-full mx-auto" id="searchExperience" data-timeout-ms="<%= (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) * 60 * 1000 %>">
+      <div class="relative text-center w-full" id="searchExperience" data-timeout-ms="<%= (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) * 60 * 1000 %>">
         <% const carouselServices = (typeof catalogServices !== 'undefined' && catalogServices.length)
           ? catalogServices
           : [service]; %>
@@ -580,22 +580,7 @@
         <p id="searchPhaseLabel" class="search-phase-pill mb-2.5"><%= t('client.service.search_phase_near') %></p>
         <h3 id="loaderText" class="zilo-display text-[1.3rem] mb-1.5 leading-snug tracking-tight"><%= t('client.service.searching') %></h3>
         <p id="loaderSub" class="text-sm text-zilo-muted mb-2 leading-relaxed px-1"><%= t('client.service.searching_sub') %></p>
-        <p id="searchViewersHint" class="text-[11px] text-zilo-accent font-medium mb-4"><%= t('client.js.search_viewers', { count: '3' }) %></p>
-
-        <div class="search-trust-grid mb-4" aria-label="<%= t('client.service.search_trust_label') %>">
-          <div class="search-trust-item">
-            <strong><%= t('client.service.search_trust_1_title') %></strong>
-            <span><%= t('client.service.search_trust_1_body') %></span>
-          </div>
-          <div class="search-trust-item">
-            <strong><%= t('client.service.search_trust_2_title') %></strong>
-            <span><%= t('client.service.search_trust_2_body') %></span>
-          </div>
-          <div class="search-trust-item">
-            <strong><%= t('client.service.search_trust_3_title') %></strong>
-            <span><%= t('client.service.search_trust_3_body') %></span>
-          </div>
-        </div>
+        <p id="searchViewersHint" class="text-[11px] text-zilo-accent font-medium mb-4"><%= t('client.js.search_viewers_looking') %></p>
 
         <div class="mb-4 px-1">
           <div class="flex justify-between text-[10px] text-zilo-muted mb-1.5">

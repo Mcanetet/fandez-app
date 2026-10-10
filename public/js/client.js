@@ -30,21 +30,24 @@
   const trackingId = page.dataset.tracking;
   const btnRequest = document.getElementById('btnRequest');
   const loaderOverlay = document.getElementById('loaderOverlay');
+  function pinSearchOverlayToTop() {
+    if (!loaderOverlay || loaderOverlay.classList.contains('hidden')) return;
+    // Al body: evita stacking raro con huincha/header.
+    if (loaderOverlay.parentElement !== document.body) {
+      document.body.appendChild(loaderOverlay);
+    }
+    loaderOverlay.scrollTop = 0;
+    const exp = document.getElementById('searchExperience');
+    if (exp) exp.scrollTop = 0;
+  }
   function syncSearchingBodyClass() {
     const on = Boolean(loaderOverlay && !loaderOverlay.classList.contains('hidden'));
     document.body.classList.toggle('is-searching-tech', on);
-    if (on && loaderOverlay) {
-      // Fijar al body para no quedar bajo la huincha Demo / header sticky.
-      if (loaderOverlay.parentElement !== document.body) {
-        document.body.appendChild(loaderOverlay);
-      }
-      loaderOverlay.scrollTop = 0;
-      requestAnimationFrame(() => {
-        loaderOverlay.scrollTop = 0;
-        const card = document.getElementById('searchOrderCard');
-        if (card) card.scrollIntoView({ block: 'nearest' });
-        loaderOverlay.scrollTop = 0;
-      });
+    if (on) {
+      pinSearchOverlayToTop();
+      requestAnimationFrame(pinSearchOverlayToTop);
+      setTimeout(pinSearchOverlayToTop, 50);
+      setTimeout(pinSearchOverlayToTop, 200);
     }
   }
   if (loaderOverlay) {
@@ -1394,19 +1397,11 @@
   function updateSearchViewersHint(audience) {
     const viewersEl = document.getElementById('searchViewersHint');
     if (!viewersEl) return;
+    // Contador de técnicos en vivo: desactivado por ahora (solo mensaje genérico).
     if (audience && typeof audience.viewers === 'number') {
       lastSearchAudience = audience;
     }
-    const viewers = lastSearchAudience && typeof lastSearchAudience.viewers === 'number'
-      ? lastSearchAudience.viewers
-      : null;
-    if (viewers == null) {
-      viewersEl.textContent = t('client.js.search_viewers_looking');
-    } else if (viewers <= 0) {
-      viewersEl.textContent = t('client.js.search_viewers_none');
-    } else {
-      viewersEl.textContent = t('client.js.search_viewers', { count: String(viewers) });
-    }
+    viewersEl.textContent = t('client.js.search_viewers_looking');
     viewersEl.classList.remove('hidden');
   }
 
