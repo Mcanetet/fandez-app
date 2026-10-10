@@ -1,5 +1,5 @@
-<%# Logos de marcas — solo debajo del Brick (no duplicar arriba). %>
-<div id="mpCardBrands" class="mp-card-brands flex flex-wrap items-center justify-center gap-2 mt-4 pt-3 border-t border-zilo-border/70 min-h-[28px]" aria-label="Tarjetas aceptadas">
+<%# Logos bajo el título «Datos de tu tarjeta» (no abajo del formulario). %>
+<div id="mpCardBrands" class="mp-card-brands flex flex-wrap items-center gap-2 mb-3 min-h-[28px]" aria-label="Tarjetas aceptadas">
   <span class="text-[10px] text-zilo-muted" data-mp-brands-fallback>Cargando marcas…</span>
 </div>
 <script>
@@ -13,14 +13,12 @@
         const src = m.secure_thumbnail || '';
         const name = (m.name || m.id || '').replace(/[<>"']/g, '');
         if (!src) return '';
-        return '<span class="inline-flex items-center justify-center h-7 px-1.5 rounded-md border border-zilo-border bg-white" title="' + name + '">'
-          + '<img src="' + src.replace(/"/g, '') + '" alt="' + name + '" height="18" style="height:18px;width:auto;max-width:48px" loading="lazy" referrerpolicy="no-referrer" />'
+        return '<span class="inline-flex items-center justify-center h-8 px-2 rounded-lg border border-zilo-border bg-white shadow-sm" title="' + name + '">'
+          + '<img src="' + src.replace(/"/g, '') + '" alt="' + name + '" height="20" style="height:20px;width:auto;max-width:52px" loading="lazy" referrerpolicy="no-referrer" />'
           + '</span>';
       }).join('');
-    } else if (data && data.cardMethodsOk === false) {
-      box.innerHTML = '<span class="text-[10px] text-zilo-muted">Visa · Mastercard · Amex</span>';
     } else {
-      box.innerHTML = '<span class="text-[10px] text-zilo-muted">Visa · Mastercard · Amex</span>';
+      box.innerHTML = '<span class="text-[10px] text-zilo-muted">Visa · Mastercard · American Express</span>';
     }
   }
   window.FandezRenderMpCardBrands = renderMpCardBrands;

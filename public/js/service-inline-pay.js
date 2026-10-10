@@ -180,44 +180,65 @@
     setProgressStep(2);
   }
 
+  async function startCheckoutProPay() {
+    if (!requestId) return;
+    if (!billingReady()) {
+      setInlineBrickError('Completa RUT y datos de facturación para pagar.');
+      inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    setInlineBrickError('');
+    setInlineBrickLoading(true);
+    const btn = document.getElementById('inlinePayCardBtn');
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch('/pagos/crear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          requestId,
+          paymentMethod: 'card',
+          cardGateway: 'mercadopago',
+          billing: getBillingPayload(),
+          forceRedirect: true
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'No se pudo abrir el pago.');
+      }
+      if (data.free || data.redirect) {
+        window.location.href = data.redirect;
+        return;
+      }
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+      goFullCheckout();
+    } catch (err) {
+      console.error('[inline-pay]', err);
+      setInlineBrickError(err.message || 'No se pudo abrir Mercado Pago.');
+      FandezNotify?.show(err.message || 'No se pudo abrir el pago', 'error');
+    } finally {
+      setInlineBrickLoading(false);
+      if (btn) btn.disabled = false;
+    }
+  }
+
   async function recalcAndMount() {
     if (!requestId) return;
     setInlineBrickError('');
     setInlineBrickLoading(true);
 
-    const billing = getBillingPayload();
-    const scriptsReady = ensureMpScripts().catch(() => null);
+    await refreshMpEmbedConfig(false);
 
-    const calcPromise = fetch('/pagos/calcular', {
+    const calcRes = await fetch('/pagos/calcular', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ requestId, paymentMethod: 'card', cardGateway: 'mercadopago' })
-    }).then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      return { res, data };
     });
-
-    const initPromise = fetch('/pagos/mp/brick-init', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        requestId,
-        paymentMethod: 'card',
-        billing
-      })
-    }).then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      return { res, data };
-    }).catch(() => ({ res: null, data: {} }));
-
-    const configPromise = refreshMpEmbedConfig(false);
-
-    const [{ res: calcRes, data: calcData }, initResult] = await Promise.all([
-      calcPromise,
-      initPromise,
-      configPromise,
-      scriptsReady
-    ]);
+    const calcData = await calcRes.json().catch(() => ({}));
 
     if (!calcData.success || !calcData.summary) {
       setInlineBrickLoading(false);
@@ -225,7 +246,7 @@
       return;
     }
 
-    let amount = calcData.summary.amountDue || 0;
+    const amount = calcData.summary.amountDue || 0;
     const totalEl = document.getElementById('inlinePayTotal');
     if (totalEl) totalEl.textContent = fmt(amount);
 
@@ -234,87 +255,11 @@
       return;
     }
 
-    const initData = initResult?.data || {};
-    if (initResult?.res?.ok && initData.success) {
-      if (initData.publicKey) mpPublicKey = initData.publicKey;
-      amount = Math.round(Number(initData.amount) || amount);
-      if (totalEl) totalEl.textContent = fmt(amount);
-    }
-
-    if (!mpEmbed || !mpPublicKey || page.dataset.mpTokenConfigured !== '1') {
-      goFullCheckout();
-      return;
-    }
-
-    await ensureMpScripts().catch(() => null);
-    if (!window.FandezMpBrick) {
-      goFullCheckout();
-      return;
-    }
-
-    try {
-      const brickCtx = {
-        embed: true,
-        publicKey: mpPublicKey,
-        amount: Math.round(Number(amount) || 0),
-        // 1 cuota en el Brick (evita «Cuotas sin interés» que oculta Visa).
-        preferenceId: '',
-        maxInstallments: 1,
-        paymentMethod: 'card',
-        cardGateway: 'mercadopago',
-        containerId: 'inlineMpCardPaymentBrick',
-        sectionId: 'inlineMpEmbedSection',
-        payerEmail: billing.invoiceEmail,
-        onReady: () => setInlineBrickLoading(false),
-        onBeforeSubmit: () => {
-          if (!billingReady()) {
-            inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            return 'Completa RUT y datos de facturación para pagar.';
-          }
-          return null;
-        },
-        submitPayment: (formData) => fetch('/pagos/mp/tarjeta', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            requestId,
-            formData,
-            paymentMethod: 'card',
-            cardGateway: 'mercadopago',
-            billing: getBillingPayload()
-          })
-        }).then(async (r) => {
-          const payload = await r.json().catch(() => ({}));
-          if (!r.ok || !payload.success) {
-            const msg = payload.error || 'No se pudo procesar el pago.';
-            if (window.FandezNotify?.showPaymentError) {
-              FandezNotify.showPaymentError(payload);
-            } else {
-              FandezNotify?.show(msg, 'error');
-            }
-            throw new Error(msg);
-          }
-          if (payload.redirect) window.location.href = payload.redirect;
-          return payload;
-        })
-      };
-      const result = await window.FandezMpBrick.sync(brickCtx);
-      mpBrickActive = Boolean(result?.active);
-      const openFullBtn = document.getElementById('inlineOpenFullCheckout');
-      if (!mpBrickActive) {
-        setInlineBrickError('No pudimos cargar el formulario aquí. Redirigiendo al checkout…');
-        openFullBtn?.classList.remove('hidden');
-        setTimeout(() => goFullCheckout(), 800);
-      } else {
-        openFullBtn?.classList.add('hidden');
-      }
-    } catch (err) {
-      console.error('[inline-pay]', err);
-      setInlineBrickError('Error al cargar el pago. Toca el enlace de checkout completo.');
-    } finally {
-      setInlineBrickLoading(false);
-    }
-    document.getElementById('inlineCheckoutFallback')?.classList.toggle('hidden', mpBrickActive);
+    // Checkout Pro: Visa funciona; el Brick embebido en Chile a menudo no lista Visa.
+    mpBrickActive = false;
+    setInlineBrickLoading(false);
+    document.getElementById('inlineCheckoutFallback')?.classList.add('hidden');
+    document.getElementById('inlinePayCardBtn')?.classList.remove('hidden');
   }
 
   function setProgressStep(n) {
@@ -350,6 +295,7 @@
   });
 
   document.getElementById('inlineOpenFullCheckout')?.addEventListener('click', () => goFullCheckout());
+  document.getElementById('inlinePayCardBtn')?.addEventListener('click', () => startCheckoutProPay());
 
   document.getElementById('btnResumePay')?.addEventListener('click', () => {
     const id = document.getElementById('btnResumePay')?.dataset?.requestId;

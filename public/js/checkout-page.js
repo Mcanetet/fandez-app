@@ -380,7 +380,7 @@
     if (amount === 0) label.textContent = 'Confirmar servicio gratis';
     else if (method === 'transfer') label.textContent = `Ver datos transferencia · ${fmt(amount)}`;
     else if (mpEmbed) label.textContent = `Ver formulario de tarjeta · ${fmt(amount)}`;
-    else label.textContent = `Pagar con Mercado Pago · ${fmt(amount)}`;
+    else label.textContent = `Pagar con tarjeta · ${fmt(amount)}`;
   }
 
   async function recalc() {

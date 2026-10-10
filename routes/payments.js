@@ -311,7 +311,9 @@ router.get('/mp/brick-config', requireRole('client'), async (req, res) => {
     cardMethodsOk: Boolean(cardMethods.ok),
     cardMethodIds: (cardMethods.active || cardMethods.methods || []).map((m) => m.id),
     cardLogos: cardMethods.logos || [],
-    visaDiagnosis: cardMethods.visa || null
+    visaDiagnosis: cardMethods.visa || null,
+    embedOptIn: process.env.MP_EMBED_BRICK === 'true',
+    checkoutMode: mp.isEmbedCheckoutAvailable() ? 'brick' : 'checkout_pro'
   });
 });
 

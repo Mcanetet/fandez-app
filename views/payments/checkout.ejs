@@ -1,9 +1,10 @@
 <%- include('../partials/head') %>
 <% const mpGwOnly = (typeof enabledCardGateways !== 'undefined' && enabledCardGateways.some(g => g.id === 'mercadopago'))
   || (typeof cardGateway !== 'undefined' && cardGateway?.id === 'mercadopago')
-  || (typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout); %>
-<% const mpCanShowBrick = Boolean(typeof mpPublicKey !== 'undefined' && mpPublicKey); %>
-<% const paymentFirst = Boolean(typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout && mpGwOnly); %>
+  || (typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout)
+  || Boolean(typeof mpConfigured !== 'undefined' && mpConfigured); %>
+<% const mpCanShowBrick = Boolean(typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout && typeof mpPublicKey !== 'undefined' && mpPublicKey); %>
+<% const paymentFirst = Boolean(mpGwOnly && typeof mpConfigured !== 'undefined' && mpConfigured); %>
 <% const hidePaymentPicker = paymentFirst && !(summary.transferEnabled); %>
 
 <div class="max-w-lg mx-auto min-h-screen flex flex-col pb-8 zilo-page-enter" id="checkoutPage"
@@ -116,14 +117,13 @@
     <p class="text-xs text-amber-900 p-3 rounded-xl border border-amber-200 bg-amber-50 text-center">
       Modo <strong>productivo</strong> — las tarjetas de prueba de Mercado Pago no funcionan. Usa tarjeta real o cambia a Demo en Admin.
     </p>
-    <% } else if (mpGwOnly && mpConfigured && !mpEmbedCheckout) { %>
-    <p class="text-xs text-amber-900 p-3 rounded-xl border border-amber-200 bg-amber-50 text-center" id="mpEmbedSetupWarn">
-      Falta <strong>MP_PUBLIC_KEY</strong> en el servidor para el formulario de tarjeta en Fandez. Mientras tanto no uses el botón que abre Mercado Pago: configura la clave pública en Hostinger o paga por transferencia.
-    </p>
     <% } %>
 
-    <section id="mpEmbedSection" class="<%= mpEmbedCheckout ? '' : 'hidden' %> zilo-card-premium rounded-2xl p-4 sm:p-5 checkout-mp-block" aria-label="Pago con tarjeta Mercado Pago">
-      <h2 class="zilo-label mb-1"><%= t('checkout.payment_title') %></h2>
+    <% if (mpGwOnly && mpConfigured) { %>
+    <section id="mpEmbedSection" class="zilo-card-premium rounded-2xl p-4 sm:p-5 checkout-mp-block" aria-label="Pago con tarjeta Mercado Pago">
+      <h2 class="zilo-label mb-1">Datos de tu tarjeta</h2>
+      <%- include('../partials/mp-card-brands') %>
+      <% if (mpEmbedCheckout) { %>
       <p class="text-xs text-zilo-muted mb-3">Pagas sin salir de Fandez. Mercado Pago procesa el cobro de forma segura.</p>
       <% if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments) { %>
       <p class="text-[11px] text-sky-900 mb-3 p-2 rounded-lg bg-sky-50 border border-sky-100">
@@ -143,9 +143,12 @@
         <div class="mp-brick-skeleton__btn"></div>
       </div>
       <div id="mpCardPaymentBrick"></div>
-      <%- include('../partials/mp-card-brands') %>
-      <p class="text-[10px] text-zilo-muted mt-2 text-center">Fandez no guarda datos de tu tarjeta</p>
+      <% } else { %>
+      <p class="text-xs text-zilo-muted mb-1">Pagas de forma segura en Mercado Pago. Al escribir el número verás el logo de tu tarjeta (Visa incluida).</p>
+      <p class="text-[10px] text-zilo-muted">Fandez no guarda datos de tu tarjeta · 1 cuota</p>
+      <% } %>
     </section>
+    <% } %>
 
     <% if (billingComplete) { %>
     <section class="zilo-card-premium rounded-2xl p-4" id="billingSection" data-complete="1">
@@ -416,7 +419,7 @@
     <% } %>
 
     <button type="button" id="btnPay" class="zilo-btn-primary <%= (mpCanShowBrick && mpEmbedCheckout) ? 'hidden' : '' %>">
-      <span id="btnPayLabel"><%= t('checkout.continue') %></span>
+      <span id="btnPayLabel"><%= mpGwOnly && mpConfigured && !mpEmbedCheckout ? 'Pagar con tarjeta' : t('checkout.continue') %></span>
     </button>
     <a href="/cliente" class="block text-center text-sm text-zilo-muted hover:text-gray-700 py-2">Cancelar</a>
   </main>
