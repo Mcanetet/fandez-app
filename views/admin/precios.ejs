@@ -817,6 +817,27 @@
   const base = '<%= typeof adminBase !== "undefined" ? adminBase : "/admin" %>';
   const line = document.getElementById('mpCredProfileLine');
   const brandsLine = document.getElementById('mpCardBrandsLine');
+  async function refreshMpBrands() {
+    if (!brandsLine) return;
+    try {
+      const res = await fetch(base + '/mp/payment-methods', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const data = await res.json().catch(() => ({}));
+      if (!data.success) {
+        brandsLine.textContent = 'Marcas tarjeta: no se pudo consultar /v1/payment_methods.';
+        return;
+      }
+      const b = data.brands || {};
+      const flag = (on) => (on ? 'OK' : 'NO');
+      const visa = data.visa || {};
+      brandsLine.innerHTML = 'GET /v1/payment_methods → Visa <strong class="' + (b.visa ? 'text-emerald-700' : 'text-amber-700') + '">' + flag(b.visa) + '</strong>'
+        + ' · Mastercard <strong>' + flag(b.master) + '</strong>'
+        + ' · Amex <strong>' + flag(b.amex) + '</strong>'
+        + (visa.diagnosis ? '<br><span class="text-amber-800">' + visa.diagnosis + '</span>' : '')
+        + '<br><a class="text-zilo-accent font-semibold underline" href="' + base + '/mp/payment-methods" target="_blank" rel="noopener">Ver JSON completo</a>';
+    } catch (_) {
+      brandsLine.textContent = 'Error al cargar marcas MP.';
+    }
+  }
   async function refreshMpProfile() {
     if (!line) return;
     try {
@@ -824,26 +845,30 @@
       const data = await res.json().catch(() => ({}));
       if (!data.success) {
         line.textContent = 'No se pudo leer el perfil MP.';
+        await refreshMpBrands();
         return;
       }
       const mp = data.mercadopago || {};
       const phase = data.operationalPhase?.phase === 'productivo' ? 'producción' : 'prueba';
       line.textContent = 'Activo: credenciales de ' + phase + '. '
         + (mp.publicKeyConfigured && mp.accessTokenConfigured ? 'Par configurado en servidor.' : 'Faltan variables en Hostinger (' + (mp.publicKeyEnv || '') + ', ' + (mp.accessTokenEnv || '') + ').');
-      if (brandsLine) {
-        if (!data.mpCardMethodsOk) {
-          brandsLine.textContent = 'Marcas tarjeta: no se pudo consultar /v1/payment_methods.';
-        } else {
-          const b = data.mpCardBrands || {};
-          const flag = (on) => (on ? 'OK' : 'NO');
-          const visa = data.mpVisaDiagnosis || {};
-          brandsLine.innerHTML = 'GET /v1/payment_methods → Visa <strong>' + flag(b.visa) + '</strong> · Mastercard <strong>' + flag(b.master) + '</strong> · Amex <strong>' + flag(b.amex) + '</strong>'
+      if (data.mpCardMethodsOk != null) {
+        const b = data.mpCardBrands || {};
+        const flag = (on) => (on ? 'OK' : 'NO');
+        const visa = data.mpVisaDiagnosis || {};
+        if (brandsLine) {
+          brandsLine.innerHTML = 'GET /v1/payment_methods → Visa <strong class="' + (b.visa ? 'text-emerald-700' : 'text-amber-700') + '">' + flag(b.visa) + '</strong>'
+            + ' · Mastercard <strong>' + flag(b.master) + '</strong>'
+            + ' · Amex <strong>' + flag(b.amex) + '</strong>'
             + (visa.diagnosis ? '<br><span class="text-amber-800">' + visa.diagnosis + '</span>' : '')
-            + '<br><span class="text-gray-400">Detalle JSON: ' + base + '/mp/payment-methods</span>';
+            + '<br><a class="text-zilo-accent font-semibold underline" href="' + base + '/mp/payment-methods" target="_blank" rel="noopener">Ver JSON completo</a>';
         }
+      } else {
+        await refreshMpBrands();
       }
     } catch (_) {
       line.textContent = 'Error al cargar perfil MP.';
+      await refreshMpBrands();
     }
   }
   document.querySelectorAll('.btn-mp-phase').forEach((btn) => {
@@ -871,6 +896,7 @@
       }
     });
   });
+  refreshMpBrands();
   refreshMpProfile();
 })();
 </script>

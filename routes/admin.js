@@ -1144,7 +1144,7 @@ router.get('/openai-usage', requireRole('admin'), requireAdminPermission('openai
   }
 });
 
-router.get('/modo', requireRole('admin'), requireAdminPermission('seguridad.view', 'equipo.manage'), async (req, res) => {
+router.get('/modo', requireRole('admin'), requireAdminPermission('seguridad.view', 'equipo.manage', 'precios.manage'), async (req, res) => {
   const mp = require('../lib/mercadopago');
   const operationalPhase = require('../lib/operationalPhase');
   let cardMethods = { ok: false, brands: {}, methods: [] };
