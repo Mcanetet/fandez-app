@@ -70,11 +70,13 @@
             <p class="text-[11px] text-zilo-muted mb-3"><%= t('client.dashboard.now_hint') %></p>
             <%- include('../partials/client-service-grid', { services: typeof servicesNow !== 'undefined' ? servicesNow : services, camino: 'ahora', gridId: 'servicesGridNowActive', formatCLP: formatCLP, t: t }) %>
           </div>
+          <% if (mod('client_proyectos')) { %>
           <div class="pt-2 border-t border-zilo-border">
             <h3 class="zilo-display text-lg leading-tight mb-1"><%= t('client.dashboard.project_title') %></h3>
             <p class="text-[11px] text-zilo-muted mb-3"><%= t('client.dashboard.project_hint') %></p>
             <%- include('../partials/client-service-grid', { services: typeof servicesProject !== 'undefined' ? servicesProject : [], camino: 'proyecto', gridId: 'servicesGridProjectActive', formatCLP: formatCLP, t: t }) %>
           </div>
+          <% } %>
         </div>
       </details>
       <% } %>
@@ -85,7 +87,7 @@
     <section class="mb-5">
       <p class="text-[11px] font-medium text-zilo-success mb-2"><%= t('client.dashboard.account_live') %></p>
       <h2 class="zilo-display text-2xl leading-tight mb-1"><%= t('client.dashboard.hero_title') %></h2>
-      <p class="text-sm text-zilo-muted mb-4"><%= t('client.dashboard.hero_sub') %></p>
+      <p class="text-sm text-zilo-muted mb-4"><%= mod('client_proyectos') ? t('client.dashboard.hero_sub') : t('client.dashboard.hero_sub_now') %></p>
       <% if (typeof trustStats !== 'undefined') { %>
       <p class="text-[11px] text-zilo-muted mb-4">
         ★ <%= trustStats.avgRating || '4.9' %> · <%= trustStats.verifiedProviders || 100 %>% <%= t('client.dashboard.trust_compact') %> · <%= t('trust.eta_title', { time: trustStats.responseTime || '~45 min' }) %>
@@ -116,11 +118,13 @@
         <p class="text-sm text-zilo-muted mb-3"><%= t('client.dashboard.now_hint') %></p>
         <%- include('../partials/client-service-grid', { services: typeof servicesNow !== 'undefined' ? servicesNow : services, camino: 'ahora', gridId: 'servicesGridNow', formatCLP: formatCLP, t: t }) %>
       </section>
+      <% if (mod('client_proyectos')) { %>
       <section class="pt-1 border-t border-zilo-border">
         <h2 class="zilo-display text-xl leading-tight mb-1"><%= t('client.dashboard.project_title') %></h2>
         <p class="text-sm text-zilo-muted mb-3"><%= t('client.dashboard.project_hint') %></p>
         <%- include('../partials/client-service-grid', { services: typeof servicesProject !== 'undefined' ? servicesProject : [], camino: 'proyecto', gridId: 'servicesGridProject', formatCLP: formatCLP, t: t }) %>
       </section>
+      <% } %>
     </div>
     <% } else { %>
       <div class="zilo-empty zilo-card-premium rounded-2xl mb-5">

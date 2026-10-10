@@ -662,6 +662,8 @@
   "modules.client_whatsapp.desc": "Floating support button",
   "modules.client_aland.name": "Sofia chat",
   "modules.client_aland.desc": "AI assistant per service before requesting a visit",
+  "modules.client_proyectos.name": "Projects",
+  "modules.client_proyectos.desc": "«I need a project» block on home (landscaping, solar, etc.). OFF by default.",
   "modules.provider_online.name": "Online mode",
   "modules.provider_online.desc": "Enable availability to receive jobs",
   "modules.provider_aceptar.name": "Accept requests",

@@ -2411,7 +2411,12 @@ function getHomeServicesNow() {
 }
 
 function getHomeServicesProject() {
+  if (!isProjectsEnabled()) return [];
   return filterServicesForHome(getActiveServices(), 'project');
+}
+
+function isProjectsEnabled() {
+  return isModuleEnabled('client_proyectos');
 }
 
 function getLandingServices() {
@@ -10184,6 +10189,7 @@ module.exports = {
   getModulesByAudience,
   getEnabledModules,
   isModuleEnabled,
+  isProjectsEnabled,
   isPointsEnabled,
   isReferralsEnabled,
   getReferralConfig,

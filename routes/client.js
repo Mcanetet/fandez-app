@@ -463,6 +463,18 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
       code: 404
     });
   }
+  const { resolveServicePath, isProjectServiceId } = require('../lib/homeServicePaths');
+  const projectsOn = store.isProjectsEnabled();
+  let caminoQuery = req.query.camino;
+  if (!projectsOn) {
+    if (isProjectServiceId(serviceRaw.id)) {
+      return res.redirect('/cliente');
+    }
+    const rawCamino = String(caminoQuery || '').toLowerCase();
+    if (rawCamino === 'proyecto' || rawCamino === 'project') {
+      caminoQuery = 'ahora';
+    }
+  }
   const pricing = store.getPricingConfig();
   const urgencyTiers = store.getUrgencyTiersForClient();
   const { enrichActivityForClient } = require('../lib/activityBlurbs');
@@ -492,8 +504,7 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     req.query.resume || null
   );
   const inlinePayFlow = String(req.query.pay || '') === '1' && Boolean(checkoutDraft?.id);
-  const { resolveServicePath } = require('../lib/homeServicePaths');
-  const resolvedServicePath = resolveServicePath(req.query.camino, serviceRaw.id);
+  const resolvedServicePath = resolveServicePath(caminoQuery, serviceRaw.id);
   const mp = require('../lib/mercadopago');
   const cardCheckout = require('../lib/payments/cardCheckout');
   res.render('client/service', {
@@ -605,6 +616,13 @@ router.post('/solicitar', requireRole('client'), requireModule('client_solicitar
   }
   if (gift?.name && !store.isModuleEnabled('client_regalo')) {
     return res.status(403).json({ error: 'El módulo de regalos no está habilitado' });
+  }
+  const { isProjectServiceId } = require('../lib/homeServicePaths');
+  const pathRaw = String(servicePath || '').toLowerCase();
+  const wantsProject = pathRaw === 'proyecto' || pathRaw === 'project'
+    || isProjectServiceId(service.id);
+  if (wantsProject && !store.isProjectsEnabled()) {
+    return res.status(403).json({ error: 'Los proyectos no están disponibles por ahora.' });
   }
 
   const resumeId = typeof resumeRequestId === 'string' && resumeRequestId.trim()

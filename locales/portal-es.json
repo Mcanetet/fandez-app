@@ -521,6 +521,7 @@
   "client.dashboard.follow": "Seguir",
   "client.dashboard.hero_title": "¿Qué se te echó a perder?",
   "client.dashboard.hero_sub": "Pide un arreglo para hoy, o arma un proyecto con evaluación y propuesta.",
+  "client.dashboard.hero_sub_now": "Pide un arreglo para hoy y te conectamos con un técnico verificado.",
   "client.dashboard.now_title": "Necesito un servicio ahora",
   "client.dashboard.now_hint": "Urgencia o visita del día: cuentas qué pasa y el técnico va a solucionarlo.",
   "client.dashboard.project_title": "Necesito un proyecto",

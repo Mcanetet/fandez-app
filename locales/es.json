@@ -662,6 +662,8 @@
   "modules.client_whatsapp.desc": "Botón flotante de soporte",
   "modules.client_aland.name": "Chat Sofía",
   "modules.client_aland.desc": "Asistente IA por servicio antes de solicitar visita",
+  "modules.client_proyectos.name": "Proyectos",
+  "modules.client_proyectos.desc": "Bloque «Necesito un proyecto» en el inicio (paisajismo, paneles, etc.). OFF por defecto.",
   "modules.provider_online.name": "Modo en línea",
   "modules.provider_online.desc": "Activar disponibilidad para recibir trabajos",
   "modules.provider_aceptar.name": "Aceptar solicitudes",

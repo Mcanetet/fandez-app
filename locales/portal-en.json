@@ -463,6 +463,7 @@
   "client.dashboard.follow": "Track",
   "client.dashboard.hero_title": "What broke at home?",
   "client.dashboard.hero_sub": "Request a same-day fix, or start a project with evaluation and a proposal.",
+  "client.dashboard.hero_sub_now": "Request a same-day fix and we connect you with a verified technician.",
   "client.dashboard.now_title": "I need a service now",
   "client.dashboard.now_hint": "Urgent or same-day visit: tell us what’s wrong and a tech comes to fix it.",
   "client.dashboard.project_title": "I need a project",
