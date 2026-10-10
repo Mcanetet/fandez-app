@@ -6833,6 +6833,10 @@ function updateTechStatus(requestId, technicianId, techStatus, { lat, lng } = {}
   ) {
     return { error: 'Espera la aprobación del cliente al cambio de servicio antes de continuar.' };
   }
+  if (['reparando', 'comprando', 'completado'].includes(techStatus)) {
+    const blocked = clientDecisionBlocksWork(request);
+    if (blocked) return { error: blocked };
+  }
   if (techStatus === 'aceptado' && !request.serviceConfirmStatus) {
     request.serviceConfirmStatus = 'pending';
   }
@@ -7050,6 +7054,28 @@ function isMaterialBillableAmount(amount) {
   return (parseInt(amount, 10) || 0) >= getMaterialsIncludedThreshold();
 }
 
+function clientDecisionBlocksWork(request) {
+  if (!request) return null;
+  if (request.additionalCharge?.status === 'pending') {
+    return 'El cliente debe pagar el producto / ajuste aproximado antes de continuar el servicio.';
+  }
+  const sr = request.siteReport;
+  if (sr?.materialsPurchase && ['pending', 'payment_pending'].includes(sr.materialsPurchase.status)) {
+    return sr.materialsPurchase.status === 'pending'
+      ? 'Espera la aprobación del cliente al producto (≥ $10.000) antes de continuar.'
+      : 'El cliente aprobó el producto: espera su pago aproximado antes de continuar.';
+  }
+  if (sr?.activityChange && ['pending', 'payment_pending'].includes(sr.activityChange.status)) {
+    return sr.activityChange.status === 'pending'
+      ? 'Espera la aprobación del cliente al cambio de precio/producto antes de continuar.'
+      : 'El cliente aprobó el cambio: espera su pago aproximado antes de continuar.';
+  }
+  if (sr?.budgetStatus === 'payment_pending') {
+    return 'El cliente aprobó el presupuesto: espera su pago antes de continuar.';
+  }
+  return null;
+}
+
 function setSiteAction(requestId, technicianId, action) {
   const request = getRequestForTechnician(requestId, technicianId);
   if (!request) return { error: 'Solicitud no encontrada.' };
@@ -7059,16 +7085,26 @@ function setSiteAction(requestId, technicianId, action) {
   if (!valid.includes(action)) return { error: 'Acción inválida.' };
 
   const sr = ensureSiteReport(request);
+  // Producto ≥ $10.000 o cobro pendiente: no se puede “reparar” ni saltar el flujo.
+  if (action === 'reparar' || action === 'presupuesto') {
+    const blocked = clientDecisionBlocksWork(request);
+    if (blocked) return { error: blocked };
+  }
   sr.action = action;
   if (action === 'reparar') request.techStatus = 'reparando';
   else if (action === 'comprar') {
-    // Formulario de estimación: < $10.000 incluido; ≥ $10.000 espera OK del cliente.
-    request.techStatus = 'materiales_pendiente';
-    if (sr.materialsPurchase && ['pending'].includes(sr.materialsPurchase.status)) {
-      return { error: 'Ya hay una compra de materiales pendiente del cliente.' };
+    // Formulario de estimación: < $10.000 incluido; ≥ $10.000 espera OK + pago del cliente.
+    if (sr.materialsPurchase && ['pending', 'payment_pending'].includes(sr.materialsPurchase.status)) {
+      return { error: sr.materialsPurchase.status === 'payment_pending'
+        ? 'Ya hay un producto aprobado: espera el pago del cliente.'
+        : 'Ya hay una compra de materiales pendiente del cliente.' };
     }
-    // Limpia propuesta previa rechazada/incluida para permitir una nueva.
-    if (sr.materialsPurchase && sr.materialsPurchase.status !== 'pending') {
+    if (request.additionalCharge?.status === 'pending') {
+      return { error: 'Hay un cobro pendiente del cliente. Espera el pago antes de pedir otro producto.' };
+    }
+    request.techStatus = 'materiales_pendiente';
+    // Limpia propuesta previa rechazada/incluida/aprobada para permitir una nueva.
+    if (sr.materialsPurchase && !['pending', 'payment_pending'].includes(sr.materialsPurchase.status)) {
       sr.materialsPurchase = null;
     }
   } else request.techStatus = 'presupuesto_pendiente';
@@ -8024,13 +8060,17 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
     }
   }
 
-  if (request.additionalCharge?.status === 'pending') {
-    return { error: 'Hay un ajuste pendiente de pago del cliente. Espera a que pague antes de cerrar.' };
+  const decisionBlock = clientDecisionBlocksWork(request);
+  if (decisionBlock) {
+    return { error: decisionBlock };
   }
 
   const sr = ensureSiteReport(request);
   if (sr.materialsPurchase && ['pending', 'payment_pending', 'clarification_pending'].includes(sr.materialsPurchase.status)) {
     return { error: 'Hay una compra de materiales pendiente de OK, pago o aclaración del cliente.' };
+  }
+  if (sr.activityChange && ['pending', 'payment_pending', 'clarification_pending'].includes(sr.activityChange.status)) {
+    return { error: 'Hay un cambio de servicio pendiente de OK o pago del cliente.' };
   }
   const pendingReview = (sr.materials || []).some((m) =>
     m.reviewStatus === 'pending_founder' || m.reviewStatus === 'pending_manual'

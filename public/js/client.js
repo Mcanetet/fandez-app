@@ -2356,8 +2356,12 @@
     if (sr?.activityChange?.status === 'pending') {
       return { key: 'change', label: 'Acción requerida', status: 'Confirma el cambio de precio', target: 'activityChangeBanner', cta: 'Revisar' };
     }
-    if (sr?.additionalPayment?.status === 'pending' || request.additionalPaymentPending) {
-      return { key: 'payment', label: 'Acción requerida', status: 'Completa el pago adicional', target: 'additionalPaymentBanner', cta: 'Pagar' };
+    // Tras aprobar producto ≥ $10.000: hay cobro aproximado (additionalCharge), no additionalPayment.
+    if (request.additionalCharge?.status === 'pending'
+      || sr?.materialsPurchase?.status === 'payment_pending'
+      || sr?.activityChange?.status === 'payment_pending'
+      || sr?.budgetStatus === 'payment_pending') {
+      return { key: 'payment', label: 'Acción requerida', status: 'Paga el producto / ajuste para continuar el servicio', target: 'additionalPaymentBanner', cta: 'Pagar' };
     }
     if (request.techStatus === 'en_sitio' && request.arrivalCode && !request.arrivalCodeVerified) {
       return { key: 'code', label: 'Acción requerida', status: 'Entrega el código de seguridad', target: 'arrivalCodeCard', cta: 'Ver código' };
