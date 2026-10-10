@@ -33,6 +33,19 @@
   function syncSearchingBodyClass() {
     const on = Boolean(loaderOverlay && !loaderOverlay.classList.contains('hidden'));
     document.body.classList.toggle('is-searching-tech', on);
+    if (on && loaderOverlay) {
+      // Fijar al body para no quedar bajo la huincha Demo / header sticky.
+      if (loaderOverlay.parentElement !== document.body) {
+        document.body.appendChild(loaderOverlay);
+      }
+      loaderOverlay.scrollTop = 0;
+      requestAnimationFrame(() => {
+        loaderOverlay.scrollTop = 0;
+        const card = document.getElementById('searchOrderCard');
+        if (card) card.scrollIntoView({ block: 'nearest' });
+        loaderOverlay.scrollTop = 0;
+      });
+    }
   }
   if (loaderOverlay) {
     syncSearchingBodyClass();
