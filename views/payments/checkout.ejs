@@ -55,7 +55,7 @@
         <div>
           <p id="checkoutPayTotal" class="text-[10px] font-semibold uppercase tracking-wide text-zilo-muted"><%= paymentFirst ? t('checkout.pay_subtitle') : 'Total a pagar' %></p>
           <p class="text-3xl font-bold text-zilo-accent tabular-nums leading-none mt-1" id="lineTotalHero"><%= formatCLP(summary.amountDue) %></p>
-          <p class="text-[10px] text-zilo-muted mt-1.5">IVA incluido · visita técnica</p>
+          <p class="text-[10px] text-zilo-muted mt-1.5"><%= t('checkout.prices_iva_visit') %></p>
         </div>
       </div>
     </section>
@@ -311,7 +311,7 @@
           <strong>Inversión de hoy</strong>
           <strong class="text-zilo-accent text-lg" id="lineTotal"><%= formatCLP(summary.amountDue) %></strong>
         </div>
-        <p class="text-[10px] text-zilo-muted mt-2 text-right">Precio final · IVA incluido</p>
+        <p class="text-[10px] text-zilo-muted mt-2 text-right"><%= t('checkout.prices_iva_final') %></p>
       </div>
     </section>
       </div>

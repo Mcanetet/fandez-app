@@ -23,6 +23,9 @@
     </a>
   <% }); %>
 </div>
+<% if (list.length) { %>
+<p class="text-[10px] text-zilo-muted text-center mb-1 -mt-0.5 tracking-wide"><%= t('client.prices_iva_note') %></p>
+<% } %>
 <% if (!list.length) { %>
 <p class="text-xs text-zilo-muted text-center py-4"><%= t('client.dashboard.no_services_group') %></p>
 <% } %>

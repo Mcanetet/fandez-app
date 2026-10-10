@@ -109,7 +109,10 @@
     }) %>
 
     <div class="p-5 rounded-2xl zilo-card-premium mb-5 zilo-page-enter-delay-1" id="pricingBox">
-      <p class="zilo-label mb-4"><%= t('client.service.rates') %></p>
+      <div class="flex items-baseline justify-between gap-3 mb-4">
+        <p class="zilo-label mb-0"><%= t('client.service.rates') %></p>
+        <p class="text-[10px] font-medium text-zilo-muted tracking-wide shrink-0"><%= t('client.prices_iva') %></p>
+      </div>
       <% const displayFrom = typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice); %>
       <% const escombrosMin = Number(typeof service !== 'undefined' && service.minJobPrice) || 297500; %>
       <div class="flex justify-between py-3 border-b border-zilo-border">
@@ -138,9 +141,12 @@
         <span class="text-zilo-muted text-sm"><%= t('client.service.service_est') %></span>
         <strong class="text-zilo-accent font-semibold" id="displayServicePrice"><%= formatCLP(0) %></strong>
       </div>
-      <div class="flex justify-between py-3">
+      <div class="flex justify-between items-start py-3">
         <span class="text-zilo-muted text-sm font-medium"><%= t('client.service.total_est') %></span>
-        <strong class="text-zilo-accent font-semibold" id="displayTotalPrice"><%= perM2 ? '—' : formatCLP(displayFrom) %></strong>
+        <span class="text-right">
+          <strong class="text-zilo-accent font-semibold block" id="displayTotalPrice"><%= perM2 ? '—' : formatCLP(displayFrom) %></strong>
+          <span class="block text-[10px] font-medium text-zilo-muted mt-0.5"><%= t('client.prices_iva') %></span>
+        </span>
       </div>
       <p class="text-[11px] text-zilo-muted/70 mt-3"><%= isFv
         ? 'Pagas la evaluación ahora. El precio del kit/proyecto te lo arma el instalador después del levantamiento.'
@@ -502,7 +508,7 @@
       <div class="checkout-pay-hero zilo-card-premium rounded-2xl p-5 border border-zilo-accent/20">
         <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-muted"><%= t('checkout.pay_subtitle') %></p>
         <p class="text-3xl font-bold text-zilo-accent tabular-nums mt-1" id="inlinePayTotal"><%= draftAmount > 0 ? formatCLP(draftAmount) : '—' %></p>
-        <p class="text-[10px] text-zilo-muted mt-1"><%= t('client.service.secure_pay') %></p>
+        <p class="text-[10px] text-zilo-muted mt-1.5"><%= t('client.prices_iva') %> · <%= t('client.service.secure_pay') %></p>
       </div>
       <div class="zilo-card-premium rounded-2xl p-4 space-y-2">
         <p class="zilo-label mb-1"><%= t('checkout.billing_title') %></p>
@@ -556,6 +562,7 @@
         <div class="min-w-0">
           <p class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= t('client.service.visit_est') %></p>
           <strong class="text-zilo-accent text-base" id="stickyTotal"><%= perM2 ? '—' : formatCLP(typeof displayFrom !== 'undefined' ? displayFrom : (service.fromPrice || pricing.servicePrice)) %></strong>
+          <p class="text-[9px] text-zilo-muted font-medium mt-0.5"><%= t('client.prices_iva') %></p>
         </div>
         <button type="button" id="btnRequestSticky" class="sticky-order-btn"><%= t('client.service.continue_pay') %></button>
       </div>
