@@ -472,16 +472,20 @@
       <section id="inlineMpEmbedSection" class="zilo-card-premium rounded-2xl p-4 checkout-mp-block">
         <h2 class="zilo-label mb-1">Datos de tu tarjeta</h2>
         <%- include('../partials/mp-card-brands') %>
-        <p class="text-xs text-zilo-muted mb-3">Pagas de forma segura en Mercado Pago. Al escribir el número verás el logo de tu tarjeta (Visa incluida).</p>
+        <p class="text-xs text-zilo-muted mb-3">Pagas sin salir de Fandez. Al escribir el número verás el logo (Visa incluida).</p>
         <div id="inlineMpBrickLoading" class="mp-brick-skeleton<%= payFlowNow ? '' : ' hidden' %>" aria-live="polite" aria-busy="true">
-          <p class="text-sm font-semibold text-zilo-text mb-1">Preparando pago seguro…</p>
-          <p class="text-[11px] text-zilo-muted mb-4">Te llevamos a Mercado Pago un momento.</p>
+          <p class="text-sm font-semibold text-zilo-text mb-1">Preparando formulario seguro…</p>
+          <p class="text-[11px] text-zilo-muted mb-4">Checkout API · Visa, Mastercard y Amex.</p>
           <div class="mp-brick-skeleton__field"></div>
+          <div class="mp-brick-skeleton__row">
+            <div class="mp-brick-skeleton__field"></div>
+            <div class="mp-brick-skeleton__field"></div>
+          </div>
           <div class="mp-brick-skeleton__btn"></div>
         </div>
         <p id="inlineMpBrickError" class="hidden text-xs text-amber-900 py-2 text-center"></p>
-        <div id="inlineMpCardPaymentBrick" class="hidden min-h-0"></div>
-        <button type="button" id="inlinePayCardBtn" class="w-full zilo-btn-primary !py-3 !text-sm">Pagar con tarjeta</button>
+        <div id="inlineMpCardPaymentBrick" class="min-h-[120px]"></div>
+        <button type="button" id="inlinePayCardBtn" class="hidden w-full zilo-btn-primary !py-3 !text-sm">Pagar con tarjeta</button>
         <button type="button" id="inlineOpenFullCheckout" class="hidden w-full mt-3 zilo-btn-primary !py-2.5 !text-sm">Abrir checkout</button>
       </section>
       <a href="#" id="inlineCheckoutFallback" class="block text-center text-xs text-zilo-accent font-medium"><%= t('client.service.checkout_full_link') %></a>
@@ -1127,7 +1131,7 @@
 <%- include('../partials/call-overlay') %>
 <% if (typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout) { %>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
-<script src="/js/checkout-mp-brick.js?v=20261009-visa8"></script>
+<script src="/js/checkout-mp-brick.js?v=20261009-cardform1"></script>
 <% } %>
 <% if (payFlowNow) { %>
 <%- include('../partials/footer', { pageScript: '/js/service-inline-pay.js', extraScripts: ['/js/client.js'] }) %>

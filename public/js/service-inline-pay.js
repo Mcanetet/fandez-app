@@ -1,5 +1,5 @@
 /**
- * Pago embebido en la misma página del servicio (sin ir a /pagos/checkout).
+ * Pago embebido Checkout API (CardForm) en la página del servicio.
  */
 (function () {
   const page = document.getElementById('servicePage');
@@ -36,7 +36,6 @@
           }
           resolve();
         };
-        // Script ya en DOM: si el global ya existe, listo; si no, esperar load o un poll corto.
         if ((isMpSdk && window.MercadoPago) || (isBrickHelper && window.FandezMpBrick) || existing.dataset.loaded === '1') {
           return done();
         }
@@ -77,7 +76,7 @@
         await loadScript('https://sdk.mercadopago.com/js/v2');
       }
       if (!window.FandezMpBrick) {
-        await loadScript('/js/checkout-mp-brick.js?v=20261009-visa8');
+        await loadScript('/js/checkout-mp-brick.js?v=20261009-cardform1');
       }
     })().catch((err) => {
       scriptsPromise = null;
@@ -86,7 +85,6 @@
     return scriptsPromise;
   }
 
-  // Precarga en cuanto hay flujo de pago o embed disponible (no espera al click).
   if (payFlow || (mpEmbed && mpPublicKey)) {
     ensureMpScripts().catch(() => { /* se reintenta al montar */ });
   }
@@ -124,14 +122,8 @@
       if (!data.success) return;
       if (typeof data.embed === 'boolean') mpEmbed = data.embed;
       if (data.publicKey) mpPublicKey = data.publicKey;
-      window.__fandezMpCardBrands = data.cardBrands || null;
-      window.__fandezMpCardMethodIds = Array.isArray(data.cardMethodIds) ? data.cardMethodIds : null;
       if (typeof window.FandezRenderMpCardBrands === 'function') {
         window.FandezRenderMpCardBrands(data);
-      }
-      if (data.visaDiagnosis && !data.visaDiagnosis.active) {
-        console.warn('[inline-pay]', data.visaDiagnosis.diagnosis, data.cardMethodIds || []);
-        setInlineBrickError(data.visaDiagnosis.diagnosis || 'Visa no está activa en esta cuenta Mercado Pago.');
       }
       if (mpEmbed && mpPublicKey) await ensureMpScripts();
     } catch (_) { /* noop */ }
@@ -184,13 +176,9 @@
     if (!requestId) return;
     if (!billingReady()) {
       setInlineBrickError('Completa RUT y datos de facturación para pagar.');
-      inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
-    setInlineBrickError('');
     setInlineBrickLoading(true);
-    const btn = document.getElementById('inlinePayCardBtn');
-    if (btn) btn.disabled = true;
     try {
       const res = await fetch('/pagos/crear', {
         method: 'POST',
@@ -204,25 +192,20 @@
         })
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'No se pudo abrir el pago.');
-      }
-      if (data.free || data.redirect) {
-        window.location.href = data.redirect;
-        return;
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo abrir el pago.');
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
         return;
       }
+      if (data.redirect) {
+        window.location.href = data.redirect;
+        return;
+      }
       goFullCheckout();
     } catch (err) {
-      console.error('[inline-pay]', err);
       setInlineBrickError(err.message || 'No se pudo abrir Mercado Pago.');
-      FandezNotify?.show(err.message || 'No se pudo abrir el pago', 'error');
     } finally {
       setInlineBrickLoading(false);
-      if (btn) btn.disabled = false;
     }
   }
 
@@ -231,14 +214,23 @@
     setInlineBrickError('');
     setInlineBrickLoading(true);
 
-    await refreshMpEmbedConfig(false);
+    const billing = getBillingPayload();
+    const scriptsReady = ensureMpScripts().catch(() => null);
 
-    const calcRes = await fetch('/pagos/calcular', {
+    const calcPromise = fetch('/pagos/calcular', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ requestId, paymentMethod: 'card', cardGateway: 'mercadopago' })
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
     });
-    const calcData = await calcRes.json().catch(() => ({}));
+
+    const [{ data: calcData }] = await Promise.all([
+      calcPromise,
+      refreshMpEmbedConfig(false),
+      scriptsReady
+    ]);
 
     if (!calcData.success || !calcData.summary) {
       setInlineBrickLoading(false);
@@ -246,7 +238,7 @@
       return;
     }
 
-    const amount = calcData.summary.amountDue || 0;
+    let amount = calcData.summary.amountDue || 0;
     const totalEl = document.getElementById('inlinePayTotal');
     if (totalEl) totalEl.textContent = fmt(amount);
 
@@ -255,11 +247,80 @@
       return;
     }
 
-    // Checkout Pro: Visa funciona; el Brick embebido en Chile a menudo no lista Visa.
-    mpBrickActive = false;
-    setInlineBrickLoading(false);
-    document.getElementById('inlineCheckoutFallback')?.classList.add('hidden');
-    document.getElementById('inlinePayCardBtn')?.classList.remove('hidden');
+    if (!mpEmbed || !mpPublicKey || page.dataset.mpTokenConfigured !== '1') {
+      document.getElementById('inlinePayCardBtn')?.classList.remove('hidden');
+      setInlineBrickLoading(false);
+      return;
+    }
+
+    await ensureMpScripts().catch(() => null);
+    if (!window.FandezMpBrick) {
+      document.getElementById('inlinePayCardBtn')?.classList.remove('hidden');
+      setInlineBrickLoading(false);
+      return;
+    }
+
+    try {
+      const result = await window.FandezMpBrick.sync({
+        embed: true,
+        publicKey: mpPublicKey,
+        amount: Math.round(Number(amount) || 0),
+        preferenceId: '',
+        maxInstallments: 1,
+        paymentMethod: 'card',
+        cardGateway: 'mercadopago',
+        containerId: 'inlineMpCardPaymentBrick',
+        sectionId: 'inlineMpEmbedSection',
+        payerEmail: billing.invoiceEmail,
+        onReady: () => setInlineBrickLoading(false),
+        onBeforeSubmit: () => {
+          if (!billingReady()) {
+            inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return 'Completa RUT y datos de facturación para pagar.';
+          }
+          return null;
+        },
+        submitPayment: (formData) => fetch('/pagos/mp/tarjeta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            requestId,
+            formData,
+            paymentMethod: 'card',
+            cardGateway: 'mercadopago',
+            billing: getBillingPayload()
+          })
+        }).then(async (r) => {
+          const payload = await r.json().catch(() => ({}));
+          if (!r.ok || !payload.success) {
+            const msg = payload.error || 'No se pudo procesar el pago.';
+            if (window.FandezNotify?.showPaymentError) FandezNotify.showPaymentError(payload);
+            else FandezNotify?.show(msg, 'error');
+            throw new Error(msg);
+          }
+          if (payload.redirect) window.location.href = payload.redirect;
+          return payload;
+        })
+      });
+      mpBrickActive = Boolean(result?.active);
+      const openFullBtn = document.getElementById('inlineOpenFullCheckout');
+      const proBtn = document.getElementById('inlinePayCardBtn');
+      if (!mpBrickActive) {
+        setInlineBrickError('No pudimos cargar el formulario. Usa el botón de abajo.');
+        openFullBtn?.classList.remove('hidden');
+        proBtn?.classList.remove('hidden');
+      } else {
+        openFullBtn?.classList.add('hidden');
+        proBtn?.classList.add('hidden');
+      }
+    } catch (err) {
+      console.error('[inline-pay]', err);
+      setInlineBrickError('Error al cargar el pago.');
+      document.getElementById('inlinePayCardBtn')?.classList.remove('hidden');
+    } finally {
+      setInlineBrickLoading(false);
+    }
+    document.getElementById('inlineCheckoutFallback')?.classList.toggle('hidden', mpBrickActive);
   }
 
   function setProgressStep(n) {
@@ -293,7 +354,6 @@
     e.preventDefault();
     goFullCheckout();
   });
-
   document.getElementById('inlineOpenFullCheckout')?.addEventListener('click', () => goFullCheckout());
   document.getElementById('inlinePayCardBtn')?.addEventListener('click', () => startCheckoutProPay());
 
@@ -305,7 +365,6 @@
   if (payFlow) {
     const rid = params.get('resume') || page.dataset.resumeId;
     if (rid) {
-      // Primera pintura ya es checkout: montar brick sin esperar interacción.
       requestId = rid;
       revealPayUi();
       recalcAndMount();
