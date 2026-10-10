@@ -121,18 +121,16 @@
 
     <% if (mpGwOnly && mpConfigured) { %>
     <section id="mpEmbedSection" class="zilo-card-premium rounded-2xl p-4 sm:p-5 checkout-mp-block" aria-label="Pago con tarjeta Mercado Pago">
-      <h2 class="zilo-label mb-1">Datos de tu tarjeta</h2>
-      <%- include('../partials/mp-card-brands') %>
-      <p class="text-xs text-zilo-muted mb-3">Pagas sin salir de Fandez. Al escribir el número verás el logo (Visa incluida).</p>
+      <h2 class="zilo-label mb-2">Datos de tu tarjeta</h2>
       <% if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments) { %>
-      <p class="text-[11px] text-sky-900 mb-3 p-2 rounded-lg bg-sky-50 border border-sky-100">
-        Prueba: titular <strong>APRO</strong> · RUT <strong>123456789</strong> · CVV 123 · vencimiento futuro.
+      <p class="text-[11px] text-sky-900 mb-3 p-2.5 rounded-xl bg-sky-50 border border-sky-100 leading-relaxed">
+        Sandbox Chile — Visa <strong>4168 8188 4444 7115</strong> · Mastercard <strong>5416 7526 0258 2580</strong><br>
+        Titular <strong>APRO</strong> · RUT <strong>123456789</strong> · CVV <strong>123</strong> · venc. <strong>11/30</strong>
       </p>
       <% } %>
       <% if (mpEmbedCheckout) { %>
       <div id="mpBrickLoading" class="mp-brick-skeleton" aria-live="polite" aria-busy="true">
         <p class="text-sm font-semibold text-zilo-text mb-1">Preparando formulario seguro…</p>
-        <p class="text-[11px] text-zilo-muted mb-4">Checkout API · Visa, Mastercard y Amex.</p>
         <div class="mp-brick-skeleton__field"></div>
         <div class="mp-brick-skeleton__row">
           <div class="mp-brick-skeleton__field"></div>
@@ -141,9 +139,8 @@
         <div class="mp-brick-skeleton__btn"></div>
       </div>
       <div id="mpCardPaymentBrick"></div>
-      <% } else { %>
-      <p class="text-[10px] text-zilo-muted">Si el formulario no carga, usa el botón «Pagar con tarjeta» abajo.</p>
       <% } %>
+      <%- include('../partials/mp-card-brands') %>
     </section>
     <% } %>
 
@@ -421,7 +418,7 @@
     <a href="/cliente" class="block text-center text-sm text-zilo-muted hover:text-gray-700 py-2">Cancelar</a>
   </main>
 
-  <div id="stickyCheckoutBar" class="sticky-order-bar is-visible">
+  <div id="stickyCheckoutBar" class="sticky-order-bar<%= (mpCanShowBrick && mpEmbedCheckout) ? '' : ' is-visible' %>">
     <div class="sticky-order-inner max-w-lg mx-auto">
       <div class="min-w-0">
         <p class="text-[10px] text-zilo-muted uppercase tracking-wide">Total a pagar</p>
@@ -434,7 +431,7 @@
 
 <% if (mpEmbedCheckout) { %>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
-<script src="/js/checkout-mp-brick.js?v=20261009-cardform1"></script>
+<script src="<%= asset('/js/checkout-mp-brick.js') %>"></script>
 <% } %>
 
 <%- include('../partials/footer', { extraScripts: ['/js/checkout-page.js'] }) %>

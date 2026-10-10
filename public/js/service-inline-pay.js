@@ -1,5 +1,5 @@
 /**
- * Pago embebido Checkout API (CardForm) en la página del servicio.
+ * Pago embebido: Payment Brick + Checkout API (/pagos/mp/tarjeta).
  */
 (function () {
   const page = document.getElementById('servicePage');
@@ -17,104 +17,69 @@
   let mpConfigFetched = false;
   let mpEmbed = page.dataset.mpEmbed === '1';
   let mpPublicKey = page.dataset.mpPublicKey || '';
-  let mpBrickActive = false;
+  let mpActive = false;
   let scriptsPromise = null;
 
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const isMpSdk = src.includes('sdk.mercadopago.com');
-      const isBrickHelper = src.includes('checkout-mp-brick');
+      const isHelper = src.includes('checkout-mp-brick');
       if (isMpSdk && window.MercadoPago) return resolve();
-      if (isBrickHelper && window.FandezMpBrick) return resolve();
-
-      const existing = document.querySelector(`script[src="${src}"]`);
+      if (isHelper && window.FandezMpBrick) return resolve();
+      const existing = isHelper
+        ? document.querySelector('script[src*="checkout-mp-brick"]')
+        : document.querySelector(`script[src="${src}"]`);
       if (existing) {
-        const done = () => {
-          if (isMpSdk && !window.MercadoPago) {
-            reject(new Error('SDK Mercado Pago no disponible'));
-            return;
-          }
-          resolve();
-        };
-        if ((isMpSdk && window.MercadoPago) || (isBrickHelper && window.FandezMpBrick) || existing.dataset.loaded === '1') {
-          return done();
+        if ((isMpSdk && window.MercadoPago) || (isHelper && window.FandezMpBrick) || existing.dataset.loaded === '1') {
+          return resolve();
         }
-        existing.addEventListener('load', () => {
-          existing.dataset.loaded = '1';
-          done();
-        }, { once: true });
-        existing.addEventListener('error', () => reject(new Error('No se pudo cargar ' + src)), { once: true });
-        let tries = 0;
-        const poll = setInterval(() => {
-          tries += 1;
-          if ((isMpSdk && window.MercadoPago) || (isBrickHelper && window.FandezMpBrick) || tries > 40) {
-            clearInterval(poll);
-            done();
-          }
-        }, 50);
+        existing.addEventListener('load', () => { existing.dataset.loaded = '1'; resolve(); }, { once: true });
+        existing.addEventListener('error', () => reject(new Error('script')), { once: true });
         return;
       }
       const s = document.createElement('script');
       s.src = src;
       s.async = true;
-      s.onload = () => {
-        s.dataset.loaded = '1';
-        resolve();
-      };
-      s.onerror = () => reject(new Error('No se pudo cargar ' + src));
+      s.onload = () => { s.dataset.loaded = '1'; resolve(); };
+      s.onerror = () => reject(new Error('script'));
       document.head.appendChild(s);
     });
   }
 
   function ensureMpScripts() {
-    if (window.MercadoPago && window.FandezMpBrick) {
-      return Promise.resolve();
-    }
+    if (window.MercadoPago && window.FandezMpBrick) return Promise.resolve();
     if (scriptsPromise) return scriptsPromise;
     scriptsPromise = (async () => {
-      if (!window.MercadoPago) {
-        await loadScript('https://sdk.mercadopago.com/js/v2');
-      }
-      if (!window.FandezMpBrick) {
-        await loadScript('/js/checkout-mp-brick.js?v=20261009-cardform1');
-      }
-    })().catch((err) => {
-      scriptsPromise = null;
-      throw err;
-    });
+      if (!window.MercadoPago) await loadScript('https://sdk.mercadopago.com/js/v2');
+      if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js?v=20261009-pay2');
+    })().catch((err) => { scriptsPromise = null; throw err; });
     return scriptsPromise;
   }
 
   if (payFlow || (mpEmbed && mpPublicKey)) {
-    ensureMpScripts().catch(() => { /* se reintenta al montar */ });
+    ensureMpScripts().catch(() => {});
   }
 
-  function setInlineBrickLoading(on) {
+  function setLoading(on) {
     const el = document.getElementById('inlineMpBrickLoading');
     if (!el) return;
     el.classList.toggle('hidden', !on);
     el.setAttribute('aria-busy', on ? 'true' : 'false');
   }
 
-  function setInlineBrickError(message) {
+  function setError(message) {
     const el = document.getElementById('inlineMpBrickError');
     if (!el) return;
-    if (message) {
-      el.textContent = message;
-      el.classList.remove('hidden');
-    } else {
-      el.textContent = '';
-      el.classList.add('hidden');
-    }
+    el.textContent = message || '';
+    el.classList.toggle('hidden', !message);
+  }
+
+  function showFallback(on) {
+    document.getElementById('inlineCheckoutFallbackWrap')?.classList.toggle('hidden', !on);
   }
 
   async function refreshMpEmbedConfig(force) {
     if (mpConfigFetched && !force) return;
-    if (mpEmbed && mpPublicKey && !force) {
-      mpConfigFetched = true;
-      await ensureMpScripts();
-      return;
-    }
     try {
       const res = await fetch('/pagos/mp/brick-config', { headers: { Accept: 'application/json' } });
       const data = await res.json().catch(() => ({}));
@@ -125,7 +90,6 @@
       if (typeof window.FandezRenderMpCardBrands === 'function') {
         window.FandezRenderMpCardBrands(data);
       }
-      if (mpEmbed && mpPublicKey) await ensureMpScripts();
     } catch (_) { /* noop */ }
   }
 
@@ -150,10 +114,28 @@
 
   const fmt = (n) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 
-  function goFullCheckout() {
-    if (requestId) {
-      window.location.href = `/pagos/checkout?ref=${encodeURIComponent(requestId)}`;
-    }
+  function goMpCheckout() {
+    if (!requestId) return;
+    setLoading(true);
+    fetch('/pagos/crear', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        requestId,
+        paymentMethod: 'card',
+        cardGateway: 'mercadopago',
+        billing: getBillingPayload(),
+        forceRedirect: true
+      })
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+      else if (data.redirect) window.location.href = data.redirect;
+      else throw new Error(data.error || 'No se pudo abrir Mercado Pago');
+    }).catch((err) => {
+      setError(err.message || 'No se pudo abrir Mercado Pago');
+      setLoading(false);
+    });
   }
 
   function revealPayUi() {
@@ -168,111 +150,64 @@
     sticky?.classList.add('service-pay-flow-hide');
     sticky?.setAttribute('aria-hidden', 'true');
     inlineRoot.classList.remove('hidden');
-    setInlineBrickLoading(true);
+    setLoading(true);
     setProgressStep(2);
-  }
-
-  async function startCheckoutProPay() {
-    if (!requestId) return;
-    if (!billingReady()) {
-      setInlineBrickError('Completa RUT y datos de facturación para pagar.');
-      return;
-    }
-    setInlineBrickLoading(true);
-    try {
-      const res = await fetch('/pagos/crear', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          requestId,
-          paymentMethod: 'card',
-          cardGateway: 'mercadopago',
-          billing: getBillingPayload(),
-          forceRedirect: true
-        })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo abrir el pago.');
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-      if (data.redirect) {
-        window.location.href = data.redirect;
-        return;
-      }
-      goFullCheckout();
-    } catch (err) {
-      setInlineBrickError(err.message || 'No se pudo abrir Mercado Pago.');
-    } finally {
-      setInlineBrickLoading(false);
-    }
   }
 
   async function recalcAndMount() {
     if (!requestId) return;
-    setInlineBrickError('');
-    setInlineBrickLoading(true);
+    setError('');
+    showFallback(false);
+    setLoading(true);
 
-    const billing = getBillingPayload();
-    const scriptsReady = ensureMpScripts().catch(() => null);
+    await Promise.all([
+      refreshMpEmbedConfig(false),
+      ensureMpScripts().catch(() => null)
+    ]);
 
-    const calcPromise = fetch('/pagos/calcular', {
+    const calcRes = await fetch('/pagos/calcular', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ requestId, paymentMethod: 'card', cardGateway: 'mercadopago' })
-    }).then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      return { res, data };
     });
-
-    const [{ data: calcData }] = await Promise.all([
-      calcPromise,
-      refreshMpEmbedConfig(false),
-      scriptsReady
-    ]);
-
+    const calcData = await calcRes.json().catch(() => ({}));
     if (!calcData.success || !calcData.summary) {
-      setInlineBrickLoading(false);
+      setLoading(false);
       FandezNotify?.show(calcData.error || 'No se pudo calcular el total', 'error');
       return;
     }
 
-    let amount = calcData.summary.amountDue || 0;
+    const amount = Math.round(Number(calcData.summary.amountDue) || 0);
     const totalEl = document.getElementById('inlinePayTotal');
     if (totalEl) totalEl.textContent = fmt(amount);
-
     if (amount <= 0) {
       window.location.href = `/pagos/exito?ref=${encodeURIComponent(requestId)}`;
       return;
     }
 
-    if (!mpEmbed || !mpPublicKey || page.dataset.mpTokenConfigured !== '1') {
-      document.getElementById('inlinePayCardBtn')?.classList.remove('hidden');
-      setInlineBrickLoading(false);
+    if (!mpEmbed || !mpPublicKey || page.dataset.mpTokenConfigured !== '1' || !window.FandezMpBrick) {
+      setLoading(false);
+      showFallback(true);
+      setError('Abrí el checkout de Mercado Pago para pagar con Visa, Mastercard o Amex.');
       return;
     }
 
-    await ensureMpScripts().catch(() => null);
-    if (!window.FandezMpBrick) {
-      document.getElementById('inlinePayCardBtn')?.classList.remove('hidden');
-      setInlineBrickLoading(false);
-      return;
-    }
-
+    const billing = getBillingPayload();
     try {
       const result = await window.FandezMpBrick.sync({
         embed: true,
         publicKey: mpPublicKey,
-        amount: Math.round(Number(amount) || 0),
-        preferenceId: '',
-        maxInstallments: 1,
+        amount,
         paymentMethod: 'card',
         cardGateway: 'mercadopago',
         containerId: 'inlineMpCardPaymentBrick',
         sectionId: 'inlineMpEmbedSection',
         payerEmail: billing.invoiceEmail,
-        onReady: () => setInlineBrickLoading(false),
+        onReady: () => {
+          setLoading(false);
+          setError('');
+          showFallback(false);
+        },
         onBeforeSubmit: () => {
           if (!billingReady()) {
             inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -302,32 +237,24 @@
           return payload;
         })
       });
-      mpBrickActive = Boolean(result?.active);
-      const openFullBtn = document.getElementById('inlineOpenFullCheckout');
-      const proBtn = document.getElementById('inlinePayCardBtn');
-      if (!mpBrickActive) {
-        setInlineBrickError('No pudimos cargar el formulario. Usa el botón de abajo.');
-        openFullBtn?.classList.remove('hidden');
-        proBtn?.classList.remove('hidden');
-      } else {
-        openFullBtn?.classList.add('hidden');
-        proBtn?.classList.add('hidden');
+      mpActive = Boolean(result?.active);
+      if (!mpActive) {
+        setError('No pudimos cargar el formulario embebido.');
+        showFallback(true);
       }
     } catch (err) {
       console.error('[inline-pay]', err);
-      setInlineBrickError('Error al cargar el pago.');
-      document.getElementById('inlinePayCardBtn')?.classList.remove('hidden');
+      setError('Error al cargar el pago.');
+      showFallback(true);
     } finally {
-      setInlineBrickLoading(false);
+      setLoading(false);
     }
-    document.getElementById('inlineCheckoutFallback')?.classList.toggle('hidden', mpBrickActive);
   }
 
   function setProgressStep(n) {
     document.querySelectorAll('.checkout-progress-step').forEach((el, i) => {
-      const stepNum = i + 1;
-      el.classList.toggle('is-active', stepNum === n);
-      el.classList.toggle('is-done', stepNum < n);
+      el.classList.toggle('is-active', i + 1 === n);
+      el.classList.toggle('is-done', i + 1 < n);
     });
     document.querySelectorAll('.checkout-progress-line').forEach((line, i) => {
       line.classList.toggle('is-done', i + 1 < n);
@@ -352,10 +279,8 @@
 
   document.getElementById('inlineCheckoutFallback')?.addEventListener('click', (e) => {
     e.preventDefault();
-    goFullCheckout();
+    goMpCheckout();
   });
-  document.getElementById('inlineOpenFullCheckout')?.addEventListener('click', () => goFullCheckout());
-  document.getElementById('inlinePayCardBtn')?.addEventListener('click', () => startCheckoutProPay());
 
   document.getElementById('btnResumePay')?.addEventListener('click', () => {
     const id = document.getElementById('btnResumePay')?.dataset?.requestId;

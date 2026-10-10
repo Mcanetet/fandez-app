@@ -54,7 +54,19 @@
 
   async function ensureMpScripts() {
     if (!window.MercadoPago) await loadScript('https://sdk.mercadopago.com/js/v2');
-    if (!window.FandezMpBrick) await loadScript('/js/checkout-mp-brick.js?v=20261009-cardform1');
+    if (!window.FandezMpBrick) {
+      const existing = document.querySelector('script[src*="checkout-mp-brick"]');
+      if (existing && !window.FandezMpBrick) {
+        await new Promise((resolve, reject) => {
+          if (window.FandezMpBrick) return resolve();
+          existing.addEventListener('load', () => resolve(), { once: true });
+          existing.addEventListener('error', () => reject(new Error('brick')), { once: true });
+          setTimeout(() => (window.FandezMpBrick ? resolve() : reject(new Error('brick'))), 8000);
+        });
+      } else {
+        await loadScript('/js/checkout-mp-brick.js?v=20261009-pay2');
+      }
+    }
   }
 
   async function refreshMpEmbedConfig(force) {

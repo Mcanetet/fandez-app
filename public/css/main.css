@@ -6627,7 +6627,9 @@ body.launch-notice-open {
   pointer-events: none !important;
 }
 .checkout-mp-block #mpCardPaymentBrick button[type='submit'],
-.checkout-mp-block #mpCardPaymentBrick button[data-testid='submit-button'] {
+.checkout-mp-block #mpCardPaymentBrick button[data-testid='submit-button'],
+.checkout-mp-block #inlineMpCardPaymentBrick button[type='submit'],
+.checkout-mp-block #inlineMpCardPaymentBrick button[data-testid='submit-button'] {
   background-color: var(--zilo-accent) !important;
   border-color: var(--zilo-accent-strong) !important;
   color: #fff !important;
@@ -6635,17 +6637,26 @@ body.launch-notice-open {
   font-weight: 600 !important;
   transition: background-color 0.2s ease, opacity 0.2s ease !important;
 }
-.checkout-mp-block #mpCardPaymentBrick button[type='submit']:disabled {
+.checkout-mp-block #mpCardPaymentBrick button[type='submit']:disabled,
+.checkout-mp-block #inlineMpCardPaymentBrick button[type='submit']:disabled {
   opacity: 0.92 !important;
 }
 .checkout-mp-block #mpCardPaymentBrick progress,
-.checkout-mp-block #mpCardPaymentBrick [role='progressbar'] {
+.checkout-mp-block #mpCardPaymentBrick [role='progressbar'],
+.checkout-mp-block #inlineMpCardPaymentBrick progress,
+.checkout-mp-block #inlineMpCardPaymentBrick [role='progressbar'] {
   accent-color: var(--zilo-accent) !important;
   background-color: rgba(var(--zilo-accent-rgb), 0.12) !important;
 }
 .checkout-mp-block #mpCardPaymentBrick progress::-webkit-progress-value,
-.checkout-mp-block #mpCardPaymentBrick progress::-moz-progress-bar {
+.checkout-mp-block #mpCardPaymentBrick progress::-moz-progress-bar,
+.checkout-mp-block #inlineMpCardPaymentBrick progress::-webkit-progress-value,
+.checkout-mp-block #inlineMpCardPaymentBrick progress::-moz-progress-bar {
   background-color: var(--zilo-accent) !important;
+}
+.mp-card-brands img {
+  display: block;
+  object-fit: contain;
 }
 
 .zilo-btn-primary,

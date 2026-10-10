@@ -470,12 +470,15 @@
         <input type="email" id="inlineBillInvoiceEmail" value="<%= billInline.invoiceEmail || profile.email %>" placeholder="Email facturación" class="zilo-input !py-2 text-sm">
       </div>
       <section id="inlineMpEmbedSection" class="zilo-card-premium rounded-2xl p-4 checkout-mp-block">
-        <h2 class="zilo-label mb-1">Datos de tu tarjeta</h2>
-        <%- include('../partials/mp-card-brands') %>
-        <p class="text-xs text-zilo-muted mb-3">Pagas sin salir de Fandez. Al escribir el número verás el logo (Visa incluida).</p>
+        <h2 class="zilo-label mb-2">Datos de tu tarjeta</h2>
+        <% if (typeof mpSandboxPayments !== 'undefined' && mpSandboxPayments) { %>
+        <p class="text-[11px] text-sky-900 mb-3 p-2.5 rounded-xl bg-sky-50 border border-sky-100 leading-relaxed">
+          Sandbox Chile — Visa <strong>4168 8188 4444 7115</strong> · Mastercard <strong>5416 7526 0258 2580</strong><br>
+          Titular <strong>APRO</strong> · RUT <strong>123456789</strong> · CVV <strong>123</strong> · venc. <strong>11/30</strong>
+        </p>
+        <% } %>
         <div id="inlineMpBrickLoading" class="mp-brick-skeleton<%= payFlowNow ? '' : ' hidden' %>" aria-live="polite" aria-busy="true">
           <p class="text-sm font-semibold text-zilo-text mb-1">Preparando formulario seguro…</p>
-          <p class="text-[11px] text-zilo-muted mb-4">Checkout API · Visa, Mastercard y Amex.</p>
           <div class="mp-brick-skeleton__field"></div>
           <div class="mp-brick-skeleton__row">
             <div class="mp-brick-skeleton__field"></div>
@@ -483,12 +486,15 @@
           </div>
           <div class="mp-brick-skeleton__btn"></div>
         </div>
-        <p id="inlineMpBrickError" class="hidden text-xs text-amber-900 py-2 text-center"></p>
-        <div id="inlineMpCardPaymentBrick" class="min-h-[120px]"></div>
-        <button type="button" id="inlinePayCardBtn" class="hidden w-full zilo-btn-primary !py-3 !text-sm">Pagar con tarjeta</button>
-        <button type="button" id="inlineOpenFullCheckout" class="hidden w-full mt-3 zilo-btn-primary !py-2.5 !text-sm">Abrir checkout</button>
+        <p id="inlineMpBrickError" class="hidden text-xs text-red-700 py-2 text-center"></p>
+        <div id="inlineMpCardPaymentBrick" class="min-h-[80px]"></div>
+        <%- include('../partials/mp-card-brands') %>
+        <div class="hidden mt-3" id="inlineCheckoutFallbackWrap">
+          <button type="button" id="inlineCheckoutFallback" class="zilo-btn-primary w-full !py-3 text-sm">
+            Abrir checkout de Mercado Pago
+          </button>
+        </div>
       </section>
-      <a href="#" id="inlineCheckoutFallback" class="block text-center text-xs text-zilo-accent font-medium"><%= t('client.service.checkout_full_link') %></a>
     </section>
 
     <div id="stickyOrderBar" class="sticky-order-bar<%= payFlowNow ? ' service-pay-flow-hide' : '' %>" aria-hidden="true">
@@ -1131,7 +1137,7 @@
 <%- include('../partials/call-overlay') %>
 <% if (typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout) { %>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
-<script src="/js/checkout-mp-brick.js?v=20261009-cardform1"></script>
+<script src="<%= asset('/js/checkout-mp-brick.js') %>"></script>
 <% } %>
 <% if (payFlowNow) { %>
 <%- include('../partials/footer', { pageScript: '/js/service-inline-pay.js', extraScripts: ['/js/client.js'] }) %>

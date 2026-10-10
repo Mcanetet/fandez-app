@@ -528,6 +528,7 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     resolvedServicePath,
     mpEmbedCheckout: mp.isEmbedCheckoutAvailable(),
     mpPublicKey: mp.getPublicKey(),
+    mpSandboxPayments: mp.usesSandboxPayments(),
     mpTokenConfigured: cardCheckout.isAnyCardGatewayConfigured(pricing),
     maxCardInstallments: pricing.maxCardInstallments || 3
   });

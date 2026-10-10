@@ -1,37 +1,31 @@
-<%# Logos bajo el título «Datos de tu tarjeta» (no abajo del formulario). %>
-<div id="mpCardBrands" class="mp-card-brands flex flex-wrap items-center gap-2 mb-3 min-h-[28px]" aria-label="Tarjetas aceptadas">
-  <span class="text-[10px] text-zilo-muted" data-mp-brands-fallback>Cargando marcas…</span>
-</div>
+<%# Logos oficiales (Visa / Mastercard / Amex) desde /v1/payment_methods. %>
+<div id="mpCardBrands" class="mp-card-brands flex flex-wrap items-center justify-center gap-2 mt-4 pt-3 border-t border-zilo-border/70 min-h-[28px]" aria-label="Tarjetas aceptadas"></div>
 <script>
 (function () {
   function renderMpCardBrands(data) {
     const box = document.getElementById('mpCardBrands');
     if (!box) return;
     const logos = Array.isArray(data?.cardLogos) ? data.cardLogos : [];
-    if (logos.length) {
-      box.innerHTML = logos.map(function (m) {
-        const src = m.secure_thumbnail || '';
-        const name = (m.name || m.id || '').replace(/[<>"']/g, '');
-        if (!src) return '';
-        return '<span class="inline-flex items-center justify-center h-8 px-2 rounded-lg border border-zilo-border bg-white shadow-sm" title="' + name + '">'
-          + '<img src="' + src.replace(/"/g, '') + '" alt="' + name + '" height="20" style="height:20px;width:auto;max-width:52px" loading="lazy" referrerpolicy="no-referrer" />'
-          + '</span>';
-      }).join('');
-    } else {
-      box.innerHTML = '<span class="text-[10px] text-zilo-muted">Visa · Mastercard · American Express</span>';
+    if (!logos.length) {
+      box.innerHTML = '<span class="text-[11px] text-zilo-muted">Visa · Mastercard · American Express</span>';
+      return;
     }
+    box.innerHTML = logos.map(function (m) {
+      const src = m.secure_thumbnail || '';
+      const name = (m.name || m.id || '').replace(/[<>"']/g, '');
+      if (!src) return '';
+      return '<span class="inline-flex items-center justify-center h-8 px-2.5 rounded-lg border border-zilo-border bg-white" title="' + name + '">'
+        + '<img src="' + src.replace(/"/g, '') + '" alt="' + name + '" height="20" style="height:20px;width:auto;max-width:52px" loading="lazy" referrerpolicy="no-referrer" />'
+        + '</span>';
+    }).join('');
   }
   window.FandezRenderMpCardBrands = renderMpCardBrands;
   if (!window.__fandezMpBrandsLoaded) {
     window.__fandezMpBrandsLoaded = true;
     fetch('/pagos/mp/brick-config', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (data && data.success) renderMpCardBrands(data);
-      })
-      .catch(function () {
-        renderMpCardBrands({ cardMethodsOk: false });
-      });
+      .then(function (data) { if (data && data.success) renderMpCardBrands(data); })
+      .catch(function () { renderMpCardBrands({}); });
   }
 })();
 </script>
