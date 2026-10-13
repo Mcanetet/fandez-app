@@ -1,0 +1,42 @@
+<%#
+  Buscador universal de tareas → servicio
+  locals: taskSearchIndex (array), taskSearchMode ('landing'|'client')
+%>
+<%
+  const _tsMode = typeof taskSearchMode !== 'undefined' ? taskSearchMode : 'landing';
+  const _tsIndex = Array.isArray(taskSearchIndex) ? taskSearchIndex : [];
+%>
+<div
+  class="task-search"
+  data-task-search
+  data-mode="<%= _tsMode %>"
+  role="search"
+>
+  <label class="task-search__label" for="taskSearchInput-<%= _tsMode %>">
+    <%= typeof t === 'function' ? t('task_search.label') : '¿Qué necesitas?' %>
+  </label>
+  <div class="task-search__field">
+    <span class="task-search__icon" aria-hidden="true">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </span>
+    <input
+      id="taskSearchInput-<%= _tsMode %>"
+      type="search"
+      class="task-search__input"
+      data-task-search-input
+      autocomplete="off"
+      enterkeyhint="search"
+      placeholder="<%= typeof t === 'function' ? t('task_search.placeholder') : 'Ej: lavadora no centrifuga, fuga de agua, poda…' %>"
+      aria-controls="taskSearchResults-<%= _tsMode %>"
+    >
+  </div>
+  <p class="task-search__hint" data-task-search-hint>
+    <%= typeof t === 'function' ? t('task_search.hint') : 'Escribe el problema y te mostramos el servicio.' %>
+  </p>
+  <div id="taskSearchResults-<%= _tsMode %>" class="task-search__results" data-task-search-results hidden role="listbox" aria-label="<%= typeof t === 'function' ? t('task_search.results_aria') : 'Servicios sugeridos' %>"></div>
+  <p class="task-search__empty" data-task-search-empty hidden>
+    <%= typeof t === 'function' ? t('task_search.empty') : 'No encontramos un oficio con eso. Prueba con otras palabras o elige abajo.' %>
+  </p>
+  <script type="application/json" data-task-search-index><%- JSON.stringify(_tsIndex).replace(/</g, '\\u003c') %></script>
+</div>
+<script src="<%= typeof asset === 'function' ? asset('/js/task-search.js') : '/js/task-search.js' %>" defer></script>

@@ -31,6 +31,7 @@ const sofiaIncompleteNudge = require('./lib/sofia/incompleteProviderNudge');
 const gardenDeliverableNudge = require('./lib/sofia/gardenDeliverableNudge');
 const { getRequestTimeouts } = require('./lib/requestTimeouts');
 const { localizeServices } = require('./lib/i18n-admin');
+const { buildTaskSearchIndex } = require('./lib/taskSearchIndex');
 const { buildPageMeta, getSiteUrl } = require('./lib/seo');
 const seoRoutes = require('./routes/seo');
 const appMode = require('./lib/appMode');
@@ -440,10 +441,19 @@ app.get('/', (req, res) => {
   }
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   const seo = buildPageMeta('home', req);
+  const landingServices = localizeServices(store.getLandingServices(), req.t);
   res.render('landing', {
     title: seo.title,
     seo,
-    services: localizeServices(store.getLandingServices(), req.t),
+    services: landingServices,
+    taskSearchIndex: buildTaskSearchIndex(landingServices, { lang: req.locale }).map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      icon: entry.icon,
+      camino: entry.camino,
+      sampleTasks: entry.sampleTasks,
+      haystack: entry.haystack
+    })),
     referralBanner: (store.isReady() && store.isReferralsEnabled())
       ? (req.session.pendingReferral || null)
       : null

@@ -8,6 +8,7 @@ const { getClientOnboardingSteps } = require('../lib/onboarding');
 const { localizeServices } = require('../lib/i18n-admin');
 const { getPhotoTips } = require('../lib/photoTips');
 const { getServiceOverview } = require('../lib/serviceOverviews');
+const { buildTaskSearchIndex } = require('../lib/taskSearchIndex');
 const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
 const { requireModule } = require('../middleware/modules');
 const unassignedRequestWatcher = require('../lib/unassignedRequestWatcher');
@@ -293,13 +294,22 @@ router.get('/', requireRole('client'), (req, res) => {
   const attentionItems = typeof store.getClientAttentionItems === 'function'
     ? store.getClientAttentionItems(req.session.user.id)
     : [];
+  const activeServices = localizeServices(store.getActiveServices(), req.t);
   res.render('client/dashboard', {
     title: req.t('client.dashboard.page_title'),
     user: req.session.user,
     profile,
-    services: localizeServices(store.getActiveServices(), req.t),
+    services: activeServices,
     servicesNow: localizeServices(store.getHomeServicesNow(), req.t),
     servicesProject: localizeServices(store.getHomeServicesProject(), req.t),
+    taskSearchIndex: buildTaskSearchIndex(activeServices, { lang: req.locale }).map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      icon: entry.icon,
+      camino: entry.camino,
+      sampleTasks: entry.sampleTasks,
+      haystack: entry.haystack
+    })),
     promos: store.getPromosForClient(req.session.user.id),
     referral: store.getReferralStats(req.session.user.id),
     passport: store.getHomePassport(req.session.user.id),

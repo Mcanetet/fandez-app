@@ -76,21 +76,8 @@
     </p>
     <% } %>
 
-    <div class="landing-stat-card mb-8">
-      <div class="landing-stat-grid">
-        <div class="landing-stat-item">
-          <strong class="landing-stat-value text-zilo-accent">4.9</strong>
-          <span class="landing-stat-label"><%= t('landing.stat.rating') %></span>
-        </div>
-        <div class="landing-stat-item landing-stat-item--divider">
-          <strong class="landing-stat-value">24/7</strong>
-          <span class="landing-stat-label"><%= t('landing.stat.emergency') %></span>
-        </div>
-        <div class="landing-stat-item">
-          <strong class="landing-stat-value">100%</strong>
-          <span class="landing-stat-label"><%= t('landing.stat.verified') %></span>
-        </div>
-      </div>
+    <div class="mb-8">
+      <%- include('partials/task-search', { taskSearchIndex: typeof taskSearchIndex !== 'undefined' ? taskSearchIndex : [], taskSearchMode: 'landing' }) %>
     </div>
 
     <div class="mb-8">
