@@ -699,6 +699,7 @@ router.get('/', requireRole('admin'), async (req, res) => {
     crmStages: store.CRM_PIPELINE_STAGES,
     clientModules: localizeModules(safeAdminCall('modules.client', () => store.getModulesByAudience('client'), []), req.t),
     providerModules: localizeModules(safeAdminCall('modules.provider', () => store.getModulesByAudience('provider'), []), req.t),
+    siteModules: localizeModules(safeAdminCall('modules.site', () => store.getModulesByAudience('site'), []), req.t),
     coverageRegions: safeAdminCall('coverage.admin', () => store.getCoverageForAdmin(), []),
     coverageStats: safeAdminCall('coverage.stats', () => store.getCoverageStats(), {}),
     coverageInterest: safeAdminCall('coverage.interest', () => store.getCoverageInterest(40), []),

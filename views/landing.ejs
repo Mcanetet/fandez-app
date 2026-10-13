@@ -4,6 +4,9 @@
   <div class="fandez-landing-atmosphere" aria-hidden="true"></div>
 
   <div class="landing-shell max-w-lg mx-auto px-5">
+    <% if (typeof mod === 'function' ? mod('landing_stick_tech') : true) { %>
+      <%- include('partials/landing-stick-tech') %>
+    <% } %>
     <header class="landing-header">
       <div class="landing-header__brand">
         <%- include('partials/logo', { className: 'landing-header__logo', logoId: 'landing', logoVariant: 'amber' }) %>
@@ -166,4 +169,6 @@
 </div>
 
 <%- include('partials/launch-notice-modal', { launchNoticeMode: 'home' }) %>
-<%- include('partials/footer') %>
+<%- include('partials/footer', {
+  pageScript: (typeof mod === 'function' && mod('landing_stick_tech')) ? '/js/landing-stick-tech.js' : undefined
+}) %>

@@ -1,0 +1,79 @@
+<%# Técnico stick de líneas + gorro jockey · solo decoración landing %>
+<div class="stick-tech" data-stick-tech aria-hidden="true">
+  <div class="stick-tech__stage" data-stick-stage>
+    <!-- Escena: gota / tubo -->
+    <svg class="stick-tech__prop stick-tech__prop--drip" viewBox="0 0 40 48" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round">
+      <path d="M12 8v10c0 6 4 10 8 10s8-4 8-10V8"/>
+      <path class="stick-tech__drip" d="M20 30c0 4-2 7-2 10"/>
+      <circle class="stick-tech__drop" cx="18" cy="42" r="2.2" fill="#141414" stroke="none"/>
+    </svg>
+
+    <!-- Escena: chispa / tornillo -->
+    <svg class="stick-tech__prop stick-tech__prop--spark" viewBox="0 0 40 40" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round">
+      <circle cx="20" cy="20" r="7"/>
+      <path d="M20 6v4M20 30v4M6 20h4M30 20h4M9 9l3 3M28 28l3 3M31 9l-3 3M9 31l3-3"/>
+    </svg>
+
+    <!-- Escena: hoja / poda -->
+    <svg class="stick-tech__prop stick-tech__prop--leaf" viewBox="0 0 40 44" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 38V16"/>
+      <path d="M20 18c-8 2-12 10-10 18 8 0 14-6 16-14-2-2-4-4-6-4z"/>
+      <path class="stick-tech__snip" d="M8 10l6 6M14 10l-6 6"/>
+    </svg>
+
+    <!-- Escena: llave / chapa -->
+    <svg class="stick-tech__prop stick-tech__prop--key" viewBox="0 0 44 36" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="18" r="7"/>
+      <circle cx="12" cy="18" r="2.5"/>
+      <path d="M19 18h18l-3 4h4l-2 4"/>
+    </svg>
+
+    <!-- Actor -->
+    <div class="stick-tech__actor" data-stick-actor>
+      <svg class="stick-tech__svg" viewBox="0 0 64 96" fill="none" stroke="#141414" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Gorro jockey: copa + visera -->
+        <g class="stick-tech__cap">
+          <path d="M19 21.5c1.2-7.5 7.2-11.5 13-11.5s11.8 4 13 11.5H19z" fill="#141414" stroke="#141414"/>
+          <path d="M17 21.5h30" stroke-width="2.4"/>
+          <path class="stick-tech__visor" d="M30 21.5h22c.4 0 .7.4.5.8-1.8 3.2-7.2 5.2-12.8 5.2-3.2 0-5.6-.6-7.2-1.4-.6-.3-.8-.9-.5-1.4l.6-1.2c.2-.4.6-.6 1-.6z" fill="#141414" stroke="#141414" stroke-width="1.5"/>
+        </g>
+        <!-- Cabeza -->
+        <circle cx="32" cy="28" r="8"/>
+        <!-- Cuerpo -->
+        <path d="M32 36v22"/>
+        <!-- Brazo izquierdo -->
+        <path class="stick-tech__arm stick-tech__arm--l" d="M32 42c-6 2-10 8-11 14"/>
+        <!-- Brazo derecho + herramienta -->
+        <g class="stick-tech__arm-r">
+          <path class="stick-tech__arm stick-tech__arm--r" d="M32 42c6 2 10 8 11 14"/>
+          <!-- Llave inglesa -->
+          <g class="stick-tech__tool stick-tech__tool--wrench" transform="translate(40 52)">
+            <path d="M2 2l8 8"/>
+            <path d="M0 4c2-2 4-2 6 0l2 2-4 4-2-2c-2-2-2-4 0-6z"/>
+          </g>
+          <!-- Trapo -->
+          <g class="stick-tech__tool stick-tech__tool--cloth" transform="translate(40 50)">
+            <path d="M1 2c4-1 8 1 10 4-3 2-7 3-11 2 0-2 0-4 1-6z" fill="#141414" fill-opacity=".12"/>
+            <path d="M1 3c3-1 7 0 10 3"/>
+          </g>
+          <!-- Destornillador -->
+          <g class="stick-tech__tool stick-tech__tool--driver" transform="translate(41 50)">
+            <path d="M3 2v12"/>
+            <path d="M1 2h4"/>
+            <path d="M3 14l-1.5 3M3 14l1.5 3"/>
+          </g>
+          <!-- Tijera poda -->
+          <g class="stick-tech__tool stick-tech__tool--shears" transform="translate(39 51)">
+            <path d="M2 10l8-8"/>
+            <path d="M10 10L2 2"/>
+            <circle cx="2" cy="11" r="1.6"/>
+            <circle cx="10" cy="11" r="1.6"/>
+          </g>
+        </g>
+        <!-- Piernas -->
+        <path class="stick-tech__leg stick-tech__leg--l" d="M32 58l-8 22"/>
+        <path class="stick-tech__leg stick-tech__leg--r" d="M32 58l8 22"/>
+      </svg>
+    </div>
+  </div>
+</div>

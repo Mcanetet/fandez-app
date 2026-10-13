@@ -1166,6 +1166,27 @@ if (typeof hasPerm !== 'function') {
         <strong>Proyectos</strong> abajo para mostrar paisajismo, paneles solares y el bloque «Necesito un proyecto».
       </p>
 
+      <% if (typeof siteModules !== 'undefined' && siteModules.length) { %>
+      <h4 class="text-sm font-semibold mb-2 text-zilo-accent"><%= as.modulos.site || 'Sitio público' %></h4>
+      <div id="siteModulesList" class="space-y-2 mb-6">
+        <% siteModules.forEach(mod => { %>
+          <div class="module-toggle-item flex items-center justify-between p-4 rounded-2xl bg-zilo-card border border-gray-200 <%= mod.enabled ? '' : 'opacity-50' %>" data-module-id="<%= mod.id %>">
+            <div class="min-w-0 pr-3">
+              <strong class="text-sm block"><%= mod.name %></strong>
+              <span class="text-xs text-gray-500"><%= mod.description %></span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="module-status text-[10px] font-bold uppercase <%= mod.enabled ? 'text-emerald-600' : 'text-red-600' %>"><%= mod.enabled ? as.status.on : as.status.off %></span>
+              <label class="toggle-ios">
+                <input type="checkbox" class="module-toggle" data-id="<%= mod.id %>" <%= mod.enabled ? 'checked' : '' %>>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+      <% } %>
+
       <h4 class="text-sm font-semibold mb-2 text-zilo-accent"><%= as.modulos.client %></h4>
       <div id="clientModulesList" class="space-y-2 mb-6">
         <% clientModules.forEach(mod => { %>
