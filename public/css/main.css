@@ -5996,25 +5996,24 @@ body.admin-modal-open {
   color: var(--zilo-muted);
 }
 
-/* Landing — técnico stick (gorra con visera) */
+/* Landing — técnico stick (aparece tras 5 min, pegado a las letras) */
 .stick-tech {
   position: absolute;
-  right: 0.1rem;
-  top: 3.7rem;
-  width: 7.75rem;
-  height: 9.5rem;
-  z-index: 3;
+  left: 2.5rem;
+  top: 0.85rem;
+  width: 4.25rem;
+  height: 4.9rem;
+  z-index: 12;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.35s ease, top 0.4s ease, left 0.4s ease, right 0.4s ease, width 0.4s ease, height 0.4s ease;
+  transition: opacity 0.35s ease, top 0.35s ease, left 0.35s ease, width 0.35s ease, height 0.35s ease;
 }
-.stick-tech.is-active,
-.stick-tech.is-static { opacity: 1; }
+.stick-tech.is-waiting { opacity: 0 !important; visibility: hidden; }
+.stick-tech.is-active { opacity: 1; visibility: visible; }
 .stick-tech.is-exiting {
   opacity: 0;
   transition-duration: 0.55s;
 }
-.stick-tech.is-static { opacity: 0.5; }
 .stick-tech__stage {
   position: relative;
   width: 100%;
@@ -6023,22 +6022,16 @@ body.admin-modal-open {
 }
 .stick-tech__actor {
   position: absolute;
-  left: 58%;
-  bottom: 0;
-  width: 4.2rem;
-  height: 6.35rem;
+  left: 62%;
+  bottom: -0.15rem;
+  width: 3.15rem;
+  height: 4.7rem;
   transform: translateX(-50%);
   opacity: 0;
 }
-.stick-tech.is-active .stick-tech__actor,
-.stick-tech.is-static .stick-tech__actor {
+.stick-tech.is-active .stick-tech__actor {
   opacity: 1;
-  animation: stick-tech-enter 0.65s ease both;
-}
-.stick-tech.is-active:not(.is-letter-dock):not(.is-bush-run):not(.is-light-scene) .stick-tech__actor {
-  animation:
-    stick-tech-enter 0.65s ease both,
-    stick-tech-bob 1.8s ease-in-out 0.65s infinite;
+  animation: stick-tech-enter 0.55s ease both;
 }
 .stick-tech.is-active .stick-tech__leg--l {
   transform-origin: 32px 58px;
@@ -6064,82 +6057,34 @@ body.admin-modal-open {
 }
 .stick-tech__prop {
   position: absolute;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 2rem;
+  height: 2rem;
   opacity: 0;
   transform: scale(0.9);
   transition: opacity 0.28s ease, transform 0.28s ease;
 }
-.stick-tech__prop--drip { left: 0.15rem; top: 1.15rem; }
-.stick-tech__prop--spark { left: 0.1rem; top: 1.4rem; }
+.stick-tech__prop--drip {
+  left: -0.15rem;
+  top: 0.35rem;
+}
 .stick-tech__prop--bush {
-  left: 0;
-  bottom: 0.15rem;
-  width: 4.6rem;
-  height: 3.6rem;
+  left: -0.35rem;
+  bottom: 0;
+  width: 3.4rem;
+  height: 2.65rem;
   transform-origin: 50% 100%;
-}
-.stick-tech__darkroom {
-  display: none;
-  position: absolute;
-  inset: 0;
-  border-radius: 1rem;
-  background: #0B0B0B;
-  color: #F4F1EA;
-  overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-.stick-tech__prop--ladder {
-  left: 1.35rem;
-  bottom: 0.2rem;
-  width: 2.1rem;
-  height: 6.6rem;
-  color: #EDE8DF;
-}
-.stick-tech__prop--socket {
-  left: 1.55rem;
-  top: 0.55rem;
-  width: 1.7rem;
-  height: 1.3rem;
-  color: #EDE8DF;
-  opacity: 0.85;
-}
-.stick-tech__prop--bulb {
-  left: 1.7rem;
-  top: 0.15rem;
-  width: 1.55rem;
-  height: 2rem;
-  color: #F7E7A3;
-  opacity: 0;
-  transform: translateY(10px) scale(0.7);
-}
-.stick-tech__glow {
-  position: absolute;
-  left: 50%;
-  top: 0.4rem;
-  width: 5.5rem;
-  height: 5.5rem;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 214, 102, 0.55) 0%, rgba(255, 180, 40, 0.18) 42%, transparent 70%);
-  opacity: 0;
-  pointer-events: none;
 }
 
 .stick-tech__tool { opacity: 0; }
 .stick-tech[data-scene="drip"] .stick-tech__prop--drip,
-.stick-tech[data-scene="spark"] .stick-tech__prop--spark,
 .stick-tech[data-scene="bush"] .stick-tech__prop--bush {
   opacity: 1;
   transform: scale(1);
 }
 .stick-tech[data-scene="drip"] .stick-tech__tool--wrench,
-.stick-tech[data-scene="spark"] .stick-tech__tool--driver,
 .stick-tech[data-scene="bush"] .stick-tech__tool--shears,
 .stick-tech[data-scene="paint"] .stick-tech__tool--brush,
-.stick-tech[data-scene="break"] .stick-tech__tool--cloth,
-.stick-tech[data-scene="light"].is-climbing .stick-tech__tool--bulb,
-.stick-tech[data-scene="light"].is-placing-bulb .stick-tech__tool--bulb {
+.stick-tech[data-scene="break"] .stick-tech__tool--cloth {
   opacity: 1;
 }
 
@@ -6149,117 +6094,38 @@ body.admin-modal-open {
 .stick-tech[data-scene="drip"] .stick-tech__drip {
   animation: stick-tech-drip-line 1.4s ease-in infinite;
 }
-.stick-tech[data-scene="spark"] .stick-tech__prop--spark {
-  animation: stick-tech-spark 1.1s ease-in-out infinite;
-}
 
-/* Arbusto: crece → monito pasa cortando → queda podado */
+/* Arbusto cerca de las letras */
 .stick-tech[data-scene="bush"] .stick-tech__prop--bush {
   animation: stick-tech-bush-grow 0.7s ease both;
 }
 .stick-tech.is-bush-run .stick-tech__actor {
-  left: 18%;
-  animation: stick-tech-bush-walk 3.6s ease-in-out 0.55s both !important;
+  animation: stick-tech-bush-walk 3.4s ease-in-out 0.4s both !important;
 }
 .stick-tech.is-bush-run .stick-tech__arm-front {
-  animation: stick-tech-snip-arm 0.45s ease-in-out 0.55s 8 !important;
+  animation: stick-tech-snip-arm 0.45s ease-in-out 0.4s 8 !important;
 }
 .stick-tech[data-scene="bush"] .stick-tech__bush-body {
   transform-origin: 36px 52px;
-  animation: stick-tech-bush-trim 3.6s ease-in-out 0.55s both;
+  animation: stick-tech-bush-trim 3.4s ease-in-out 0.4s both;
 }
 .stick-tech[data-scene="bush"] .stick-tech__bush-cut {
-  animation: stick-tech-bush-cut-show 3.6s ease-in-out 0.55s both;
+  animation: stick-tech-bush-cut-show 3.4s ease-in-out 0.4s both;
 }
 
-/* Ampolleta: cuarto negro, monito blanco, escalera, luz */
-.stick-tech.is-light-scene .stick-tech__darkroom {
-  display: block;
-  animation: stick-tech-dark-in 0.45s ease both;
+/* Pegado a la letra: la mano alcanza la “a” */
+.stick-tech.is-letter-dock {
+  z-index: 14;
 }
-.stick-tech.is-light-scene .stick-tech__prop--ladder,
-.stick-tech.is-light-scene .stick-tech__prop--socket {
-  opacity: 1;
-  transform: scale(1);
-}
-.stick-tech.is-light-scene .stick-tech__actor {
-  left: 72%;
-  width: 3.35rem;
-  height: 5.05rem;
-  z-index: 2;
-  animation: stick-tech-light-enter 0.7s ease both !important;
-}
-.stick-tech.is-light-scene .stick-tech__svg {
-  stroke: #FFFFFF;
-}
-.stick-tech.is-light-scene .stick-tech__cap path,
-.stick-tech.is-light-scene .stick-tech__visor {
-  fill: #FFFFFF !important;
-  stroke: #FFFFFF !important;
-}
-.stick-tech.is-light-scene .stick-tech__head {
-  fill: rgba(255, 255, 255, 0.08);
-  stroke: #FFFFFF;
-}
-.stick-tech.is-climbing .stick-tech__actor {
-  animation: stick-tech-climb 3.4s ease-in-out both !important;
-}
-.stick-tech.is-climbing .stick-tech__leg--l,
-.stick-tech.is-climbing .stick-tech__leg--r {
-  animation-duration: 0.4s !important;
-}
-.stick-tech.is-placing-bulb .stick-tech__actor {
-  left: 42%;
-  bottom: 4.6rem;
-  animation: stick-tech-place-bob 0.7s ease-in-out infinite !important;
-}
-.stick-tech.is-placing-bulb .stick-tech__arm-front {
-  animation: stick-tech-place-arm 0.55s ease-in-out infinite !important;
-}
-.stick-tech.is-placing-bulb .stick-tech__prop--bulb {
-  opacity: 0.35;
-  transform: translateY(4px) scale(0.85);
-  transition: opacity 0.35s ease, transform 0.35s ease;
-}
-.stick-tech.is-lit .stick-tech__prop--bulb {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  color: #FFE08A;
-  filter: drop-shadow(0 0 6px rgba(255, 214, 102, 0.85));
-}
-.stick-tech.is-lit .stick-tech__bulb-glass {
-  fill: rgba(255, 224, 138, 0.55);
-}
-.stick-tech.is-lit .stick-tech__bulb-rays {
-  opacity: 1;
-  animation: stick-tech-rays 1.2s ease-in-out infinite;
-}
-.stick-tech.is-lit .stick-tech__glow {
-  opacity: 1;
-  animation: stick-tech-glow-pulse 1.4s ease-in-out infinite;
-}
-.stick-tech.is-lit .stick-tech__darkroom {
-  background: radial-gradient(circle at 42% 18%, #3A2A10 0%, #14110C 48%, #0B0B0B 100%);
-}
-.stick-tech.is-lit .stick-tech__actor {
-  left: 42%;
-  bottom: 4.6rem;
-  animation: none !important;
-  opacity: 1;
-}
-.stick-tech.is-lit .stick-tech__tool--bulb {
-  opacity: 0 !important;
-}
-
-/* Dock junto a la letra (pinta / levanta) */
 .stick-tech.is-letter-dock .stick-tech__actor {
-  left: 55%;
-  width: 3.55rem;
-  height: 5.35rem;
-  animation: stick-tech-enter 0.5s ease both !important;
+  left: 70%;
+  bottom: -0.35rem;
+  width: 3.05rem;
+  height: 4.55rem;
+  animation: stick-tech-enter 0.45s ease both !important;
 }
 .stick-tech.is-painting .stick-tech__arm-front {
-  animation: stick-tech-paint-arm 0.5s ease-in-out infinite !important;
+  animation: stick-tech-paint-arm 0.45s ease-in-out infinite !important;
 }
 .stick-tech.is-lifting .stick-tech__arm-front {
   animation: stick-tech-lift-arm 1.1s ease-in-out infinite !important;
@@ -6268,7 +6134,6 @@ body.admin-modal-open {
   animation: stick-tech-lift-bob 1.1s ease-in-out infinite !important;
 }
 
-/* Letras del wordmark */
 .landing-header__wordmark .stick-tech-letter {
   display: inline-block;
   position: relative;
@@ -6277,10 +6142,10 @@ body.admin-modal-open {
 }
 .stick-tech-letter--faded {
   color: #D4A574 !important;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 .stick-tech-letter--painting {
-  animation: stick-tech-letter-paint 0.55s steps(3) infinite;
+  animation: stick-tech-letter-paint 0.5s steps(3) infinite;
 }
 .stick-tech-letter--painting::after {
   content: '';
@@ -6289,10 +6154,10 @@ body.admin-modal-open {
   background: linear-gradient(
     100deg,
     transparent 25%,
-    rgba(20, 20, 20, 0.2) 48%,
+    rgba(20, 20, 20, 0.22) 48%,
     transparent 70%
   );
-  animation: stick-tech-letter-sweep 0.55s linear infinite;
+  animation: stick-tech-letter-sweep 0.5s linear infinite;
   pointer-events: none;
 }
 .stick-tech-letter--painted {
@@ -6302,11 +6167,11 @@ body.admin-modal-open {
 }
 .stick-tech-letter--broken {
   color: var(--zilo-accent) !important;
-  transform: translate(6px, 14px) rotate(28deg);
-  opacity: 0.9;
+  transform: translate(4px, 10px) rotate(22deg);
+  opacity: 0.95;
 }
 .stick-tech-letter--lifting {
-  transform: translate(2px, 4px) rotate(8deg);
+  transform: translate(1px, 2px) rotate(6deg);
   animation: stick-tech-letter-lift 1.1s ease-in-out infinite;
 }
 .stick-tech-letter--restored {
@@ -6316,12 +6181,8 @@ body.admin-modal-open {
 }
 
 @keyframes stick-tech-enter {
-  from { opacity: 0; transform: translateX(-50%) translateX(22px) translateY(6px); }
+  from { opacity: 0; transform: translateX(-50%) translateX(14px) translateY(4px); }
   to { opacity: 1; transform: translateX(-50%) translateX(0) translateY(0); }
-}
-@keyframes stick-tech-bob {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(-2px); }
 }
 @keyframes stick-tech-step-l {
   0%, 100% { transform: rotate(8deg); }
@@ -6348,20 +6209,16 @@ body.admin-modal-open {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
 }
-@keyframes stick-tech-spark {
-  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.85; }
-  50% { transform: scale(1.08) rotate(-8deg); opacity: 1; }
-}
 @keyframes stick-tech-bush-grow {
-  from { opacity: 0; transform: scale(0.4) translateY(12px); }
+  from { opacity: 0; transform: scale(0.4) translateY(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 @keyframes stick-tech-bush-walk {
-  0% { left: 78%; opacity: 1; transform: translateX(-50%); }
-  15% { left: 62%; }
-  55% { left: 28%; }
-  85% { left: 12%; opacity: 1; }
-  100% { left: 4%; opacity: 0.15; transform: translateX(-50%); }
+  0% { left: 88%; opacity: 1; transform: translateX(-50%); }
+  20% { left: 70%; }
+  55% { left: 38%; }
+  85% { left: 18%; opacity: 1; }
+  100% { left: 8%; opacity: 0.2; transform: translateX(-50%); }
 }
 @keyframes stick-tech-bush-trim {
   0%, 35% { transform: scale(1); opacity: 1; }
@@ -6377,12 +6234,12 @@ body.admin-modal-open {
   50% { transform: rotate(-28deg); }
 }
 @keyframes stick-tech-paint-arm {
-  0%, 100% { transform: rotate(12deg); }
-  50% { transform: rotate(-22deg); }
+  0%, 100% { transform: rotate(18deg); }
+  50% { transform: rotate(-28deg); }
 }
 @keyframes stick-tech-lift-arm {
   0%, 100% { transform: rotate(-8deg) translateY(0); }
-  50% { transform: rotate(-28deg) translateY(-4px); }
+  50% { transform: rotate(-30deg) translateY(-5px); }
 }
 @keyframes stick-tech-lift-bob {
   0%, 100% { transform: translateX(-50%) translateY(0); }
@@ -6398,58 +6255,20 @@ body.admin-modal-open {
   100% { transform: translateX(110%); opacity: 0; }
 }
 @keyframes stick-tech-letter-done {
-  0% { transform: scale(1.12); }
+  0% { transform: scale(1.14); }
   100% { transform: scale(1); }
 }
 @keyframes stick-tech-letter-lift {
-  0%, 100% { transform: translate(2px, 6px) rotate(10deg); }
-  50% { transform: translate(0, -2px) rotate(2deg); }
+  0%, 100% { transform: translate(2px, 5px) rotate(8deg); }
+  50% { transform: translate(0, -3px) rotate(1deg); }
 }
 @keyframes stick-tech-letter-pop {
   0% { transform: scale(1.2) translateY(-4px); }
   100% { transform: scale(1) translateY(0); }
 }
-@keyframes stick-tech-dark-in {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-@keyframes stick-tech-light-enter {
-  from { opacity: 0; transform: translateX(-50%) translateX(28px); }
-  to { opacity: 1; transform: translateX(-50%) translateX(0); }
-}
-@keyframes stick-tech-climb {
-  0% { left: 72%; bottom: 0; transform: translateX(-50%); }
-  18% { left: 48%; bottom: 0.2rem; }
-  100% { left: 42%; bottom: 4.6rem; transform: translateX(-50%); }
-}
-@keyframes stick-tech-place-bob {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(-3px); }
-}
-@keyframes stick-tech-place-arm {
-  0%, 100% { transform: rotate(-6deg); }
-  50% { transform: rotate(-26deg); }
-}
-@keyframes stick-tech-rays {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
-@keyframes stick-tech-glow-pulse {
-  0%, 100% { opacity: 0.75; transform: translateX(-50%) scale(1); }
-  50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
-}
-
-@media (min-width: 400px) {
-  .stick-tech {
-    width: 8.5rem;
-    height: 10.25rem;
-    right: 0.25rem;
-    top: 4rem;
-  }
-}
 
 @media (max-width: 359px) {
-  .stick-tech { opacity: 0 !important; }
+  .stick-tech { opacity: 0 !important; visibility: hidden !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -6457,12 +6276,7 @@ body.admin-modal-open {
   .stick-tech * {
     animation: none !important;
   }
-  .stick-tech.is-static { opacity: 0.4; }
-  .stick-tech.is-static .stick-tech__actor {
-    opacity: 1;
-    transform: translateX(-50%);
-  }
-  .stick-tech.is-static .stick-tech__tool--wrench { opacity: 1; }
+  .stick-tech { opacity: 0 !important; visibility: hidden !important; }
   .stick-tech-letter--faded,
   .stick-tech-letter--broken {
     color: inherit !important;
