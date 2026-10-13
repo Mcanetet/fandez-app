@@ -6035,7 +6035,7 @@ body.admin-modal-open {
   opacity: 1;
   animation: stick-tech-enter 0.65s ease both;
 }
-.stick-tech.is-active:not(.is-letter-dock):not(.is-bush-run) .stick-tech__actor {
+.stick-tech.is-active:not(.is-letter-dock):not(.is-bush-run):not(.is-light-scene) .stick-tech__actor {
   animation:
     stick-tech-enter 0.65s ease both,
     stick-tech-bob 1.8s ease-in-out 0.65s infinite;
@@ -6079,6 +6079,52 @@ body.admin-modal-open {
   height: 3.6rem;
   transform-origin: 50% 100%;
 }
+.stick-tech__darkroom {
+  display: none;
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  background: #0B0B0B;
+  color: #F4F1EA;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.stick-tech__prop--ladder {
+  left: 1.35rem;
+  bottom: 0.2rem;
+  width: 2.1rem;
+  height: 6.6rem;
+  color: #EDE8DF;
+}
+.stick-tech__prop--socket {
+  left: 1.55rem;
+  top: 0.55rem;
+  width: 1.7rem;
+  height: 1.3rem;
+  color: #EDE8DF;
+  opacity: 0.85;
+}
+.stick-tech__prop--bulb {
+  left: 1.7rem;
+  top: 0.15rem;
+  width: 1.55rem;
+  height: 2rem;
+  color: #F7E7A3;
+  opacity: 0;
+  transform: translateY(10px) scale(0.7);
+}
+.stick-tech__glow {
+  position: absolute;
+  left: 50%;
+  top: 0.4rem;
+  width: 5.5rem;
+  height: 5.5rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 214, 102, 0.55) 0%, rgba(255, 180, 40, 0.18) 42%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
 
 .stick-tech__tool { opacity: 0; }
 .stick-tech[data-scene="drip"] .stick-tech__prop--drip,
@@ -6091,7 +6137,9 @@ body.admin-modal-open {
 .stick-tech[data-scene="spark"] .stick-tech__tool--driver,
 .stick-tech[data-scene="bush"] .stick-tech__tool--shears,
 .stick-tech[data-scene="paint"] .stick-tech__tool--brush,
-.stick-tech[data-scene="break"] .stick-tech__tool--cloth {
+.stick-tech[data-scene="break"] .stick-tech__tool--cloth,
+.stick-tech[data-scene="light"].is-climbing .stick-tech__tool--bulb,
+.stick-tech[data-scene="light"].is-placing-bulb .stick-tech__tool--bulb {
   opacity: 1;
 }
 
@@ -6122,6 +6170,85 @@ body.admin-modal-open {
 }
 .stick-tech[data-scene="bush"] .stick-tech__bush-cut {
   animation: stick-tech-bush-cut-show 3.6s ease-in-out 0.55s both;
+}
+
+/* Ampolleta: cuarto negro, monito blanco, escalera, luz */
+.stick-tech.is-light-scene .stick-tech__darkroom {
+  display: block;
+  animation: stick-tech-dark-in 0.45s ease both;
+}
+.stick-tech.is-light-scene .stick-tech__prop--ladder,
+.stick-tech.is-light-scene .stick-tech__prop--socket {
+  opacity: 1;
+  transform: scale(1);
+}
+.stick-tech.is-light-scene .stick-tech__actor {
+  left: 72%;
+  width: 3.35rem;
+  height: 5.05rem;
+  z-index: 2;
+  animation: stick-tech-light-enter 0.7s ease both !important;
+}
+.stick-tech.is-light-scene .stick-tech__svg {
+  stroke: #FFFFFF;
+}
+.stick-tech.is-light-scene .stick-tech__cap path,
+.stick-tech.is-light-scene .stick-tech__visor {
+  fill: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+.stick-tech.is-light-scene .stick-tech__head {
+  fill: rgba(255, 255, 255, 0.08);
+  stroke: #FFFFFF;
+}
+.stick-tech.is-climbing .stick-tech__actor {
+  animation: stick-tech-climb 3.4s ease-in-out both !important;
+}
+.stick-tech.is-climbing .stick-tech__leg--l,
+.stick-tech.is-climbing .stick-tech__leg--r {
+  animation-duration: 0.4s !important;
+}
+.stick-tech.is-placing-bulb .stick-tech__actor {
+  left: 42%;
+  bottom: 4.6rem;
+  animation: stick-tech-place-bob 0.7s ease-in-out infinite !important;
+}
+.stick-tech.is-placing-bulb .stick-tech__arm-front {
+  animation: stick-tech-place-arm 0.55s ease-in-out infinite !important;
+}
+.stick-tech.is-placing-bulb .stick-tech__prop--bulb {
+  opacity: 0.35;
+  transform: translateY(4px) scale(0.85);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.stick-tech.is-lit .stick-tech__prop--bulb {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  color: #FFE08A;
+  filter: drop-shadow(0 0 6px rgba(255, 214, 102, 0.85));
+}
+.stick-tech.is-lit .stick-tech__bulb-glass {
+  fill: rgba(255, 224, 138, 0.55);
+}
+.stick-tech.is-lit .stick-tech__bulb-rays {
+  opacity: 1;
+  animation: stick-tech-rays 1.2s ease-in-out infinite;
+}
+.stick-tech.is-lit .stick-tech__glow {
+  opacity: 1;
+  animation: stick-tech-glow-pulse 1.4s ease-in-out infinite;
+}
+.stick-tech.is-lit .stick-tech__darkroom {
+  background: radial-gradient(circle at 42% 18%, #3A2A10 0%, #14110C 48%, #0B0B0B 100%);
+}
+.stick-tech.is-lit .stick-tech__actor {
+  left: 42%;
+  bottom: 4.6rem;
+  animation: none !important;
+  opacity: 1;
+}
+.stick-tech.is-lit .stick-tech__tool--bulb {
+  opacity: 0 !important;
 }
 
 /* Dock junto a la letra (pinta / levanta) */
@@ -6281,6 +6408,35 @@ body.admin-modal-open {
 @keyframes stick-tech-letter-pop {
   0% { transform: scale(1.2) translateY(-4px); }
   100% { transform: scale(1) translateY(0); }
+}
+@keyframes stick-tech-dark-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes stick-tech-light-enter {
+  from { opacity: 0; transform: translateX(-50%) translateX(28px); }
+  to { opacity: 1; transform: translateX(-50%) translateX(0); }
+}
+@keyframes stick-tech-climb {
+  0% { left: 72%; bottom: 0; transform: translateX(-50%); }
+  18% { left: 48%; bottom: 0.2rem; }
+  100% { left: 42%; bottom: 4.6rem; transform: translateX(-50%); }
+}
+@keyframes stick-tech-place-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-3px); }
+}
+@keyframes stick-tech-place-arm {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(-26deg); }
+}
+@keyframes stick-tech-rays {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes stick-tech-glow-pulse {
+  0%, 100% { opacity: 0.75; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
 }
 
 @media (min-width: 400px) {

@@ -4,9 +4,10 @@
 (function () {
   'use strict';
 
-  // Escenas: oficios + interacciones con el wordmark / arbusto
-  var SCENES = ['paint', 'bush', 'drip', 'break', 'spark', 'paint', 'bush'];
+  // Escenas: oficios + letras / arbusto / ampolleta
+  var SCENES = ['light', 'paint', 'bush', 'drip', 'break', 'light', 'spark'];
   var SCENE_MS = {
+    light: 9200,
     paint: 7800,
     break: 8200,
     bush: 7600,
@@ -72,7 +73,15 @@
   }
 
   function clearDock(root) {
-    root.classList.remove('is-letter-dock', 'is-bush-run', 'is-wiping');
+    root.classList.remove(
+      'is-letter-dock',
+      'is-bush-run',
+      'is-wiping',
+      'is-light-scene',
+      'is-climbing',
+      'is-placing-bulb',
+      'is-lit'
+    );
     root.style.left = '';
     root.style.top = '';
     root.style.right = '';
@@ -136,12 +145,33 @@
 
   function runBush(root) {
     root.classList.add('is-bush-run');
-    // Posición fija a la derecha del hero, con recorrido
     root.style.left = '';
     root.style.top = '';
     root.style.right = '0.1rem';
     root.style.width = '9.5rem';
     root.style.height = '9.5rem';
+  }
+
+  /** Fondo negro → monito blanco sube escalera → pone ampolleta → se ilumina */
+  function runLight(root, timers) {
+    root.classList.add('is-light-scene');
+    root.style.left = '';
+    root.style.top = '3.2rem';
+    root.style.right = '0.05rem';
+    root.style.width = '8.75rem';
+    root.style.height = '11.5rem';
+
+    timers.push(setTimeout(function () {
+      root.classList.add('is-climbing');
+    }, 700));
+    timers.push(setTimeout(function () {
+      root.classList.remove('is-climbing');
+      root.classList.add('is-placing-bulb');
+    }, 4200));
+    timers.push(setTimeout(function () {
+      root.classList.remove('is-placing-bulb');
+      root.classList.add('is-lit');
+    }, 5800));
   }
 
   function setScene(root, name, timers) {
@@ -156,6 +186,8 @@
       runBreak(root, pickLetter('a'), timers);
     } else if (name === 'bush') {
       runBush(root);
+    } else if (name === 'light') {
+      runLight(root, timers);
     }
   }
 
@@ -197,7 +229,7 @@
           clearLetterFx();
           clearDock(root);
           root.setAttribute('data-scene', '');
-          root.classList.remove('is-painting', 'is-lifting');
+          root.classList.remove('is-painting', 'is-lifting', 'is-climbing', 'is-placing-bulb', 'is-lit');
           i += 1;
           loopTimer = setTimeout(next, PAUSE_MS);
         }, 650);
@@ -210,7 +242,15 @@
       if (document.hidden) {
         clearTimeout(loopTimer);
         clearTimers(sceneTimers);
-        root.classList.remove('is-active', 'is-exiting', 'is-painting', 'is-lifting');
+        root.classList.remove(
+          'is-active',
+          'is-exiting',
+          'is-painting',
+          'is-lifting',
+          'is-climbing',
+          'is-placing-bulb',
+          'is-lit'
+        );
         clearLetterFx();
         clearDock(root);
         root.setAttribute('data-scene', '');
