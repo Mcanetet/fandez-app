@@ -160,12 +160,12 @@
       const wizardOrder = ['trayecto','llegada','confirmar','diagnostico','accion','presupuesto','espera','mat-propuesta','mat-espera','materiales','cierre','done'];
       const wizardIdx = Math.max(0, wizardOrder.indexOf(wizardStep === 'cambio' ? 'accion' : wizardStep));
       const wizardSteps = [
-        { id: 'trayecto', label: 'Trayecto' },
+        { id: 'trayecto', label: 'Camino' },
         { id: 'llegada', label: 'Llegada' },
         { id: 'confirmar', label: 'Confirmar' },
-        { id: 'diagnostico', label: 'Diagnóstico' },
-        { id: 'accion', label: 'Decisión' },
-        { id: 'cierre', label: 'Cierre' }
+        { id: 'diagnostico', label: 'Qué viste' },
+        { id: 'accion', label: 'Qué haces' },
+        { id: 'cierre', label: 'Cerrar' }
       ];
     %>
 
@@ -372,26 +372,26 @@
       data-code-verified="<%= request.arrivalCodeVerified ? '1' : '0' %>"
       data-confirm-status="<%= request.serviceConfirmStatus || '' %>">
       <p class="zilo-label mb-1">Ahora · Llegada</p>
-      <h2 class="text-sm font-semibold mb-3">Código de seguridad</h2>
+      <h2 class="text-sm font-semibold mb-3">Código del cliente</h2>
 
       <div id="arrivalCodeGate" class="space-y-3 <%= request.arrivalCodeVerified ? 'hidden' : '' %>">
         <p class="text-xs text-zilo-muted">
-          Pídele al cliente el <strong>código de 6 dígitos</strong> que ve en su app. Sin ese código no puedes continuar.
+          Pídele el <strong>código de 6 dígitos</strong> que ve en su app. Sin ese código no puedes seguir.
         </p>
         <div>
-          <label class="text-xs text-zilo-muted">Código del cliente *</label>
+          <label class="text-xs text-zilo-muted">Código *</label>
           <input type="text" id="arrivalCodeInput" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code"
             class="zilo-input w-full mt-1 text-center text-2xl font-bold tracking-[0.35em] tabular-nums" placeholder="••••••">
         </div>
-        <button type="button" id="btnVerifyArrivalCode" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Validar código</button>
+        <button type="button" id="btnVerifyArrivalCode" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Ingresar código</button>
       </div>
 
       <div id="arrivalCodeOk" class="<%= request.arrivalCodeVerified ? '' : 'hidden' %> mb-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-sm text-emerald-800">
-        Código verificado.
+        Código OK.
         <% if (request.serviceConfirmStatus === 'pending') { %>
-          Ahora confirma si el servicio es el correcto.
+          Ahora confirma si el trabajo es el correcto.
         <% } else { %>
-          Continúa con el diagnóstico.
+          Sigue: cuéntanos qué viste.
         <% } %>
       </div>
     </section>
@@ -399,7 +399,7 @@
     <!-- Paso: Diagnóstico (post-código) -->
     <section id="stepDiagnostico" data-wizard-panel="diagnostico" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'diagnostico' ? '' : 'hidden' %>"
       data-code-verified="<%= request.arrivalCodeVerified ? '1' : '0' %>">
-      <p class="zilo-label mb-1">Ahora · Diagnóstico</p>
+      <p class="zilo-label mb-1">Ahora · Qué viste</p>
       <div id="arrivalReviewForm" class="space-y-3 <%= request.arrivalCodeVerified && request.serviceConfirmStatus !== 'pending' && request.serviceConfirmStatus !== 'change_pending' ? '' : 'hidden' %>">
         <% if (request.serviceId === 'limpieza') { %>
           <h2 class="text-sm font-semibold">¿Qué cambió respecto a lo cotizado?</h2>
@@ -431,7 +431,7 @@
             <img src="" alt="Vista previa" class="w-full max-h-36 object-cover rounded-xl border border-zilo-border">
           </div>
         </div>
-        <button type="button" id="btnLlegada" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Confirmar diagnóstico</button>
+        <button type="button" id="btnLlegada" class="w-full py-4 rounded-xl zilo-btn-primary text-base">Guardar lo que vi</button>
       </div>
     </section>
 
@@ -627,32 +627,32 @@
 
     <!-- Paso 2: Acción -->
     <section id="stepAccion" data-wizard-panel="accion" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'accion' ? '' : 'hidden' %>">
-      <p class="zilo-label mb-1">Ahora · Decisión</p>
+      <p class="zilo-label mb-1">Ahora · Qué haces</p>
       <% if (request.serviceId === 'limpieza') { %>
-        <h2 class="text-sm font-semibold mb-3">¿Puedes ejecutar el servicio ahora?</h2>
+        <h2 class="text-sm font-semibold mb-3">¿Puedes limpiar ahora?</h2>
         <div class="grid gap-2">
           <button type="button" class="action-btn py-4 px-4 rounded-xl zilo-btn-primary !text-sm text-left" data-action="reparar">
             <strong class="block text-base">Sí, limpio ahora</strong>
-            <span class="text-xs opacity-80">Alcance confirmado · materiales incluidos</span>
+            <span class="text-xs opacity-80">Todo cuadra · materiales incluidos</span>
           </button>
           <button type="button" class="action-btn py-3.5 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="presupuesto">
-            <strong class="block">Debo cotizar un ajuste</strong>
-            <span class="text-xs text-zilo-muted">Si el alcance cambió mucho, usa reevaluar (m² / mascotas / post evento)</span>
+            <strong class="block">Hay que cotizar un ajuste</strong>
+            <span class="text-xs text-zilo-muted">Si cambió mucho el alcance, reevalúa (m² / mascotas / post evento)</span>
           </button>
         </div>
       <% } else { %>
-        <h2 class="text-sm font-semibold mb-3">¿Puedes reparar ahora?</h2>
+        <h2 class="text-sm font-semibold mb-3">¿Puedes arreglarlo ahora?</h2>
         <div class="grid gap-2">
           <button type="button" class="action-btn py-4 px-4 rounded-xl zilo-btn-primary !text-sm text-left" data-action="reparar">
-            <strong class="block text-base">Sí, reparo ahora</strong>
-            <span class="text-xs opacity-80">Tengo lo necesario</span>
+            <strong class="block text-base">Sí, lo arreglo ahora</strong>
+            <span class="text-xs opacity-80">Tengo lo que necesito</span>
           </button>
           <button type="button" class="action-btn py-3.5 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="comprar">
             <strong class="block">Necesito materiales</strong>
-            <span class="text-xs text-zilo-muted">&lt; $10.000 incluidos · ≥ $10.000 con OK del cliente</span>
+            <span class="text-xs text-zilo-muted">Menos de $10.000 van incluidos · desde $10.000 con OK del cliente</span>
           </button>
           <button type="button" class="action-btn py-3.5 px-4 rounded-xl zilo-btn-ghost !text-sm text-left" data-action="presupuesto">
-            <strong class="block">Debo cotizar</strong>
+            <strong class="block">Hay que cotizar</strong>
             <span class="text-xs text-zilo-muted">El cliente debe aprobar el monto</span>
           </button>
         </div>
@@ -664,22 +664,22 @@
       <p class="zilo-label mb-1">Presupuesto</p>
       <div class="space-y-3">
         <div>
-          <label class="text-xs text-zilo-muted">Total de visita + servicio (sin materiales) *</label>
+          <label class="text-xs text-zilo-muted">Total visita + mano de obra (sin materiales) *</label>
           <input type="number" id="budgetAmount" min="1000" step="1000" class="zilo-input w-full mt-1" placeholder="Ej: 150000">
-          <p class="text-[11px] text-zilo-muted mt-1">Material &lt; $10.000: incluido en el servicio. ≥ $10.000: con OK del cliente y factura al pedido (a costo, sin comisión).</p>
+          <p class="text-[11px] text-zilo-muted mt-1">Material bajo $10.000: va incluido. Desde $10.000: con OK del cliente y se factura al pedido (a costo).</p>
         </div>
         <div>
-          <label class="text-xs text-zilo-muted">Detalle del presupuesto *</label>
-          <textarea id="budgetDesc" rows="3" class="zilo-input w-full mt-1 resize-none" placeholder="Trabajo a realizar, mano de obra y tiempo estimado..."></textarea>
+          <label class="text-xs text-zilo-muted">Qué incluye este presupuesto *</label>
+          <textarea id="budgetDesc" rows="3" class="zilo-input w-full mt-1 resize-none" placeholder="Qué vas a hacer, mano de obra y tiempo aprox…"></textarea>
         </div>
-        <button type="button" id="btnPresupuesto" class="w-full py-3 rounded-xl zilo-btn-primary">Enviar presupuesto al cliente</button>
+        <button type="button" id="btnPresupuesto" class="w-full py-3 rounded-xl zilo-btn-primary">Enviar al cliente</button>
       </div>
     </section>
 
     <!-- Esperando cliente -->
     <section id="stepEsperaPresupuesto" data-wizard-panel="espera" class="zilo-card-premium rounded-2xl p-5 text-center field-step <%= wizardStep === 'espera' ? '' : 'hidden' %>">
       <p class="zilo-display text-lg mb-2"><%= request.siteReport && request.siteReport.budgetStatus === 'payment_pending' ? 'Esperando el pago' : 'Esperando al cliente' %></p>
-      <p class="text-sm text-zilo-muted">Presupuesto de <strong class="text-zilo-accent"><%= request.siteReport ? formatCLP(request.siteReport.budgetAmount) : '' %></strong> enviado. <%= request.siteReport && request.siteReport.budgetStatus === 'payment_pending' ? 'El cliente lo aprobó; te avisaremos cuando pague.' : 'Te avisaremos cuando responda.' %></p>
+      <p class="text-sm text-zilo-muted">Mandaste <strong class="text-zilo-accent"><%= request.siteReport ? formatCLP(request.siteReport.budgetAmount) : '' %></strong>. <%= request.siteReport && request.siteReport.budgetStatus === 'payment_pending' ? 'Ya lo aprobó; te avisamos cuando pague.' : 'Te avisamos cuando responda.' %></p>
       <% if (request.siteReport && request.siteReport.budgetDescription) { %>
         <p class="text-xs text-zilo-muted mt-3 p-3 rounded-lg bg-zilo-bg/80 border border-zilo-border text-left"><%= request.siteReport.budgetDescription %></p>
       <% } %>
