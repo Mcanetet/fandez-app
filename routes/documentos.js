@@ -71,6 +71,40 @@ router.get('/factura-socio/:requestId', (req, res) => {
   return res.sendFile(filePath);
 });
 
+/** Representación impresa SII directo (lib/sii-dte → data/dte/sii). */
+router.get('/tributarios/sii/:docId', async (req, res) => {
+  if (!store.isReady()) {
+    return res.status(503).render('error', { title: 'Cargando…', message: 'Espera unos segundos.', code: 503 });
+  }
+  const siiDte = require('../lib/sii-dte');
+  const doc = await siiDte.findById(req.params.docId);
+  if (!doc) {
+    return res.status(404).render('error', {
+      title: 'Documento no encontrado',
+      message: 'No encontramos ese DTE.',
+      code: 404
+    });
+  }
+  const request = store.getAllRequests().find((r) => r.id === doc.requestId);
+  if (!canAccessDocument(req, request) && req.session.user?.role !== 'admin') {
+    // Socio receptor del DTE de comisión
+    if (!(req.session.user?.role === 'provider' && doc.providerId === req.session.user.id)) {
+      return res.status(404).render('error', {
+        title: 'Documento no encontrado',
+        message: 'No tienes acceso a este documento tributario.',
+        code: 404
+      });
+    }
+  }
+  const filePath = doc.pdfPath || path.join(DTE_DIR, 'sii', `${doc.id}.html`);
+  if (filePath && fs.existsSync(filePath)) return res.sendFile(path.resolve(filePath));
+  return res.status(404).render('error', {
+    title: 'Archivo no disponible',
+    message: 'El documento aún no está generado.',
+    code: 404
+  });
+});
+
 router.get('/tributarios/:docId', (req, res) => {
   if (!store.isReady()) {
     return res.status(503).render('error', { title: 'Cargando…', message: 'Espera unos segundos.', code: 503 });

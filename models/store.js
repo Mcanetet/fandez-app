@@ -6577,6 +6577,49 @@ function registerProviderInvoice(requestId, providerId, { documentType, folio, f
   request.providerInvoicePlan.mimeType = mimeType || 'application/pdf';
   request.providerInvoicePlan.url = `/documentos/factura-socio/${request.id}`;
   repository.persist(() => repository.saveRequest(request), `factura socio ${requestId}`);
+
+  // Trigger asíncrono: Factura Electrónica 33 Fandez → socio (comisión + pasarela).
+  // Idempotente; no bloquea la respuesta al socio si el SII falla (queda en sii_dtes).
+  setImmediate(() => {
+    try {
+      const siiDte = require('../lib/sii-dte');
+      const partner = getUserById(providerId);
+      const fin = request.financials || computeRequestFinancials(request, getPricingForRequest(request));
+      siiDte.generateCommissionInvoice({
+        requestId,
+        partner,
+        providerId,
+        commissionClp: fin.laborCommission,
+        cardFeeClp: fin.cardFee,
+        appTotal: fin.appTotal,
+        phase: 'fandez_margin'
+      }).then((result) => {
+        if (!result?.document) return;
+        if (!request.dteDocuments) request.dteDocuments = [];
+        if (request.dteDocuments.some((d) => d.id === result.document.id)) return;
+        request.dteDocuments.push({
+          id: result.document.id,
+          phase: 'fandez_margin',
+          dteType: 33,
+          folio: result.document.folio,
+          amount: result.document.total,
+          status: 'issued',
+          provider: 'sii_direct',
+          siiStatus: result.document.siiStatus,
+          trackId: result.document.trackId,
+          pdfUrl: result.document.pdfUrl,
+          issuedAt: result.document.signedAt,
+          dryRun: Boolean(result.dryRun || result.document.meta?.dryRun)
+        });
+        repository.persist(() => repository.saveRequest(request), `dte comisión ${requestId}`);
+      }).catch((err) => {
+        console.error('[sii-dte] commission invoice:', err.message || err);
+      });
+    } catch (err) {
+      console.error('[sii-dte] trigger:', err.message || err);
+    }
+  });
+
   return { success: true, invoice: request.providerInvoicePlan };
 }
 

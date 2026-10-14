@@ -10,6 +10,10 @@ data/backups/
 data/backup-config.json
 data/vapid-keys.json
 data/dte/
+data/secrets/**
+!data/secrets/sii/
+!data/secrets/sii/.gitkeep
+!data/secrets/sii/README.md
 data/vouchers/
 data/finance-state.json
 data/uploads/requests/*

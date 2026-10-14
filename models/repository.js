@@ -654,6 +654,15 @@ async function migrate() {
   await ensureWallDismissedColumn();
   await ensureCoverageInterestTable();
   await ensureUserNamePartsColumns();
+  await ensureSiiDtesTable();
+}
+
+async function ensureSiiDtesTable() {
+  try {
+    await require('../lib/sii-dte').ensureTable();
+  } catch (err) {
+    console.warn('[migrate] sii_dtes:', err.message || err);
+  }
 }
 
 async function ensureUserNamePartsColumns() {

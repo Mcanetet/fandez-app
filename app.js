@@ -601,9 +601,17 @@ app.use('/pagos', paymentRoutes);
 app.use('/legal', legalRoutes);
 app.use('/seguimiento', trackingRoutes);
 app.use('/documentos', documentosRoutes);
+app.use('/api/partner-invoices', require('./routes/api/partner-invoices'));
 app.use('/lang', langRoutes);
 app.use('/aland', alandRoutes);
 app.use('/push', require('./routes/push'));
+
+// Worker liviano: consulta Track ID de DTE enviados al SII
+try {
+  require('./lib/sii-dte').startPollWorker();
+} catch (err) {
+  console.warn('[sii-dte] poll worker:', err.message || err);
+}
 
 app.use((req, res, next) => {
   if (store.isReady() || req.path === '/health') return next();
