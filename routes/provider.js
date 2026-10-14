@@ -1128,7 +1128,8 @@ router.get('/trabajo/:requestId', requireRole('provider'), requireModule('provid
     attentionChecklist: ATTENTION_CHECKLIST,
     diagnosisChips: getDiagnosisChips(request.serviceId),
     materialsCatalog: store.getMaterialsCatalogForService(request.serviceId),
-    materialsIncludedThreshold: store.getMaterialsIncludedThreshold()
+    materialsIncludedThreshold: store.getMaterialsIncludedThreshold(),
+    materialsLogisticsRate: store.getPricingConfig().materialsLogisticsRate
   });
 });
 

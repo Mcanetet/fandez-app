@@ -518,6 +518,23 @@
       const amount = document.getElementById(amountInputId);
       if (amount && total > 0) amount.value = String(total);
     }
+    const hint = document.getElementById('matPurchaseClientHint');
+    if (hint && containerId === 'matPurchaseItems') {
+      const threshold = parseInt(page.dataset.materialsThreshold || '10000', 10) || 10000;
+      const logisticsRate = parseFloat(page.dataset.materialsLogistics || '0.15') || 0.15;
+      if (total >= threshold) {
+        const logistics = Math.round(total * logisticsRate);
+        const clientTotal = total + logistics;
+        hint.textContent = `Cliente verá ~${fmtCLP(clientTotal)} (compra ${fmtCLP(total)} + gestión ${fmtCLP(logistics)})`;
+        hint.classList.remove('hidden');
+      } else if (total > 0) {
+        hint.textContent = `Va incluido (< ${fmtCLP(threshold)}). Sin cobro aparte al cliente.`;
+        hint.classList.remove('hidden');
+      } else {
+        hint.textContent = '';
+        hint.classList.add('hidden');
+      }
+    }
     return total;
   }
 

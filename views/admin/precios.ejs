@@ -126,7 +126,7 @@
           <div>
             <label class="text-xs text-gray-500">Comisión app — materiales</label>
             <input type="hidden" name="materialsCommissionPercent" value="0">
-            <div class="zilo-input w-full mt-1 text-gray-500 bg-gray-50">0% · a costo</div>
+            <div class="zilo-input w-full mt-1 text-gray-500 bg-gray-50">0% Fandez · cliente paga compra + gestión</div>
             <p class="text-[10px] text-gray-400 mt-1">El material se entrega íntegro al socio.</p>
           </div>
           <div>
@@ -590,6 +590,11 @@
             <p class="text-[10px] text-gray-400 mt-1">Bajo este monto no se cobra aparte.</p>
           </div>
           <div>
+            <label class="text-[11px] font-semibold text-gray-600">Gestión / logística técnico (%)</label>
+            <input type="number" name="materialsLogisticsPercent" value="<%= Math.round((pricing.materialsLogisticsRate != null ? pricing.materialsLogisticsRate : 0.15) * 100) %>" min="0" max="50" step="1" class="zilo-input w-full mt-1">
+            <p class="text-[10px] text-gray-400 mt-1">Sobre materiales ≥ umbral (boleta + %). 100% para el socio.</p>
+          </div>
+          <div>
             <label class="text-[11px] font-semibold text-gray-600">Auto-aprobar hasta (CLP)</label>
             <input type="number" name="materialsAutoApproveMaxClp" value="<%= pricing.materialsAutoApproveMaxClp != null ? pricing.materialsAutoApproveMaxClp : 15000 %>" min="0" step="500" class="zilo-input w-full mt-1">
           </div>
@@ -609,7 +614,7 @@
           <div>
             <h2 class="text-sm font-semibold">Materiales y productos · por servicio</h2>
             <p class="text-xs text-gray-500 mt-1">
-              Despliega por tipo. Precio Fandez = costo al cliente (0% comisión). Comparativo retail RM (bajo / mid / alto).
+              Despliega por tipo. Precio lista = boleta/compra. Al cliente ≥ umbral: compra + gestión logística. Comparativo retail RM.
             </p>
           </div>
         </div>

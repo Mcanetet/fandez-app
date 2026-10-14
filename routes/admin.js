@@ -2515,6 +2515,7 @@ router.post('/precios', requireRole('admin'), requireAdminPermission('precios.ma
     catalogMarketRefs,
     materialsCatalog: materialsCatalog.length ? materialsCatalog : undefined,
     materialsIncludedThresholdClp: parseInt(body.materialsIncludedThresholdClp, 10),
+    materialsLogisticsRate: parseFloat(body.materialsLogisticsPercent) / 100,
     materialsAutoApproveMaxClp: parseInt(body.materialsAutoApproveMaxClp, 10),
     materialsFounderReviewMinClp: parseInt(body.materialsFounderReviewMinClp, 10),
     materialsAutoApproveMinConfidence: parseFloat(body.materialsAutoApproveMinConfidence)

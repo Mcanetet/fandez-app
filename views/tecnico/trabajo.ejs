@@ -34,7 +34,9 @@
   data-user-name="<%= user && user.name ? user.name : (isObserver ? 'Socio' : 'Técnico') %>"
   data-chat-base="<%= chatBase %>"
   data-dest-lat="<%= request.coords && request.coords.lat != null ? request.coords.lat : '' %>"
-  data-dest-lng="<%= request.coords && request.coords.lng != null ? request.coords.lng : '' %>">
+  data-dest-lng="<%= request.coords && request.coords.lng != null ? request.coords.lng : '' %>"
+  data-materials-threshold="<%= typeof materialsIncludedThreshold !== 'undefined' && materialsIncludedThreshold != null ? materialsIncludedThreshold : 10000 %>"
+  data-materials-logistics="<%= typeof materialsLogisticsRate !== 'undefined' && materialsLogisticsRate != null ? materialsLogisticsRate : 0.15 %>">
 
   <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
     <div class="app-session-header__row">
@@ -666,7 +668,7 @@
         <div>
           <label class="text-xs text-zilo-muted">Total visita + mano de obra (sin materiales) *</label>
           <input type="number" id="budgetAmount" min="1000" step="1000" class="zilo-input w-full mt-1" placeholder="Ej: 150000">
-          <p class="text-[11px] text-zilo-muted mt-1">Material bajo $10.000: va incluido. Desde $10.000: con OK del cliente y se factura al pedido (a costo).</p>
+          <p class="text-[11px] text-zilo-muted mt-1">Material bajo $10.000: va incluido. Desde $10.000: OK del cliente · boleta de compra + 15% gestión de traslado (tuya).</p>
         </div>
         <div>
           <label class="text-xs text-zilo-muted">Qué incluye este presupuesto *</label>
@@ -693,8 +695,8 @@
         <p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">El cliente pidió más detalles. Aclara el producto o el precio y vuelve a enviar.</p>
       <% } %>
       <div class="mb-3 p-3 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-950 space-y-1.5">
-        <p>· Elige del <strong>catálogo en base de datos</strong> el producto (ej. WC, sifón) con precio referencial.</p>
-        <p>· No inventes precios: solo se usan los del listado. &lt; <%= formatCLP(materialsThreshold) %>: incluido. ≥ <%= formatCLP(materialsThreshold) %>: el cliente aprueba y se cobra aprox.</p>
+        <p>· Elige del <strong>catálogo</strong> el producto (ej. WC, sifón) con precio referencial de compra.</p>
+        <p>· &lt; <%= formatCLP(materialsThreshold) %>: incluido. ≥ <%= formatCLP(materialsThreshold) %>: el cliente ve compra + <%= Math.round((typeof materialsLogisticsRate !== 'undefined' && materialsLogisticsRate != null ? materialsLogisticsRate : 0.15) * 100) %>% gestión de traslado.</p>
       </div>
       <div class="space-y-3">
         <div class="p-3 rounded-xl border border-zilo-border bg-zilo-bg/60 space-y-2">
@@ -709,7 +711,8 @@
           </select>
           <button type="button" id="btnAddMatPurchaseItem" class="text-[11px] font-semibold text-zilo-accent">+ Agregar a la propuesta</button>
           <div id="matPurchaseItems" class="space-y-2"></div>
-          <p class="text-sm font-semibold text-right">Total aprox.: <span id="matPurchaseCatalogTotal" class="text-zilo-accent">$0</span></p>
+          <p class="text-sm font-semibold text-right">Compra aprox.: <span id="matPurchaseCatalogTotal" class="text-zilo-accent">$0</span></p>
+          <p id="matPurchaseClientHint" class="hidden text-[11px] text-zilo-muted text-right leading-relaxed"></p>
         </div>
         <div>
           <label class="text-xs text-zilo-muted">Monto estimado (desde catálogo)</label>

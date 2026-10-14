@@ -217,7 +217,12 @@ describe('Flujo C · Materiales ≥ $10.000 (catálogo + store)', () => {
     expect(proposed.included).toBe(false);
     expect(proposed.materialsPurchase.status).toBe('pending');
     expect(proposed.request.techStatus).toBe('materiales_pendiente');
-    expect(proposed.materialsPurchase.estimatedAmount).toBeGreaterThanOrEqual(10000);
+    const purchaseCost = proposed.materialsPurchase.estimatedPurchaseAmount;
+    expect(purchaseCost).toBeGreaterThanOrEqual(10000);
+    expect(proposed.materialsPurchase.estimatedLogisticsAmount).toBe(Math.round(purchaseCost * 0.15));
+    expect(proposed.materialsPurchase.estimatedAmount).toBe(
+      purchaseCost + proposed.materialsPurchase.estimatedLogisticsAmount
+    );
 
     const approved = store.respondMaterialsPurchase(JOB_ID, CLIENT_ID, 'approved');
     expect(approved.error).toBeUndefined();
@@ -225,6 +230,7 @@ describe('Flujo C · Materiales ≥ $10.000 (catálogo + store)', () => {
     expect(approved.additionalCharge).toBeTruthy();
     expect(approved.additionalCharge.status).toBe('pending');
     expect(approved.additionalCharge.reason).toBe('materials_approx');
+    expect(approved.additionalCharge.baseAmount).toBe(proposed.materialsPurchase.estimatedAmount);
     expect(approved.request.techStatus).toBe('materiales_pendiente');
 
     // Simula que el técnico intenta cerrar sin que el cliente haya pagado

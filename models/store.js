@@ -50,6 +50,8 @@ const {
   findMaterialInCatalog,
   normalizeMaterialsPreview,
   sumMaterialsPreview,
+  materialsClientBreakdown,
+  materialsClientTotal,
   isPerM2Service,
   isPerM2Activity,
   isCleaningService,
@@ -2264,8 +2266,8 @@ function getClientAttentionItems(clientId, now = Date.now()) {
         requestId: request.id,
         type: 'materials_purchase',
         urgency: 'high',
-        title: 'Producto adicional — precio aprox.',
-        body: `Estimado ~${formatCLP(materialsPurchase.estimatedAmount || 0)}${materialsPurchase.description ? `: ${materialsPurchase.description}` : ''}. Se valida con boleta o factura (puede haber ajustes). Aprueba, pide detalles o no apruebes.`,
+        title: 'Repuesto adicional — con tu OK',
+        body: `Total aprox. ~${formatCLP(materialsPurchase.estimatedAmount || 0)}${materialsPurchase.estimatedPurchaseAmount != null ? ` (compra ${formatCLP(materialsPurchase.estimatedPurchaseAmount)} + gestión ${formatCLP(materialsPurchase.estimatedLogisticsAmount || 0)})` : ''}${materialsPurchase.description ? `: ${materialsPurchase.description}` : ''}. La boleta confirma la compra. Aprueba, pide detalles o no apruebes.`,
         url: `/cliente/servicio/${request.serviceId}?tracking=${request.id}`
       });
       continue;
@@ -7151,6 +7153,9 @@ function submitMaterialsPurchase(requestId, technicianId, { estimatedAmount, des
     sr.materialsPurchase = {
       status: 'included',
       estimatedAmount: parsed,
+      estimatedPurchaseAmount: parsed,
+      estimatedLogisticsAmount: 0,
+      estimatedClientTotal: parsed,
       description,
       materialsPreview,
       billable: false,
@@ -7171,9 +7176,14 @@ function submitMaterialsPurchase(requestId, technicianId, { estimatedAmount, des
     return { success: true, request, included: true, materialsPurchase: sr.materialsPurchase };
   }
 
+  const breakdown = materialsClientBreakdown(parsed, pricing);
   sr.materialsPurchase = {
     status: 'pending',
-    estimatedAmount: parsed,
+    estimatedAmount: breakdown.clientTotal,
+    estimatedPurchaseAmount: breakdown.purchaseAmount,
+    estimatedLogisticsAmount: breakdown.logisticsAmount,
+    estimatedClientTotal: breakdown.clientTotal,
+    logisticsRate: breakdown.logisticsRate,
     description,
     materialsPreview,
     billable: true,
@@ -7188,7 +7198,7 @@ function submitMaterialsPurchase(requestId, technicianId, { estimatedAmount, des
     senderType: 'system',
     senderId: null,
     senderName: 'Fandez',
-    body: `El técnico solicita OK para producto/material adicional (~${formatCLP(parsed)} aprox.): ${description}. Si apruebas se cobra el aproximado; al subir la boleta o factura se valida el precio real y pueden haber modificaciones.`
+    body: `El técnico solicita OK para un repuesto (~${formatCLP(breakdown.clientTotal)}): compra ${formatCLP(breakdown.purchaseAmount)} + gestión de traslado ${formatCLP(breakdown.logisticsAmount)}. ${description}. Si apruebas se cobra el aproximado; la boleta o factura confirma el precio de compra y se ajusta si hace falta.`
   });
   repository.persist(() => repository.saveRequest(request), `materiales propuesta ${requestId}`);
   afterEvent((ev) => ev.onMaterialsPurchaseProposed?.(request, sr.materialsPurchase));
@@ -7234,14 +7244,25 @@ function respondMaterialsPurchase(requestId, clientId, approvedOrDecision) {
   }
 
   if (decision === 'approved') {
-    const approx = Math.max(0, parseInt(purchase.estimatedAmount, 10) || 0);
+    const pricingCfg = getPricingConfig();
+    const storedPurchase = parseInt(purchase.estimatedPurchaseAmount, 10);
+    const purchaseCost = Number.isFinite(storedPurchase) && storedPurchase > 0
+      ? storedPurchase
+      : Math.max(0, parseInt(purchase.estimatedAmount, 10) || 0);
+    const breakdown = materialsClientBreakdown(purchaseCost, pricingCfg);
+    const approx = breakdown.clientTotal;
+    purchase.estimatedPurchaseAmount = breakdown.purchaseAmount;
+    purchase.estimatedLogisticsAmount = breakdown.logisticsAmount;
+    purchase.estimatedClientTotal = approx;
+    purchase.estimatedAmount = approx;
+    purchase.logisticsRate = breakdown.logisticsRate;
     if (approx > 0 && request.paymentStatus === 'approved') {
       const chargeResult = openAdditionalCharge(request, {
         reason: 'materials_approx',
         baseAmount: approx,
         materialsApproxBase: approx,
         laborDeltaBase: 0,
-        description: `Materiales aprox.: ${purchase.description || 'Producto adicional'}`
+        description: `Repuesto aprox.: compra ${formatCLP(breakdown.purchaseAmount)} + gestión ${formatCLP(breakdown.logisticsAmount)}`
       });
       if (chargeResult.error) return chargeResult;
       additionalCharge = chargeResult.additionalCharge;
@@ -7253,8 +7274,8 @@ function respondMaterialsPurchase(requestId, clientId, approvedOrDecision) {
       senderId: null,
       senderName: 'Fandez',
       body: additionalCharge
-        ? `Cliente aprobó el material (~${formatCLP(approx)}). Pendiente cobro aproximado en tarjeta; luego compra y sube la boleta o factura para regularizar.`
-        : `Cambio gestionado: cliente aprobó la compra (~${formatCLP(approx)}). Ve a comprar y sube la boleta o factura al pedido.`
+        ? `Cliente aprobó el repuesto (~${formatCLP(approx)}: compra ${formatCLP(breakdown.purchaseAmount)} + gestión ${formatCLP(breakdown.logisticsAmount)}). Pendiente cobro aproximado; luego compra y sube la boleta o factura.`
+        : `Cliente aprobó el repuesto (~${formatCLP(approx)}). Ve a comprar y sube la boleta o factura al pedido.`
     });
   } else {
     purchase.status = 'rejected';
@@ -7399,7 +7420,14 @@ function proposeActivityChange(requestId, technicianId, {
   const lineItems = cleaningJob ? [] : normalizeChangeLineItems(rawLineItems);
   const lineItemsTotal = lineItems.reduce((sum, item) => sum + item.lineTotal, 0);
   const materialsPreview = cleaningJob ? [] : normalizeMaterialsPreview(rawMaterialsPreview, pricing.materialsCatalog);
-  const materialsApproxTotal = sumMaterialsPreview(materialsPreview);
+  const materialsPurchaseCost = sumMaterialsPreview(materialsPreview);
+  const materialsThreshold = getMaterialsIncludedThreshold();
+  const materialsBillable = materialsPurchaseCost >= materialsThreshold;
+  const materialsBreakdown = materialsBillable
+    ? materialsClientBreakdown(materialsPurchaseCost, pricing)
+    : { purchaseAmount: materialsPurchaseCost, logisticsAmount: 0, clientTotal: 0, logisticsRate: 0 };
+  // Opción B: bajo umbral va incluido (0 al cliente); ≥ umbral = compra + logística.
+  const materialsApproxTotal = materialsBreakdown.clientTotal;
 
   let nextSquareMeters = request.squareMeters || null;
   let nextCleaningFactors = request.cleaningFactors || null;
@@ -7528,6 +7556,10 @@ function proposeActivityChange(requestId, technicianId, {
     toBasePrice,
     laborTotal,
     materialsApproxTotal,
+    materialsPurchaseCost,
+    materialsLogisticsAmount: materialsBreakdown.logisticsAmount,
+    materialsLogisticsRate: materialsBreakdown.logisticsRate,
+    materialsBillable,
     materialsPreview,
     proposedTotal,
     previousTotal: request.visitPricePaid || request.visitTotal || request.amountDue || 0,
@@ -7552,7 +7584,11 @@ function proposeActivityChange(requestId, technicianId, {
     notes ? `Motivo: ${notes}` : null,
     cleaningPreview || null,
     linePreview ? `Tareas: ${linePreview}` : null,
-    matPreview ? `Productos: ${matPreview}` : null,
+    matPreview
+      ? (materialsBillable
+        ? `Repuestos: ${matPreview} · compra ${formatCLP(materialsPurchaseCost)} + gestión ${formatCLP(materialsBreakdown.logisticsAmount)}`
+        : `Insumos incluidos (< ${formatCLP(materialsThreshold)}): ${matPreview}`)
+      : null,
     'El cliente debe aprobar en la app.'
   ].filter(Boolean);
   appendChatMessage(request, {
@@ -7779,10 +7815,16 @@ function addSiteMaterial(requestId, technicianId, {
     };
   }
 
+  const logisticsBreakdown = billable
+    ? materialsClientBreakdown(parsed, getPricingConfig())
+    : { purchaseAmount: parsed, logisticsAmount: 0, clientTotal: parsed, logisticsRate: 0 };
   const material = {
     id: `mat-${Date.now()}`,
     description: qty > 1 ? `${desc} × ${qty}` : desc,
-    amount: parsed,
+    amount: logisticsBreakdown.clientTotal,
+    purchaseAmount: logisticsBreakdown.purchaseAmount,
+    logisticsAmount: logisticsBreakdown.logisticsAmount,
+    logisticsRate: logisticsBreakdown.logisticsRate,
     unitPrice: catalogItem ? catalogItem.marketPrice : Math.round(parsed / qty),
     quantity: qty,
     unit: catalogItem?.unit || 'unidad',
@@ -8111,7 +8153,7 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
       reason: 'materials',
       baseAmount: materialsDue,
       approximate: false,
-      description: `Regularización por boleta o factura: diferencia sobre el monto aproximado (documento ${formatCLP(materialsTotal)} − aprox. pagado ${formatCLP(alreadyPaid)})`
+      description: `Regularización por boleta o factura: diferencia sobre el monto aproximado (total ${formatCLP(materialsTotal)} − aprox. pagado ${formatCLP(alreadyPaid)})`
     });
     if (chargeResult.error) return chargeResult;
     additionalCharge = chargeResult.additionalCharge;
@@ -8119,7 +8161,7 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
       senderType: 'system',
       senderId: null,
       senderName: 'Fandez',
-      body: `Precio validado con boleta o factura: el producto costó ${formatCLP(materialsTotal)} (habías pagado aprox. ${formatCLP(alreadyPaid)}). Queda un ajuste de ${formatCLP(materialsDue)} a tu tarjeta.`
+      body: `Precio validado con boleta o factura: total del repuesto ${formatCLP(materialsTotal)} (compra + gestión de traslado). Habías pagado aprox. ${formatCLP(alreadyPaid)}. Queda un ajuste de ${formatCLP(materialsDue)} a tu tarjeta.`
     });
   } else if (materialsCredit > 0) {
     request.materialsRefundDue = (request.materialsRefundDue || 0) + materialsCredit;
@@ -8127,14 +8169,14 @@ function completeSiteWork(requestId, technicianId, { workNotes, photoEnd, attent
       senderType: 'system',
       senderId: null,
       senderName: 'Fandez',
-      body: `Precio validado con boleta o factura: el producto costó ${formatCLP(materialsTotal)} (menos que el aprox. ${formatCLP(alreadyPaid)}). Queda un saldo a tu favor de ${formatCLP(materialsCredit)} para devolución.`
+      body: `Precio validado con boleta o factura: total del repuesto ${formatCLP(materialsTotal)} (menos que el aprox. ${formatCLP(alreadyPaid)}). Queda un saldo a tu favor de ${formatCLP(materialsCredit)} para devolución.`
     });
   } else if (alreadyPaid > 0 && materialsTotal > 0) {
     appendChatMessage(request, {
       senderType: 'system',
       senderId: null,
       senderName: 'Fandez',
-      body: `Precio validado con boleta o factura: ${formatCLP(materialsTotal)} coincide con el cobro aproximado. Sin ajustes adicionales.`
+      body: `Precio validado con boleta o factura: ${formatCLP(materialsTotal)} (compra + gestión) coincide con el cobro aproximado. Sin ajustes adicionales.`
     });
   }
 

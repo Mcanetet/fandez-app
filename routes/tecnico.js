@@ -191,7 +191,8 @@ router.get('/trabajo/:requestId', requireRole('tecnico'), (req, res) => {
     attentionChecklist: ATTENTION_CHECKLIST,
     diagnosisChips: getDiagnosisChips(request.serviceId),
     materialsCatalog: store.getMaterialsCatalogForService(request.serviceId),
-    materialsIncludedThreshold: store.getMaterialsIncludedThreshold()
+    materialsIncludedThreshold: store.getMaterialsIncludedThreshold(),
+    materialsLogisticsRate: store.getPricingConfig().materialsLogisticsRate
   });
 });
 
@@ -522,7 +523,7 @@ router.get('/trabajo/:requestId/materiales-catalogo', requireRole('tecnico'), (r
   res.json({
     success: true,
     materials: store.getMaterialsCatalogForService(request.serviceId),
-    formatHint: 'Precios de mercado Fandez · se cobran al cliente a costo'
+    formatHint: 'Precios de compra · ≥ umbral: boleta + gestión de traslado al cliente'
   });
 });
 

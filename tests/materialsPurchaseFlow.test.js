@@ -13,7 +13,7 @@ const {
 
 const THRESHOLD = 10000;
 
-describe('productos diagnóstico ≥ $10.000', () => {
+describe('productos diagnóstico ≥ $10.000 (+ 15% gestión)', () => {
   test('sanitario / WC básico supera el umbral y sale del catálogo', () => {
     const wc = findMaterialInCatalog(DEFAULT_MATERIALS_CATALOG, 'mat-inodoro-basico');
     expect(wc).toBeTruthy();

@@ -2898,6 +2898,15 @@
     document.getElementById('finalServiceRow')?.classList.toggle('hidden', !totals.serviceAmount);
     document.getElementById('finalMaterials').textContent = fmtCLP(totals.materialsTotal || 0);
     document.getElementById('finalGrandTotal').textContent = fmtCLP(totals.grandTotal || 0);
+    const split = document.getElementById('finalMaterialsSplit');
+    if (split) {
+      const hasSplit = (totals.materialsPurchaseTotal > 0 || totals.materialsLogisticsTotal > 0);
+      split.classList.toggle('hidden', !hasSplit);
+      const purchaseEl = document.getElementById('finalMaterialsPurchase');
+      const logisticsEl = document.getElementById('finalMaterialsLogistics');
+      if (purchaseEl) purchaseEl.textContent = fmtCLP(totals.materialsPurchaseTotal || 0);
+      if (logisticsEl) logisticsEl.textContent = fmtCLP(totals.materialsLogisticsTotal || 0);
+    }
 
     const gardenBox = document.getElementById('finalGardenDeliverables');
     const gardenList = document.getElementById('finalGardenDeliverablesList');
@@ -3120,14 +3129,14 @@
     const wasHidden = banner.classList.contains('hidden');
     const textEl = document.getElementById('materialsPurchaseText');
     if (textEl) {
-      textEl.textContent = `${purchase.description || 'Producto / material adicional'} · ~${fmtCLP(purchase.estimatedAmount || 0)} (aprox.)`;
+      textEl.textContent = purchase.description || 'Repuesto adicional';
     }
     const linesEl = document.getElementById('materialsPurchaseLines');
     if (linesEl) {
       const items = Array.isArray(purchase.materialsPreview) ? purchase.materialsPreview : [];
       if (items.length) {
         linesEl.innerHTML = items.map((m) =>
-          `<li>${m.name} · ${m.qty || 1} ${m.unit || 'und'} × ${fmtCLP(m.unitPrice || 0)} = ${fmtCLP(m.lineTotal || 0)} <span class="opacity-70">(aprox.)</span></li>`
+          `<li>${m.name} · ${m.qty || 1} ${m.unit || 'und'} × ${fmtCLP(m.unitPrice || 0)} = ${fmtCLP(m.lineTotal || 0)} <span class="opacity-70">(compra aprox.)</span></li>`
         ).join('');
         linesEl.classList.remove('hidden');
       } else {
@@ -3135,12 +3144,31 @@
         linesEl.classList.add('hidden');
       }
     }
+    const breakdownEl = document.getElementById('materialsPurchaseBreakdown');
+    const purchaseCost = purchase.estimatedPurchaseAmount != null
+      ? Number(purchase.estimatedPurchaseAmount)
+      : null;
+    const logisticsAmt = purchase.estimatedLogisticsAmount != null
+      ? Number(purchase.estimatedLogisticsAmount)
+      : null;
+    const clientTotal = Number(purchase.estimatedClientTotal || purchase.estimatedAmount || 0);
+    if (breakdownEl && purchaseCost != null && logisticsAmt != null) {
+      const costEl = document.getElementById('materialsPurchaseCost');
+      const logEl = document.getElementById('materialsPurchaseLogistics');
+      const totEl = document.getElementById('materialsPurchaseClientTotal');
+      if (costEl) costEl.textContent = fmtCLP(purchaseCost);
+      if (logEl) logEl.textContent = fmtCLP(logisticsAmt);
+      if (totEl) totEl.textContent = fmtCLP(clientTotal);
+      breakdownEl.classList.remove('hidden');
+    } else if (breakdownEl) {
+      breakdownEl.classList.add('hidden');
+    }
     banner.classList.remove('hidden');
     if (wasHidden && window.FandezAlerts) {
       FandezAlerts.notify({
         type: 'alert',
-        title: 'Producto / material adicional',
-        body: `Precio aproximado ~${fmtCLP(purchase.estimatedAmount || 0)}. Puede variar al validar la boleta o factura. Aprueba, pide detalles o rechaza.`,
+        title: 'Repuesto adicional',
+        body: `Total aprox. ~${fmtCLP(clientTotal)}${purchaseCost != null ? ` (compra ${fmtCLP(purchaseCost)} + gestión ${fmtCLP(logisticsAmt || 0)})` : ''}. Aprueba, pide detalles o rechaza.`,
         tag: 'fandez-materials-' + (request.id || currentRequestId),
         requireInteraction: true,
         url: `/cliente/servicio/${request.serviceId || ''}?tracking=${request.id || currentRequestId}`
