@@ -36,11 +36,15 @@
               <% if (['searching','assigned','in_progress'].includes(req.status)) { %>
                 <a href="/cliente/servicio/<%= req.serviceId %>?tracking=<%= req.id %>" class="zilo-btn-ghost !py-2 !px-3 !text-xs flex-1 text-center"><%= t('client.historial.track') %></a>
               <% } %>
+              <% if (req.status === 'completed') { %>
+                <a href="/cliente/servicio/<%= req.serviceId %>?tracking=<%= req.id %>&amp;factura=1" class="zilo-btn-ghost !py-2 !px-3 !text-xs flex-1 text-center"><%= t('client.historial.open_service') %></a>
+                <a href="/cliente/servicio/<%= req.serviceId %>?tracking=<%= req.id %>&amp;factura=1#jobChat" class="zilo-btn-ghost !py-2 !px-3 !text-xs flex-1 text-center"><%= t('client.historial.invoice_ask') %></a>
+              <% } %>
               <% if (req.status === 'completed' && mod('client_solicitar')) { %>
                 <a href="/cliente/servicio/<%= req.serviceId %>" class="zilo-btn-ghost !py-2 !px-3 !text-xs flex-1 text-center"><%= t('client.historial.repeat') %></a>
               <% } %>
               <% if (req.providerInvoicePlan?.status === 'issued' && req.providerInvoicePlan?.url) { %>
-                <a href="<%= req.providerInvoicePlan.url %>" target="_blank" class="zilo-btn-ghost !py-2 !px-3 !text-xs flex-1 text-center">Factura del socio</a>
+                <a href="<%= req.providerInvoicePlan.url %>" target="_blank" class="zilo-btn-ghost !py-2 !px-3 !text-xs flex-1 text-center"><%= t('client.historial.invoice_download') %></a>
               <% } %>
               <% if (req.status === 'completed' && !req.clientReview) { %>
                 <button type="button" class="btn-rate zilo-btn-primary !py-2 !px-3 !text-xs flex-1" data-id="<%= req.id %>" data-service="<%= req.serviceName %>"><%= t('client.historial.rate') %></button>

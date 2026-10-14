@@ -6237,8 +6237,9 @@ function postRequestChatMessage(requestId, user, body, { photoUrl = null } = {})
   const request = requests.find((r) => r.id === requestId);
   if (!request) return { error: 'Solicitud no encontrada' };
   if (!canAccessRequestChat(request, user)) return { error: 'No autorizado' };
-  if (!['assigned', 'in_progress'].includes(request.status)) {
-    return { error: 'El chat solo está disponible mientras el servicio está activo.' };
+  // Activo o ya cerrado: el cliente puede preguntar al socio por la factura
+  if (!['assigned', 'in_progress', 'completed'].includes(request.status)) {
+    return { error: 'El chat no está disponible para este servicio.' };
   }
   const senderType = user.role === 'client' ? 'client' : (user.role === 'tecnico' ? 'tecnico' : 'provider');
   const message = appendChatMessage(request, {

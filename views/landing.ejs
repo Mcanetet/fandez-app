@@ -24,9 +24,13 @@
       <%= t('landing.hero.title1') %><br>
       <span class="text-zilo-accent"><%= t('landing.hero.title2') %></span>
     </h1>
-    <p class="text-zilo-muted text-base leading-relaxed mb-7 max-w-sm">
+    <p class="text-zilo-muted text-base leading-relaxed mb-5 max-w-sm">
       <%= t('landing.hero.subtitle') %>
     </p>
+
+    <div class="mb-6">
+      <%- include('partials/task-search', { taskSearchIndex: typeof taskSearchIndex !== 'undefined' ? taskSearchIndex : [], taskSearchMode: 'landing' }) %>
+    </div>
 
     <% if (typeof referralBanner !== 'undefined' && referralBanner) { %>
       <div class="mb-6 p-4 rounded-xl zilo-card-premium border border-zilo-accent/20 bg-zilo-accent-soft/40">
@@ -37,16 +41,10 @@
 
     <div class="landing-cta-stack">
       <p class="landing-cta-label"><%= t('landing.cta.demand_label') %></p>
-      <div class="landing-demand-grid">
-        <a href="/registro?role=client&amp;billing=natural" class="landing-demand-card">
-          <span class="landing-demand-card__title"><%= t('landing.cta.person') %></span>
-          <span class="landing-demand-card__hint"><%= t('landing.cta.person_hint') %></span>
-        </a>
-        <a href="/registro?role=client&amp;billing=empresa" class="landing-demand-card">
-          <span class="landing-demand-card__title"><%= t('landing.cta.company') %></span>
-          <span class="landing-demand-card__hint"><%= t('landing.cta.company_hint') %></span>
-        </a>
-      </div>
+      <a href="/registro?role=client" class="landing-demand-card landing-demand-card--full">
+        <span class="landing-demand-card__title"><%= t('landing.cta.unified') %></span>
+        <span class="landing-demand-card__hint"><%= t('landing.cta.unified_hint') %></span>
+      </a>
       <a href="/registro?emergency=1" class="landing-urgent-cta">
         <span class="landing-urgent-cta__icon" aria-hidden="true">
           <%- include('partials/ui-icon', { name: 'urgent', size: 20 }) %>
@@ -78,10 +76,6 @@
       <a href="/registro?role=client" class="text-zilo-accent font-semibold hover:underline"><%= t('landing.client_waitlist') %></a>
     </p>
     <% } %>
-
-    <div class="mb-8">
-      <%- include('partials/task-search', { taskSearchIndex: typeof taskSearchIndex !== 'undefined' ? taskSearchIndex : [], taskSearchMode: 'landing' }) %>
-    </div>
 
     <div class="mb-8">
       <p class="fandez-wordmark text-lg mb-4"><%= t('landing.only_fandez') %></p>

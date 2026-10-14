@@ -2967,10 +2967,20 @@
       voucherLink.href = voucher.url;
       voucherLink.classList.remove('hidden');
     }
+    const invoiceHelp = document.getElementById('finalInvoiceHelp');
     const invoiceLink = document.getElementById('finalProviderInvoiceLink');
-    if (request?.providerInvoicePlan?.status === 'issued' && request.providerInvoicePlan.url && invoiceLink) {
-      invoiceLink.href = request.providerInvoicePlan.url;
-      invoiceLink.classList.remove('hidden');
+    const invoiceHelpText = document.getElementById('finalInvoiceHelpText');
+    if (invoiceHelp && request?.status === 'completed') {
+      invoiceHelp.classList.remove('hidden');
+      if (request?.providerInvoicePlan?.status === 'issued' && request.providerInvoicePlan.url && invoiceLink) {
+        invoiceLink.href = request.providerInvoicePlan.url;
+        invoiceLink.classList.remove('hidden');
+        if (invoiceHelpText) {
+          invoiceHelpText.textContent = 'Ya está la boleta o factura del socio. Puedes verla o escribirle si tienes una duda.';
+        }
+      } else if (invoiceHelpText) {
+        invoiceHelpText.textContent = 'El socio debe emitir boleta o factura por el total que pagaste (IVA incluido). Si tarda o no cuadra, escríbele acá.';
+      }
     }
     setupInlineReview(request);
     box.classList.remove('hidden');
@@ -4143,6 +4153,12 @@
 
   document.getElementById('tripHeroChat')?.addEventListener('click', openTrackingChat);
   document.getElementById('stickyTrackChat')?.addEventListener('click', openTrackingChat);
+  document.getElementById('finalInvoiceAskBtn')?.addEventListener('click', openTrackingChat);
+
+  // Desde historial: ?factura=1 abre el chat de consulta
+  if (new URLSearchParams(location.search).get('factura') === '1') {
+    setTimeout(() => openTrackingChat(), 900);
+  }
   document.getElementById('btnSearchBack')?.addEventListener('click', () => {
     minimizeSearchOverlay(lastSearchRequest);
   });

@@ -14,7 +14,13 @@
       : ((fin.laborCommission || 0) + (fin.cardFee || 0))) || 0;
     const showDetail = fin.showDetail !== false;
 %>
-<div class="provider-settlement-summary mt-2 space-y-2">
+<div class="provider-settlement-summary mt-2 space-y-2.5">
+  <p class="text-xs font-semibold text-zilo-text"><%= t('provider.settlement_title') %></p>
+  <ol class="text-[11px] text-zilo-muted space-y-1 list-none pl-0">
+    <li><span class="text-zilo-text font-medium"><%= t('provider.settlement_step_invoice') %></span> — <%= formatCLP(clientPaid) %> IVA incl.</li>
+    <li><span class="text-zilo-text font-medium"><%= t('provider.settlement_step_fandez') %></span> — <%= laborRatePct %>% + tarjeta ~<%= cardPctLabel %>% = <%= formatCLP(fandezBill) %></li>
+    <li><span class="text-zilo-text font-medium"><%= t('provider.settlement_step_payout') %></span> — <%= formatCLP(youReceive) %></li>
+  </ol>
   <div class="grid grid-cols-2 gap-2">
     <div class="rounded-xl border border-zilo-border bg-zilo-bg/50 px-3 py-2.5">
       <p class="text-[10px] uppercase tracking-wide text-zilo-muted mb-0.5"><%= t('provider.settlement_client_paid') %></p>
@@ -34,13 +40,14 @@
       fees: formatCLP(fandezBill)
     }) %>
   </p>
+  <p class="text-[11px] font-medium text-zilo-accent leading-snug"><%= t('provider.settlement_action') %></p>
   <% if (showDetail) { %>
   <details class="text-left">
     <summary class="text-[10px] text-zilo-muted cursor-pointer"><%= t('provider.settlement') %></summary>
     <div class="text-[10px] text-zilo-muted mt-1 space-y-0.5">
       <p><%= t('provider.settlement_charged') %>: <%= formatCLP(clientPaid) %></p>
-      <p><%= t('provider.settlement_card') %> <%= cardPctLabel %>%: −<%= formatCLP(fin.cardFee || 0) %></p>
-      <p><%= t('provider.settlement_app') %> <%= laborRatePct %>% IVA incl.: −<%= formatCLP(fin.laborCommission || 0) %></p>
+      <p><%= t('provider.settlement_card') %> ~<%= cardPctLabel %>%: −<%= formatCLP(fin.cardFee || 0) %></p>
+      <p><%= t('provider.settlement_app', { rate: laborRatePct }) %>: −<%= formatCLP(fin.laborCommission || 0) %></p>
       <% if (fin.materialsTotal) { %>
         <p class="text-zilo-success"><%= t('provider.settlement_materials_keep') %>: <%= formatCLP(fin.materialsTotal) %></p>
       <% } %>

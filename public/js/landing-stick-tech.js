@@ -12,8 +12,8 @@
     drip: 6500,
     default: 7200
   };
-  var PAUSE_MS = 2200;
-  var FIRST_DELAY_MS = 5 * 60 * 1000; // 5 minutos
+  var BETWEEN_SCENES_MS = 5 * 60 * 1000; // 5 min entre cada aparición
+  var FIRST_DELAY_MS = 5 * 60 * 1000; // primera vez a los 5 min
 
   function prefersReducedMotion() {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -217,9 +217,11 @@
           clearLetterFx();
           clearDock(root);
           root.setAttribute('data-scene', '');
+          root.classList.add('is-waiting');
           root.classList.remove('is-painting', 'is-lifting');
           i += 1;
-          loopTimer = setTimeout(next, PAUSE_MS);
+          // Una sola escena; la siguiente recién a los 5 minutos
+          loopTimer = setTimeout(next, BETWEEN_SCENES_MS);
         }, 650);
       }, duration);
     }

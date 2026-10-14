@@ -804,7 +804,12 @@
         </div>
         <p class="text-[11px] text-zilo-muted mt-3">Los materiales se incluyen a su valor real, sin comisión ni recargos Fandez.</p>
         <a id="finalVoucherLink" href="#" target="_blank" class="hidden mt-3 block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm">Ver voucher del trabajo</a>
-        <a id="finalProviderInvoiceLink" href="#" target="_blank" class="hidden mt-2 block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm">Ver factura o boleta del socio</a>
+        <div id="finalInvoiceHelp" class="hidden mt-3 p-3 rounded-xl border border-zilo-border bg-zilo-bg/60 space-y-2">
+          <p class="text-xs font-semibold text-zilo-text">Factura o boleta</p>
+          <p id="finalInvoiceHelpText" class="text-[11px] text-zilo-muted leading-relaxed">El socio debe emitirla por el total que pagaste (IVA incluido). Si tienes dudas, escríbele acá.</p>
+          <a id="finalProviderInvoiceLink" href="#" target="_blank" class="hidden block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm">Ver factura o boleta del socio</a>
+          <button type="button" id="finalInvoiceAskBtn" class="w-full py-2.5 rounded-xl zilo-btn-primary !text-sm">Consultar al socio por la factura</button>
+        </div>
         <div id="inlineReviewBox" class="mt-4 pt-4 border-t border-zilo-border">
           <p class="zilo-label mb-2">¿Cómo estuvo tu visita?</p>
           <p id="inlineReviewDone" class="hidden text-sm text-zilo-success">Gracias por tu calificación.</p>
