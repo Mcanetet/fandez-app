@@ -118,11 +118,11 @@ afterEach(async () => {
   await new Promise((resolve) => setImmediate(resolve));
 });
 
-describe('Flujo A · Piso comercial $80.000 IVA incluido', () => {
-  test('MIN_WORK_BASE y mínimos de jardín/limpieza son $80.000', () => {
-    expect(MIN_WORK_BASE_CLP).toBe(80000);
-    expect(GARDEN_MIN_JOB_CLP).toBe(80000);
-    expect(CLEANING_MIN_JOB_CLP).toBe(80000);
+describe('Flujo A · Piso comercial $100.000 IVA incluido', () => {
+  test('MIN_WORK_BASE y mínimos de jardín/limpieza son $100.000', () => {
+    expect(MIN_WORK_BASE_CLP).toBe(100000);
+    expect(GARDEN_MIN_JOB_CLP).toBe(100000);
+    expect(CLEANING_MIN_JOB_CLP).toBe(100000);
   });
 
   test('overrides admin a $70.000 / $75.000 suben al piso', () => {
@@ -131,27 +131,27 @@ describe('Flujo A · Piso comercial $80.000 IVA incluido', () => {
       'gas-cambio-llave': 75000,
       'jard-pkg-cesped': 70000
     });
-    expect(normalized['elec-enchufe']).toBe(80000);
-    expect(normalized['gas-cambio-llave']).toBe(80000);
-    expect(normalized['jard-pkg-cesped']).toBe(80000);
+    expect(normalized['elec-enchufe']).toBe(100000);
+    expect(normalized['gas-cambio-llave']).toBe(100000);
+    expect(normalized['jard-pkg-cesped']).toBe(100000);
   });
 
   test('catálogo efectivo no deja job bajo el piso (salvo m² / smoke)', () => {
     const cat = getServiceCatalog({ 'elec-enchufe': 70000 });
     const elec = cat.find((s) => s.id === 'electricidad');
     const enchufe = elec.activities.find((a) => a.id === 'elec-enchufe');
-    expect(enchufe.basePrice).toBeGreaterThanOrEqual(80000);
+    expect(enchufe.basePrice).toBeGreaterThanOrEqual(100000);
   });
 
-  test('tarifa dinámica fuerza mínimo $80.000', () => {
+  test('tarifa dinámica fuerza mínimo $100.000', () => {
     const forced = calculateDynamicTariff({
       valorBase: 50000,
       horaSolicitud: '10:00',
       tiempoRespuestaMinutos: 180,
       forceHorarioBand: 'normal'
     });
-    expect(forced.valorBaseAplicado).toBe(80000);
-    expect(forced.total).toBe(80000);
+    expect(forced.valorBaseAplicado).toBe(100000);
+    expect(forced.total).toBe(100000);
   });
 });
 
@@ -171,18 +171,18 @@ describe('Flujo B · Paquetes cliente (gasfitería / jardinería)', () => {
     const specialty = SERVICE_CATALOG.find((s) => s.id === 'jardineria-urgencia');
     const client = filterActivitiesForClient(specialty.activities);
     const byId = Object.fromEntries(client.map((a) => [a.id, a.basePrice]));
-    expect(byId['jard-pkg-cesped']).toBe(80000);
-    expect(byId['jard-pkg-maleza']).toBe(85000);
-    expect(byId['jard-pkg-riego']).toBe(95000);
+    expect(byId['jard-pkg-cesped']).toBe(100000);
+    expect(byId['jard-pkg-maleza']).toBe(100000);
+    expect(byId['jard-pkg-riego']).toBe(100000);
     expect(byId['jard-pkg-poda']).toBe(110000);
     expect(new Set(Object.values(byId)).size).toBeGreaterThan(1);
   });
 
   test('precio “desde” de oficios respeta piso y paquetes', () => {
     const pricing = normalizePricing(DEFAULT_PRICING);
-    expect(getServiceFromPrice(pricing, 'jardineria')).toBeGreaterThanOrEqual(80000);
-    expect(getServiceFromPrice(pricing, 'gasfiter')).toBeGreaterThanOrEqual(80000);
-    expect(getServiceFromPrice(pricing, 'electrico')).toBeGreaterThanOrEqual(80000);
+    expect(getServiceFromPrice(pricing, 'jardineria')).toBeGreaterThanOrEqual(100000);
+    expect(getServiceFromPrice(pricing, 'gasfiter')).toBeGreaterThanOrEqual(100000);
+    expect(getServiceFromPrice(pricing, 'electrico')).toBeGreaterThanOrEqual(100000);
   });
 
   test('mañana aplica −10% sobre base de trabajo', () => {
