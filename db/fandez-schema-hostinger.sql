@@ -151,13 +151,17 @@ CREATE TABLE IF NOT EXISTS complaints (
   request_id VARCHAR(64),
   client_name VARCHAR(120),
   client_email VARCHAR(190),
+  client_phone VARCHAR(40),
+  reporter_role VARCHAR(40),
+  reporter_id VARCHAR(64),
   type VARCHAR(40),
   subject VARCHAR(255),
   description TEXT,
   status VARCHAR(40) NOT NULL DEFAULT 'abierto',
   priority VARCHAR(20),
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  resolved_at DATETIME
+  resolved_at DATETIME,
+  updates_json JSON DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS chats (

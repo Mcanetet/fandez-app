@@ -323,13 +323,12 @@ async function init() {
   USERS = data.users;
   requests = data.requests.map(normalizeRequestRecord);
   homeLogbook = data.homeLogbook;
-  COMPLAINTS = data.complaints;
-  CHATS = data.chats;
   consentRecords = data.consentRecords;
   securityLogs = data.securityLogs;
   notifications = data.notifications || [];
   PROMOS = data.promos || [];
   CRM_LEADS = data.crmLeads || [];
+  applyLoadedSeedFilters(data);
   COVERAGE_COMMUNES = data.coverageCommunes || [];
   COVERAGE_REGIONS = data.coverageRegions || [];
   COVERAGE_INTEREST = data.coverageInterest || [];
@@ -1712,6 +1711,17 @@ function normalizeRequestRecord(request) {
 const DEMO_PARTNER_ID = 'provider-pedro';
 
 async function ensureDemoPartnerWallReady() {
+  try {
+    const repo = require('./repository');
+    if (typeof repo.seedDemoUsersAllowed === 'function' && !repo.seedDemoUsersAllowed()) {
+      return; // Productivo: no mutar socio demo
+    }
+  } catch (_) {
+    try {
+      if (!require('../lib/operationalPhase').isDemoPhase()) return;
+      if (require('../lib/appMode').isProductionMode()) return;
+    } catch (__) { /* noop */ }
+  }
   const provider = getUserById(DEMO_PARTNER_ID);
   if (!provider || provider.role !== 'provider') return;
 
@@ -5667,6 +5677,8 @@ function isDemoAccount(userOrId) {
 function getDemoAccounts({ forLogin = false } = {}) {
   // Demo anterior eliminado: nunca mostrar atajos Cliente/Socio en el login público.
   if (forLogin) return [];
+  // Productivo: panel de cuentas demo vacío (aunque queden filas residuales).
+  if (hideSeedComplaintsInProductivo()) return [];
   return DEMO_ACCOUNT_IDS
     .map(id => USERS.find(u => u.id === id))
     .filter(Boolean)
@@ -6519,7 +6531,7 @@ function buildProviderInvoicePlan(request, financials) {
     fileName: request.providerInvoicePlan?.fileName || null,
     mimeType: request.providerInvoicePlan?.mimeType || null,
     url: request.providerInvoicePlan?.url || null,
-    note: 'Emite boleta/factura al cliente por el 100% de lo pagado. Fandez te factura el 15% IVA incluido + costo de la comisión de la tarjeta usada; se descuenta de tu liquidación.'
+    note: 'Emite boleta/factura al cliente por el 100% de lo pagado. Solo si el monto coincide, Fandez emite factura por el 15% IVA incluido + el % IVA incluido de la tarjeta usada; se descuenta de tu liquidación.'
   };
   return request.providerInvoicePlan;
 }
@@ -6551,13 +6563,27 @@ function serializeProviderInvoicePlan(plan) {
     appTotal: plan.appTotal || 0,
     documentType: plan.documentType || null,
     folio: plan.folio || null,
+    declaredAmount: plan.declaredAmount != null ? plan.declaredAmount : null,
+    amountValidated: Boolean(plan.amountValidated),
+    lastMismatchAt: plan.lastMismatchAt || null,
+    lastDeclaredAmount: plan.lastDeclaredAmount != null ? plan.lastDeclaredAmount : null,
+    mismatchCount: plan.mismatchCount || 0,
     url: plan.status === 'issued' ? (plan.url || null) : null,
     recipientName: plan.recipient?.legalName || null,
     note: plan.note || null
   };
 }
 
-function registerProviderInvoice(requestId, providerId, { documentType, folio, filePath, fileName, mimeType }) {
+function registerProviderInvoice(requestId, providerId, {
+  documentType,
+  folio,
+  filePath,
+  fileName,
+  mimeType,
+  declaredAmount,
+  amount
+}) {
+  const { validatePartnerInvoiceAmount } = require('../lib/providerInvoiceValidation');
   const request = requests.find((r) => r.id === requestId && r.providerId === providerId);
   if (!request || request.status !== 'completed' || !request.providerInvoicePlan) {
     return { error: 'No hay una factura pendiente para este servicio.' };
@@ -6568,9 +6594,40 @@ function registerProviderInvoice(requestId, providerId, { documentType, folio, f
   if (!['boleta', 'factura'].includes(type)) return { error: 'Selecciona boleta o factura.' };
   if (!cleanFolio) return { error: 'Ingresa el folio del documento emitido.' };
   if (!filePath) return { error: 'Adjunta el documento emitido.' };
+
+  // Solo si el monto del documento = total del servicio se registra y se emite DTE Fandez.
+  const fin = request.financials || computeRequestFinancials(request, getPricingForRequest(request));
+  const expectedTotal = Math.round(Number(request.providerInvoicePlan.amount ?? fin.grandTotal) || 0);
+  const amountCheck = validatePartnerInvoiceAmount(declaredAmount ?? amount, expectedTotal);
+  if (!amountCheck.ok) {
+    const provider = getUserById(providerId);
+    setImmediate(() => {
+      require('../lib/providerInvoiceMismatchAlert')
+        .alertPartnerInvoiceAmountMismatch({
+          request,
+          provider,
+          declaredAmount: amountCheck.declared,
+          expectedAmount: amountCheck.expected,
+          store: module.exports
+        })
+        .catch((err) => console.warn('[invoice-mismatch]', err.message));
+    });
+    return {
+      error: amountCheck.error,
+      code: 'AMOUNT_MISMATCH',
+      declaredAmount: amountCheck.declared,
+      expectedAmount: amountCheck.expected,
+      partnerNotified: true,
+      adminAlerted: true
+    };
+  }
+
   request.providerInvoicePlan.status = 'issued';
   request.providerInvoicePlan.documentType = type;
   request.providerInvoicePlan.folio = cleanFolio;
+  request.providerInvoicePlan.declaredAmount = amountCheck.declared;
+  request.providerInvoicePlan.amountValidated = true;
+  request.providerInvoicePlan.validatedAt = new Date().toISOString();
   request.providerInvoicePlan.issuedAt = new Date().toISOString();
   request.providerInvoicePlan.filePath = filePath;
   request.providerInvoicePlan.fileName = fileName || null;
@@ -6578,20 +6635,23 @@ function registerProviderInvoice(requestId, providerId, { documentType, folio, f
   request.providerInvoicePlan.url = `/documentos/factura-socio/${request.id}`;
   repository.persist(() => repository.saveRequest(request), `factura socio ${requestId}`);
 
-  // Trigger asíncrono: Factura Electrónica 33 Fandez → socio (comisión + pasarela).
-  // Idempotente; no bloquea la respuesta al socio si el SII falla (queda en sii_dtes).
+  // Trigger asíncrono: Factura 33 Fandez → socio = 15% comisión + % tarjeta (IVA incl.).
+  // Solo tras validación de monto; idempotente si el SII falla (queda en sii_dtes).
   setImmediate(() => {
     try {
       const siiDte = require('../lib/sii-dte');
       const partner = getUserById(providerId);
-      const fin = request.financials || computeRequestFinancials(request, getPricingForRequest(request));
+      const liveFin = request.financials || computeRequestFinancials(request, getPricingForRequest(request));
+      const commissionClp = Math.round(Number(liveFin.laborCommission) || 0);
+      const cardFeeClp = Math.round(Number(liveFin.cardFee) || 0);
+      const appTotal = Math.round(Number(liveFin.appTotal) || (commissionClp + cardFeeClp));
       siiDte.generateCommissionInvoice({
         requestId,
         partner,
         providerId,
-        commissionClp: fin.laborCommission,
-        cardFeeClp: fin.cardFee,
-        appTotal: fin.appTotal,
+        commissionClp,
+        cardFeeClp,
+        appTotal,
         phase: 'fandez_margin'
       }).then((result) => {
         if (!result?.document) return;
@@ -6609,7 +6669,13 @@ function registerProviderInvoice(requestId, providerId, { documentType, folio, f
           trackId: result.document.trackId,
           pdfUrl: result.document.pdfUrl,
           issuedAt: result.document.signedAt,
-          dryRun: Boolean(result.dryRun || result.document.meta?.dryRun)
+          dryRun: Boolean(result.dryRun || result.document.meta?.dryRun),
+          breakdown: {
+            laborCommission: commissionClp,
+            cardFee: cardFeeClp,
+            cardFeePercent: liveFin.merchantCardFeePercent || null,
+            cardInstallments: liveFin.cardInstallments || 1
+          }
         });
         repository.persist(() => repository.saveRequest(request), `dte comisión ${requestId}`);
       }).catch((err) => {
@@ -6620,7 +6686,17 @@ function registerProviderInvoice(requestId, providerId, { documentType, folio, f
     }
   });
 
-  return { success: true, invoice: request.providerInvoicePlan };
+  return {
+    success: true,
+    invoice: request.providerInvoicePlan,
+    amountValidated: true,
+    fandezInvoice: {
+      commissionClp: Math.round(Number(fin.laborCommission) || 0),
+      cardFeeClp: Math.round(Number(fin.cardFee) || 0),
+      appTotal: Math.round(Number(fin.appTotal) || 0),
+      cardFeePercent: fin.merchantCardFeePercent || null
+    }
+  };
 }
 
 function updateRequestStatus(requestId, status) {
@@ -9666,13 +9742,161 @@ function getAdminProvidersDirectory() {
     .sort((a, b) => String(a.name).localeCompare(String(b.name), 'es', { sensitivity: 'base' }));
 }
 
-function updateComplaintStatus(id, status) {
+function complaintRoleLabel(role) {
+  const map = {
+    client: 'Cliente',
+    provider: 'Socio',
+    tecnico: 'Técnico',
+    admin: 'Admin'
+  };
+  return map[role] || (role ? String(role) : 'Desconocido');
+}
+
+function enrichComplaintForAdmin(complaint) {
+  if (!complaint) return null;
+  const updates = Array.isArray(complaint.updates) ? complaint.updates : [];
+  let reporter = complaint.reporterId ? getUserById(complaint.reporterId) : null;
+  if (!reporter && complaint.clientEmail) {
+    const email = String(complaint.clientEmail).trim().toLowerCase();
+    reporter = (USERS || []).find((u) => String(u.email || '').trim().toLowerCase() === email) || null;
+  }
+  const role = complaint.reporterRole
+    || reporter?.role
+    || (complaint.type === 'seguridad' ? null : 'client');
+  return {
+    ...complaint,
+    updates,
+    clientEmail: complaint.clientEmail || reporter?.email || null,
+    clientPhone: complaint.clientPhone || reporter?.phone || null,
+    reporterRole: role || null,
+    reporterRoleLabel: complaintRoleLabel(role),
+    reporterId: complaint.reporterId || reporter?.id || null
+  };
+}
+
+function isSeedDemoComplaint(complaint) {
+  if (!complaint?.id) return false;
+  const id = String(complaint.id);
+  if (/^rec-00[1-9]$/.test(id)) return true;
+  try {
+    const { SEED_COMPLAINT_IDS } = require('./repository');
+    if (Array.isArray(SEED_COMPLAINT_IDS) && SEED_COMPLAINT_IDS.includes(id)) return true;
+  } catch (_) { /* noop */ }
+  return false;
+}
+
+function hideSeedComplaintsInProductivo() {
+  try {
+    const appMode = require('../lib/appMode');
+    if (appMode.isProductionMode()) return true;
+  } catch (_) { /* noop */ }
+  try {
+    if (!require('../lib/operationalPhase').isDemoPhase()) return true;
+  } catch (_) { /* noop */ }
+  return String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+}
+
+function filterSeedCrmLeads(leads) {
+  if (!hideSeedComplaintsInProductivo()) return leads || [];
+  return (leads || []).filter((l) => !String(l.id || '').startsWith('crm-demo'));
+}
+
+/** En Productivo: quita de memoria todo ejemplo (reclamos, chats, users demo, etc.). */
+function applyLoadedSeedFilters(data) {
+  let complaints = data.complaints || [];
+  let chats = data.chats || [];
+  if (hideSeedComplaintsInProductivo()) {
+    const seedChatIds = new Set(['chat-001', 'chat-002', 'chat-003']);
+    const seedLogIds = new Set(['log-001', 'log-002', 'log-003']);
+    const seedConsentIds = new Set(['c-1', 'c-2', 'c-3']);
+    const seedSecIds = new Set(['sec-1', 'sec-2', 'sec-3']);
+    const seedUserIds = new Set([
+      'client-1', 'provider-pedro', 'tecnico-pedro-demo',
+      'provider-marta', 'provider-juan', 'provider-ana'
+    ]);
+    complaints = complaints.filter((c) => !isSeedDemoComplaint(c));
+    chats = chats.filter((c) => !seedChatIds.has(String(c.id)));
+    homeLogbook = (homeLogbook || []).filter((e) => !seedLogIds.has(String(e.id)));
+    consentRecords = (consentRecords || []).filter((c) => !seedConsentIds.has(String(c.id)));
+    securityLogs = (securityLogs || []).filter((l) => !seedSecIds.has(String(l.id)));
+    USERS = (USERS || []).filter((u) => !seedUserIds.has(String(u.id)));
+    requests = (requests || []).filter((r) => !String(r.id || '').startsWith('req-demo'));
+    notifications = (notifications || []).filter((n) => !String(n.id || '').startsWith('notif-demo'));
+    CRM_LEADS = filterSeedCrmLeads(CRM_LEADS);
+  }
+  COMPLAINTS = complaints;
+  CHATS = chats;
+}
+
+function getAdminComplaints() {
+  const hideSeed = hideSeedComplaintsInProductivo();
+  return (COMPLAINTS || [])
+    .filter((c) => !(hideSeed && isSeedDemoComplaint(c)))
+    .map(enrichComplaintForAdmin)
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+}
+
+function addComplaintUpdate(id, {
+  note,
+  authorId = null,
+  authorName = 'Admin',
+  authorRole = 'admin',
+  status = null,
+  kind = 'note'
+} = {}) {
+  const c = COMPLAINTS.find((x) => x.id === id);
+  if (!c) return { error: 'Reclamo no encontrado' };
+  const text = String(note || '').trim();
+  if (!text && !status) return { error: 'Escribe un avance.' };
+  if (text.length > 2000) return { error: 'El avance es demasiado largo (máx. 2000).' };
+
+  if (!Array.isArray(c.updates)) c.updates = [];
+  const entry = {
+    id: `upd-${uuidv4().slice(0, 10)}`,
+    at: new Date().toISOString(),
+    authorId,
+    authorName: authorName || 'Admin',
+    authorRole: authorRole || 'admin',
+    note: text || (status ? `Estado → ${status}` : ''),
+    kind: status ? 'status' : (kind || 'note'),
+    status: status || null
+  };
+  c.updates.unshift(entry);
+
+  if (status && ['abierto', 'en_revision', 'resuelto', 'cerrado'].includes(status)) {
+    c.status = status;
+    if (status === 'resuelto' || status === 'cerrado') {
+      c.resolvedAt = c.resolvedAt || entry.at;
+    }
+  }
+
+  repository.persist(() => repository.saveComplaint(c), `reclamo avance ${id}`);
+  return { success: true, complaint: enrichComplaintForAdmin(c), update: entry };
+}
+
+function updateComplaintStatus(id, status, actor = {}) {
   const c = COMPLAINTS.find(x => x.id === id);
   if (!c) return null;
+  const prev = c.status;
   c.status = status;
-  if (status === 'resuelto') c.resolvedAt = new Date().toISOString();
+  if (status === 'resuelto' || status === 'cerrado') {
+    c.resolvedAt = new Date().toISOString();
+  }
+  if (!Array.isArray(c.updates)) c.updates = [];
+  if (prev !== status) {
+    c.updates.unshift({
+      id: `upd-${uuidv4().slice(0, 10)}`,
+      at: new Date().toISOString(),
+      authorId: actor.authorId || null,
+      authorName: actor.authorName || 'Admin',
+      authorRole: actor.authorRole || 'admin',
+      note: `Estado: ${prev || '—'} → ${status}`,
+      kind: 'status',
+      status
+    });
+  }
   repository.persist(() => repository.saveComplaint(c), `reclamo ${id}`);
-  return c;
+  return enrichComplaintForAdmin(c);
 }
 
 /**
@@ -9728,6 +9952,7 @@ function createSafetyIncident({
     requestId: request ? request.id : null,
     clientName: reporter.name || reporter.email || 'Usuario',
     clientEmail: reporter.email || null,
+    clientPhone: reporter.phone || null,
     type: 'seguridad',
     subject: subject.slice(0, 255),
     description,
@@ -9738,7 +9963,8 @@ function createSafetyIncident({
     severity: cat.severity,
     channel,
     reporterId,
-    reporterRole
+    reporterRole,
+    updates: []
   };
   COMPLAINTS.unshift(complaint);
   repository.persist(() => repository.saveComplaint(complaint), `incidente ${complaint.id}`);
@@ -10277,13 +10503,12 @@ async function reloadFromDatabase() {
   USERS = data.users;
   requests = data.requests;
   homeLogbook = data.homeLogbook;
-  COMPLAINTS = data.complaints;
-  CHATS = data.chats;
   consentRecords = data.consentRecords;
   securityLogs = data.securityLogs;
   notifications = data.notifications || [];
   PROMOS = data.promos || [];
   CRM_LEADS = data.crmLeads || [];
+  applyLoadedSeedFilters(data);
   COVERAGE_COMMUNES = data.coverageCommunes || [];
   COVERAGE_REGIONS = data.coverageRegions || [];
   COVERAGE_INTEREST = data.coverageInterest || [];
@@ -10547,6 +10772,9 @@ module.exports = {
   buildUserDsarPackage,
   anonymizeUserAccount,
   updateComplaintStatus,
+  addComplaintUpdate,
+  getAdminComplaints,
+  enrichComplaintForAdmin,
   createSafetyIncident,
   listSafetyCategories,
   markPayoutPaid,

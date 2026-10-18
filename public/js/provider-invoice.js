@@ -31,11 +31,17 @@
           body: JSON.stringify({
             documentType: form.querySelector('[data-role="invoice-type"]').value,
             folio: form.querySelector('[data-role="invoice-folio"]').value.trim(),
+            declaredAmount: form.querySelector('[data-role="invoice-amount"]')?.value?.trim() || '',
             file
           })
         });
         const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.error || t('provider.invoice.error'));
+        if (!res.ok || !data.success) {
+          if (data.code === 'AMOUNT_MISMATCH') {
+            throw new Error(data.error || t('provider.invoice.amount_mismatch'));
+          }
+          throw new Error(data.error || t('provider.invoice.error'));
+        }
         if (window.FandezNotify) {
           FandezNotify.show(t('provider.invoice.registered'), 'success');
         }

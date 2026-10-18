@@ -127,7 +127,14 @@ function buildAdditionalPaymentRequest(request, charge) {
 }
 
 function canUseDemoCardPayment(pricing) {
-  // Demo solo si no hay pasarela real. Si hay credenciales, en producción no se puede saltar el cobro.
+  // En Productivo / APP_MODE=production NUNCA aprobar cobros ficticios.
+  // Antes: si faltaban credenciales en Hostinger, Productivo igual caía a mpago-demo-*.
+  if (appMode.isProductionMode()) return false;
+  try {
+    const op = require('../lib/operationalPhase');
+    if (!op.isDemoPhase()) return false;
+  } catch (_) { /* noop */ }
+  // Solo demo local / Demo 2.0 sin pasarela configurada.
   if (cardCheckout.isAnyCardGatewayConfigured(pricing)) return false;
   return true;
 }
@@ -461,10 +468,23 @@ router.post('/crear', requireRole('client'), async (req, res) => {
     });
 
     if (payment.mode === 'demo') {
-      // Sin pasarela: aprobar como Mercado Pago ficticio para no trabar pedidos.
+      // Sin pasarela usable: en Productivo error claro; en demo local se simula.
       if (!canUseDemoCardPayment(pricing)) {
+        const mpStatus = mp.getCredentialAdminStatus?.() || {};
+        console.error('[pagos] pasarela no usable', {
+          sandbox: mp.usesSandboxPayments(),
+          reason: mpStatus.sandboxReason,
+          accessToken: mpStatus.accessTokenConfigured,
+          publicKey: mpStatus.publicKeyConfigured,
+          mode: appMode.getMode()
+        });
         return res.status(503).json({
-          error: 'Pasarela de tarjeta no disponible. Usa transferencia o contacta soporte.'
+          error: 'Pasarela de tarjeta no disponible. Revisa MP_PUBLIC_KEY + MP_ACCESS_TOKEN en Hostinger y reinicia, o usa transferencia.',
+          errorTitle: 'Mercado Pago no listo',
+          errorDetail: mpStatus.accessTokenConfigured
+            ? 'Hay token pero el checkout no arrancó. Revisa Public Key del mismo par (producción) y reinicia Node.'
+            : 'Falta MP_ACCESS_TOKEN de producción en el .env del servidor (o el proceso no lo cargó tras el cambio).',
+          code: 'gateway_not_ready'
         });
       }
       const demoPaymentId = `mpago-demo-${Date.now()}`;

@@ -129,7 +129,68 @@
     if (id === 'correos' && typeof window.__fandezRefreshMailPreview === 'function') {
       window.__fandezRefreshMailPreview();
     }
+    if (id === 'seguridad') {
+      refreshMpPaymentStatusCard();
+    }
   }
+
+  async function refreshMpPaymentStatusCard() {
+    const card = document.getElementById('mpPaymentStatusCard');
+    if (!card) return;
+    const elCred = document.getElementById('mpStCredentials');
+    const elCheckout = document.getElementById('mpStCheckout');
+    const elCharges = document.getElementById('mpStCharges');
+    const elPhase = document.getElementById('mpStPhase');
+    const elHint = document.getElementById('mpStHint');
+    try {
+      const res = await adminFetch('/mp/status', { headers: { Accept: 'application/json' } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success || !data.status) {
+        if (elCred) elCred.textContent = data.error || 'Error al leer estado';
+        return;
+      }
+      const st = data.status;
+      const labels = data.labels || {};
+      const credOk = Boolean(st.accessTokenConfigured && st.publicKeyConfigured);
+      const checkoutOk = Boolean(st.embedReady || st.gatewayReady || st.configured);
+
+      if (elPhase) elPhase.textContent = labels.phase || (st.profile === 'live' ? 'Producción' : 'Prueba');
+      if (elCred) {
+        elCred.textContent = labels.credentials || '—';
+        elCred.classList.toggle('text-emerald-700', credOk);
+        elCred.classList.toggle('text-red-700', !credOk);
+      }
+      if (elCheckout) {
+        elCheckout.textContent = labels.checkout || '—';
+        elCheckout.classList.toggle('text-emerald-700', checkoutOk);
+        elCheckout.classList.toggle('text-red-700', !checkoutOk);
+      }
+      if (elCharges) {
+        elCharges.textContent = labels.chargesReal || (st.chargesRealMoney ? 'Sí' : 'No (sandbox/demo)');
+        elCharges.classList.toggle('text-emerald-700', Boolean(st.chargesRealMoney));
+        elCharges.classList.toggle('text-amber-700', !st.chargesRealMoney);
+      }
+      card.classList.toggle('bg-emerald-50', credOk && checkoutOk);
+      card.classList.toggle('border-emerald-400', credOk && checkoutOk);
+      card.classList.toggle('bg-red-50', !(credOk && checkoutOk));
+      card.classList.toggle('border-red-300', !(credOk && checkoutOk));
+      if (elHint) {
+        elHint.className = 'text-[11px] mt-3 rounded-xl px-3 py-2 leading-relaxed '
+          + (credOk && checkoutOk
+            ? 'bg-white/70 text-emerald-900 border border-emerald-200'
+            : 'bg-white/80 text-red-900 border border-red-200');
+        elHint.innerHTML = credOk && checkoutOk
+          ? 'Listo para prueba de pago real. Usa un monto bajo.'
+          : 'En Hostinger pon <code class="text-[10px]">MP_PUBLIC_KEY</code> + <code class="text-[10px]">MP_ACCESS_TOKEN</code> (APP_USR-…), <code class="text-[10px]">MP_SANDBOX=false</code>, reinicia Node y pulsa Actualizar.';
+      }
+    } catch (err) {
+      if (elCred) elCred.textContent = err.message || 'Error de red';
+    }
+  }
+
+  document.getElementById('btnRefreshMpStatus')?.addEventListener('click', () => {
+    refreshMpPaymentStatusCard();
+  });
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => activateTab(tab.dataset.tab));
@@ -1666,6 +1727,139 @@
         setTimeout(() => location.reload(), 800);
       }
     });
+  });
+
+  function closeComplaintCaseModal() {
+    const modal = document.getElementById('complaintCaseModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('admin-modal-open');
+  }
+
+  function renderComplaintCaseBody(c) {
+    const body = document.getElementById('complaintCaseBody');
+    const sub = document.getElementById('complaintCaseSub');
+    if (!body) return;
+    const role = c.reporterRoleLabel || c.reporterRole || '—';
+    const when = c.createdAt
+      ? new Date(c.createdAt).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })
+      : '—';
+    const updates = Array.isArray(c.updates) ? c.updates : [];
+    const statusLabel = ({ abierto: 'Abierto', en_revision: 'En revisión', resuelto: 'Resuelto', cerrado: 'Cerrado' })[c.status] || c.status;
+    if (sub) sub.textContent = `${c.clientName || '—'} · ${role} · ${statusLabel}`;
+
+    const historyHtml = updates.length
+      ? updates.map((u) => {
+        const at = u.at
+          ? new Date(u.at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })
+          : '—';
+        const badge = u.kind === 'status'
+          ? '<span class="text-[10px] font-bold uppercase text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Estado</span>'
+          : '<span class="text-[10px] font-bold uppercase text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Nota</span>';
+        return `<li class="rounded-xl border border-gray-100 bg-white p-3 space-y-1">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">${badge}<span class="text-[11px] font-semibold text-gray-700">${escapeHtml(u.authorName || 'Admin')}</span></div>
+            <span class="text-[10px] text-gray-400">${escapeHtml(at)}</span>
+          </div>
+          <p class="text-sm text-gray-700 whitespace-pre-wrap">${escapeHtml(u.note || '')}</p>
+        </li>`;
+      }).join('')
+      : `<li class="text-xs text-gray-500 py-2">${escapeHtml(ADMIN_JS.complaintNoUpdates || 'Aún no hay avances registrados.')}</li>`;
+
+    body.innerHTML = `
+      <div class="rounded-xl border border-gray-100 bg-gray-50/80 p-3 space-y-2 text-xs">
+        <p class="text-sm font-semibold text-gray-900">${escapeHtml(c.subject || '')}</p>
+        <p class="text-gray-600 whitespace-pre-wrap">${escapeHtml(c.description || '')}</p>
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-[11px] text-gray-500">
+          <div><span class="text-gray-400">Rol:</span> <strong class="text-gray-700">${escapeHtml(role)}</strong></div>
+          <div><span class="text-gray-400">Fecha:</span> <strong class="text-gray-700">${escapeHtml(when)}</strong></div>
+          <div class="truncate"><span class="text-gray-400">Correo:</span> <strong class="text-gray-700">${escapeHtml(c.clientEmail || '—')}</strong></div>
+          <div><span class="text-gray-400">Teléfono:</span> <strong class="text-gray-700">${escapeHtml(c.clientPhone || '—')}</strong></div>
+          <div><span class="text-gray-400">Tipo:</span> <strong class="text-gray-700">${escapeHtml(c.type || '—')}</strong></div>
+          <div><span class="text-gray-400">Estado:</span> <strong class="complaint-status-label text-gray-700">${escapeHtml(statusLabel)}</strong></div>
+        </dl>
+      </div>
+      <div>
+        <p class="text-[11px] font-bold uppercase text-gray-400 mb-2">Historial de avances</p>
+        <ul id="complaintCaseHistory" class="space-y-2">${historyHtml}</ul>
+      </div>
+    `;
+  }
+
+  async function openComplaintCaseModal(id) {
+    const modal = document.getElementById('complaintCaseModal');
+    const body = document.getElementById('complaintCaseBody');
+    const idInput = document.getElementById('complaintCaseId');
+    const note = document.getElementById('complaintCaseNote');
+    const statusSel = document.getElementById('complaintCaseStatus');
+    if (!modal || !body) return;
+    if (idInput) idInput.value = id;
+    if (note) note.value = '';
+    if (statusSel) statusSel.value = '';
+    body.innerHTML = '<p class="text-gray-500">Cargando…</p>';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('admin-modal-open');
+    try {
+      const res = await adminFetch(`/complaint/${encodeURIComponent(id)}`);
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.complaint) {
+        throw new Error(data.error || ADMIN_JS.complaintLoadError || 'No se pudo cargar el reclamo');
+      }
+      renderComplaintCaseBody(data.complaint);
+    } catch (err) {
+      body.innerHTML = `<p class="text-sm text-red-600">${escapeHtml(err.message || 'Error')}</p>`;
+    }
+  }
+
+  document.querySelectorAll('.btn-complaint-open').forEach((btn) => {
+    btn.addEventListener('click', () => openComplaintCaseModal(btn.dataset.id));
+  });
+
+  document.querySelectorAll('[data-close-complaint-case]').forEach((el) => {
+    el.addEventListener('click', closeComplaintCaseModal);
+  });
+
+  document.getElementById('complaintCaseNoteForm')?.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const id = document.getElementById('complaintCaseId')?.value;
+    const note = document.getElementById('complaintCaseNote')?.value?.trim();
+    const status = document.getElementById('complaintCaseStatus')?.value || '';
+    if (!id || !note) return;
+    const submitBtn = ev.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const res = await adminFetch(`/complaint/${encodeURIComponent(id)}/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note, status: status || undefined })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || ADMIN_JS.complaintProgressError || 'No se pudo guardar el avance');
+      }
+      FandezNotify.show(ADMIN_JS.complaintProgressSaved || 'Avance guardado', 'success');
+      if (data.complaint) renderComplaintCaseBody(data.complaint);
+      const noteEl = document.getElementById('complaintCaseNote');
+      const statusEl = document.getElementById('complaintCaseStatus');
+      if (noteEl) noteEl.value = '';
+      if (statusEl) statusEl.value = '';
+      const card = document.querySelector(`[data-complaint-id="${id}"]`);
+      if (card && data.complaint) {
+        const statusBadge = card.querySelector('.complaint-status');
+        if (statusBadge && data.complaint.status) {
+          const labels = { abierto: 'Abierto', en_revision: 'En revisión', resuelto: 'Resuelto', cerrado: 'Cerrado' };
+          statusBadge.textContent = labels[data.complaint.status] || data.complaint.status;
+        }
+      }
+    } catch (err) {
+      FandezNotify.show(err.message || ADMIN_JS.complaintProgressError || 'Error', 'error');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
   });
 
   document.querySelectorAll('.btn-mark-payout').forEach(btn => {

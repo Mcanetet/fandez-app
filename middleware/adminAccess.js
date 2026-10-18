@@ -32,6 +32,12 @@ function attachAdminAccess(req, res, next) {
   } catch (_) {
     res.locals.operationalPhaseStatus = { phase: 'demo', isDemoPhase: true, isProductivoPhase: false };
   }
+  try {
+    res.locals.mpPaymentStatus = require('../lib/mpAdminStatus').buildMpPaymentStatus();
+  } catch (err) {
+    console.warn('[adminAccess] mpPaymentStatus:', err.message);
+    res.locals.mpPaymentStatus = null;
+  }
   next();
 }
 

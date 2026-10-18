@@ -1247,12 +1247,42 @@ router.post('/chat/:requestId', requireRole('provider'), (req, res) => {
 });
 
 router.post('/factura/:requestId/registrar', requireRole('provider'), (req, res) => {
+  const { validatePartnerInvoiceAmount } = require('../lib/providerInvoiceValidation');
   const request = store.getAllRequests().find((item) => item.id === req.params.requestId);
   if (!request || request.providerId !== req.session.user.id) {
     return res.status(404).json({ success: false, error: 'Solicitud no encontrada.' });
   }
   if (request.status !== 'completed' || request.providerInvoicePlan?.status !== 'pending') {
     return res.status(400).json({ success: false, error: 'La factura ya fue registrada o aún no corresponde emitirla.' });
+  }
+  // Validar monto antes de guardar archivo: debe = total del servicio.
+  const expectedAmount = Math.round(Number(request.providerInvoicePlan?.amount) || 0);
+  const amountCheck = validatePartnerInvoiceAmount(
+    req.body.declaredAmount ?? req.body.amount,
+    expectedAmount
+  );
+  if (!amountCheck.ok) {
+    const provider = store.getUserById(req.session.user.id);
+    setImmediate(() => {
+      require('../lib/providerInvoiceMismatchAlert')
+        .alertPartnerInvoiceAmountMismatch({
+          request,
+          provider,
+          declaredAmount: amountCheck.declared,
+          expectedAmount: amountCheck.expected,
+          store
+        })
+        .catch((err) => console.warn('[invoice-mismatch]', err.message));
+    });
+    return res.status(400).json({
+      success: false,
+      error: amountCheck.error,
+      code: 'AMOUNT_MISMATCH',
+      declaredAmount: amountCheck.declared,
+      expectedAmount: amountCheck.expected,
+      partnerNotified: true,
+      adminAlerted: true
+    });
   }
   if (!req.body.file) return res.status(400).json({ success: false, error: 'Adjunta la factura o boleta.' });
   let uploaded;
@@ -1263,9 +1293,18 @@ router.post('/factura/:requestId/registrar', requireRole('provider'), (req, res)
   }
   const result = store.registerProviderInvoice(req.params.requestId, req.session.user.id, {
     ...req.body,
+    declaredAmount: amountCheck.declared,
     ...uploaded
   });
-  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  if (result.error) {
+    return res.status(400).json({
+      success: false,
+      error: result.error,
+      code: result.code || undefined,
+      declaredAmount: result.declaredAmount,
+      expectedAmount: result.expectedAmount
+    });
+  }
   res.json(result);
 });
 

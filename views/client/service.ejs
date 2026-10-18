@@ -1171,7 +1171,8 @@
 </div>
 
 <%- include('../partials/call-overlay') %>
-<% if (typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout) { %>
+<%# Siempre cargar helpers MP en ficha/pago: el Brick o Checkout Pro se deciden en runtime vía /pagos/mp/brick-config %>
+<% if ((typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout) || payFlowNow || (typeof mpTokenConfigured !== 'undefined' && mpTokenConfigured)) { %>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 <script src="<%= asset('/js/checkout-mp-brick.js') %>"></script>
 <script src="<%= asset('/js/mp-pay.js') %>"></script>

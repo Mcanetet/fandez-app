@@ -291,9 +291,71 @@ const SEED_LOGBOOK = [
 ];
 
 const SEED_COMPLAINTS = [
-  { id: 'rec-001', requestId: null, clientName: 'Jorge Muñoz', clientEmail: 'jorge@email.cl', type: 'calidad', subject: 'Trabajo incompleto en instalación eléctrica', description: 'El técnico se fue sin terminar el empalme del tablero.', status: 'abierto', priority: 'alta', createdAt: '2026-06-28T14:30:00.000Z' },
-  { id: 'rec-002', requestId: null, clientName: 'Carolina Díaz', clientEmail: 'carolina@email.cl', type: 'cobro', subject: 'Cobro diferente al presupuesto', description: 'Me cobraron $20.000 más de lo acordado en la visita.', status: 'en_revision', priority: 'media', createdAt: '2026-06-27T09:15:00.000Z' },
-  { id: 'rec-003', requestId: null, clientName: 'Andrés Vega', clientEmail: 'andres@email.cl', type: 'demora', subject: 'Proveedor no llegó en el tiempo estimado', description: 'Esperé más de 2 horas y nadie llegó.', status: 'resuelto', priority: 'baja', createdAt: '2026-06-25T18:00:00.000Z', resolvedAt: '2026-06-26T10:00:00.000Z' }
+  {
+    id: 'rec-001',
+    requestId: null,
+    clientName: 'Jorge Muñoz',
+    clientEmail: 'jorge@email.cl',
+    clientPhone: '+56 9 8765 4321',
+    reporterRole: 'client',
+    type: 'calidad',
+    subject: 'Trabajo incompleto en instalación eléctrica',
+    description: 'El técnico se fue sin terminar el empalme del tablero.',
+    status: 'abierto',
+    priority: 'alta',
+    createdAt: '2026-06-28T14:30:00.000Z',
+    updates: []
+  },
+  {
+    id: 'rec-002',
+    requestId: null,
+    clientName: 'Carolina Díaz',
+    clientEmail: 'carolina@email.cl',
+    clientPhone: '+56 9 5123 7788',
+    reporterRole: 'client',
+    type: 'cobro',
+    subject: 'Cobro diferente al presupuesto',
+    description: 'Me cobraron $20.000 más de lo acordado en la visita.',
+    status: 'en_revision',
+    priority: 'media',
+    createdAt: '2026-06-27T09:15:00.000Z',
+    updates: [
+      {
+        id: 'upd-rec-002-1',
+        at: '2026-06-27T11:00:00.000Z',
+        authorName: 'Admin Fandez',
+        authorRole: 'admin',
+        note: 'Se pidió boleta al socio y captura del cobro en la app.',
+        kind: 'note'
+      }
+    ]
+  },
+  {
+    id: 'rec-003',
+    requestId: null,
+    clientName: 'Andrés Vega',
+    clientEmail: 'andres@email.cl',
+    clientPhone: '+56 9 6444 2211',
+    reporterRole: 'client',
+    type: 'demora',
+    subject: 'Proveedor no llegó en el tiempo estimado',
+    description: 'Esperé más de 2 horas y nadie llegó.',
+    status: 'resuelto',
+    priority: 'baja',
+    createdAt: '2026-06-25T18:00:00.000Z',
+    resolvedAt: '2026-06-26T10:00:00.000Z',
+    updates: [
+      {
+        id: 'upd-rec-003-1',
+        at: '2026-06-26T10:00:00.000Z',
+        authorName: 'Admin Fandez',
+        authorRole: 'admin',
+        note: 'Se reprogramó visita y se aplicó crédito de disculpa.',
+        kind: 'status',
+        status: 'resuelto'
+      }
+    ]
+  }
 ];
 
 const SEED_CHATS = [
@@ -655,6 +717,23 @@ async function migrate() {
   await ensureCoverageInterestTable();
   await ensureUserNamePartsColumns();
   await ensureSiiDtesTable();
+  await ensureComplaintExtraColumns();
+}
+
+async function ensureComplaintExtraColumns() {
+  const alters = [
+    'ALTER TABLE complaints ADD COLUMN client_phone VARCHAR(40) NULL',
+    'ALTER TABLE complaints ADD COLUMN reporter_role VARCHAR(40) NULL',
+    'ALTER TABLE complaints ADD COLUMN reporter_id VARCHAR(64) NULL',
+    'ALTER TABLE complaints ADD COLUMN updates_json JSON DEFAULT NULL'
+  ];
+  for (const statement of alters) {
+    try {
+      await db.raw(statement);
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME' && err.code !== 'ER_NO_SUCH_TABLE') throw err;
+    }
+  }
 }
 
 async function ensureSiiDtesTable() {
@@ -950,9 +1029,9 @@ async function resetAdminPassword(plainPassword) {
 
 async function ensureDemoUsers() {
   await ensureAdminAccount();
-  const appMode = require('../lib/appMode');
-  if (appMode.isProductionMode() && process.env.SEED_DEMO_USERS !== 'true') {
-    console.log('✓ Seed de usuarios demo omitido (modo producción)');
+  if (!seedDemoUsersAllowed()) {
+    console.log('✓ Seed de usuarios demo omitido (Productivo / producción)');
+    await purgeSeedDemoUsers();
     return;
   }
   const DEMO_IDS = new Set(['client-1', 'provider-pedro', 'tecnico-pedro-demo']);
@@ -981,11 +1060,20 @@ async function ensureDemoUsers() {
   await syncDemoProviderCoverage();
 }
 
+function seedDemoUsersAllowed() {
+  if (String(process.env.SEED_DEMO_USERS || '').toLowerCase() === 'true') return true;
+  if (String(process.env.SEED_DEMO_USERS || '').toLowerCase() === 'false') return false;
+  return seedDemoExtrasAllowed();
+}
+
 /**
  * Asegura que el socio demo pueda ver y tomar pedidos del muro:
  * todas las especialidades del catálogo + técnico con expediente completo.
  */
 async function syncDemoProviderCoverage() {
+  if (!seedDemoUsersAllowed()) {
+    return { skipped: true, reason: 'productivo' };
+  }
   const specialtyIds = demoServiceIds();
   const verifiedAt = new Date().toISOString();
 
@@ -1032,7 +1120,102 @@ async function syncDemoProviderCoverage() {
   });
 }
 
+function seedDemoExtrasAllowed() {
+  // En Productivo / producción no reinyectar ningún dato de ejemplo.
+  if (String(process.env.SEED_DEMO_EXTRAS || '').toLowerCase() === 'true') return true;
+  if (String(process.env.SEED_DEMO_EXTRAS || '').toLowerCase() === 'false') return false;
+  try {
+    if (require('../lib/appMode').isProductionMode()) return false;
+  } catch (_) { /* noop */ }
+  try {
+    if (!require('../lib/operationalPhase').isDemoPhase()) return false;
+  } catch (_) { /* noop */ }
+  if (String(process.env.NODE_ENV || '').toLowerCase() === 'production') return false;
+  return true;
+}
+
+const SEED_COMPLAINT_IDS = SEED_COMPLAINTS.map((c) => c.id);
+const SEED_CHAT_IDS = SEED_CHATS.map((c) => c.id);
+const SEED_LOGBOOK_IDS = SEED_LOGBOOK.map((e) => e.id);
+const SEED_CONSENT_IDS = SEED_CONSENTS.map((c) => c.id);
+const SEED_SECURITY_LOG_IDS = SEED_SECURITY_LOGS.map((l) => l.id);
+/** Usuarios de ejemplo (nunca admin). */
+const SEED_DEMO_USER_IDS = SEED_USERS.filter((u) => u.role !== 'admin').map((u) => u.id);
+const SEED_CRM_DEMO_IDS = ['crm-demo-1'];
+const SEED_REQUEST_DEMO_IDS = ['req-demo-completed', 'req-demo-searching'];
+const SEED_NOTIF_DEMO_IDS = ['notif-demo-1'];
+
+async function deleteByIds(table, ids) {
+  if (!ids?.length) return 0;
+  const placeholders = ids.map(() => '?').join(',');
+  try {
+    const res = await db.query(`DELETE FROM ${table} WHERE id IN (${placeholders})`, ids);
+    return res.affectedRows || 0;
+  } catch (err) {
+    if (err.code !== 'ER_NO_SUCH_TABLE') {
+      console.warn(`[seed] purge ${table}:`, err.message);
+    }
+    return 0;
+  }
+}
+
+/** Desactiva cuentas demo (no borra admin). */
+async function purgeSeedDemoUsers() {
+  if (seedDemoUsersAllowed()) return { skipped: true };
+  let deactivated = 0;
+  for (const id of SEED_DEMO_USER_IDS) {
+    try {
+      const res = await db.query(
+        `UPDATE users SET active = 0, online = 0 WHERE id = ? AND role <> 'admin'`,
+        [id]
+      );
+      deactivated += res.affectedRows || 0;
+    } catch (err) {
+      console.warn('[seed] deactivate demo user:', id, err.message);
+    }
+  }
+  if (deactivated) {
+    console.log(`[seed] Productivo: desactivadas ${deactivated} cuenta(s) demo`);
+  }
+  return { deactivated };
+}
+
+/** Quita todos los ejemplos (reclamos, chats, pasaporte, consents, logs, CRM, etc.). */
+async function purgeSeedDemoExtras() {
+  if (seedDemoExtrasAllowed()) return { skipped: true };
+  const complaints = await deleteByIds('complaints', SEED_COMPLAINT_IDS);
+  const chats = await deleteByIds('chats', SEED_CHAT_IDS);
+  const logbook = await deleteByIds('home_logbook', SEED_LOGBOOK_IDS);
+  const consents = await deleteByIds('consent_records', SEED_CONSENT_IDS);
+  const securityLogs = await deleteByIds('security_logs', SEED_SECURITY_LOG_IDS);
+  const crm = await deleteByIds('crm_leads', SEED_CRM_DEMO_IDS);
+  const requests = await deleteByIds('service_requests', SEED_REQUEST_DEMO_IDS);
+  const notifications = await deleteByIds('notifications', SEED_NOTIF_DEMO_IDS);
+  // IDs con prefijo típico de dumps demo
+  try {
+    await db.query(`DELETE FROM crm_leads WHERE id LIKE 'crm-demo-%'`).catch(() => {});
+    await db.query(`DELETE FROM notifications WHERE id LIKE 'notif-demo-%'`).catch(() => {});
+    await db.query(`DELETE FROM service_requests WHERE id LIKE 'req-demo-%'`).catch(() => {});
+  } catch (_) { /* noop */ }
+  const users = await purgeSeedDemoUsers();
+  const total = complaints + chats + logbook + consents + securityLogs + crm + requests + notifications
+    + (users.deactivated || 0);
+  if (total) {
+    console.log(
+      `[seed] Productivo: eliminados/desactivados ejemplos reclamos=${complaints} chats=${chats} pasaporte=${logbook} consents=${consents} logs=${securityLogs} crm=${crm} req=${requests} notif=${notifications} users=${users.deactivated || 0}`
+    );
+  }
+  return {
+    complaints, chats, logbook, consents, securityLogs, crm, requests, notifications, users
+  };
+}
+
 async function ensureDemoExtras() {
+  if (!seedDemoExtrasAllowed()) {
+    await purgeSeedDemoExtras();
+    return;
+  }
+
   for (const entry of SEED_LOGBOOK) {
     await db.query(
       `INSERT IGNORE INTO home_logbook (id, client_id, address, service_name, category, entry_date, note, health_impact, provider_name)
@@ -1043,9 +1226,15 @@ async function ensureDemoExtras() {
 
   for (const c of SEED_COMPLAINTS) {
     await db.query(
-      `INSERT IGNORE INTO complaints (id, request_id, client_name, client_email, type, subject, description, status, priority, created_at, resolved_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [c.id, c.requestId, c.clientName, c.clientEmail, c.type, c.subject, c.description, c.status, c.priority, c.createdAt, c.resolvedAt || null]
+      `INSERT IGNORE INTO complaints
+        (id, request_id, client_name, client_email, client_phone, reporter_role, reporter_id, type, subject, description, status, priority, created_at, resolved_at, updates_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        c.id, c.requestId, c.clientName, c.clientEmail, c.clientPhone || null,
+        c.reporterRole || null, c.reporterId || null,
+        c.type, c.subject, c.description, c.status, c.priority, c.createdAt, c.resolvedAt || null,
+        c.updates ? JSON.stringify(c.updates) : null
+      ]
     );
   }
 
@@ -1085,8 +1274,12 @@ async function ensureDemoData() {
   await ensureDemoPricing();
   await ensureDemoUsers();
   await ensureDemoExtras();
-  // Siempre: el socio demo debe poder ver pedidos reales (cobertura + técnico).
-  await syncDemoProviderCoverage();
+  if (seedDemoUsersAllowed()) {
+    // Solo en demo: socio Pedro con cobertura de prueba.
+    await syncDemoProviderCoverage();
+  } else {
+    await purgeSeedDemoExtras();
+  }
   console.log('✓ Catálogo verificado — historial de pagos y datos existentes conservados');
   return true;
 }
@@ -1146,13 +1339,17 @@ function mapLoadedRows({
       requestId: row.request_id,
       clientName: row.client_name,
       clientEmail: row.client_email,
+      clientPhone: row.client_phone || null,
+      reporterRole: row.reporter_role || null,
+      reporterId: row.reporter_id || null,
       type: row.type,
       subject: row.subject,
       description: row.description,
       status: row.status,
       priority: row.priority,
       createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
-      resolvedAt: row.resolved_at ? new Date(row.resolved_at).toISOString() : null
+      resolvedAt: row.resolved_at ? new Date(row.resolved_at).toISOString() : null,
+      updates: parseComplaintUpdates(row.updates_json)
     })),
     chats: chatsRes.rows.map((row) => ({
       id: row.id,
@@ -1544,17 +1741,57 @@ async function saveLogbookEntry(entry) {
   );
 }
 
+function parseComplaintUpdates(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (raw == null || raw === '') return [];
+  if (typeof raw === 'object') {
+    try {
+      return Array.isArray(raw) ? raw : (Array.isArray(raw.updates) ? raw.updates : []);
+    } catch (_) {
+      return [];
+    }
+  }
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
 async function saveComplaint(complaint) {
+  const updatesJson = Array.isArray(complaint.updates) && complaint.updates.length
+    ? JSON.stringify(complaint.updates)
+    : (complaint.updates ? JSON.stringify(complaint.updates) : null);
   await db.query(
-    `INSERT INTO complaints (id, request_id, client_name, client_email, type, subject, description, status, priority, created_at, resolved_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO complaints
+      (id, request_id, client_name, client_email, client_phone, reporter_role, reporter_id, type, subject, description, status, priority, created_at, resolved_at, updates_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
+       client_name = VALUES(client_name),
+       client_email = VALUES(client_email),
+       client_phone = VALUES(client_phone),
+       reporter_role = VALUES(reporter_role),
+       reporter_id = VALUES(reporter_id),
        status = VALUES(status),
-       resolved_at = VALUES(resolved_at)`,
+       resolved_at = VALUES(resolved_at),
+       updates_json = VALUES(updates_json)`,
     [
-      complaint.id, complaint.requestId, complaint.clientName, complaint.clientEmail,
-      complaint.type, complaint.subject, complaint.description, complaint.status,
-      complaint.priority, complaint.createdAt, complaint.resolvedAt || null
+      complaint.id,
+      complaint.requestId || null,
+      complaint.clientName,
+      complaint.clientEmail || null,
+      complaint.clientPhone || null,
+      complaint.reporterRole || null,
+      complaint.reporterId || null,
+      complaint.type,
+      complaint.subject,
+      complaint.description,
+      complaint.status,
+      complaint.priority || null,
+      complaint.createdAt,
+      complaint.resolvedAt || null,
+      updatesJson
     ]
   );
 }
@@ -1790,6 +2027,12 @@ module.exports = {
   SEED_USERS,
   SEED_LOGBOOK,
   SEED_COMPLAINTS,
+  SEED_COMPLAINT_IDS,
+  SEED_DEMO_USER_IDS,
+  purgeSeedDemoExtras,
+  purgeSeedDemoUsers,
+  seedDemoExtrasAllowed,
+  seedDemoUsersAllowed,
   SEED_CHATS,
   SEED_CONSENTS,
   SEED_SECURITY_LOGS,

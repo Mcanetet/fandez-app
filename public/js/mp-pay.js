@@ -82,11 +82,15 @@
         window.location.href = data.checkoutUrl;
         return data;
       }
-      if (data.redirect) {
+      if (data.redirect && !data.demo) {
         window.location.href = data.redirect;
         return data;
       }
-      throw new Error(data.error || 'No se pudo abrir Mercado Pago');
+      if (data.demo) {
+        throw new Error(data.errorDetail || data.error || 'Pago demo no permitido en Productivo. Revisa Mercado Pago en Admin → Seguridad.');
+      }
+      const detail = [data.error, data.errorDetail].filter(Boolean).join(' — ');
+      throw new Error(detail || 'No se pudo abrir Mercado Pago');
     });
   }
 

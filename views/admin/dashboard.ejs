@@ -1430,12 +1430,20 @@ if (typeof hasPerm !== 'function') {
 
     <!-- CUENTAS DEMO -->
     <section class="<%= panelClass('demo') %>" data-panel="demo" data-subtitle="<%= t('admin.demo.hint') %>">
+      <% const opPhaseDemo = typeof operationalPhaseStatus !== 'undefined' ? operationalPhaseStatus : {}; %>
+      <% const hideDemoPanel = opPhaseDemo.isProductivoPhase || (typeof appModeStatus !== 'undefined' && appModeStatus && appModeStatus.isProduction && !opPhaseDemo.isDemoPhase); %>
+      <% if (hideDemoPanel) { %>
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-900 leading-relaxed">
+          <strong>Productivo 2.0:</strong> las cuentas y datos de ejemplo están desactivados y no se muestran.
+          Solo aparecen usuarios y operaciones reales.
+        </div>
+      <% } else { %>
       <div class="flex justify-end items-center mb-3">
         <span class="text-xs text-gray-500"><%= t('admin.demo.visible', { active: demoAccounts.filter(a => a.active).length, total: demoAccounts.length }) %></span>
       </div>
       <p class="text-xs text-gray-500 mb-4 sm:hidden">
         <%= t('admin.demo.hint') %>
-        <span class="block mt-1 text-amber-800">Demo anterior retirado: estas cuentas <strong>ya no aparecen</strong> en el login público (ni en Demo 2.0 ni en Productivo 2.0).</span>
+        <span class="block mt-1 text-amber-800">Demo anterior retirado: estas cuentas <strong>ya no aparecen</strong> en el login público.</span>
       </p>
       <div id="demoAccountsList" class="space-y-2">
         <% demoAccounts.forEach(acc => { %>
@@ -1457,6 +1465,7 @@ if (typeof hasPerm !== 'function') {
           <p class="text-xs text-gray-500 p-4 rounded-2xl bg-zilo-card border border-gray-200"><%= t('admin.demo.empty') %></p>
         <% } %>
       </div>
+      <% } %>
     </section>
 
     <!-- PAGOS -->
@@ -1839,27 +1848,97 @@ if (typeof hasPerm !== 'function') {
     <!-- RECLAMOS -->
     <section class="<%= panelClass('reclamos') %>" data-panel="reclamos">
       <div class="space-y-2">
-        <% complaints.forEach(c => { %>
+        <% (complaints || []).forEach(c => {
+          const roleLabel = c.reporterRoleLabel
+            || ({ client: 'Cliente', provider: 'Socio', tecnico: 'Técnico' }[c.reporterRole] || 'Desconocido');
+          const roleClass = c.reporterRole === 'provider'
+            ? 'bg-violet-500/15 text-violet-700'
+            : c.reporterRole === 'tecnico'
+              ? 'bg-sky-500/15 text-sky-700'
+              : 'bg-blue-500/15 text-blue-700';
+          const createdLabel = c.createdAt
+            ? new Date(c.createdAt).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })
+            : '—';
+          const updatesCount = Array.isArray(c.updates) ? c.updates.length : 0;
+        %>
           <div class="p-4 rounded-xl bg-zilo-card border border-gray-200" data-complaint-id="<%= c.id %>">
-            <div class="flex justify-between items-start mb-2">
-              <div>
+            <div class="flex justify-between items-start gap-2 mb-2">
+              <div class="min-w-0">
                 <strong class="text-sm block"><%= c.subject %></strong>
-                <span class="text-xs text-gray-500"><%= c.clientName %> · <%= c.type %></span>
+                <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                  <span class="inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase <%= roleClass %>"><%= roleLabel %></span>
+                  <span class="text-xs text-gray-500"><%= c.clientName || '—' %> · <%= c.type %></span>
+                </div>
               </div>
-              <span class="complaint-status px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+              <span class="complaint-status shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
                 <%= c.status === 'abierto' ? 'bg-red-500/15 text-red-600' : c.status === 'en_revision' ? 'bg-yellow-500/15 text-yellow-600' : 'bg-emerald-500/15 text-emerald-600' %>">
                 <%= ({ abierto: 'Abierto', en_revision: 'En revisión', resuelto: 'Resuelto', cerrado: 'Cerrado' })[c.status] || String(c.status || '').replace(/_/g, ' ') %>
               </span>
             </div>
-            <p class="text-xs text-gray-600 mb-3"><%= c.description %></p>
-            <% if (c.status !== 'resuelto') { %>
-              <div class="flex gap-2">
-                <button type="button" class="btn-complaint flex-1 py-2 rounded-lg bg-zilo-bg border border-gray-200 text-xs" data-id="<%= c.id %>" data-status="en_revision"><%= t('admin.reclamos.in_review') %></button>
-                <button type="button" class="btn-complaint flex-1 py-2 rounded-lg bg-emerald-600/80 text-xs font-semibold" data-id="<%= c.id %>" data-status="resuelto"><%= t('admin.reclamos.resolve') %></button>
+            <p class="text-xs text-gray-600 mb-2"><%= c.description %></p>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-gray-500 mb-3">
+              <div><dt class="inline text-gray-400"><%= t('admin.reclamos.date') %>:</dt> <dd class="inline text-gray-700"><%= createdLabel %></dd></div>
+              <div class="truncate"><dt class="inline text-gray-400"><%= t('admin.reclamos.email') %>:</dt>
+                <dd class="inline text-gray-700">
+                  <% if (c.clientEmail) { %><a href="mailto:<%= c.clientEmail %>" class="text-zilo-accent hover:underline"><%= c.clientEmail %></a><% } else { %>—<% } %>
+                </dd>
               </div>
-            <% } %>
+              <div><dt class="inline text-gray-400"><%= t('admin.reclamos.phone') %>:</dt>
+                <dd class="inline text-gray-700">
+                  <% if (c.clientPhone) { %><a href="tel:<%= String(c.clientPhone).replace(/\s/g, '') %>" class="text-zilo-accent hover:underline"><%= c.clientPhone %></a><% } else { %>—<% } %>
+                </dd>
+              </div>
+              <div><dt class="inline text-gray-400"><%= t('admin.reclamos.updates') %>:</dt> <dd class="inline text-gray-700"><%= updatesCount %></dd></div>
+            </dl>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="btn-complaint-open flex-1 min-w-[8rem] py-2 rounded-lg bg-zilo-bg border border-gray-200 text-xs font-semibold"
+                data-id="<%= c.id %>"><%= t('admin.reclamos.open_case') %></button>
+              <% if (c.status !== 'resuelto' && c.status !== 'cerrado') { %>
+                <button type="button" class="btn-complaint flex-1 min-w-[7rem] py-2 rounded-lg bg-zilo-bg border border-gray-200 text-xs" data-id="<%= c.id %>" data-status="en_revision"><%= t('admin.reclamos.in_review') %></button>
+                <button type="button" class="btn-complaint flex-1 min-w-[7rem] py-2 rounded-lg bg-emerald-600/80 text-xs font-semibold" data-id="<%= c.id %>" data-status="resuelto"><%= t('admin.reclamos.resolve') %></button>
+              <% } %>
+            </div>
           </div>
         <% }); %>
+        <% if (!(complaints || []).length) { %>
+          <p class="text-sm text-gray-500 text-center py-8"><%= t('admin.reclamos.empty') %></p>
+        <% } %>
+      </div>
+
+      <div id="complaintCaseModal" class="admin-modal fixed inset-0 z-[200] hidden items-end sm:items-center justify-center p-0 sm:p-4" aria-hidden="true">
+        <div class="admin-modal-backdrop absolute inset-0" data-close-complaint-case></div>
+        <div class="admin-modal-sheet relative w-full max-w-lg flex flex-col rounded-t-2xl sm:rounded-2xl max-h-[92vh]" role="dialog" aria-labelledby="complaintCaseTitle">
+          <div class="admin-modal-head flex items-start justify-between gap-3 px-4 sm:px-5 pt-4 sm:pt-5 pb-3 shrink-0 border-b border-black/10">
+            <div class="min-w-0">
+              <h4 id="complaintCaseTitle" class="text-base font-semibold truncate"><%= t('admin.reclamos.case_title') %></h4>
+              <p id="complaintCaseSub" class="text-xs text-gray-500 mt-0.5 truncate"></p>
+            </div>
+            <button type="button" class="text-gray-400 hover:text-gray-700 text-lg leading-none shrink-0 w-8 h-8 rounded-lg hover:bg-black/5" data-close-complaint-case aria-label="Cerrar">&times;</button>
+          </div>
+          <div id="complaintCaseBody" class="admin-modal-body flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5 py-4 space-y-3 text-sm">
+            <p class="text-gray-500">Cargando…</p>
+          </div>
+          <% if (hasPerm('reclamos.manage')) { %>
+          <form id="complaintCaseNoteForm" class="admin-modal-foot shrink-0 px-4 sm:px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-black/10 space-y-2">
+            <input type="hidden" id="complaintCaseId">
+            <label class="text-[11px] font-medium text-gray-600 block" for="complaintCaseNote"><%= t('admin.reclamos.progress_note') %></label>
+            <textarea id="complaintCaseNote" class="zilo-input !py-2 text-sm min-h-[72px]" maxlength="2000" required
+              placeholder="<%= t('admin.reclamos.progress_placeholder') %>"></textarea>
+            <div class="flex flex-wrap gap-2 items-center">
+              <label class="text-[11px] text-gray-500 flex items-center gap-1.5">
+                <%= t('admin.reclamos.also_status') %>
+                <select id="complaintCaseStatus" class="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs">
+                  <option value=""><%= t('admin.reclamos.keep_status') %></option>
+                  <option value="abierto"><%= t('admin.reclamos.status_open') %></option>
+                  <option value="en_revision"><%= t('admin.reclamos.in_review') %></option>
+                  <option value="resuelto"><%= t('admin.reclamos.resolve') %></option>
+                </select>
+              </label>
+              <button type="submit" class="zilo-btn-primary !py-2 !px-4 !text-sm ml-auto"><%= t('admin.reclamos.save_progress') %></button>
+            </div>
+          </form>
+          <% } %>
+        </div>
       </div>
     </section>
 
@@ -3061,6 +3140,70 @@ if (typeof hasPerm !== 'function') {
       <% const mfaOn = typeof mfaStatus !== 'undefined' && mfaStatus && mfaStatus.enabled; %>
 
       <div class="space-y-4">
+      <% const mpSt = typeof mpPaymentStatus !== 'undefined' && mpPaymentStatus ? mpPaymentStatus : null; %>
+      <% const mpCredOk = Boolean(mpSt && mpSt.accessTokenConfigured && mpSt.publicKeyConfigured); %>
+      <% const mpCheckoutOk = Boolean(mpSt && (mpSt.gatewayReady || mpSt.embedReady || mpSt.configured)); %>
+      <!-- Tarjeta dedicada: estado pasarela (se refresca por JS desde /mp/status) -->
+      <div id="mpPaymentStatusCard" class="p-4 rounded-2xl border-2 <%= mpCredOk && mpCheckoutOk ? 'bg-emerald-50 border-emerald-400' : 'bg-red-50 border-red-300' %>">
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <div>
+            <h4 class="text-sm font-bold text-gray-900">Estado Mercado Pago</h4>
+            <p class="text-[11px] text-gray-600 mt-0.5">Pasarela de cobro real · se actualiza al abrir esta pestaña</p>
+          </div>
+          <button type="button" id="btnRefreshMpStatus" class="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 shrink-0">Actualizar</button>
+        </div>
+        <dl class="grid grid-cols-1 gap-2 text-xs text-gray-700">
+          <div class="flex justify-between gap-3 items-baseline">
+            <dt class="text-gray-500">Fase MP</dt>
+            <dd id="mpStPhase" class="font-bold text-right"><%= opPhase.isProductivoPhase ? 'Producción' : 'Prueba' %></dd>
+          </div>
+          <div class="flex justify-between gap-3 items-baseline">
+            <dt class="text-gray-500">Credenciales en uso</dt>
+            <dd id="mpStCredentials" class="font-bold text-right <%= mpCredOk ? 'text-emerald-700' : 'text-red-700' %>">
+              <% if (!mpSt) { %>Cargando…<% } else if (mpCredOk) { %>
+                <%= mpSt.profile === 'live' ? 'LIVE listas' : 'TEST listas' %><% if (mpSt.publicKeyPrefix) { %> · <%= mpSt.publicKeyPrefix %><% } %>
+              <% } else if (mpSt.productionEnvPresent && mpSt.profile === 'test') { %>
+                Bloqueadas (fase demo)
+              <% } else if (mpSt.accessTokenConfigured && !mpSt.publicKeyConfigured) { %>
+                Falta MP_PUBLIC_KEY
+              <% } else if (!mpSt.accessTokenConfigured && mpSt.publicKeyConfigured) { %>
+                Falta MP_ACCESS_TOKEN
+              <% } else { %>
+                Faltan en .env
+              <% } %>
+            </dd>
+          </div>
+          <div class="flex justify-between gap-3 items-baseline">
+            <dt class="text-gray-500">Checkout listo</dt>
+            <dd id="mpStCheckout" class="font-bold text-right <%= mpCheckoutOk ? 'text-emerald-700' : 'text-red-700' %>">
+              <% if (!mpSt) { %>Cargando…<% } else if (mpSt.embedReady) { %>
+                Sí · Brick
+              <% } else if (mpSt.gatewayReady || mpSt.configured) { %>
+                Parcial · Checkout Pro
+              <% } else { %>
+                No · sin pasarela usable
+              <% } %>
+            </dd>
+          </div>
+          <div class="flex justify-between gap-3 items-baseline">
+            <dt class="text-gray-500">Cobra plata real</dt>
+            <dd id="mpStCharges" class="font-bold text-right <%= mpSt && mpSt.chargesRealMoney ? 'text-emerald-700' : 'text-amber-700' %>">
+              <%= !mpSt ? 'Cargando…' : (mpSt.chargesRealMoney ? 'Sí' : 'No (sandbox/demo)') %>
+            </dd>
+          </div>
+        </dl>
+        <p id="mpStHint" class="text-[11px] mt-3 rounded-xl px-3 py-2 leading-relaxed <%= mpCredOk && mpCheckoutOk ? 'bg-white/70 text-emerald-900 border border-emerald-200' : 'bg-white/80 text-red-900 border border-red-200' %>">
+          <% if (!mpSt) { %>
+            Consultando estado de la pasarela…
+          <% } else if (mpCredOk && mpCheckoutOk) { %>
+            Listo para prueba de pago real. Usa un monto bajo.
+          <% } else { %>
+            En Hostinger pon <code class="text-[10px]">MP_PUBLIC_KEY</code> + <code class="text-[10px]">MP_ACCESS_TOKEN</code> (APP_USR-…),
+            <code class="text-[10px]">MP_SANDBOX=false</code>, reinicia Node y pulsa Actualizar.
+          <% } %>
+        </p>
+      </div>
+
       <div class="p-4 rounded-2xl border <%= modePanel.isProductive2 ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-amber-500/10 border-amber-500/30' %>">
         <h4 class="text-sm font-semibold leading-snug"><%= modePanel.label || (modePanel.isDemo ? 'Demo local' : 'Demo 2.0') %></h4>
         <p class="text-xs text-gray-600 mt-1.5 leading-relaxed">
@@ -3073,7 +3216,6 @@ if (typeof hasPerm !== 'function') {
           <% } %>
         </p>
         <dl class="mt-3 grid grid-cols-1 gap-1.5 text-[11px] text-gray-600">
-          <div class="flex justify-between gap-3"><dt class="text-gray-500">Mercado Pago</dt><dd class="font-semibold text-right"><%= opPhase.isProductivoPhase ? 'Producción' : 'Prueba' %></dd></div>
           <div class="flex justify-between gap-3"><dt class="text-gray-500">Pagos APP_MODE</dt><dd class="font-semibold text-right"><%= modePanel.isDemo ? 'Simulados' : 'Servidor' %></dd></div>
           <div class="flex justify-between gap-3"><dt class="text-gray-500">Huincha pública</dt><dd class="font-semibold text-right"><%= modePanel.isDemo2 || modePanel.isDemo ? 'Demo 2.0' : 'Oculta' %></dd></div>
           <div class="flex justify-between gap-3 min-w-0"><dt class="text-gray-500 shrink-0">URL admin</dt><dd class="font-mono text-[10px] text-right truncate"><%= modePanel.adminBasePath %>/login</dd></div>

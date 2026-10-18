@@ -1,5 +1,5 @@
 /**
- * Pago inline en ficha de servicio — Payment Brick + Checkout API.
+ * Pago inline en ficha de servicio — Payment Brick + Checkout API / Checkout Pro.
  */
 (function () {
   const page = document.getElementById('servicePage');
@@ -88,11 +88,29 @@
     if (window.FandezMpPay) return;
     await new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = '/js/mp-pay.js?v=20261010-mp1';
+      s.src = '/js/mp-pay.js?v=20261018-mp2';
       s.onload = resolve;
       s.onerror = reject;
       document.head.appendChild(s);
     });
+  }
+
+  function explainConfig(cfg) {
+    if (!cfg || !cfg.success) return 'No se pudo leer la config de Mercado Pago.';
+    if (cfg.redirectOnly) return 'El servidor está en modo redirección (MP_CHECKOUT_REDIRECT). Usa el botón de abajo.';
+    if (cfg.credentialMismatch) {
+      return 'Public Key y Access Token no son del mismo tipo (prueba vs producción). Revisa Hostinger.';
+    }
+    if (!cfg.publicKey && cfg.accessTokenConfigured) {
+      return 'Falta MP_PUBLIC_KEY de producción en Hostinger. Sin ella no se muestra el formulario embebido.';
+    }
+    if (!cfg.publicKey && !cfg.accessTokenConfigured) {
+      return 'Faltan MP_PUBLIC_KEY y MP_ACCESS_TOKEN en el servidor. Revisa Seguridad en Admin.';
+    }
+    if (!cfg.embed) {
+      return 'Checkout embebido no disponible. Puedes pagar con el botón de Mercado Pago.';
+    }
+    return 'No pudimos cargar el formulario. Usa el botón de abajo.';
   }
 
   async function recalcAndMount() {
@@ -124,46 +142,70 @@
         return;
       }
 
-      if (!mpEmbed || page.dataset.mpTokenConfigured !== '1') {
-        setError('Abrí el checkout de Mercado Pago para pagar.');
-        showFallback(true);
-        return;
+      // Siempre consultar config fresca (no confiar solo en data-* del HTML).
+      const cfg = await window.FandezMpPay.fetchConfig().catch(() => ({}));
+      if (cfg?.publicKey) {
+        mpPublicKey = cfg.publicKey;
+        page.dataset.mpPublicKey = cfg.publicKey;
+      }
+      if (typeof cfg?.embed === 'boolean') {
+        mpEmbed = cfg.embed;
+        page.dataset.mpEmbed = cfg.embed ? '1' : '0';
+      }
+      if (cfg?.accessTokenConfigured) {
+        page.dataset.mpTokenConfigured = '1';
       }
 
-      const result = await window.FandezMpPay.mountBrick({
-        publicKey: mpPublicKey,
-        amount,
-        containerId: 'inlineMpCardPaymentBrick',
-        sectionId: 'inlineMpEmbedSection',
-        payerEmail: getBilling().invoiceEmail,
-        billing: getBilling,
-        requestId,
-        onReady: () => {
-          setLoading(false);
-          setError('');
-          showFallback(false);
-        },
-        onBeforeSubmit: () => {
-          if (!billingReady()) {
-            inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            return 'Completa RUT y datos de facturación para pagar.';
+      const canTryBrick = Boolean(cfg?.embed && (cfg.publicKey || mpPublicKey));
+      if (canTryBrick) {
+        const result = await window.FandezMpPay.mountBrick({
+          publicKey: mpPublicKey || cfg.publicKey,
+          amount,
+          containerId: 'inlineMpCardPaymentBrick',
+          sectionId: 'inlineMpEmbedSection',
+          payerEmail: getBilling().invoiceEmail,
+          billing: getBilling,
+          requestId,
+          onReady: () => {
+            setLoading(false);
+            setError('');
+            showFallback(false);
+          },
+          onBeforeSubmit: () => {
+            if (!billingReady()) {
+              inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              return 'Completa RUT y datos de facturación para pagar.';
+            }
+            return null;
           }
-          return null;
-        }
-      });
+        });
 
-      if (result.publicKey) mpPublicKey = result.publicKey;
-      if (!result.active) {
+        if (result.publicKey) mpPublicKey = result.publicKey;
+        if (result.active) return;
+
         if (result.reason === 'amount_too_low') {
           setError('El monto es demasiado bajo para tarjeta. Revisa el total del servicio.');
-        } else {
-          setError('No pudimos cargar el formulario. Usa el botón de abajo.');
+          showFallback(false);
+          return;
         }
-        showFallback(true);
+      }
+
+      // Brick no disponible → Checkout Pro (redirect a Mercado Pago).
+      setError(explainConfig(cfg));
+      showFallback(true);
+
+      // Si hay token pero no Brick, abrir Checkout Pro automáticamente una vez.
+      if (cfg?.accessTokenConfigured && !cfg?.embed) {
+        const autoKey = `mp-auto-pro-${requestId}`;
+        if (!sessionStorage.getItem(autoKey)) {
+          sessionStorage.setItem(autoKey, '1');
+          await window.FandezMpPay.openCheckoutPro({ requestId, billing: getBilling() });
+          return;
+        }
       }
     } catch (err) {
       console.error('[inline-pay]', err);
-      setError('Error al cargar el pago.');
+      setError(err.message || 'Error al cargar el pago.');
       showFallback(true);
     } finally {
       setLoading(false);

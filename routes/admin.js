@@ -712,7 +712,7 @@ router.get('/', requireRole('admin'), async (req, res) => {
     refundQueue: safeAdminCall('refundQueue', () => store.getAdminRefundQueue({ status: 'open', limit: 60 }), []),
     dispatchQueue: safeAdminCall('dispatchQueue', () => store.getAdminDispatchQueue(req.locale || 'es'), []),
     csrfToken: require('../middleware/csrf').ensureCsrfToken(req),
-    complaints: store.COMPLAINTS,
+    complaints: safeAdminCall('complaints', () => store.getAdminComplaints(), store.COMPLAINTS || []),
     chats: store.CHATS,
     consents: store.consentRecords.slice(0, 20),
     securityLogs: store.securityLogs.slice(0, 25),
@@ -762,7 +762,15 @@ router.get('/', requireRole('admin'), async (req, res) => {
     initialTab,
     attentionInbox: safeAdminCall('attentionInbox', () => buildAdminAttentionInbox(store, req.locale || 'es'), []),
     serviceBriefs,
-    briefStatuses: serviceBriefsMod.STATUSES || []
+    briefStatuses: serviceBriefsMod.STATUSES || [],
+    mpPaymentStatus: (() => {
+      try {
+        return require('../lib/mpAdminStatus').buildMpPaymentStatus(store);
+      } catch (e) {
+        console.warn('[admin/dashboard] mpPaymentStatus:', e.message);
+        return res.locals.mpPaymentStatus || null;
+      }
+    })()
   });
   } catch (err) {
     console.error('[admin/dashboard]', err.message);
@@ -1148,15 +1156,18 @@ router.get('/openai-usage', requireRole('admin'), requireAdminPermission('openai
 router.get('/modo', requireRole('admin'), requireAdminPermission('seguridad.view', 'equipo.manage', 'precios.manage'), async (req, res) => {
   const mp = require('../lib/mercadopago');
   const operationalPhase = require('../lib/operationalPhase');
+  const { buildMpPaymentStatus } = require('../lib/mpAdminStatus');
   let cardMethods = { ok: false, brands: {}, methods: [] };
   try {
     cardMethods = await mp.listCardPaymentMethods();
   } catch (_) { /* noop */ }
+  const mpStatus = buildMpPaymentStatus(store);
   res.json({
     success: true,
     ...getPublicStatus(),
     operationalPhase: operationalPhase.getPublicStatus(),
     mercadopago: mp.getCredentialAdminStatus(),
+    mpPaymentStatus: mpStatus,
     suggestedAdminPath: require('../lib/appMode').suggestAdminPath(),
     mpCardBrands: cardMethods.brands || {},
     mpCardMethodIds: (cardMethods.active || cardMethods.methods || []).map((m) => m.id),
@@ -1166,6 +1177,26 @@ router.get('/modo', requireRole('admin'), requireAdminPermission('seguridad.view
     mpBrandAudit: cardMethods.brandAudit || [],
     mpCardMethods: (cardMethods.methods || []).slice(0, 40)
   });
+});
+
+/** Estado pasarela para la tarjeta Seguridad (sin secretos). */
+router.get('/mp/status', requireRole('admin'), requireAdminPermission('seguridad.view', 'precios.manage'), (req, res) => {
+  try {
+    const { buildMpPaymentStatus, credentialsLabel, checkoutLabel } = require('../lib/mpAdminStatus');
+    const st = buildMpPaymentStatus(store);
+    res.json({
+      success: true,
+      status: st,
+      labels: {
+        credentials: credentialsLabel(st),
+        checkout: checkoutLabel(st),
+        chargesReal: st.chargesRealMoney ? 'Sí' : 'No (sandbox/demo)',
+        phase: st.profile === 'live' ? 'Producción' : 'Prueba'
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message || 'No se pudo leer estado MP' });
+  }
 });
 
 /** Diagnóstico MP para soporte: GET /v1/payment_methods (Visa activa sí/no). */
@@ -1946,9 +1977,35 @@ router.post('/toggle-user', requireRole('admin'), requireAdminPermission('demo.m
 });
 
 router.post('/complaint/:id/status', requireRole('admin'), requireAdminPermission('reclamos.manage'), (req, res) => {
-  const complaint = store.updateComplaintStatus(req.params.id, req.body.status);
+  const complaint = store.updateComplaintStatus(req.params.id, req.body.status, {
+    authorId: req.session.user?.id,
+    authorName: req.session.user?.name || 'Admin',
+    authorRole: 'admin'
+  });
   if (!complaint) return res.status(404).json({ error: 'Reclamo no encontrado' });
   store.logSecurityEvent('complaint_update', `${req.params.id}=${req.body.status}`, req);
+  res.json({ success: true, complaint });
+});
+
+router.post('/complaint/:id/update', requireRole('admin'), requireAdminPermission('reclamos.manage'), (req, res) => {
+  const result = store.addComplaintUpdate(req.params.id, {
+    note: req.body.note,
+    status: req.body.status || null,
+    authorId: req.session.user?.id,
+    authorName: req.session.user?.name || 'Admin',
+    authorRole: 'admin'
+  });
+  if (result.error) return res.status(400).json({ success: false, error: result.error });
+  store.logSecurityEvent('complaint_note', `${req.params.id}`, req);
+  res.json(result);
+});
+
+router.get('/complaint/:id', requireRole('admin'), requireAdminPermission('reclamos.view'), (req, res) => {
+  const list = typeof store.getAdminComplaints === 'function'
+    ? store.getAdminComplaints()
+    : (store.COMPLAINTS || []);
+  const complaint = list.find((c) => c.id === req.params.id);
+  if (!complaint) return res.status(404).json({ error: 'Reclamo no encontrado' });
   res.json({ success: true, complaint });
 });
 

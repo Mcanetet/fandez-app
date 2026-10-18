@@ -39,6 +39,17 @@
                placeholder="123456">
       </label>
       <label class="block text-[11px] text-zilo-muted">
+        <%= t('provider.invoice.amount') %>
+        <input data-role="invoice-amount" type="text" inputmode="numeric" autocomplete="off"
+               class="mt-1 w-full rounded-lg border border-zilo-border bg-zilo-bg px-2 py-2 text-sm text-zilo-text"
+               placeholder="<%= inv.amount %>"
+               value="<%= inv.amount %>"
+               data-expected-amount="<%= inv.amount %>">
+      </label>
+      <p class="text-[10px] text-zilo-muted leading-relaxed">
+        <%= t('provider.invoice.amount_must_match') %>
+      </p>
+      <label class="block text-[11px] text-zilo-muted">
         <%= t('provider.invoice.file') %>
         <input data-role="invoice-file" type="file" accept="image/*,application/pdf" class="mt-1 w-full text-xs text-zilo-muted">
       </label>
