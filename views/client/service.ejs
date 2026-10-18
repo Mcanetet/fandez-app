@@ -584,33 +584,32 @@
     </div>
 
     <div id="loaderOverlay" class="hidden fixed inset-0 z-[9500] search-overlay flex">
-      <div class="search-overlay-orb search-overlay-orb-a" aria-hidden="true"></div>
-      <div class="search-overlay-orb search-overlay-orb-b" aria-hidden="true"></div>
-      <div class="search-overlay-grid" aria-hidden="true"></div>
       <div class="relative text-center w-full" id="searchExperience" data-timeout-ms="<%= (typeof requestTimeouts !== 'undefined' ? requestTimeouts.unassignedNoticeMinutes : 15) * 60 * 1000 %>">
         <div class="search-top-bar">
           <button type="button" id="btnSearchBack" class="search-back-btn" aria-label="<%= t('client.service.search_back_aria') %>">
-            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
             <span><%= t('client.service.search_back') %></span>
           </button>
         </div>
 
-        <div class="search-order-card text-left mb-4" id="searchOrderCard">
+        <div class="search-order-card text-left" id="searchOrderCard">
           <div class="flex items-start gap-3">
             <div class="search-order-icon shrink-0">
               <%- include('../partials/service-icon', { icon: service.icon || service.id, size: 'md' }) %>
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-zilo-muted mb-0.5"><%= t('client.service.search_order_label') %></p>
-              <strong id="searchOrderService" class="text-sm block text-zilo-text break-words"><%= service.name %></strong>
-              <p id="searchOrderMeta" class="text-[11px] text-zilo-muted mt-0.5 break-words"><%= t('client.service.search_order_paid') %></p>
-              <p id="searchOrderAddress" class="text-[11px] text-zilo-text mt-1.5 leading-snug break-words"></p>
+              <div class="flex items-center justify-between gap-2 mb-0.5">
+                <p class="search-order-kicker"><%= t('client.service.search_order_label') %></p>
+                <span class="search-order-badge shrink-0"><%= t('client.service.search_order_badge') %></span>
+              </div>
+              <strong id="searchOrderService" class="text-[0.95rem] block text-zilo-text break-words font-semibold tracking-tight"><%= service.name %></strong>
+              <p id="searchOrderMeta" class="text-[12px] text-zilo-muted mt-0.5 break-words"><%= t('client.service.search_order_paid') %></p>
+              <p id="searchOrderAddress" class="text-[12px] text-zilo-muted mt-1.5 leading-snug break-words"></p>
             </div>
-            <span class="search-order-badge shrink-0"><%= t('client.service.search_order_badge') %></span>
           </div>
         </div>
 
-        <div class="search-hero-card mb-3">
+        <div class="search-hero-card">
           <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
             <div class="search-hero-core w-full h-full rounded-full flex flex-col items-center justify-center">
               <div class="zilo-radar-wrap" aria-hidden="true">
@@ -622,24 +621,24 @@
                   </span>
                 </div>
               </div>
-              <p id="searchTimer" class="font-mono text-2xl font-bold tracking-tight text-zilo-text tabular-nums leading-none">00:00</p>
-              <p class="text-[10px] text-zilo-muted uppercase tracking-[0.14em] mt-1"><%= t('client.service.search_elapsed') %></p>
+              <p id="searchTimer" class="search-timer tabular-nums">00:00</p>
+              <p class="search-timer-label"><%= t('client.service.search_elapsed') %></p>
             </div>
           </div>
         </div>
 
-        <p id="searchPhaseLabel" class="search-phase-pill mb-2"><%= t('client.service.search_phase_near') %></p>
-        <h3 id="loaderText" class="zilo-display text-[1.25rem] mb-1 leading-snug tracking-tight"><%= t('client.service.searching') %></h3>
+        <p id="searchPhaseLabel" class="search-phase-label"><%= t('client.service.search_phase_near') %></p>
+        <h3 id="loaderText" class="search-status-title"><%= t('client.service.searching') %></h3>
         <p id="loaderSub" class="sr-only"><%= t('client.service.searching_sub') %></p>
-        <p id="searchViewersHint" class="text-[11px] text-zilo-accent font-medium mb-4"><%= t('client.js.search_viewers_looking') %></p>
+        <p id="searchViewersHint" class="search-status-hint"><%= t('client.js.search_viewers_looking') %></p>
 
-        <div class="mb-5 px-1">
-          <div class="flex justify-between text-[10px] text-zilo-muted mb-1.5">
+        <div class="search-progress-block">
+          <div class="search-progress-meta">
             <span><%= t('client.service.search_progress_start') %></span>
-            <span id="searchProgressLabel" class="font-medium text-zilo-accent">0 / 15 min</span>
+            <span id="searchProgressLabel">0 / 15 min</span>
           </div>
-          <div class="h-2 rounded-full bg-white/70 border border-zilo-border/60 overflow-hidden shadow-inner">
-            <div id="searchProgressBar" class="h-full rounded-full search-progress-fill transition-all duration-500" style="width:0%"></div>
+          <div class="search-progress-track">
+            <div id="searchProgressBar" class="search-progress-fill transition-all duration-500" style="width:0%"></div>
           </div>
         </div>
 
@@ -654,12 +653,12 @@
           <p id="searchTipText" class="hidden"><%= t('client.service.search_tip_1') %></p>
         </div>
 
-        <div class="flex flex-col gap-2.5 pb-3">
-          <button type="button" id="btnCancelSearch" class="search-cancel-btn">
-            <%= t('client.service.cancel_search') %>
-          </button>
+        <div class="search-actions">
           <button type="button" data-open-aland class="search-aland-btn">
             <span><%= t('client.service.talk_aland') %></span>
+          </button>
+          <button type="button" id="btnCancelSearch" class="search-cancel-btn">
+            <%= t('client.service.cancel_search') %>
           </button>
         </div>
       </div>
@@ -1066,19 +1065,19 @@
   aria-labelledby="cancelModalTitle"
 >
   <script type="application/json" id="cancelReasonsJson"><%- JSON.stringify(typeof cancellationReasons !== 'undefined' ? cancellationReasons : []) %></script>
-  <div id="cancelModalBackdrop" class="absolute inset-0 bg-black/55 backdrop-blur-sm"></div>
+  <div id="cancelModalBackdrop" class="cancel-modal-backdrop"></div>
   <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-5 pointer-events-none">
-    <div class="cancel-sheet cancel-sheet--compact w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col pointer-events-auto bg-white rounded-t-3xl sm:rounded-2xl border border-zilo-border shadow-xl">
-      <div class="px-5 pt-4 pb-3">
-        <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-zilo-border sm:hidden" aria-hidden="true"></div>
-        <h2 id="cancelModalTitle" class="text-lg font-semibold leading-snug"><%= t('client.service.cancel_retention_title') %></h2>
-        <p id="cancelRefundOneLiner" class="cancel-refund-line mt-2" aria-live="polite"><%= t('client.service.cancel_refund_line_loading') %></p>
+    <div class="cancel-sheet cancel-sheet--compact w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col pointer-events-auto">
+      <div class="cancel-sheet-header">
+        <div class="cancel-sheet-handle sm:hidden" aria-hidden="true"></div>
+        <h2 id="cancelModalTitle" class="cancel-sheet-title"><%= t('client.service.cancel_retention_title') %></h2>
+        <p id="cancelRefundOneLiner" class="cancel-refund-line" aria-live="polite"><%= t('client.service.cancel_refund_line_loading') %></p>
         <p id="cancelRetentionHook" class="hidden" aria-hidden="true"></p>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-5 pb-3">
+      <div class="flex-1 overflow-y-auto cancel-sheet-body">
         <fieldset id="cancelReasonFieldset" class="m-0 p-0 border-0">
-          <legend class="text-xs font-semibold text-zilo-text mb-2"><%= t('client.service.cancel_reason_label') %></legend>
+          <legend class="cancel-reason-legend"><%= t('client.service.cancel_reason_label') %></legend>
           <div id="cancelReasonList" class="cancel-reason-list cancel-reason-list--compact" role="radiogroup" aria-label="<%= t('client.service.cancel_reason_label') %>"></div>
         </fieldset>
 
@@ -1097,12 +1096,12 @@
         <div id="cancelSoftTip" class="hidden" role="status"></div>
       </div>
 
-      <div class="px-5 py-4 border-t border-zilo-border space-y-2 safe-bottom bg-white">
-        <button type="button" id="cancelModalConfirm" class="cancel-confirm-btn cancel-confirm-btn--solid w-full py-3.5 rounded-xl text-sm font-semibold">
-          <%= t('client.service.cancel_confirm_btn') %>
-        </button>
-        <button type="button" id="cancelModalClose" class="w-full py-2.5 rounded-xl zilo-btn-ghost !text-sm font-semibold">
+      <div class="cancel-sheet-footer safe-bottom">
+        <button type="button" id="cancelModalClose" class="cancel-keep-btn">
           <%= t('client.service.cancel_keep_btn') %>
+        </button>
+        <button type="button" id="cancelModalConfirm" class="cancel-confirm-btn">
+          <%= t('client.service.cancel_confirm_btn') %>
         </button>
       </div>
     </div>

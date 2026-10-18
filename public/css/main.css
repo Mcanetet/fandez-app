@@ -3125,10 +3125,8 @@ body.session-role--tecnico::before {
 /* Overlay búsqueda de técnico — por encima de la huincha Demo (z-9000) */
 .search-overlay {
   background:
-    radial-gradient(720px 360px at 12% -10%, rgba(196, 92, 20, 0.14), transparent 55%),
-    radial-gradient(640px 320px at 100% 8%, rgba(47, 107, 79, 0.1), transparent 50%),
-    linear-gradient(180deg, #FFFCF8 0%, #F7F3EE 48%, #EFE8DF 100%);
-  /* Sin padding en el scrollport: el espacio va en #searchExperience para que no se “coma” al scrollear */
+    radial-gradient(560px 280px at 50% -8%, rgba(196, 92, 20, 0.07), transparent 60%),
+    linear-gradient(180deg, #FFFFFF 0%, #FAFAF8 55%, #F4F3F0 100%);
   padding: 0;
   box-sizing: border-box;
   z-index: 9500 !important;
@@ -3148,13 +3146,12 @@ body.session-role--tecnico::before {
 }
 #searchExperience {
   width: 100%;
-  max-width: 24rem;
+  max-width: 22.5rem;
   margin: 0 auto;
-  /* Espacio seguro DENTRO del contenido (no se pierde al hacer scroll) */
-  padding-top: max(1.75rem, calc(env(safe-area-inset-top, 0px) + 1.25rem));
-  padding-bottom: max(2rem, calc(env(safe-area-inset-bottom, 0px) + 1.5rem));
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 1rem));
+  padding-bottom: max(1.75rem, calc(env(safe-area-inset-bottom, 0px) + 1.25rem));
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
   box-sizing: border-box;
   flex: 0 0 auto;
 }
@@ -3162,26 +3159,28 @@ body.session-role--tecnico::before {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 0.85rem;
+  margin-bottom: 1.1rem;
 }
 .search-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.55rem 0.85rem 0.55rem 0.65rem;
-  border-radius: 999px;
-  border: 1px solid rgba(224, 215, 204, 0.95);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--zilo-text);
+  gap: 0.3rem;
+  padding: 0.4rem 0.15rem 0.4rem 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  color: var(--zilo-muted);
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 550;
   line-height: 1;
-  box-shadow: 0 4px 14px rgba(26, 24, 20, 0.06);
-  transition: background 0.15s, border-color 0.15s;
+  box-shadow: none;
+  transition: color 0.15s;
 }
+.search-back-btn:hover,
 .search-back-btn:active {
-  background: #fff;
-  border-color: rgba(196, 92, 20, 0.35);
+  color: var(--zilo-text);
+  background: transparent;
+  border: none;
 }
 /* Mientras busca: quitar huincha Demo + header (tapaban la tarjeta del pedido) */
 body.is-searching-tech .demo-mode-ribbon,
@@ -3343,40 +3342,53 @@ body.is-searching-tech #alandFabRoot {
 }
 
 .search-order-card {
-  padding: 0.85rem 0.95rem;
-  border-radius: 1rem;
-  background: #ffffff;
-  border: 1px solid rgba(224, 215, 204, 0.95);
-  box-shadow: 0 8px 24px rgba(26, 24, 20, 0.05);
+  padding: 1rem 0 1.1rem;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(26, 24, 20, 0.08);
+  box-shadow: none;
   overflow: visible;
   position: relative;
   z-index: 1;
-  margin-top: 0;
-  scroll-margin-top: 0;
+  margin: 0 0 0.25rem;
+  text-align: left;
+}
+.search-order-kicker {
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--zilo-muted);
+  margin: 0;
 }
 .search-order-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.85rem;
+  background: #F3F1ED;
 }
 .search-order-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.625rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.35rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #1e4a36;
-  background: rgba(47, 107, 79, 0.12);
-  border: 1px solid rgba(47, 107, 79, 0.28);
+  color: var(--aland-strong);
+  background: var(--aland-soft);
+  border: none;
 }
 .search-hero-card {
   position: relative;
   overflow: hidden;
-  padding: 1.35rem 0 0.5rem;
+  padding: 1.5rem 0 0.35rem;
   margin-inline: auto;
 }
 .search-hero-core {
@@ -3387,13 +3399,85 @@ body.is-searching-tech #alandFabRoot {
   position: relative;
   z-index: 1;
 }
+.search-timer {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.75rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  color: var(--zilo-text);
+  line-height: 1;
+  margin: 0;
+}
+.search-timer-label {
+  margin-top: 0.35rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--zilo-muted);
+}
+.search-phase-label {
+  display: inline-block;
+  margin: 0.15rem 0 0.35rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.75rem;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  color: var(--zilo-accent-strong);
+}
+.search-status-title {
+  font-size: 1.2rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--zilo-text);
+  margin: 0 0 0.35rem;
+}
+.search-status-hint {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--zilo-muted);
+  margin: 0 0 1.25rem;
+  font-weight: 450;
+}
+.search-progress-block {
+  margin: 0 0 1.5rem;
+}
+.search-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.6875rem;
+  color: var(--zilo-muted);
+  margin-bottom: 0.45rem;
+}
+.search-progress-meta #searchProgressLabel {
+  color: var(--zilo-text);
+  font-weight: 550;
+}
+.search-progress-track {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(26, 24, 20, 0.08);
+  overflow: hidden;
+}
 .search-ring-progress {
   transition: stroke-dashoffset 0.6s ease;
   filter: none;
 }
 .search-progress-fill {
+  height: 100%;
+  border-radius: 999px;
   background: var(--zilo-accent);
   box-shadow: none;
+}
+.search-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-bottom: 0.25rem;
 }
 
 /* Carrusel minimalista de servicios (pantalla de búsqueda) */
@@ -3435,18 +3519,18 @@ body.is-searching-tech #alandFabRoot {
   to { transform: translateX(-50%); }
 }
 .search-phase-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.25rem 0.65rem;
-  border-radius: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  /* compat: JS puede seguir usando la clase antigua */
+  display: inline-block;
+  margin: 0.15rem 0 0.35rem;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 0;
+  font-size: 0.75rem;
+  font-weight: 550;
+  letter-spacing: 0.01em;
   text-transform: none;
   color: var(--zilo-accent-strong);
-  background: var(--zilo-accent-soft);
-  border: 1px solid rgba(196, 92, 20, 0.18);
 }
 
 .search-timeline {
@@ -3538,18 +3622,19 @@ body.is-searching-tech #alandFabRoot {
 }
 .search-cancel-btn {
   width: 100%;
-  padding: 0.85rem 1rem;
-  border-radius: 0.95rem;
+  padding: 0.7rem 1rem;
+  border-radius: 0.85rem;
   font-size: 0.875rem;
-  font-weight: 600;
-  color: #9F1239;
-  background: rgba(255,255,255,0.88);
-  border: 1px solid rgba(244, 63, 94, 0.22);
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  font-weight: 550;
+  color: var(--zilo-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: color 0.15s, background 0.15s;
 }
 .search-cancel-btn:hover {
-  background: #FFF1F2;
-  border-color: rgba(244, 63, 94, 0.35);
+  color: var(--zilo-danger);
+  background: rgba(184, 58, 46, 0.05);
+  border-color: transparent;
 }
 .search-aland-btn {
   width: 100%;
@@ -3557,16 +3642,88 @@ body.is-searching-tech #alandFabRoot {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.7rem 1rem;
-  border-radius: 0.95rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 650;
   color: #fff;
-  background: linear-gradient(135deg, #7C3AED, #6D28D9);
-  box-shadow: 0 8px 20px rgba(109, 40, 217, 0.25);
+  background: var(--aland);
+  border: 1px solid var(--aland-strong);
+  box-shadow: none;
+}
+.search-aland-btn:hover {
+  background: var(--aland-strong);
 }
 
-/* Modal cancelación / retención */
+/* Modal cancelación — hoja compacta y sobria */
+.cancel-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(26, 24, 20, 0.42);
+  backdrop-filter: blur(4px);
+}
+.cancel-sheet {
+  background: #fff;
+  border: 1px solid rgba(26, 24, 20, 0.08);
+  border-radius: 1.35rem 1.35rem 0 0;
+  box-shadow: 0 -8px 40px rgba(26, 24, 20, 0.12);
+}
+@media (min-width: 640px) {
+  .cancel-sheet {
+    border-radius: 1.15rem;
+    box-shadow: 0 16px 48px rgba(26, 24, 20, 0.14);
+  }
+}
+.cancel-sheet-header {
+  padding: 1rem 1.35rem 0.85rem;
+}
+.cancel-sheet-handle {
+  width: 2.25rem;
+  height: 0.25rem;
+  margin: 0 auto 0.85rem;
+  border-radius: 999px;
+  background: rgba(26, 24, 20, 0.12);
+}
+.cancel-sheet-title {
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--zilo-text);
+  margin: 0;
+}
+.cancel-sheet-body {
+  padding: 0.15rem 1.35rem 0.5rem;
+}
+.cancel-sheet-footer {
+  padding: 0.85rem 1.35rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  border-top: 1px solid rgba(26, 24, 20, 0.06);
+  background: #fff;
+}
+.cancel-reason-legend {
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--zilo-muted);
+  margin-bottom: 0.55rem;
+}
+.cancel-keep-btn {
+  width: 100%;
+  padding: 0.95rem 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid transparent;
+  background: var(--zilo-accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+.cancel-keep-btn:hover {
+  background: var(--zilo-accent-strong);
+}
 .cancel-keep-card {
   padding: 0.85rem 1rem;
   border-radius: 0.95rem;
@@ -3661,25 +3818,37 @@ body.is-searching-tech #alandFabRoot {
   color: var(--zilo-accent);
 }
 .cancel-refund-line {
-  font-size: 0.875rem;
-  line-height: 1.4;
-  color: #166534;
-  background: #F0FDF4;
-  border: 1px solid #BBF7D0;
-  border-radius: 0.75rem;
-  padding: 0.65rem 0.85rem;
+  margin: 0.65rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--aland-strong);
+  background: var(--aland-soft);
+  border: none;
+  border-radius: 0.65rem;
+  padding: 0.7rem 0.85rem;
 }
 .cancel-reason-list {
   display: grid;
-  gap: 0.5rem;
+  gap: 0;
+  border: 1px solid rgba(26, 24, 20, 0.08);
+  border-radius: 0.85rem;
+  overflow: hidden;
+  background: #fff;
 }
 .cancel-reason-list--compact {
-  gap: 0.4rem;
+  gap: 0;
 }
 .cancel-reason-list--compact .cancel-reason-option {
-  padding: 0.65rem 0.8rem;
-  border-radius: 0.75rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: 0;
   align-items: center;
+  border: none;
+  border-bottom: 1px solid rgba(26, 24, 20, 0.06);
+  background: transparent;
+  box-shadow: none;
+}
+.cancel-reason-list--compact .cancel-reason-option:last-child {
+  border-bottom: none;
 }
 .cancel-reason-list--compact .cancel-reason-check {
   margin-top: 0;
@@ -3689,32 +3858,26 @@ body.is-searching-tech #alandFabRoot {
 .cancel-reason-list--compact .cancel-reason-text {
   font-size: 0.875rem;
 }
-.cancel-confirm-btn--solid {
-  color: #fff !important;
-  background: #B91C1C !important;
-  border-color: #B91C1C !important;
-}
-.cancel-confirm-btn--solid:hover:not(:disabled) {
-  background: #991B1B !important;
-}
 .cancel-reason-option {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.7rem;
-  padding: 0.8rem 0.9rem;
-  border-radius: 0.9rem;
-  border: 1px solid var(--zilo-border);
-  background: var(--zilo-surface);
+  padding: 0.8rem 0.95rem;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid rgba(26, 24, 20, 0.06);
+  background: transparent;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  transition: background 0.15s;
 }
 .cancel-reason-option:hover {
-  border-color: rgba(var(--zilo-accent-rgb), 0.35);
+  background: rgba(26, 24, 20, 0.03);
+  border-color: transparent;
 }
 .cancel-reason-option.is-selected {
-  border-color: rgba(var(--zilo-accent-rgb), 0.55);
-  background: rgba(var(--zilo-accent-rgb), 0.06);
-  box-shadow: inset 0 0 0 1px rgba(var(--zilo-accent-rgb), 0.12);
+  background: rgba(var(--zilo-accent-rgb), 0.07);
+  border-color: transparent;
+  box-shadow: none;
 }
 .cancel-reason-option input {
   position: absolute;
@@ -3723,9 +3886,9 @@ body.is-searching-tech #alandFabRoot {
 }
 .cancel-reason-check {
   flex: 0 0 auto;
-  width: 1.1rem;
-  height: 1.1rem;
-  margin-top: 0.1rem;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0;
   border-radius: 999px;
   border: 1.5px solid #C4BBB0;
   background: #fff;
@@ -3741,39 +3904,45 @@ body.is-searching-tech #alandFabRoot {
   font-size: 0.875rem;
   line-height: 1.35;
   color: var(--zilo-text);
+  font-weight: 500;
 }
 .cancel-soft-tip {
-  padding: 0.75rem 0.9rem;
-  border-radius: 0.85rem;
-  background: #F7F4EF;
-  border: 1px solid var(--zilo-border);
-  font-size: 0.8125rem;
-  line-height: 1.4;
-  color: var(--zilo-muted);
+  display: none;
 }
 .cancel-confirm-btn {
-  color: #9F1239;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 0.85rem;
+  color: var(--zilo-muted);
   background: transparent;
-  border: 1px solid rgba(244, 63, 94, 0.28);
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 550;
   opacity: 1;
-  transition: background 0.15s, opacity 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 .cancel-confirm-btn:hover:not(:disabled) {
-  background: #FFF1F2;
+  color: var(--zilo-danger);
+  background: rgba(184, 58, 46, 0.05);
 }
 .cancel-confirm-btn:disabled {
   opacity: 0.55;
   cursor: wait;
 }
+.cancel-confirm-btn--solid {
+  /* compat: ya no usamos rojo sólido; se ve como enlace quieto */
+  color: var(--zilo-muted) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
 .cancel-reason-list--attention {
-  outline: 2px solid rgba(196, 92, 20, 0.55);
-  outline-offset: 4px;
-  border-radius: 0.85rem;
+  outline: 2px solid rgba(var(--zilo-accent-rgb), 0.45);
+  outline-offset: 2px;
   animation: cancelReasonPulse 0.7s ease-in-out 2;
 }
 @keyframes cancelReasonPulse {
-  0%, 100% { background: transparent; }
-  50% { background: rgba(196, 92, 20, 0.08); }
+  0%, 100% { background: #fff; }
+  50% { background: rgba(var(--zilo-accent-rgb), 0.06); }
 }
 .cancel-policy-details summary {
   list-style: none;
@@ -3871,10 +4040,10 @@ body.is-searching-tech #alandFabRoot {
 .zilo-radar {
   position: absolute;
   inset: 0;
-  border: 2px solid rgba(196, 92, 20, 0.45);
+  border: 1px solid rgba(196, 92, 20, 0.28);
   border-radius: 9999px;
   opacity: 0;
-  animation: fandezRadar 2s ease-out infinite;
+  animation: fandezRadar 2.6s ease-out infinite;
   pointer-events: none;
 }
 .zilo-radar:nth-child(2) {
@@ -3895,11 +4064,11 @@ body.is-searching-tech #alandFabRoot {
   justify-content: center;
   width: 3rem;
   height: 3rem;
-  border-radius: 0.95rem;
+  border-radius: 0.85rem;
   background: #fff;
-  border: 1px solid rgba(196, 92, 20, 0.22);
-  box-shadow: 0 6px 18px rgba(196, 92, 20, 0.14);
-  animation: fandezBrandSearch 10s ease-in-out infinite;
+  border: 1px solid rgba(26, 24, 20, 0.08);
+  box-shadow: 0 2px 10px rgba(26, 24, 20, 0.06);
+  animation: fandezBrandSearch 12s ease-in-out infinite;
   transform-origin: 50% 50%;
 }
 .search-brand-mark .fandez-logo-mark {
