@@ -59,7 +59,7 @@
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
         <h2 class="text-sm font-semibold mb-1">Cancelaciones</h2>
         <p class="text-xs text-gray-500 mb-4">Monto retenido al cancelar (CLP). Devolución = visita pagada − retención. Escala según avance del servicio.</p>
-        <% const cancelCfg = pricing.cancellations || { beforeAccepted: 0, afterTechAccepted: 0, enRoute: 10000, onSiteVerified: 15000, afterDiagnosis: 20000 }; %>
+        <% const cancelCfg = pricing.cancellations || { beforeAccepted: 0, afterTechAccepted: 0, enRoute: 10000, onSiteVerified: 15000, afterDiagnosis: 30000 }; %>
         <div class="grid grid-cols-1 gap-3">
           <div>
             <label class="text-xs text-gray-500">Antes de que el técnico acepte</label>
@@ -83,7 +83,7 @@
           </div>
           <div>
             <label class="text-xs text-gray-500">Después del diagnóstico</label>
-            <input type="number" name="cancelAfterDiagnosis" value="<%= cancelCfg.afterDiagnosis != null ? cancelCfg.afterDiagnosis : (cancelCfg.enRouteOrOnSite || 20000) %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <input type="number" name="cancelAfterDiagnosis" value="<%= cancelCfg.afterDiagnosis != null ? cancelCfg.afterDiagnosis : (cancelCfg.enRouteOrOnSite || 30000) %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
             <p class="text-[10px] text-gray-400 mt-1">Diagnóstico, reparación, presupuesto, materiales. Default $20.000.</p>
           </div>
         </div>

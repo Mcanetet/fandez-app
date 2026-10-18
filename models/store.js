@@ -1929,6 +1929,8 @@ function applyCancellationWithRetention(request, {
 } = {}) {
   const now = new Date().toISOString();
   // Base de cancelación = visita diagnosticada pagada (no materiales ni cargos adicionales).
+  // Devolución neta = visita pagada − retención del escalón
+  // (camino $10.000 · código $15.000 · post diagnóstico $30.000 · antes de aceptar $0).
   const paid = Math.max(0, parseInt(request.visitPricePaid || request.amountDue || request.visitTotal || 0, 10) || 0);
   const tier = resolveCancellationTier(request);
   const policyFee = getCancellationFeeClp(getPricingConfig(), request);
