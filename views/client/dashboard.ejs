@@ -29,6 +29,20 @@
   <main class="flex-1 px-5 py-5 pb-24">
     <%- include('../partials/site-alert') %>
 
+    <% const refundAttention = (typeof attentionItems !== 'undefined' ? attentionItems : []).filter(function(i){ return i.type === 'refund_pending'; }); %>
+    <% if (refundAttention.length) { %>
+    <section class="mb-5 space-y-2" aria-label="<%= t('client.dashboard.refund_section') %>">
+      <% refundAttention.forEach(function(item) { %>
+        <a href="<%= item.url || '/cliente/historial' %>" class="block p-4 rounded-2xl border border-[rgba(42,106,91,0.22)] bg-[var(--aland-soft)] hover:border-[rgba(42,106,91,0.4)] transition">
+          <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--aland-strong)] mb-1"><%= t('client.dashboard.refund_kicker') %></p>
+          <strong class="text-sm block text-zilo-text"><%= item.title %></strong>
+          <p class="text-xs text-zilo-muted mt-1 leading-relaxed"><%= item.body %></p>
+          <span class="inline-block text-[11px] font-semibold text-[var(--aland-strong)] mt-2"><%= t('client.dashboard.refund_see_historial') %> →</span>
+        </a>
+      <% }); %>
+    </section>
+    <% } %>
+
     <% const hasActive = activeRequests && activeRequests.length > 0; %>
     <% const isReturning = Boolean((typeof lastCompleted !== 'undefined' && lastCompleted) || (passport && passport.entries && passport.entries.length)); %>
     <% const cancelFeeLabel = typeof formatCLP === 'function' ? formatCLP(10000) : '$10.000'; %>

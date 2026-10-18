@@ -24,6 +24,19 @@
               </div>
               <span class="zilo-badge zilo-badge-muted shrink-0 ml-2"><%= req.statusLabel || req.status %></span>
             </div>
+            <% if (req.refundSummary) { %>
+              <div class="historial-refund <%= req.refundSummary.isOpen ? 'historial-refund--open' : '' %> <%= req.refundSummary.failed ? 'historial-refund--failed' : '' %> <%= req.refundSummary.isDone ? 'historial-refund--done' : '' %> mb-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <p class="historial-refund__label"><%= req.refundSummary.label %></p>
+                    <p class="historial-refund__hint"><%= req.refundSummary.hint %></p>
+                  </div>
+                  <% if (req.refundSummary.amount > 0) { %>
+                    <strong class="historial-refund__amount shrink-0"><%= req.refundSummary.amountLabel %></strong>
+                  <% } %>
+                </div>
+              </div>
+            <% } %>
             <div class="zilo-divider mb-3"></div>
             <div class="flex justify-between items-center text-xs mb-3">
               <span class="text-zilo-muted"><%= formatDate(req.createdAt, { day: 'numeric', month: 'short', year: 'numeric' }) %></span>

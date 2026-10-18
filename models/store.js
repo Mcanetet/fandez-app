@@ -2227,6 +2227,19 @@ function getClientAttentionItems(clientId, now = Date.now()) {
       continue;
     }
 
+    const refundSum = buildClientRefundSummary(request);
+    if (refundSum?.isOpen && refundSum.destination === 'card') {
+      items.push({
+        requestId: request.id,
+        type: 'refund_pending',
+        urgency: 'high',
+        title: refundSum.label,
+        body: `${request.serviceName}: ${refundSum.amountLabel}. ${refundSum.hint}`,
+        url: '/cliente/historial'
+      });
+      continue;
+    }
+
     if (
       request.status === 'pending_payment'
       && normalizePaymentStatus(request.paymentStatus) === 'pending_transfer'
@@ -8775,7 +8788,8 @@ function enrichRequestForClient(request, locale = 'es') {
     visitTeam: getClientVisitTeam(request),
     searchAudience: request.status === 'searching' && !request.providerId
       ? getSearchAudienceForRequest(request.id)
-      : null
+      : null,
+    refundSummary: buildClientRefundSummary(request, locale)
   };
 }
 
@@ -10094,11 +10108,71 @@ function updateProviderPayoutCadence(providerId, cadenceRaw) {
 const REFUND_OPEN_STATUSES = new Set(['requested', 'pending', 'processing']);
 const REFUND_ALLOWED_STATUSES = new Set(['requested', 'processing', 'paid', 'failed', 'credited']);
 
+function buildClientRefundSummary(request, locale = 'es') {
+  if (!request) return null;
+  const status = String(request.refundStatus || '');
+  if (!status || status === 'not_applicable') return null;
+  const amount = Math.max(
+    0,
+    parseInt(request.refundAmount != null ? request.refundAmount : 0, 10) || 0
+  );
+  const dest = String(request.refundDestination || 'card').toLowerCase() === 'credit' ? 'credit' : 'card';
+  const isEs = String(locale || 'es').startsWith('es');
+  const labelsEs = {
+    requested: 'Devolución pendiente',
+    pending: 'Devolución pendiente',
+    processing: 'Devolución en proceso',
+    paid: 'Devolución hecha',
+    completed: 'Devolución hecha',
+    failed: 'Devolución con problema',
+    credited: 'Abono Fandez listo'
+  };
+  const labelsEn = {
+    requested: 'Refund pending',
+    pending: 'Refund pending',
+    processing: 'Refund in progress',
+    paid: 'Refund completed',
+    completed: 'Refund completed',
+    failed: 'Refund issue',
+    credited: 'Fandez credit ready'
+  };
+  const labels = isEs ? labelsEs : labelsEn;
+  const hint = dest === 'credit'
+    ? (isEs ? 'Ya está en tu saldo Fandez para el próximo servicio.' : 'Already in your Fandez balance for the next service.')
+    : status === 'paid' || status === 'completed'
+      ? (isEs ? 'Ya va a tu tarjeta o banco (plazos del emisor).' : 'Sent to your card or bank (issuer timelines).')
+      : status === 'failed'
+        ? (isEs ? 'Estamos revisándolo. Si no se resuelve, escríbenos.' : 'We are reviewing it. Contact us if it persists.')
+        : (isEs ? 'Aprobada en Fandez · suele verse en 48–72 h hábiles en tu tarjeta.' : 'Approved in Fandez · usually 48–72 business hours on your card.');
+  return {
+    status,
+    amount,
+    amountLabel: formatCLP(amount),
+    label: labels[status] || (isEs ? 'Devolución' : 'Refund'),
+    hint,
+    destination: dest,
+    isOpen: REFUND_OPEN_STATUSES.has(status),
+    isDone: status === 'paid' || status === 'completed' || status === 'credited',
+    failed: status === 'failed'
+  };
+}
+
 function summarizeRefundForAdmin(r) {
   const amount = Math.max(
     0,
     parseInt(r.refundAmount != null ? r.refundAmount : (r.visitPricePaid || r.amountDue || 0), 10) || 0
   );
+  const dest = String(r.refundDestination || 'card').toLowerCase() === 'credit' ? 'credit' : 'card';
+  const status = String(r.refundStatus || '');
+  const open = REFUND_OPEN_STATUSES.has(status) || status === 'failed';
+  const method = String(r.paymentMethod || r.paymentGateway || '').toLowerCase();
+  const looksMp = Boolean(r.paymentId)
+    || method.includes('mercado')
+    || method.includes('mp')
+    || method === 'card'
+    || method === 'credit_card'
+    || method === 'debit_card'
+    || method === 'account_money';
   return {
     id: r.id,
     serviceName: r.serviceName || r.serviceId || null,
@@ -10110,6 +10184,7 @@ function summarizeRefundForAdmin(r) {
     paymentId: r.paymentId || null,
     refundStatus: r.refundStatus || null,
     refundAmount: amount,
+    refundDestination: dest,
     refundRequestedAt: r.refundRequestedAt || null,
     refundScheduledDate: r.refundScheduledDate || null,
     refundProcessedAt: r.refundProcessedAt || null,
@@ -10119,8 +10194,29 @@ function summarizeRefundForAdmin(r) {
     cancelReason: r.cancelReason || null,
     cancelReasonLabel: r.cancelReasonLabel || null,
     retentionFee: r.cancellationFeeCharged || 0,
-    createdAt: r.createdAt || null
+    createdAt: r.createdAt || null,
+    canExecuteMpRefund: open && dest === 'card' && amount > 0 && looksMp
   };
+}
+
+/** Prepara datos para ejecutar devolución MP (validación de negocio; la API la llama la ruta). */
+function prepareMpRefundExecution(requestId) {
+  ensureReady();
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (!request.refundStatus || request.refundStatus === 'not_applicable') {
+    return { error: 'Esta solicitud no tiene una devolución pendiente.' };
+  }
+  const st = String(request.refundStatus || '');
+  if (!REFUND_OPEN_STATUSES.has(st) && st !== 'failed') {
+    return { error: `La devolución ya está en estado “${request.refundStatus}”.` };
+  }
+  if (String(request.refundDestination || 'card').toLowerCase() === 'credit') {
+    return { error: 'Esta devolución es abono Fandez, no tarjeta. No aplica Mercado Pago.' };
+  }
+  const amount = Math.max(0, parseInt(request.refundAmount != null ? request.refundAmount : 0, 10) || 0);
+  if (amount < 1) return { error: 'No hay monto a devolver.' };
+  return { success: true, request, amount };
 }
 
 function getAdminRefundQueue({ status = 'open', limit = 60 } = {}) {
@@ -10130,7 +10226,7 @@ function getAdminRefundQueue({ status = 'open', limit = 60 } = {}) {
     .filter((r) => {
       const s = String(r.refundStatus || '');
       if (!s || s === 'not_applicable') return false;
-      if (mode === 'open') return REFUND_OPEN_STATUSES.has(s);
+      if (mode === 'open') return REFUND_OPEN_STATUSES.has(s) || s === 'failed';
       if (mode === 'all') return true;
       return s === mode;
     })
@@ -10161,6 +10257,12 @@ function updateRefundStatus(requestId, patch = {}, actorEmail = null) {
   if (patch.externalRef !== undefined) {
     request.refundExternalRef = String(patch.externalRef || '').trim().slice(0, 120) || null;
   }
+  if (patch.mpPaymentId) {
+    request.paymentId = String(patch.mpPaymentId).trim();
+  }
+  if (patch.mpRefundId) {
+    request.refundMpId = String(patch.mpRefundId).trim().slice(0, 120);
+  }
   request.refundUpdatedAt = now;
   request.refundUpdatedBy = actorEmail || null;
   if (next === 'paid') {
@@ -10173,7 +10275,7 @@ function updateRefundStatus(requestId, patch = {}, actorEmail = null) {
   logSecurityEvent('refund_status', `${requestId}=${next} by ${actorEmail || 'admin'}`, {
     session: { user: { email: actorEmail } }
   });
-  return { success: true, refund: summarizeRefundForAdmin(request) };
+  return { success: true, refund: summarizeRefundForAdmin(request), request };
 }
 
 function pushTimeline(events, at, label, detail = null) {
@@ -10786,6 +10888,8 @@ module.exports = {
   applyRefundDestination,
   getAdminRefundQueue,
   updateRefundStatus,
+  prepareMpRefundExecution,
+  buildClientRefundSummary,
   getAdminRequestCase,
   updateUserProfile,
   updateUserBilling,

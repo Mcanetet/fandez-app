@@ -3122,6 +3122,50 @@ body.session-role--tecnico::before {
   box-shadow: 0 0 0 4px rgba(217,119,6,0.15);
 }
 
+/* Historial: estado de devolución */
+.historial-refund {
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.75rem;
+  background: #F6F5F2;
+  border: 1px solid rgba(26, 24, 20, 0.06);
+}
+.historial-refund--open {
+  background: var(--aland-soft);
+  border-color: rgba(42, 106, 91, 0.2);
+}
+.historial-refund--done {
+  background: rgba(47, 107, 79, 0.08);
+  border-color: rgba(47, 107, 79, 0.18);
+}
+.historial-refund--failed {
+  background: rgba(184, 58, 46, 0.06);
+  border-color: rgba(184, 58, 46, 0.18);
+}
+.historial-refund__label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--zilo-text);
+}
+.historial-refund--open .historial-refund__label {
+  color: var(--aland-strong);
+}
+.historial-refund--failed .historial-refund__label {
+  color: var(--zilo-danger);
+}
+.historial-refund__hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--zilo-muted);
+}
+.historial-refund__amount {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--aland-strong);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Overlay búsqueda de técnico — por encima de la huincha Demo (z-9000) */
 .search-overlay {
   background:

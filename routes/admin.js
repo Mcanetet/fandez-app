@@ -2039,6 +2039,100 @@ router.post('/devoluciones/:requestId', requireRole('admin'), requireAdminPermis
   res.json({ success: true, refund: result.refund });
 });
 
+/** Aprueba y ejecuta devolución en Mercado Pago (misma tarjeta). */
+router.post('/devoluciones/:requestId/ejecutar-mp', requireRole('admin'), requireAdminPermission('pagos.manage'), async (req, res) => {
+  const mp = require('../lib/mercadopago');
+  const prepared = store.prepareMpRefundExecution(req.params.requestId);
+  if (prepared.error) return res.status(400).json({ success: false, error: prepared.error });
+
+  if (!mp.isConfigured() || !mp.getAccessToken()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Mercado Pago no está configurado. Revisa el Access Token en Hostinger.'
+    });
+  }
+
+  const { request, amount } = prepared;
+  const actor = req.session.user.email;
+
+  // Marca en proceso antes de llamar a MP (auditoría).
+  store.updateRefundStatus(request.id, {
+    status: 'processing',
+    notes: req.body?.notes || 'Aprobado: ejecutando devolución en Mercado Pago'
+  }, actor);
+
+  try {
+    const paymentId = await mp.resolvePaymentIdForRequest(request);
+    if (!paymentId) {
+      store.updateRefundStatus(request.id, {
+        status: 'failed',
+        notes: 'Sin payment_id de Mercado Pago. Revisa el cobro en el panel MP o pega el ID al marcar pagada.'
+      }, actor);
+      return res.status(400).json({
+        success: false,
+        error: 'No encontramos el pago en Mercado Pago (falta payment_id). Puedes devolverlo a mano en MP y marcar “Pagada”.'
+      });
+    }
+
+    const paidAmount = Math.round(Number(request.visitPricePaid || request.amountDue || 0));
+    const refundAmount = amount >= paidAmount && paidAmount > 0 ? null : amount;
+    const mpRefund = await mp.createPaymentRefund({
+      paymentId,
+      amount: refundAmount,
+      idempotencyKey: `fandez-refund-${request.id}-${amount}`
+    });
+
+    const mpRefundId = mpRefund?.id != null ? String(mpRefund.id) : null;
+    const mpStatus = String(mpRefund?.status || '').toLowerCase();
+    const ok = !mpStatus || ['approved', 'authorized', 'in_process', 'processed', 'refunded'].includes(mpStatus)
+      || Number(mpRefund?.amount || 0) > 0
+      || Boolean(mpRefundId);
+
+    if (!ok) {
+      store.updateRefundStatus(request.id, {
+        status: 'failed',
+        notes: `MP respondió sin confirmar: ${mpStatus || 'sin estado'}`,
+        externalRef: mpRefundId,
+        mpPaymentId: paymentId,
+        mpRefundId
+      }, actor);
+      return res.status(502).json({
+        success: false,
+        error: `Mercado Pago no confirmó la devolución (${mpStatus || 'sin estado'}).`
+      });
+    }
+
+    const result = store.updateRefundStatus(request.id, {
+      status: 'paid',
+      notes: req.body?.notes || `Devolución MP automática · ${store.formatCLP(amount)}`,
+      externalRef: mpRefundId,
+      mpPaymentId: paymentId,
+      mpRefundId
+    }, actor);
+
+    store.logSecurityEvent('refund_mp_executed', `${request.id} mp=${paymentId} refund=${mpRefundId} by ${actor}`, req);
+
+    return res.json({
+      success: true,
+      refund: result.refund,
+      mp: {
+        paymentId,
+        refundId: mpRefundId,
+        status: mpStatus || 'ok',
+        amount
+      }
+    });
+  } catch (err) {
+    const msg = mp.formatMercadoPagoError?.(err) || err.message || 'Error al devolver en Mercado Pago';
+    store.updateRefundStatus(request.id, {
+      status: 'failed',
+      notes: String(msg).slice(0, 500)
+    }, actor);
+    console.error('[admin/devoluciones/ejecutar-mp]', msg);
+    return res.status(502).json({ success: false, error: msg });
+  }
+});
+
 router.get('/solicitudes/:requestId/caso', requireRole('admin'), requireAdminPermission('solicitudes.view', 'pagos.view', 'usuarios.view'), (req, res) => {
   const result = store.getAdminRequestCase(req.params.requestId);
   if (result.error) return res.status(404).json({ error: result.error });

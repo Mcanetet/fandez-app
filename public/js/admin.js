@@ -1990,6 +1990,36 @@
     });
   });
 
+  document.querySelectorAll('.btn-refund-mp').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Aprobar y devolver el dinero en Mercado Pago a la misma tarjeta?\n\nEsto ejecuta el reembolso real en MP.')) return;
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Devolviendo…';
+      try {
+        const res = await adminFetch(`/devoluciones/${btn.dataset.id}/ejecutar-mp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.success) {
+          const amt = data.mp?.amount != null ? ` · $${Number(data.mp.amount).toLocaleString('es-CL')}` : '';
+          FandezNotify.show(`Devolución enviada a Mercado Pago${amt}`, 'success');
+          setTimeout(() => location.reload(), 900);
+        } else {
+          btn.disabled = false;
+          btn.textContent = original;
+          FandezNotify.show(data.error || 'No se pudo devolver en Mercado Pago', 'error');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = original;
+        FandezNotify.show(err.message || 'Error de red', 'error');
+      }
+    });
+  });
+
   function closeRequestCaseModal() {
     const modal = document.getElementById('adminRequestCaseModal');
     if (!modal) return;

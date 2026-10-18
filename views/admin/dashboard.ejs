@@ -1487,9 +1487,14 @@ if (typeof hasPerm !== 'function') {
                     <p class="text-xs text-gray-500"><%= r.clientName || 'Cliente' %> · <%= formatCLP(r.refundAmount || 0) %></p>
                     <p class="text-[10px] text-gray-400 mt-1">
                       Estado: <%= r.refundStatus %>
+                      <% if (r.refundDestination === 'credit') { %> · abono Fandez<% } else { %> · tarjeta/MP<% } %>
                       <% if (r.refundScheduledDate) { %> · programada <%= r.refundScheduledDate %><% } %>
                       <% if (r.paymentMethod) { %> · medio <%= r.paymentMethod %><% } %>
+                      <% if (r.paymentId) { %> · pay <%= r.paymentId %><% } %>
                     </p>
+                    <% if (r.refundNotes) { %>
+                      <p class="text-[10px] text-gray-500 mt-0.5">Nota: <%= r.refundNotes %></p>
+                    <% } %>
                     <% if (r.cancelReasonLabel || r.cancelReason) { %>
                       <p class="text-[10px] text-gray-500 mt-0.5">Motivo: <%= r.cancelReasonLabel || r.cancelReason %></p>
                     <% } %>
@@ -1497,6 +1502,11 @@ if (typeof hasPerm !== 'function') {
                   <div class="flex flex-wrap gap-2 shrink-0">
                     <button type="button" class="btn-request-case text-xs px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-800" data-id="<%= r.id %>">Ver caso</button>
                     <% if (hasPerm('pagos.manage')) { %>
+                      <% if (r.canExecuteMpRefund) { %>
+                        <button type="button" class="btn-refund-mp text-xs px-2.5 py-1.5 rounded-lg bg-[#009EE3] text-white font-semibold" data-id="<%= r.id %>" title="Aprueba y ejecuta el reembolso en Mercado Pago a la misma tarjeta">
+                          Aprobar y devolver en MP
+                        </button>
+                      <% } %>
                       <% if (r.refundStatus !== 'processing') { %>
                         <button type="button" class="btn-refund-status text-xs px-2.5 py-1.5 rounded-lg bg-amber-500/15 text-amber-800" data-id="<%= r.id %>" data-status="processing">En proceso</button>
                       <% } %>
