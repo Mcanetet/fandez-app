@@ -1484,7 +1484,13 @@ if (typeof hasPerm !== 'function') {
                 <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div class="min-w-0">
                     <strong class="block"><%= r.serviceName || 'Servicio' %></strong>
-                    <p class="text-xs text-gray-500"><%= r.clientName || 'Cliente' %> · <%= formatCLP(r.refundAmount || 0) %></p>
+                    <p class="text-xs text-gray-500"><%= r.clientName || 'Cliente' %> · devolver <%= formatCLP(r.refundAmount || 0) %></p>
+                    <p class="text-[10px] text-gray-500 mt-0.5">
+                      Pagado <%= formatCLP(r.visitPaid || 0) %>
+                      <% if (r.retentionFee) { %> · retención <%= formatCLP(r.retentionFee) %><% } %>
+                      <% if (r.fandezFee) { %> · Fandez 15% <%= formatCLP(r.fandezFee) %><% } %>
+                      <% if (r.cardFee) { %> · tarjeta<%= r.cardFeePercent ? ' ~' + r.cardFeePercent + '%' : '' %> <%= formatCLP(r.cardFee) %><% if (r.cardFeeSource === 'mp_api') { %> (API)<% } %><% } %>
+                    </p>
                     <p class="text-[10px] text-gray-400 mt-1">
                       Estado: <%= r.refundStatus %>
                       <% if (r.refundDestination === 'credit') { %> · abono Fandez<% } else { %> · tarjeta/MP<% } %>

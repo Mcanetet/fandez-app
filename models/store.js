@@ -46,6 +46,7 @@ const {
   CLIENT_CANCEL_REASONS,
   resolveCancellationTier,
   getCancellationFeeClp,
+  computeCancellationRefundMoney,
   getCancellationReasonLabel,
   getEnabledMaterialsCatalog,
   findMaterialInCatalog,
@@ -1921,6 +1922,53 @@ function getCancellationPolicy() {
   };
 }
 
+function applyRefundBreakdownToRequest(request, money) {
+  request.cancellationFeeCharged = money.retentionFee;
+  request.refundAmount = money.refundAmount;
+  request.refundFandezFee = money.fandezFee;
+  request.refundCardFee = money.cardFee;
+  request.refundBreakdown = {
+    visitPaid: money.paid,
+    retentionFee: money.retentionFee,
+    afterRetention: money.afterRetention,
+    fandezFee: money.fandezFee,
+    fandezFeeRate: money.fandezFeeRate,
+    cardFee: money.cardFee,
+    cardFeePercent: money.cardFeePercent,
+    cardFeeSource: money.cardFeeSource,
+    refundAmount: money.refundAmount,
+    formula: money.formula
+  };
+}
+
+/**
+ * Recalcula devolución con fee real de MP (si se conoce) y persiste.
+ * Usado antes de ejecutar el refund en la API.
+ */
+function refineRefundAmountWithMpFee(requestId, mpFeeClp) {
+  ensureReady();
+  const request = requests.find((r) => r.id === requestId);
+  if (!request) return { error: 'Solicitud no encontrada.' };
+  if (!request.refundStatus || request.refundStatus === 'not_applicable') {
+    return { error: 'Sin devolución pendiente.' };
+  }
+  const paid = Math.max(0, parseInt(request.visitPricePaid || request.amountDue || request.visitTotal || 0, 10) || 0);
+  const retentionFee = Math.max(0, parseInt(request.cancellationFeeCharged, 10) || 0);
+  if (mpFeeClp != null) {
+    request.mpFeeAmount = Math.max(0, Math.round(Number(mpFeeClp) || 0));
+  }
+  const money = computeCancellationRefundMoney({
+    paid,
+    retentionFee,
+    request,
+    pricing: getPricingConfig(),
+    mpFeeClp: request.mpFeeAmount
+  });
+  applyRefundBreakdownToRequest(request, money);
+  repository.persist(() => repository.saveRequest(request), `refund refine mpFee ${requestId}`);
+  return { success: true, request, breakdown: money, ...money };
+}
+
 function applyCancellationWithRetention(request, {
   cancelReason,
   cancelledBy = 'client',
@@ -1928,29 +1976,26 @@ function applyCancellationWithRetention(request, {
   reasonText = null
 } = {}) {
   const now = new Date().toISOString();
-  // Base de cancelación = visita diagnosticada pagada (no materiales ni cargos adicionales).
-  // Devolución neta = visita pagada − retención del escalón
-  // (camino $15.000 · código $20.000 · presupuesto aprobado $30.000 · antes de aceptar $0).
+  // Base = visita pagada. Devolución =
+  // paid − retención (15/20/30) − 15% Fandez − costo tarjeta (tasa+IVA).
   const paid = Math.max(0, parseInt(request.visitPricePaid || request.amountDue || request.visitTotal || 0, 10) || 0);
   const tier = resolveCancellationTier(request);
   const policyFee = getCancellationFeeClp(getPricingConfig(), request);
   const retentionFee = Math.min(paid, policyFee);
-  const refundAmount = Math.max(0, paid - retentionFee);
+  const money = computeCancellationRefundMoney({
+    paid,
+    retentionFee,
+    request,
+    pricing: getPricingConfig()
+  });
 
   request.status = 'cancelled';
   request.cancelledAt = now;
   request.cancelReason = cancelReason;
   request.cancelledBy = cancelledBy;
   request.cancellationTier = tier;
-  request.cancellationFeeCharged = retentionFee;
   request.cancellationFeePolicy = policyFee;
-  request.refundAmount = refundAmount;
-  request.refundBreakdown = {
-    visitPaid: paid,
-    retentionFee,
-    refundAmount,
-    formula: 'visitPaid - retentionFee'
-  };
+  applyRefundBreakdownToRequest(request, money);
   if (reasonCode) {
     request.cancelReasonCode = reasonCode;
     request.cancelReasonLabel = getCancellationReasonLabel(reasonCode);
@@ -1962,7 +2007,7 @@ function applyCancellationWithRetention(request, {
     request.noProviderChoice = 'cancelled';
   }
 
-  if (refundAmount > 0) {
+  if (money.refundAmount > 0) {
     request.refundStatus = 'requested';
     request.refundRequestedAt = now;
     request.refundScheduledDate = nextBusinessDayIso(new Date());
@@ -1974,7 +2019,16 @@ function applyCancellationWithRetention(request, {
     request.refundScheduledDate = null;
     request.refundDestination = null;
   }
-  return { paid, retentionFee, refundAmount, tier, policyFee };
+  return {
+    paid: money.paid,
+    retentionFee: money.retentionFee,
+    refundAmount: money.refundAmount,
+    fandezFee: money.fandezFee,
+    cardFee: money.cardFee,
+    tier,
+    policyFee,
+    breakdown: money
+  };
 }
 
 function addUserCredits(userId, amountClp, meta = {}) {
@@ -2199,12 +2253,23 @@ function previewCancellationFee(requestId, clientId) {
   const paid = Math.max(0, parseInt(request.visitPricePaid || request.amountDue || request.visitTotal || 0, 10) || 0);
   const tier = resolveCancellationTier(request);
   const fee = Math.min(paid, getCancellationFeeClp(getPricingConfig(), request));
+  const money = computeCancellationRefundMoney({
+    paid,
+    retentionFee: fee,
+    request,
+    pricing: getPricingConfig()
+  });
   return {
     success: true,
     tier,
     fee,
     paid,
-    refundAmount: Math.max(0, paid - fee),
+    refundAmount: money.refundAmount,
+    fandezFee: money.fandezFee,
+    cardFee: money.cardFee,
+    cardFeePercent: money.cardFeePercent,
+    afterRetention: money.afterRetention,
+    breakdown: money,
     reasons: CLIENT_CANCEL_REASONS,
     policy: getCancellationPolicy().cancellations
   };
@@ -8557,15 +8622,24 @@ function respondNoProviderChoice(requestId, { clientId, tokenHash, choice } = {}
     request.status = 'cancelled';
     request.cancelledAt = now;
     request.cancelReason = 'no_provider_available';
-    request.cancellationFeeCharged = 0;
-    request.refundAmount = paid;
-    request.refundBreakdown = {
-      visitPaid: paid,
+    request.cancellationTier = 'beforeAccepted';
+    request.cancellationFeePolicy = 0;
+    const money = computeCancellationRefundMoney({
+      paid,
       retentionFee: 0,
-      refundAmount: paid,
-      formula: 'full_visit_no_provider'
-    };
+      request,
+      pricing: getPricingConfig()
+    });
+    applyRefundBreakdownToRequest(request, money);
     request.refundRequestedAt = now;
+    if (money.refundAmount > 0) {
+      request.refundStatus = 'requested';
+      request.refundScheduledDate = nextBusinessDayIso(new Date());
+      request.refundEtaNote = '48_72_hours';
+    } else {
+      request.refundStatus = 'not_applicable';
+      request.refundScheduledDate = null;
+    }
     request.noProviderDecisionStatus = 'resolved';
     const destResult = applyRefundDestination(request, normalizedChoice === 'credit' ? 'credit' : 'card');
     if (destResult.error) return destResult;
@@ -10108,7 +10182,7 @@ function updateProviderPayoutCadence(providerId, cadenceRaw) {
 }
 
 const REFUND_OPEN_STATUSES = new Set(['requested', 'pending', 'processing']);
-const REFUND_ALLOWED_STATUSES = new Set(['requested', 'processing', 'paid', 'failed', 'credited']);
+const REFUND_ALLOWED_STATUSES = new Set(['requested', 'processing', 'paid', 'failed', 'credited', 'not_applicable']);
 
 function buildClientRefundSummary(request, locale = 'es') {
   if (!request) return null;
@@ -10196,6 +10270,16 @@ function summarizeRefundForAdmin(r) {
     cancelReason: r.cancelReason || null,
     cancelReasonLabel: r.cancelReasonLabel || null,
     retentionFee: r.cancellationFeeCharged || 0,
+    visitPaid: r.visitPricePaid || r.amountDue || 0,
+    fandezFee: r.refundFandezFee != null
+      ? r.refundFandezFee
+      : (r.refundBreakdown?.fandezFee || 0),
+    cardFee: r.refundCardFee != null
+      ? r.refundCardFee
+      : (r.refundBreakdown?.cardFee || 0),
+    cardFeePercent: r.refundBreakdown?.cardFeePercent || 0,
+    cardFeeSource: r.refundBreakdown?.cardFeeSource || null,
+    refundBreakdown: r.refundBreakdown || null,
     createdAt: r.createdAt || null,
     canExecuteMpRefund: open && dest === 'card' && amount > 0 && looksMp
   };
@@ -10267,8 +10351,9 @@ function updateRefundStatus(requestId, patch = {}, actorEmail = null) {
   }
   request.refundUpdatedAt = now;
   request.refundUpdatedBy = actorEmail || null;
-  if (next === 'paid') {
+  if (next === 'paid' || next === 'not_applicable') {
     request.refundProcessedAt = now;
+    if (next === 'not_applicable') request.refundAmount = 0;
   } else if (next === 'failed' || next === 'processing' || next === 'requested') {
     if (next !== 'paid') request.refundProcessedAt = next === 'failed' ? now : (request.refundProcessedAt || null);
   }
@@ -10891,6 +10976,7 @@ module.exports = {
   getAdminRefundQueue,
   updateRefundStatus,
   prepareMpRefundExecution,
+  refineRefundAmountWithMpFee,
   buildClientRefundSummary,
   getAdminRequestCase,
   updateUserProfile,

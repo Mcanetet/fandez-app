@@ -1926,8 +1926,12 @@
     const fee = Number(data?.fee || 0);
     const paid = Number(data?.paid || 0);
     const refund = Number(data?.refundAmount != null ? data.refundAmount : Math.max(0, paid - fee));
+    const fandezFee = Number(data?.fandezFee || 0);
+    const cardFee = Number(data?.cardFee || 0);
     const feeLabel = data.feeLabel || fmt(fee);
     const refundLabel = data.refundLabel || fmt(refund);
+    const fandezLabel = data.fandezFeeLabel || fmt(fandezFee);
+    const cardLabel = data.cardFeeLabel || fmt(cardFee);
 
     if (paidEl) paidEl.textContent = data.paidLabel || fmt(paid);
     if (feeEl) feeEl.textContent = fee > 0 ? feeLabel : t('client.service.cancel_fee_free_short');
@@ -1936,6 +1940,12 @@
     if (oneLiner) {
       if (refund > 0 && fee > 0) {
         oneLiner.textContent = t('client.service.cancel_refund_line_partial', { refund: refundLabel, fee: feeLabel });
+      } else if (refund > 0 && (fandezFee > 0 || cardFee > 0)) {
+        oneLiner.textContent = t('client.service.cancel_refund_line_deductions', {
+          refund: refundLabel,
+          fandez: fandezLabel,
+          card: cardLabel
+        });
       } else if (refund > 0) {
         oneLiner.textContent = t('client.service.cancel_refund_line_full', { refund: refundLabel });
       } else {
