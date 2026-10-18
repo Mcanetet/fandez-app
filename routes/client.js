@@ -16,6 +16,21 @@ const { getRequestTimeouts } = require('../lib/requestTimeouts');
 const aland = require('../lib/aland');
 const notifications = require('../lib/notifications');
 const { CLIENT_CANCEL_REASONS } = require('../lib/pricing');
+const { maybeAutoRefundAfterCancel } = require('../lib/mp/executeRefund');
+
+/** Auto MP si no hay retención; si no aplica o falla suave, queda en cola admin. */
+async function runAutoRefundIfEligible(req, updated) {
+  if (!updated) return null;
+  const auto = await maybeAutoRefundAfterCancel(store, updated, { req });
+  if (!auto.attempted) return null;
+  return {
+    attempted: true,
+    success: Boolean(auto.success),
+    softFail: Boolean(auto.softFail),
+    error: auto.error || null,
+    mp: auto.mp || null
+  };
+}
 
 function isAlreadyNoProviderRefund(request) {
   if (!request) return false;
@@ -184,18 +199,23 @@ router.post('/solicitud/:id/sin-socio', async (req, res) => {
   }
 
   const updated = result.request;
+  let refundAuto = null;
   if (result.choice === 'refund') {
+    refundAuto = await runAutoRefundIfEligible(req, updated);
+    const autoOk = Boolean(refundAuto?.success);
     notifications.notify({
       event: 'service.refund_requested',
       to: company.supportEmail,
       subject: `Devolución a tarjeta — ${updated.serviceName}`,
-      text: `El cliente ${updated.clientName} pidió devolución a su medio de pago (solicitud ${updated.id}, sin socio). Monto: ${store.formatCLP(updated.refundAmount || updated.visitPricePaid || 0)}. Plazo informado al cliente: 48–72 horas hábiles. Programada: ${updated.refundScheduledDate || 'n/a'}.`,
+      text: `El cliente ${updated.clientName} pidió devolución a su medio de pago (solicitud ${updated.id}, sin socio). Monto: ${store.formatCLP(updated.refundAmount || updated.visitPricePaid || 0)}.${autoOk ? ' Auto-devolución MP ejecutada.' : ' Pendiente si falló auto o falta payment_id.'}`,
       requestId: updated.id,
       userId: updated.clientId,
       meta: {
         refundScheduledDate: updated.refundScheduledDate,
         reason: 'no_provider_available',
-        refundDestination: 'card'
+        refundDestination: 'card',
+        refundAuto: autoOk,
+        refundStatus: updated.refundStatus
       }
     }).catch(() => {});
   } else if (result.choice === 'credit') {
@@ -214,7 +234,9 @@ router.post('/solicitud/:id/sin-socio', async (req, res) => {
     const body = result.choice === 'credit'
       ? `Listo. Dejé ${store.formatCLP(updated.creditsGrantedCLP || updated.refundAmount || 0)} como abono Fandez por ${updated.serviceName}. Queda disponible de inmediato para tu próximo servicio al pagar.`
       : result.choice === 'refund'
-        ? `Recibí tu elección. La devolución de ${updated.serviceName} (${store.formatCLP(updated.refundAmount || 0)}) va al mismo medio de pago. Suele demorar entre 48 y 72 horas hábiles (a veces hasta el próximo estado de cuenta, según tu banco). Te avisamos cuando la marquemos como procesada.`
+        ? (refundAuto?.success
+          ? `Recibí tu elección. Ya enviamos la devolución de ${updated.serviceName} (${store.formatCLP(updated.refundAmount || 0)}) a tu mismo medio de pago. Suele verse entre 48 y 72 horas hábiles según tu banco.`
+          : `Recibí tu elección. La devolución de ${updated.serviceName} (${store.formatCLP(updated.refundAmount || 0)}) va al mismo medio de pago. Suele demorar entre 48 y 72 horas hábiles (a veces hasta el próximo estado de cuenta, según tu banco). Te avisamos cuando quede procesada.`)
         : `Recibí tu elección. Seguiremos intentando encontrar un socio para tu servicio ${updated.serviceName} y te avisaremos apenas alguien lo tome.`;
     try {
       message = await aland.addMessage({
@@ -828,14 +850,16 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
     if (result.error) return res.status(400).json({ success: false, error: result.error });
 
     const updated = result.request;
+    const refundAuto = await runAutoRefundIfEligible(req, updated);
     const retention = updated.cancellationFeeCharged || 0;
     const refundAmt = updated.refundAmount != null ? updated.refundAmount : 0;
     const dest = updated.refundDestination || refundDestination;
+    const autoOk = Boolean(refundAuto?.success);
     notifications.notify({
       event: 'service.refund_requested',
       to: company.supportEmail,
       subject: `Cancelación — ${updated.serviceName}`,
-      text: `El cliente ${updated.clientName} canceló la ${updated.cancelReason === 'client_cancelled_scheduled' ? 'visita programada' : 'búsqueda'} de la solicitud ${updated.id}. Motivo: ${updated.cancelReasonLabel || reasonCode || '—'}. Retención: ${store.formatCLP(retention)}. Destino: ${dest === 'credit' ? 'crédito Fandez (inmediato)' : 'tarjeta/banco (48–72 h hábiles)'}. Monto: ${store.formatCLP(refundAmt)}.`,
+      text: `El cliente ${updated.clientName} canceló la ${updated.cancelReason === 'client_cancelled_scheduled' ? 'visita programada' : 'búsqueda'} de la solicitud ${updated.id}. Motivo: ${updated.cancelReasonLabel || reasonCode || '—'}. Retención: ${store.formatCLP(retention)}. Destino: ${dest === 'credit' ? 'crédito Fandez (inmediato)' : 'tarjeta/banco'}. Monto: ${store.formatCLP(refundAmt)}.${autoOk ? ' Auto-devolución MP ejecutada.' : (dest === 'card' && refundAmt > 0 ? ' Pendiente aprobación admin (hay retención o falló auto).' : '')}`,
       requestId: updated.id,
       userId: updated.clientId,
       meta: {
@@ -845,7 +869,9 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
         retentionFee: retention,
         refundAmount: refundAmt,
         refundDestination: dest,
-        tier: updated.cancellationTier
+        tier: updated.cancellationTier,
+        refundAuto: autoOk,
+        refundStatus: updated.refundStatus
       }
     }).catch(() => {});
 
@@ -887,6 +913,8 @@ router.post('/solicitud/:id/cancelar-busqueda', requireRole('client'), async (re
       refundAmount: refundAmt,
       refundLabel: store.formatCLP(refundAmt),
       refundDestination: dest,
+      refundStatus: updated.refundStatus || null,
+      refundAuto: refundAuto || null,
       tier: result.tier || updated.cancellationTier
     });
   } catch (err) {
@@ -929,14 +957,16 @@ router.post('/solicitud/:id/cancelar', requireRole('client'), async (req, res) =
     if (result.error) return res.status(400).json({ success: false, error: result.error });
 
     const updated = result.request;
+    const refundAuto = await runAutoRefundIfEligible(req, updated);
     const retention = updated.cancellationFeeCharged || 0;
     const refundAmt = updated.refundAmount != null ? updated.refundAmount : 0;
     const dest = updated.refundDestination || refundDestination;
+    const autoOk = Boolean(refundAuto?.success);
     notifications.notify({
       event: 'service.refund_requested',
       to: company.supportEmail,
       subject: `Cancelación de servicio — ${updated.serviceName}`,
-      text: `El cliente ${updated.clientName} canceló la solicitud ${updated.id}. Motivo: ${updated.cancelReasonLabel || reasonCode}. Escalón: ${updated.cancellationTier}. Retención: ${store.formatCLP(retention)}. Destino: ${dest === 'credit' ? 'crédito Fandez' : 'tarjeta (48–72 h)'}. Monto: ${store.formatCLP(refundAmt)}.`,
+      text: `El cliente ${updated.clientName} canceló la solicitud ${updated.id}. Motivo: ${updated.cancelReasonLabel || reasonCode}. Escalón: ${updated.cancellationTier}. Retención: ${store.formatCLP(retention)}. Destino: ${dest === 'credit' ? 'crédito Fandez' : 'tarjeta'}. Monto: ${store.formatCLP(refundAmt)}.${autoOk ? ' Auto-devolución MP ejecutada.' : (dest === 'card' && refundAmt > 0 && retention > 0 ? ' Requiere aprobación admin.' : '')}`,
       requestId: updated.id,
       userId: updated.clientId,
       meta: {
@@ -944,7 +974,9 @@ router.post('/solicitud/:id/cancelar', requireRole('client'), async (req, res) =
         retentionFee: retention,
         refundAmount: refundAmt,
         refundDestination: dest,
-        tier: updated.cancellationTier
+        tier: updated.cancellationTier,
+        refundAuto: autoOk,
+        refundStatus: updated.refundStatus
       }
     }).catch(() => {});
 
@@ -994,6 +1026,8 @@ router.post('/solicitud/:id/cancelar', requireRole('client'), async (req, res) =
       refundAmount: refundAmt,
       refundLabel: store.formatCLP(refundAmt),
       refundDestination: dest,
+      refundStatus: updated.refundStatus || null,
+      refundAuto: refundAuto || null,
       tier: result.tier || updated.cancellationTier
     });
   } catch (err) {

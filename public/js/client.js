@@ -2045,12 +2045,29 @@
           refund: refundLabel
         });
       } else if (refundAmt > 0) {
-        okTitle = t('client.service.cancel_ok_card_title');
-        okBody = t('client.service.cancel_ok_card_body', {
-          paid: paidLabel,
-          retention: retentionLabel,
-          refund: refundLabel
-        });
+        const autoOk = Boolean(data.refundAuto?.success) || data.refundStatus === 'paid';
+        const retentionAmt = Number(data.retentionFee || 0);
+        if (autoOk) {
+          okTitle = t('client.service.cancel_ok_card_auto_title');
+          okBody = t('client.service.cancel_ok_card_auto_body', {
+            paid: paidLabel,
+            refund: refundLabel
+          });
+        } else if (retentionAmt > 0) {
+          okTitle = t('client.service.cancel_ok_card_pending_title');
+          okBody = t('client.service.cancel_ok_card_pending_body', {
+            paid: paidLabel,
+            retention: retentionLabel,
+            refund: refundLabel
+          });
+        } else {
+          okTitle = t('client.service.cancel_ok_card_title');
+          okBody = t('client.service.cancel_ok_card_body', {
+            paid: paidLabel,
+            retention: retentionLabel,
+            refund: refundLabel
+          });
+        }
       }
       if (window.FandezAlerts) {
         FandezAlerts.notify({
