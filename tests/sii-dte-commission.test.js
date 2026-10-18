@@ -89,3 +89,74 @@ describe('SII DTE · comisión Fandez', () => {
     expect(second.document.id).toBe(first.document.id);
   });
 });
+
+describe('SII DTE · factura manual', () => {
+  const { generateManualInvoice } = require('../lib/sii-dte/generateManualInvoice');
+  const { calculateManualInvoiceAmounts } = require('../lib/sii-dte/amounts');
+
+  test('calculateManualInvoiceAmounts con glosa', () => {
+    const a = calculateManualInvoiceAmounts({
+      totalClp: 11900,
+      description: 'Ajuste comisión'
+    });
+    expect(a.total).toBe(11900);
+    expect(a.neto + a.iva).toBe(11900);
+    expect(a.lines[0].name).toBe('Ajuste comisión');
+  });
+
+  test('generateManualInvoice dry-run', async () => {
+    const result = await generateManualInvoice({
+      receptor: {
+        rut: '76.999.888-7',
+        name: 'Cliente Manual SpA',
+        giro: 'Comercio',
+        address: 'Providencia 100',
+        commune: 'Providencia',
+        city: 'Santiago',
+        email: 'billing@example.com'
+      },
+      totalClp: 25000,
+      description: 'Servicios varios Fandez',
+      issuedBy: 'test@fandez.cl'
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+    expect(result.dryRun).toBe(true);
+    expect(result.document.phase).toBe('manual');
+    expect(result.document.meta.manual).toBe(true);
+    expect(result.document.total).toBe(25000);
+    expect(result.document.receptorRut).toMatch(/76\.?999\.?888-7/i);
+  });
+
+  test('generateManualInvoice nota de crédito 61 dry-run', async () => {
+    const { generateCreditNote } = require('../lib/sii-dte/generateManualInvoice');
+    const result = await generateCreditNote({
+      receptor: {
+        rut: '76.999.888-7',
+        name: 'Cliente Manual SpA',
+        giro: 'Comercio'
+      },
+      totalClp: 18500,
+      description: 'Anulación comisión',
+      refFolio: 100001,
+      refDate: '2026-03-01',
+      refCode: 1,
+      refReason: 'Anula documento de referencia'
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+    expect(result.document.dteType).toBe(61);
+    expect(result.document.phase).toBe('credit_note');
+    expect(result.document.meta.reference.folio).toBe(100001);
+    expect(result.document.meta.reference.code).toBe(1);
+  });
+
+  test('nota de crédito sin folio referencia falla', async () => {
+    const result = await generateManualInvoice({
+      dteType: 61,
+      receptor: { rut: '76.999.888-7', name: 'X SpA' },
+      totalClp: 1000
+    });
+    expect(result.error).toMatch(/folio/i);
+  });
+});

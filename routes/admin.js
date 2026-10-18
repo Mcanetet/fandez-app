@@ -739,6 +739,35 @@ router.get('/', requireRole('admin'), async (req, res) => {
     adminIpAllowlist: parseAdminIpAllowlist(),
     dteDocuments: safeAdminCall('dteDocuments', () => store.getAllDteDocuments().slice(0, 40), []),
     dteStatus: safeAdminCall('dteStatus', () => events.getDteStatus(), { mode: 'demo', provider: 'mock', libredte: false }),
+    siiDteStatus: await safeAdminCallAsync('siiDteStatus', async () => {
+      const sii = require('../lib/sii-dte');
+      return sii.getStatus();
+    }, { provider: 'sii_direct', dryRun: true, configured: false }),
+    siiDteDocuments: await safeAdminCallAsync('siiDteDocuments', async () => {
+      const sii = require('../lib/sii-dte');
+      return sii.listRecent(40);
+    }, []),
+    dtePartners: safeAdminCall('dtePartners', () => {
+      const sii = require('../lib/sii-dte');
+      return store.USERS
+        .filter((u) => u.role === 'provider')
+        .map((u) => {
+          const billing = sii.pickPartnerBilling(u);
+          return {
+            id: u.id,
+            name: u.name || billing.name,
+            email: u.email || billing.email || '',
+            rut: billing.rut,
+            legalName: billing.name,
+            giro: billing.giro,
+            address: billing.address,
+            commune: billing.commune,
+            city: billing.city
+          };
+        })
+        .filter((p) => p.rut)
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'es'));
+    }, []),
     notificationStats: safeAdminCall('notificationStats', () => notifications.getStats(), { total: 0, sent: 0, failed: 0, emailConfigured: false }),
     recentNotifications: safeAdminCall('recentNotifications', () => notifications.getRecent(30), []),
     providerContracts: safeAdminCall('providerContracts', () => store.getAllProviderContracts(), []),
@@ -1835,6 +1864,114 @@ router.post('/dte/retry', requireRole('admin'), requireAdminPermission('document
   if (result.error) return res.status(400).json({ error: result.error });
   store.logSecurityEvent('dte_retry', `${requestId}:${phase}`, req);
   res.json({ success: true, document: result.document });
+});
+
+/**
+ * Factura 33 o Nota de Crédito 61 manual (Admin → documentos).
+ */
+router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
+  try {
+    const sii = require('../lib/sii-dte');
+    const body = req.body || {};
+    const dteType = Number(body.dteType) === 61 ? 61 : 33;
+    let partner = null;
+    const providerId = String(body.providerId || '').trim() || null;
+    if (providerId) {
+      partner = store.getUserById(providerId);
+      if (!partner || partner.role !== 'provider') {
+        return res.status(400).json({ success: false, error: 'Socio no encontrado.' });
+      }
+    }
+
+    const receptor = body.receptor && typeof body.receptor === 'object'
+      ? body.receptor
+      : {
+          rut: body.rut || body.receptorRut,
+          name: body.name || body.razonSocial || body.receptorName,
+          giro: body.giro,
+          address: body.address || body.direccion,
+          commune: body.commune || body.comuna,
+          city: body.city || body.ciudad,
+          email: body.email || body.receptorEmail
+        };
+
+    const result = await sii.generateManualInvoice({
+      dteType,
+      partner,
+      providerId,
+      receptor: providerId && !body.rut && !body.receptorRut && !(body.receptor && body.receptor.rut)
+        ? null
+        : receptor,
+      totalClp: body.totalClp != null ? body.totalClp : body.total,
+      description: body.description || body.glosa || body.lineDescription,
+      commissionClp: body.commissionClp,
+      cardFeeClp: body.cardFeeClp,
+      refFolio: body.refFolio || body.referenceFolio,
+      refDteType: body.refDteType || 33,
+      refDate: body.refDate || body.referenceDate,
+      refCode: body.refCode || body.codRef,
+      refReason: body.refReason || body.razonRef,
+      reference: body.reference || null,
+      requestId: body.requestId || null,
+      notes: body.notes || null,
+      issuedBy: req.session.user?.email || req.session.user?.id || 'admin',
+      force: body.force === true || body.force === 'true'
+    });
+
+    if (result.error) {
+      return res.status(422).json({
+        success: false,
+        error: result.error,
+        document: result.document || null
+      });
+    }
+
+    // Si hay solicitud real, deja rastro en dteDocuments
+    const reqId = result.document?.requestId;
+    if (reqId && !String(reqId).startsWith('manual-')) {
+      const request = store.getRequestById?.(reqId) || store.getAllRequests().find((r) => r.id === reqId);
+      if (request) {
+        if (!request.dteDocuments) request.dteDocuments = [];
+        const already = request.dteDocuments.some((d) => d.id === result.document.id);
+        if (!already) {
+          request.dteDocuments.push({
+            id: result.document.id,
+            phase: result.document.phase || (dteType === 61 ? 'credit_note' : 'manual'),
+            kind: dteType === 61 ? 'nota_credito' : 'factura',
+            dteType: result.document.dteType || dteType,
+            folio: result.document.folio,
+            amount: result.document.total,
+            status: 'issued',
+            provider: 'sii_direct',
+            siiStatus: result.document.siiStatus,
+            trackId: result.document.trackId,
+            pdfUrl: result.document.pdfUrl,
+            issuedAt: result.document.signedAt,
+            receptorName: result.document.receptorName,
+            dryRun: Boolean(result.dryRun || result.document.meta?.dryRun)
+          });
+          store.repository.persist(() => store.repository.saveRequest(request), `dte manual ${request.id}`);
+        }
+      }
+    }
+
+    store.logSecurityEvent(
+      dteType === 61 ? 'dte_credit_note' : 'dte_manual',
+      `${result.document.id} type=${result.document.dteType} folio=${result.document.folio} total=${result.document.total} to=${result.document.receptorRut}`,
+      req
+    );
+
+    return res.json({
+      success: true,
+      idempotent: Boolean(result.idempotent),
+      dryRun: Boolean(result.dryRun),
+      document: result.document,
+      sii: sii.getStatus()
+    });
+  } catch (err) {
+    console.error('[admin/dte/manual]', err.message);
+    return res.status(500).json({ success: false, error: err.message || 'No se pudo emitir el documento.' });
+  }
 });
 
 router.post('/toggle-service', requireRole('admin'), requireAdminPermission('servicios.manage'), (req, res) => {

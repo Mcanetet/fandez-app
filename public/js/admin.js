@@ -4439,6 +4439,110 @@
     });
   });
 
+  (function bindManualDteForm() {
+    const form = document.getElementById('manualDteForm');
+    if (!form) return;
+    const partnerSel = document.getElementById('manualDtePartner');
+    const typeSel = document.getElementById('manualDteType');
+    const refFields = document.getElementById('manualDteRefFields');
+    const submitBtn = document.getElementById('manualDteSubmit');
+    const msg = document.getElementById('manualDteMsg');
+    const descEl = document.getElementById('manualDteDescription');
+
+    function syncDocTypeUi() {
+      const isNc = String(typeSel?.value || '33') === '61';
+      if (refFields) refFields.classList.toggle('hidden', !isNc);
+      const refFolio = document.getElementById('manualDteRefFolio');
+      if (refFolio) refFolio.required = isNc;
+      if (submitBtn) {
+        submitBtn.textContent = isNc ? 'Emitir nota de crédito 61' : 'Emitir factura 33';
+      }
+      if (descEl && (!descEl.dataset.touched || descEl.value === 'Servicios Fandez' || descEl.value === 'Nota de crédito Fandez')) {
+        descEl.value = isNc ? 'Nota de crédito Fandez' : 'Servicios Fandez';
+      }
+    }
+
+    descEl?.addEventListener('input', () => { descEl.dataset.touched = '1'; });
+    typeSel?.addEventListener('change', syncDocTypeUi);
+    syncDocTypeUi();
+
+    function fillFromPartnerOption(opt) {
+      if (!opt || !opt.value) return;
+      const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+      };
+      set('manualDteRut', opt.dataset.rut);
+      set('manualDteName', opt.dataset.name);
+      set('manualDteGiro', opt.dataset.giro || 'Servicios técnicos');
+      set('manualDteAddress', opt.dataset.address || 'Santiago');
+      set('manualDteCommune', opt.dataset.commune || 'Santiago');
+      set('manualDteCity', opt.dataset.city || 'Santiago');
+      set('manualDteEmail', opt.dataset.email);
+    }
+
+    partnerSel?.addEventListener('change', () => {
+      const opt = partnerSel.selectedOptions?.[0];
+      fillFromPartnerOption(opt);
+    });
+
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      if (submitBtn) submitBtn.disabled = true;
+      if (msg) msg.textContent = 'Emitiendo…';
+      const dteType = Number(typeSel?.value) === 61 ? 61 : 33;
+      const totalClp = Math.round(Number(document.getElementById('manualDteTotal')?.value) || 0);
+      const payload = {
+        dteType,
+        providerId: partnerSel?.value || null,
+        rut: document.getElementById('manualDteRut')?.value?.trim(),
+        name: document.getElementById('manualDteName')?.value?.trim(),
+        giro: document.getElementById('manualDteGiro')?.value?.trim(),
+        address: document.getElementById('manualDteAddress')?.value?.trim(),
+        commune: document.getElementById('manualDteCommune')?.value?.trim(),
+        city: document.getElementById('manualDteCity')?.value?.trim(),
+        email: document.getElementById('manualDteEmail')?.value?.trim(),
+        totalClp,
+        description: document.getElementById('manualDteDescription')?.value?.trim()
+          || (dteType === 61 ? 'Nota de crédito Fandez' : 'Servicios Fandez'),
+        notes: document.getElementById('manualDteNotes')?.value?.trim() || null,
+        requestId: document.getElementById('manualDteRequestId')?.value?.trim() || null
+      };
+      if (dteType === 61) {
+        payload.refFolio = Math.round(Number(document.getElementById('manualDteRefFolio')?.value) || 0);
+        payload.refDate = document.getElementById('manualDteRefDate')?.value || null;
+        payload.refCode = document.getElementById('manualDteRefCode')?.value || '3';
+        payload.refReason = document.getElementById('manualDteRefReason')?.value?.trim()
+          || payload.description;
+        payload.refDteType = 33;
+      }
+      try {
+        const res = await adminFetch('/dte/manual', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'No se pudo emitir el documento');
+        }
+        const folio = data.document?.folio;
+        const typeLabel = Number(data.document?.dteType) === 61 ? 'NC' : 'Factura';
+        const dry = data.dryRun || data.document?.meta?.dryRun;
+        const okMsg = dry
+          ? `${typeLabel} ${folio} generada (dry-run, sin envío SII)`
+          : `${typeLabel} ${folio} emitida`;
+        if (msg) msg.textContent = okMsg;
+        FandezNotify.show(okMsg, 'success');
+        setTimeout(() => location.reload(), 900);
+      } catch (err) {
+        if (msg) msg.textContent = err.message || 'Error';
+        FandezNotify.show(err.message || 'Error al emitir', 'error');
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  })();
+
   document.querySelectorAll('.btn-set-app-mode').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const mode = btn.dataset.mode;

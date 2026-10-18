@@ -21,6 +21,7 @@ SII_SECRETS_DIR=./data/secrets/sii
 SII_CERT_PATH=./data/secrets/sii/certificate.p12
 SII_CERT_PASSWORD=********
 SII_CAF_33_PATH=./data/secrets/sii/caf-33.xml
+SII_CAF_61_PATH=./data/secrets/sii/caf-61.xml
 FANDEZ_RUT=78.494.038-1
 FANDEZ_LEGAL_NAME=Gestión Integral y Servicios Fandez SpA
 FANDEZ_GIRO=Intermediación de servicios del hogar
@@ -34,6 +35,7 @@ Coloca en `data/secrets/sii/` (gitignored):
 
 - `certificate.p12` — certificado digital del SII
 - `caf-33.xml` — CAF vigente tipo 33
+- `caf-61.xml` — CAF vigente tipo 61 (notas de crédito)
 
 ## API
 
@@ -45,6 +47,50 @@ Content-Type: application/json
 ```
 
 Requiere sesión `provider` o `admin`. Idempotente por hash.
+
+### Factura / nota de crédito manual (Admin)
+
+En el panel **Documentos** → formulario “Emitir documento tributario manual”, o:
+
+```http
+POST /admin/dte/manual
+Content-Type: application/json
+
+{
+  "dteType": 33,
+  "providerId": "opcional-socio",
+  "rut": "76.XXXXXX-X",
+  "name": "Receptor SpA",
+  "giro": "Servicios técnicos",
+  "totalClp": 45000,
+  "description": "Servicios Fandez",
+  "notes": "opcional",
+  "requestId": "opcional"
+}
+```
+
+Nota de crédito (61) — requiere folio de la factura referenciada:
+
+```http
+POST /admin/dte/manual
+Content-Type: application/json
+
+{
+  "dteType": 61,
+  "rut": "76.XXXXXX-X",
+  "name": "Receptor SpA",
+  "totalClp": 45000,
+  "description": "Anulación comisión",
+  "refFolio": 123,
+  "refDate": "2026-03-01",
+  "refCode": 1,
+  "refReason": "Anula documento de referencia"
+}
+```
+
+`refCode`: `1` anula · `2` corrige texto · `3` corrige montos.
+
+Permiso: `documentos.manage`. Mismo pipeline (dry-run o SII real). NC real necesita `SII_CAF_61_PATH`.
 
 Representación impresa: `GET /documentos/tributarios/sii/:docId`
 
@@ -69,7 +115,9 @@ lib/sii-dte/
   crypto/certificate.js         # PFX
   crypto/ted.js                 # Timbre electrónico
   crypto/xmldsig.js             # Firma XMLDSig
-  xml/dte33.js                  # Encabezado/Detalle/EnvioDTE
+  xml/dte33.js                  # Factura 33 + EnvioDTE
+  xml/dte61.js                  # Nota de crédito 61 + Referencia
+  generateManualInvoice.js      # Emisión manual admin (33/61)
   sii/auth.js                   # getSeed → getToken
   sii/upload.js                 # ZIP + UploadDTE
   sii/status.js                 # QueryEstUp
