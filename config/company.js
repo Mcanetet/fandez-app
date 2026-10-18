@@ -1,5 +1,7 @@
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'soporte@fandez.cl';
 const DPO_EMAIL = process.env.DPO_EMAIL || 'privacidad@fandez.cl';
+/** Recepción de facturas de compra + contacto de emisión DTE */
+const DTE_EMAIL = process.env.DTE_EMAIL || 'dte@fandez.cl';
 
 module.exports = {
   name: 'Fandez SpA',
@@ -7,6 +9,7 @@ module.exports = {
   rut: process.env.FANDEZ_RUT || '78.494.038-1',
   supportEmail: SUPPORT_EMAIL,
   email: SUPPORT_EMAIL,
+  dteEmail: DTE_EMAIL,
   address: 'Santiago, Región Metropolitana, Chile',
   whatsapp: process.env.WHATSAPP_NUMBER || '56912345678',
   whatsappDisplay: process.env.WHATSAPP_DISPLAY || '+56 9 1234 5678',

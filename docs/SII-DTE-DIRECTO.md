@@ -25,9 +25,12 @@ SII_CAF_61_PATH=./data/secrets/sii/caf-61.xml
 FANDEZ_RUT=78.494.038-1
 FANDEZ_LEGAL_NAME=Gestión Integral y Servicios Fandez SpA
 FANDEZ_GIRO=Intermediación de servicios del hogar
+DTE_EMAIL=dte@fandez.cl
 FANDEZ_SII_RESOLUTION_DATE=2024-01-01
 FANDEZ_SII_RESOLUTION_NUMBER=0
 ```
+
+Correo oficial DTE (recepción de facturas y emisión): `dte@fandez.cl` (`DTE_EMAIL`).
 
 ## Secretos (fuera de git)
 

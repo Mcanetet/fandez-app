@@ -836,6 +836,11 @@ if (typeof hasPerm !== 'function') {
           · SII directo: <code><%= siiSt.dryRun ? 'dry-run' : (siiSt.configured ? 'listo' : 'sin cert/CAF') %></code>
           · LibreDTE: <%= dteStatus.libredte ? t('admin.documentos.libredte_connected') : t('admin.documentos.libredte_missing') %>
         </p>
+        <p class="mt-2">
+          <%= t('admin.documentos.dte_email_label') %>:
+          <a href="mailto:<%= company.dteEmail || 'dte@fandez.cl' %>" class="text-blue-700 font-semibold underline"><%= company.dteEmail || 'dte@fandez.cl' %></a>
+          <span class="text-gray-500">· <%= t('admin.documentos.dte_email_hint') %></span>
+        </p>
         <p class="mt-2 text-gray-500"><%= t('admin.documentos.prod_hint') %></p>
       </div>
 
@@ -2203,6 +2208,7 @@ if (typeof hasPerm !== 'function') {
           <li>Banner de cookies activo</li>
           <li>Consentimiento explícito en registro</li>
           <li>Canal soporte: <%= company.supportEmail %></li>
+          <li>DTE / facturas: <%= company.dteEmail || 'dte@fandez.cl' %></li>
           <li>Canal DPD: <%= company.dpoEmail %></li>
           <li>HTTPS obligatorio en producción (Hostinger)</li>
           <li>DSAR: exportar / anonimizar desde este panel</li>
