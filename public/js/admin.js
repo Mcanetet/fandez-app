@@ -4448,23 +4448,78 @@
     const submitBtn = document.getElementById('manualDteSubmit');
     const msg = document.getElementById('manualDteMsg');
     const descEl = document.getElementById('manualDteDescription');
+    const totalEl = document.getElementById('manualDteTotal');
+
+    function fmtClp(n) {
+      return '$' + Math.round(Number(n) || 0).toLocaleString('es-CL');
+    }
+
+    function updateAmountPreview() {
+      const total = Math.max(0, Math.round(Number(totalEl?.value) || 0));
+      const neto = Math.round(total / 1.19);
+      const iva = total - neto;
+      const setTxt = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = fmtClp(val);
+      };
+      setTxt('manualDtePreviewNeto', neto);
+      setTxt('manualDtePreviewIva', iva);
+      setTxt('manualDtePreviewTotal', total);
+    }
 
     function syncDocTypeUi() {
-      const isNc = String(typeSel?.value || '33') === '61';
+      const checked = form.querySelector('input[name="dteTypeRadio"]:checked');
+      const type = String(checked?.value || typeSel?.value || '33');
+      if (typeSel) typeSel.value = type;
+      const isNc = type === '61';
+      const isPurchase = type === '46';
       if (refFields) refFields.classList.toggle('hidden', !isNc);
       const refFolio = document.getElementById('manualDteRefFolio');
       if (refFolio) refFolio.required = isNc;
+      const hint = document.getElementById('manualDteTypeHint');
+      const rutLabel = document.getElementById('manualDteRutLabel');
+      const nameLabel = document.getElementById('manualDteNameLabel');
+      const giroEl = document.getElementById('manualDteGiro');
       if (submitBtn) {
-        submitBtn.textContent = isNc ? 'Emitir nota de crédito 61' : 'Emitir factura 33';
+        submitBtn.textContent = isNc
+          ? 'Emitir nota de crédito 61'
+          : (isPurchase ? 'Emitir factura de compra 46' : 'Emitir factura 33');
       }
-      if (descEl && (!descEl.dataset.touched || descEl.value === 'Servicios Fandez' || descEl.value === 'Nota de crédito Fandez')) {
-        descEl.value = isNc ? 'Nota de crédito Fandez' : 'Servicios Fandez';
+      if (hint) {
+        hint.textContent = isPurchase
+          ? 'Compra a particular: Fandez emite; el RUT es del vendedor (p. ej. chatarra). Queda también en Finanzas → Compras.'
+          : (isNc
+            ? 'Obligatorio indicar el folio del documento que anulas o corriges.'
+            : 'Factura de venta Fandez → receptor (socio u otro).');
       }
+      if (rutLabel) rutLabel.textContent = isPurchase ? 'RUT vendedor *' : 'RUT receptor *';
+      if (nameLabel) nameLabel.textContent = isPurchase ? 'Nombre vendedor *' : 'Razón social *';
+      const defaults = {
+        '33': 'Servicios Fandez',
+        '46': 'Compra de chatarra / materiales',
+        '61': 'Nota de crédito Fandez'
+      };
+      const known = Object.values(defaults);
+      if (descEl && (!descEl.dataset.touched || known.includes(descEl.value))) {
+        descEl.value = defaults[type] || defaults['33'];
+      }
+      if (giroEl && !giroEl.dataset.touched) {
+        giroEl.value = isPurchase ? 'Particular' : 'Servicios técnicos';
+      }
+      form.dataset.dteType = type;
     }
+    document.getElementById('manualDteGiro')?.addEventListener('input', (e) => {
+      e.target.dataset.touched = '1';
+    });
 
     descEl?.addEventListener('input', () => { descEl.dataset.touched = '1'; });
+    totalEl?.addEventListener('input', updateAmountPreview);
+    form.querySelectorAll('input[name="dteTypeRadio"]').forEach((radio) => {
+      radio.addEventListener('change', syncDocTypeUi);
+    });
     typeSel?.addEventListener('change', syncDocTypeUi);
     syncDocTypeUi();
+    updateAmountPreview();
 
     function fillFromPartnerOption(opt) {
       if (!opt || !opt.value) return;
@@ -4490,21 +4545,26 @@
       ev.preventDefault();
       if (submitBtn) submitBtn.disabled = true;
       if (msg) msg.textContent = 'Emitiendo…';
-      const dteType = Number(typeSel?.value) === 61 ? 61 : 33;
+      const checkedType = form.querySelector('input[name="dteTypeRadio"]:checked')?.value;
+      const rawType = Number(checkedType || typeSel?.value);
+      const dteType = rawType === 61 ? 61 : (rawType === 46 ? 46 : 33);
       const totalClp = Math.round(Number(document.getElementById('manualDteTotal')?.value) || 0);
+      const defaultDesc = dteType === 61
+        ? 'Nota de crédito Fandez'
+        : (dteType === 46 ? 'Compra de chatarra / materiales' : 'Servicios Fandez');
       const payload = {
         dteType,
         providerId: partnerSel?.value || null,
         rut: document.getElementById('manualDteRut')?.value?.trim(),
         name: document.getElementById('manualDteName')?.value?.trim(),
-        giro: document.getElementById('manualDteGiro')?.value?.trim(),
+        giro: document.getElementById('manualDteGiro')?.value?.trim()
+          || (dteType === 46 ? 'Particular' : 'Servicios técnicos'),
         address: document.getElementById('manualDteAddress')?.value?.trim(),
         commune: document.getElementById('manualDteCommune')?.value?.trim(),
         city: document.getElementById('manualDteCity')?.value?.trim(),
         email: document.getElementById('manualDteEmail')?.value?.trim(),
         totalClp,
-        description: document.getElementById('manualDteDescription')?.value?.trim()
-          || (dteType === 61 ? 'Nota de crédito Fandez' : 'Servicios Fandez'),
+        description: document.getElementById('manualDteDescription')?.value?.trim() || defaultDesc,
         notes: document.getElementById('manualDteNotes')?.value?.trim() || null,
         requestId: document.getElementById('manualDteRequestId')?.value?.trim() || null
       };
@@ -4527,7 +4587,8 @@
           throw new Error(data.error || 'No se pudo emitir el documento');
         }
         const folio = data.document?.folio;
-        const typeLabel = Number(data.document?.dteType) === 61 ? 'NC' : 'Factura';
+        const dt = Number(data.document?.dteType);
+        const typeLabel = dt === 61 ? 'NC' : (dt === 46 ? 'FC' : 'Factura');
         const dry = data.dryRun || data.document?.meta?.dryRun;
         const okMsg = dry
           ? `${typeLabel} ${folio} generada (dry-run, sin envío SII)`

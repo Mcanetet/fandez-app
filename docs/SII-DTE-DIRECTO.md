@@ -21,6 +21,7 @@ SII_SECRETS_DIR=./data/secrets/sii
 SII_CERT_PATH=./data/secrets/sii/certificate.p12
 SII_CERT_PASSWORD=********
 SII_CAF_33_PATH=./data/secrets/sii/caf-33.xml
+SII_CAF_46_PATH=./data/secrets/sii/caf-46.xml
 SII_CAF_61_PATH=./data/secrets/sii/caf-61.xml
 FANDEZ_RUT=78.494.038-1
 FANDEZ_LEGAL_NAME=Gestión Integral y Servicios Fandez SpA
@@ -38,6 +39,7 @@ Coloca en `data/secrets/sii/` (gitignored):
 
 - `certificate.p12` — certificado digital del SII
 - `caf-33.xml` — CAF vigente tipo 33
+- `caf-46.xml` — CAF vigente tipo 46 (factura de compra)
 - `caf-61.xml` — CAF vigente tipo 61 (notas de crédito)
 
 ## API
@@ -72,7 +74,25 @@ Content-Type: application/json
 }
 ```
 
-Nota de crédito (61) — requiere folio de la factura referenciada:
+Factura de compra (46) — compra a particular (p. ej. chatarra). Emisor = Fandez; receptor = vendedor:
+
+```http
+POST /admin/dte/manual
+Content-Type: application/json
+
+{
+  "dteType": 46,
+  "rut": "12.345.678-9",
+  "name": "Juan Pérez",
+  "giro": "Particular",
+  "totalClp": 150000,
+  "description": "Compra de chatarra / materiales"
+}
+```
+
+También se registra automáticamente en **Admin → Finanzas → Compras**. Envío real requiere `SII_CAF_46_PATH`.
+
+Nota de crédito (61) — requiere folio del documento referenciado:
 
 ```http
 POST /admin/dte/manual
@@ -93,7 +113,7 @@ Content-Type: application/json
 
 `refCode`: `1` anula · `2` corrige texto · `3` corrige montos.
 
-Permiso: `documentos.manage`. Mismo pipeline (dry-run o SII real). NC real necesita `SII_CAF_61_PATH`.
+Permiso: `documentos.manage`. Mismo pipeline (dry-run o SII real).
 
 Representación impresa: `GET /documentos/tributarios/sii/:docId`
 
@@ -119,8 +139,9 @@ lib/sii-dte/
   crypto/ted.js                 # Timbre electrónico
   crypto/xmldsig.js             # Firma XMLDSig
   xml/dte33.js                  # Factura 33 + EnvioDTE
+  xml/dte46.js                  # Factura de compra 46
   xml/dte61.js                  # Nota de crédito 61 + Referencia
-  generateManualInvoice.js      # Emisión manual admin (33/61)
+  generateManualInvoice.js      # Emisión manual admin (33/46/61)
   sii/auth.js                   # getSeed → getToken
   sii/upload.js                 # ZIP + UploadDTE
   sii/status.js                 # QueryEstUp

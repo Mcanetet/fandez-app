@@ -7536,3 +7536,371 @@ body.launch-notice-open {
   to { transform: rotate(360deg); }
 }
 
+/* —— Facturador DTE (admin documentos) —— */
+.dte-issuer {
+  --dte-ink: #1c1917;
+  --dte-mute: #78716c;
+  --dte-line: #e7e5e4;
+  --dte-soft: #fafaf9;
+  --dte-accent: #0f766e;
+  --dte-accent-soft: rgba(15, 118, 110, 0.1);
+  background: #fff;
+  border: 1px solid var(--dte-line);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(28, 25, 23, 0.04);
+}
+.dte-issuer__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem 1rem;
+  background:
+    linear-gradient(135deg, #fafaf9 0%, #fff 55%),
+    radial-gradient(120% 80% at 100% 0%, rgba(15, 118, 110, 0.08), transparent 55%);
+  border-bottom: 1px solid var(--dte-line);
+}
+.dte-issuer__eyebrow {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dte-accent);
+}
+.dte-issuer__title {
+  margin: 0.2rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--dte-ink);
+  letter-spacing: -0.02em;
+}
+.dte-issuer__lead {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--dte-mute);
+  max-width: 36rem;
+}
+.dte-issuer__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--dte-ink);
+  background: #fff;
+  border: 1px solid var(--dte-line);
+}
+.dte-issuer__status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #d6d3d1;
+}
+.dte-issuer__status-dot.is-live { background: #059669; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18); }
+.dte-issuer__status-dot.is-demo { background: #d97706; box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.16); }
+
+.dte-issuer__section {
+  margin: 0;
+  padding: 1.1rem 1.35rem;
+  border: 0;
+  border-bottom: 1px solid var(--dte-line);
+  min-width: 0;
+}
+.dte-issuer__section--muted { background: var(--dte-soft); }
+.dte-issuer__legend {
+  float: none;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #57534e;
+}
+.dte-issuer__hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--dte-mute);
+  min-height: 1.1em;
+}
+.dte-issuer__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem 0.9rem;
+}
+@media (min-width: 640px) {
+  .dte-issuer__grid { grid-template-columns: 1fr 1fr; }
+}
+.dte-issuer__full { grid-column: 1 / -1; }
+.dte-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #57534e;
+}
+
+.dte-type-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+@media (min-width: 640px) {
+  .dte-type-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.dte-type-card { display: block; cursor: pointer; }
+.dte-type-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.dte-type-card__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-height: 5.25rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 1.5px solid var(--dte-line);
+  background: #fff;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.dte-type-card__code {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--dte-mute);
+}
+.dte-type-card__name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--dte-ink);
+}
+.dte-type-card__desc {
+  font-size: 0.7rem;
+  color: var(--dte-mute);
+  line-height: 1.3;
+}
+.dte-type-card:hover .dte-type-card__inner {
+  border-color: #a8a29e;
+}
+.dte-type-card input:checked + .dte-type-card__inner {
+  border-color: var(--dte-accent);
+  background: linear-gradient(180deg, var(--dte-accent-soft), #fff 70%);
+  box-shadow: 0 0 0 3px var(--dte-accent-soft);
+}
+.dte-type-card input:checked + .dte-type-card__inner .dte-type-card__code {
+  color: var(--dte-accent);
+}
+.dte-type-card input:focus-visible + .dte-type-card__inner {
+  outline: 2px solid rgba(15, 118, 110, 0.45);
+  outline-offset: 2px;
+}
+
+.dte-issuer__money {
+  display: grid;
+  gap: 0.9rem;
+}
+@media (min-width: 768px) {
+  .dte-issuer__money {
+    grid-template-columns: 1.35fr 1fr;
+    align-items: stretch;
+  }
+}
+.dte-issuer__money-fields {
+  display: grid;
+  gap: 0.75rem;
+}
+.dte-amount-wrap {
+  position: relative;
+}
+.dte-amount-wrap__prefix {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #a8a29e;
+  pointer-events: none;
+}
+.dte-amount-input { padding-left: 1.75rem !important; font-variant-numeric: tabular-nums; font-weight: 600; }
+.dte-preview {
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+.dte-preview__title {
+  margin: 0 0 0.65rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.dte-preview__rows { margin: 0; }
+.dte-preview__rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.28rem 0;
+  font-size: 0.82rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+.dte-preview__rows > div:last-child { border-bottom: 0; }
+.dte-preview__rows dt { margin: 0; color: #94a3b8; font-weight: 500; }
+.dte-preview__rows dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dte-preview__rows .is-total { padding-top: 0.5rem; margin-top: 0.15rem; }
+.dte-preview__rows .is-total dt,
+.dte-preview__rows .is-total dd {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.dte-issuer__ref {
+  background: linear-gradient(180deg, #fff7ed, #fff);
+}
+.dte-issuer__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem 1.35rem 1.25rem;
+  background: var(--dte-soft);
+}
+@media (min-width: 640px) {
+  .dte-issuer__foot {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+.dte-issuer__foot-meta { min-width: 0; }
+.dte-issuer__msg {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--dte-mute);
+  min-height: 1.2em;
+}
+.dte-issuer__mail {
+  margin: 0.25rem 0 0;
+  font-size: 0.7rem;
+  color: #a8a29e;
+}
+.dte-issuer__mail a { color: var(--dte-accent); font-weight: 600; text-decoration: none; }
+.dte-issuer__mail a:hover { text-decoration: underline; }
+.dte-issuer__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.7rem 1.25rem;
+  border: 0;
+  border-radius: 0.8rem;
+  background: var(--dte-accent);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(15, 118, 110, 0.22);
+  transition: transform 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+}
+.dte-issuer__submit:hover:not(:disabled) { background: #0d9488; transform: translateY(-1px); }
+.dte-issuer__submit:disabled { opacity: 0.55; cursor: wait; box-shadow: none; transform: none; }
+
+.dte-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+.dte-empty {
+  margin: 0;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--dte-mute);
+  background: var(--dte-soft);
+  border: 1px dashed var(--dte-line);
+  border-radius: 0.9rem;
+}
+.dte-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 22rem;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+.dte-doc-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--dte-line);
+  border-radius: 0.9rem;
+  background: #fff;
+}
+.dte-doc-row__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.35rem;
+}
+.dte-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.dte-badge--fv { background: #ecfdf5; color: #047857; }
+.dte-badge--fc { background: #e0f2fe; color: #0369a1; }
+.dte-badge--nc { background: #ffedd5; color: #c2410c; }
+.dte-badge--muted { background: #f5f5f4; color: #78716c; }
+.dte-doc-row__folio {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--dte-ink);
+}
+.dte-doc-row__party,
+.dte-doc-row__ref {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--dte-mute);
+}
+.dte-doc-row__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.dte-doc-row__amount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #047857;
+}
+.dte-doc-row__link {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dte-accent);
+  text-decoration: none;
+}
+.dte-doc-row__link:hover { text-decoration: underline; }
+

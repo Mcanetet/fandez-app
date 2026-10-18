@@ -159,4 +159,26 @@ describe('SII DTE · factura manual', () => {
     });
     expect(result.error).toMatch(/folio/i);
   });
+
+  test('generatePurchaseInvoice 46 dry-run (chatarra)', async () => {
+    const { generatePurchaseInvoice } = require('../lib/sii-dte/generateManualInvoice');
+    const result = await generatePurchaseInvoice({
+      receptor: {
+        rut: '12.345.678-5',
+        name: 'Juan Vendedor',
+        giro: 'Particular',
+        address: 'Calle 1',
+        commune: 'Puente Alto',
+        city: 'Santiago'
+      },
+      totalClp: 150000,
+      description: 'Compra de chatarra / materiales'
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+    expect(result.document.dteType).toBe(46);
+    expect(result.document.phase).toBe('purchase_invoice');
+    expect(result.document.meta.kind).toBe('factura_compra');
+    expect(result.document.total).toBe(150000);
+  });
 });

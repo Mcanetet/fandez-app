@@ -1867,13 +1867,13 @@ router.post('/dte/retry', requireRole('admin'), requireAdminPermission('document
 });
 
 /**
- * Factura 33 o Nota de Crédito 61 manual (Admin → documentos).
+ * Factura 33, Factura de Compra 46 o Nota de Crédito 61 (Admin → documentos).
  */
 router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
   try {
     const sii = require('../lib/sii-dte');
     const body = req.body || {};
-    const dteType = Number(body.dteType) === 61 ? 61 : 33;
+    const dteType = sii.normalizeDteType(body.dteType, 33);
     let partner = null;
     const providerId = String(body.providerId || '').trim() || null;
     if (providerId) {
@@ -1936,8 +1936,8 @@ router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documen
         if (!already) {
           request.dteDocuments.push({
             id: result.document.id,
-            phase: result.document.phase || (dteType === 61 ? 'credit_note' : 'manual'),
-            kind: dteType === 61 ? 'nota_credito' : 'factura',
+            phase: result.document.phase || 'manual',
+            kind: result.document.meta?.kind || sii.dteKindLabel(dteType),
             dteType: result.document.dteType || dteType,
             folio: result.document.folio,
             amount: result.document.total,
@@ -1955,8 +1955,39 @@ router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documen
       }
     }
 
+    // Factura de compra 46 → también queda en Finanzas / compras
+    let purchaseInvoice = null;
+    if (dteType === 46 && result.document) {
+      try {
+        const purchases = require('../lib/finance/purchases');
+        purchaseInvoice = purchases.upsertPurchaseInvoice({
+          id: `pc-${result.document.id}`,
+          supplierRut: result.document.receptorRut,
+          supplierName: result.document.receptorName,
+          folio: String(result.document.folio),
+          dteType: 46,
+          issuedAt: String(result.document.signedAt || '').slice(0, 10),
+          netAmount: result.document.neto,
+          taxAmount: result.document.iva,
+          totalAmount: result.document.total,
+          requestId: String(result.document.requestId || '').startsWith('manual-')
+            ? null
+            : result.document.requestId,
+          source: 'sii_dte_46',
+          siiStatus: result.document.siiStatus || 'registered',
+          notes: result.document.meta?.notes
+            || (result.document.meta?.lines?.[0]?.name || 'Factura de compra 46')
+        }).invoice;
+      } catch (purchErr) {
+        console.warn('[admin/dte/manual] no se registró compra en finanzas:', purchErr.message);
+      }
+    }
+
+    const eventName = dteType === 61
+      ? 'dte_credit_note'
+      : (dteType === 46 ? 'dte_purchase_invoice' : 'dte_manual');
     store.logSecurityEvent(
-      dteType === 61 ? 'dte_credit_note' : 'dte_manual',
+      eventName,
       `${result.document.id} type=${result.document.dteType} folio=${result.document.folio} total=${result.document.total} to=${result.document.receptorRut}`,
       req
     );
@@ -1966,6 +1997,7 @@ router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documen
       idempotent: Boolean(result.idempotent),
       dryRun: Boolean(result.dryRun),
       document: result.document,
+      purchaseInvoice,
       sii: sii.getStatus()
     });
   } catch (err) {

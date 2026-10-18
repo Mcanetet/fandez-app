@@ -846,148 +846,217 @@ if (typeof hasPerm !== 'function') {
 
       <% if (hasPerm('documentos.manage')) { %>
       <script type="application/json" id="dtePartnersJson"><%- JSON.stringify(partnersForDte) %></script>
-      <form id="manualDteForm" class="p-4 rounded-2xl bg-white border border-gray-200 mb-5 space-y-3">
-        <div>
-          <h4 class="text-sm font-semibold text-gray-900"><%= t('admin.documentos.manual_title') %></h4>
-          <p class="text-xs text-gray-500 mt-0.5"><%= t('admin.documentos.manual_hint') %></p>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-3">
-          <div class="sm:col-span-2">
-            <label class="text-[11px] text-gray-500" for="manualDteType"><%= t('admin.documentos.manual_type') %></label>
-            <select id="manualDteType" name="dteType" class="zilo-input w-full mt-1 text-sm">
-              <option value="33"><%= t('admin.documentos.manual_type_33') %></option>
-              <option value="61"><%= t('admin.documentos.manual_type_61') %></option>
-            </select>
-          </div>
-          <div class="sm:col-span-2">
-            <label class="text-[11px] text-gray-500" for="manualDtePartner"><%= t('admin.documentos.manual_partner') %></label>
-            <select id="manualDtePartner" name="providerId" class="zilo-input w-full mt-1 text-sm">
-              <option value=""><%= t('admin.documentos.manual_partner_none') %></option>
-              <% partnersForDte.forEach(function(p) { %>
-                <option value="<%= p.id %>"
-                  data-rut="<%= p.rut %>"
-                  data-name="<%= p.legalName || p.name %>"
-                  data-giro="<%= p.giro || '' %>"
-                  data-address="<%= p.address || '' %>"
-                  data-commune="<%= p.commune || '' %>"
-                  data-city="<%= p.city || '' %>"
-                  data-email="<%= p.email || '' %>"
-                ><%= p.name %> · <%= p.rut %></option>
-              <% }); %>
-            </select>
-          </div>
+      <form id="manualDteForm" class="dte-issuer mb-6" novalidate>
+        <header class="dte-issuer__head">
           <div>
-            <label class="text-[11px] text-gray-500" for="manualDteRut">RUT receptor *</label>
-            <input id="manualDteRut" name="rut" required class="zilo-input w-full mt-1 text-sm" placeholder="76.XXXXXX-X" autocomplete="off">
+            <p class="dte-issuer__eyebrow">Facturador SII</p>
+            <h4 class="dte-issuer__title"><%= t('admin.documentos.manual_title') %></h4>
+            <p class="dte-issuer__lead"><%= t('admin.documentos.manual_hint') %></p>
           </div>
-          <div>
-            <label class="text-[11px] text-gray-500" for="manualDteName">Razón social *</label>
-            <input id="manualDteName" name="name" required class="zilo-input w-full mt-1 text-sm" placeholder="Empresa SpA">
+          <div class="dte-issuer__status" title="Estado módulo">
+            <span class="dte-issuer__status-dot <%= (siiSt.configured && !siiSt.dryRun) ? 'is-live' : 'is-demo' %>"></span>
+            <span><%= siiSt.dryRun || !siiSt.configured ? 'Dry-run' : ('SII ' + (siiSt.environment || 'ok')) %></span>
           </div>
-          <div>
-            <label class="text-[11px] text-gray-500" for="manualDteGiro">Giro</label>
-            <input id="manualDteGiro" name="giro" class="zilo-input w-full mt-1 text-sm" placeholder="Servicios técnicos" value="Servicios técnicos">
-          </div>
-          <div>
-            <label class="text-[11px] text-gray-500" for="manualDteEmail">Email</label>
-            <input id="manualDteEmail" name="email" type="email" class="zilo-input w-full mt-1 text-sm" placeholder="facturacion@…">
-          </div>
-          <div>
-            <label class="text-[11px] text-gray-500" for="manualDteAddress">Dirección</label>
-            <input id="manualDteAddress" name="address" class="zilo-input w-full mt-1 text-sm" placeholder="Calle 123" value="Santiago">
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-[11px] text-gray-500" for="manualDteCommune">Comuna</label>
-              <input id="manualDteCommune" name="commune" class="zilo-input w-full mt-1 text-sm" value="Santiago">
-            </div>
-            <div>
-              <label class="text-[11px] text-gray-500" for="manualDteCity">Ciudad</label>
-              <input id="manualDteCity" name="city" class="zilo-input w-full mt-1 text-sm" value="Santiago">
-            </div>
-          </div>
-          <div>
-            <label class="text-[11px] text-gray-500" for="manualDteTotal"><%= t('admin.documentos.manual_total') %> *</label>
-            <input id="manualDteTotal" name="totalClp" type="number" min="1" step="1" required class="zilo-input w-full mt-1 text-sm" placeholder="45000">
-          </div>
-          <div>
-            <label class="text-[11px] text-gray-500" for="manualDteDescription"><%= t('admin.documentos.manual_description') %></label>
-            <input id="manualDteDescription" name="description" class="zilo-input w-full mt-1 text-sm" value="Servicios Fandez" maxlength="80">
-          </div>
+        </header>
 
-          <div id="manualDteRefFields" class="sm:col-span-2 hidden grid sm:grid-cols-2 gap-3 p-3 rounded-xl bg-violet-50 border border-violet-100">
-            <p class="sm:col-span-2 text-[11px] text-violet-800 font-medium"><%= t('admin.documentos.manual_ref_title') %></p>
-            <div>
-              <label class="text-[11px] text-gray-500" for="manualDteRefFolio"><%= t('admin.documentos.manual_ref_folio') %> *</label>
-              <input id="manualDteRefFolio" name="refFolio" type="number" min="1" step="1" class="zilo-input w-full mt-1 text-sm" placeholder="123">
+        <fieldset class="dte-issuer__section">
+          <legend class="dte-issuer__legend">1. <%= t('admin.documentos.manual_type') %></legend>
+          <div class="dte-type-grid" role="radiogroup" aria-label="<%= t('admin.documentos.manual_type') %>">
+            <label class="dte-type-card">
+              <input type="radio" name="dteTypeRadio" id="manualDteType33" value="33" checked>
+              <span class="dte-type-card__inner">
+                <span class="dte-type-card__code">33</span>
+                <span class="dte-type-card__name">Factura venta</span>
+                <span class="dte-type-card__desc">Cobro a socio / cliente</span>
+              </span>
+            </label>
+            <label class="dte-type-card">
+              <input type="radio" name="dteTypeRadio" id="manualDteType46" value="46">
+              <span class="dte-type-card__inner">
+                <span class="dte-type-card__code">46</span>
+                <span class="dte-type-card__name">Factura compra</span>
+                <span class="dte-type-card__desc">Chatarra / particular</span>
+              </span>
+            </label>
+            <label class="dte-type-card">
+              <input type="radio" name="dteTypeRadio" id="manualDteType61" value="61">
+              <span class="dte-type-card__inner">
+                <span class="dte-type-card__code">61</span>
+                <span class="dte-type-card__name">Nota de crédito</span>
+                <span class="dte-type-card__desc">Anula o corrige</span>
+              </span>
+            </label>
+          </div>
+          <select id="manualDteType" name="dteType" class="sr-only" aria-hidden="true" tabindex="-1">
+            <option value="33" selected>33</option>
+            <option value="46">46</option>
+            <option value="61">61</option>
+          </select>
+          <p id="manualDteTypeHint" class="dte-issuer__hint" aria-live="polite"></p>
+        </fieldset>
+
+        <fieldset class="dte-issuer__section">
+          <legend class="dte-issuer__legend">2. Contraparte</legend>
+          <div class="dte-issuer__grid">
+            <div class="dte-issuer__full">
+              <label class="dte-label" for="manualDtePartner" id="manualDtePartnerLabel"><%= t('admin.documentos.manual_partner') %></label>
+              <select id="manualDtePartner" name="providerId" class="zilo-input w-full text-sm">
+                <option value=""><%= t('admin.documentos.manual_partner_none') %></option>
+                <% partnersForDte.forEach(function(p) { %>
+                  <option value="<%= p.id %>"
+                    data-rut="<%= p.rut %>"
+                    data-name="<%= p.legalName || p.name %>"
+                    data-giro="<%= p.giro || '' %>"
+                    data-address="<%= p.address || '' %>"
+                    data-commune="<%= p.commune || '' %>"
+                    data-city="<%= p.city || '' %>"
+                    data-email="<%= p.email || '' %>"
+                  ><%= p.name %> · <%= p.rut %></option>
+                <% }); %>
+              </select>
             </div>
             <div>
-              <label class="text-[11px] text-gray-500" for="manualDteRefDate"><%= t('admin.documentos.manual_ref_date') %></label>
-              <input id="manualDteRefDate" name="refDate" type="date" class="zilo-input w-full mt-1 text-sm">
+              <label class="dte-label" for="manualDteRut" id="manualDteRutLabel">RUT *</label>
+              <input id="manualDteRut" name="rut" required class="zilo-input w-full text-sm" placeholder="12.345.678-9" autocomplete="off">
             </div>
             <div>
-              <label class="text-[11px] text-gray-500" for="manualDteRefCode"><%= t('admin.documentos.manual_ref_code') %></label>
-              <select id="manualDteRefCode" name="refCode" class="zilo-input w-full mt-1 text-sm">
+              <label class="dte-label" for="manualDteName" id="manualDteNameLabel">Nombre / razón social *</label>
+              <input id="manualDteName" name="name" required class="zilo-input w-full text-sm" placeholder="Nombre completo o empresa">
+            </div>
+            <div>
+              <label class="dte-label" for="manualDteGiro">Giro</label>
+              <input id="manualDteGiro" name="giro" class="zilo-input w-full text-sm" placeholder="Particular" value="Servicios técnicos">
+            </div>
+            <div>
+              <label class="dte-label" for="manualDteEmail">Email</label>
+              <input id="manualDteEmail" name="email" type="email" class="zilo-input w-full text-sm" placeholder="opcional@correo.cl">
+            </div>
+            <div class="dte-issuer__full">
+              <label class="dte-label" for="manualDteAddress">Dirección</label>
+              <input id="manualDteAddress" name="address" class="zilo-input w-full text-sm" placeholder="Calle, número" value="Santiago">
+            </div>
+            <div>
+              <label class="dte-label" for="manualDteCommune">Comuna</label>
+              <input id="manualDteCommune" name="commune" class="zilo-input w-full text-sm" value="Santiago">
+            </div>
+            <div>
+              <label class="dte-label" for="manualDteCity">Ciudad</label>
+              <input id="manualDteCity" name="city" class="zilo-input w-full text-sm" value="Santiago">
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="dte-issuer__section">
+          <legend class="dte-issuer__legend">3. Monto y detalle</legend>
+          <div class="dte-issuer__money">
+            <div class="dte-issuer__money-fields">
+              <div>
+                <label class="dte-label" for="manualDteTotal"><%= t('admin.documentos.manual_total') %> *</label>
+                <div class="dte-amount-wrap">
+                  <span class="dte-amount-wrap__prefix">$</span>
+                  <input id="manualDteTotal" name="totalClp" type="number" min="1" step="1" required class="zilo-input w-full text-sm dte-amount-input" placeholder="150000" inputmode="numeric">
+                </div>
+              </div>
+              <div>
+                <label class="dte-label" for="manualDteDescription"><%= t('admin.documentos.manual_description') %></label>
+                <input id="manualDteDescription" name="description" class="zilo-input w-full text-sm" value="Servicios Fandez" maxlength="80">
+              </div>
+            </div>
+            <aside class="dte-preview" aria-live="polite">
+              <p class="dte-preview__title">Desglose IVA 19%</p>
+              <dl class="dte-preview__rows">
+                <div><dt>Neto</dt><dd id="manualDtePreviewNeto">$0</dd></div>
+                <div><dt>IVA</dt><dd id="manualDtePreviewIva">$0</dd></div>
+                <div class="is-total"><dt>Total</dt><dd id="manualDtePreviewTotal">$0</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </fieldset>
+
+        <fieldset id="manualDteRefFields" class="dte-issuer__section dte-issuer__ref hidden">
+          <legend class="dte-issuer__legend">4. <%= t('admin.documentos.manual_ref_title') %></legend>
+          <div class="dte-issuer__grid">
+            <div>
+              <label class="dte-label" for="manualDteRefFolio"><%= t('admin.documentos.manual_ref_folio') %> *</label>
+              <input id="manualDteRefFolio" name="refFolio" type="number" min="1" step="1" class="zilo-input w-full text-sm" placeholder="123">
+            </div>
+            <div>
+              <label class="dte-label" for="manualDteRefDate"><%= t('admin.documentos.manual_ref_date') %></label>
+              <input id="manualDteRefDate" name="refDate" type="date" class="zilo-input w-full text-sm">
+            </div>
+            <div>
+              <label class="dte-label" for="manualDteRefCode"><%= t('admin.documentos.manual_ref_code') %></label>
+              <select id="manualDteRefCode" name="refCode" class="zilo-input w-full text-sm">
                 <option value="1"><%= t('admin.documentos.manual_ref_code_1') %></option>
                 <option value="2"><%= t('admin.documentos.manual_ref_code_2') %></option>
                 <option value="3" selected><%= t('admin.documentos.manual_ref_code_3') %></option>
               </select>
             </div>
             <div>
-              <label class="text-[11px] text-gray-500" for="manualDteRefReason"><%= t('admin.documentos.manual_ref_reason') %></label>
-              <input id="manualDteRefReason" name="refReason" class="zilo-input w-full mt-1 text-sm" maxlength="90" placeholder="Anulación / corrección">
+              <label class="dte-label" for="manualDteRefReason"><%= t('admin.documentos.manual_ref_reason') %></label>
+              <input id="manualDteRefReason" name="refReason" class="zilo-input w-full text-sm" maxlength="90" placeholder="Motivo breve">
             </div>
           </div>
+        </fieldset>
 
-          <div class="sm:col-span-2">
-            <label class="text-[11px] text-gray-500" for="manualDteNotes"><%= t('admin.documentos.manual_notes') %></label>
-            <input id="manualDteNotes" name="notes" class="zilo-input w-full mt-1 text-sm" maxlength="400" placeholder="Opcional · referencia interna">
+        <fieldset class="dte-issuer__section dte-issuer__section--muted">
+          <legend class="dte-issuer__legend">Opcional</legend>
+          <div class="dte-issuer__grid">
+            <div class="dte-issuer__full">
+              <label class="dte-label" for="manualDteNotes"><%= t('admin.documentos.manual_notes') %></label>
+              <input id="manualDteNotes" name="notes" class="zilo-input w-full text-sm" maxlength="400" placeholder="Solo uso interno">
+            </div>
+            <div>
+              <label class="dte-label" for="manualDteRequestId"><%= t('admin.documentos.manual_request') %></label>
+              <input id="manualDteRequestId" name="requestId" class="zilo-input w-full text-sm" placeholder="ID solicitud">
+            </div>
           </div>
-          <div>
-            <label class="text-[11px] text-gray-500" for="manualDteRequestId"><%= t('admin.documentos.manual_request') %></label>
-            <input id="manualDteRequestId" name="requestId" class="zilo-input w-full mt-1 text-sm" placeholder="Opcional">
+        </fieldset>
+
+        <footer class="dte-issuer__foot">
+          <div class="dte-issuer__foot-meta">
+            <p id="manualDteMsg" class="dte-issuer__msg" aria-live="polite"></p>
+            <p class="dte-issuer__mail">Emisión · <a href="mailto:<%= company.dteEmail || 'dte@fandez.cl' %>"><%= company.dteEmail || 'dte@fandez.cl' %></a></p>
           </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 pt-1">
-          <button type="submit" id="manualDteSubmit" class="text-xs px-3 py-2 rounded-lg bg-emerald-600 text-white font-semibold">
+          <button type="submit" id="manualDteSubmit" class="dte-issuer__submit">
             <%= t('admin.documentos.manual_submit') %>
           </button>
-          <p id="manualDteMsg" class="text-xs text-gray-500" aria-live="polite"></p>
-        </div>
+        </footer>
       </form>
       <% } %>
 
-      <h4 class="text-sm font-semibold text-gray-800 mb-2"><%= t('admin.documentos.sii_list_title') %></h4>
+      <div class="dte-list-head">
+        <h4 class="text-sm font-semibold text-gray-800"><%= t('admin.documentos.sii_list_title') %></h4>
+        <span class="text-[10px] text-gray-400"><%= siiDocs.length %> doc.</span>
+      </div>
       <% if (!siiDocs.length) { %>
-        <p class="text-center py-6 text-gray-500 text-sm mb-4"><%= t('admin.documentos.sii_list_empty') %></p>
+        <p class="dte-empty mb-5"><%= t('admin.documentos.sii_list_empty') %></p>
       <% } else { %>
-        <div class="space-y-2 max-h-80 overflow-y-auto mb-5">
+        <div class="dte-doc-list mb-6">
           <% siiDocs.forEach(function(doc) { %>
-            <div class="p-4 rounded-xl bg-zilo-card border border-gray-200 text-sm">
-              <div class="flex justify-between items-start gap-2 mb-1">
-                <div>
-                  <strong><%= Number(doc.dteType) === 61 ? 'NC 61' : 'Factura 33' %> N° <%= doc.folio %></strong>
-                  <% if (Number(doc.dteType) === 61) { %>
-                    <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">nota crédito</span>
-                  <% } else if (doc.phase === 'manual' || (doc.meta && doc.meta.manual)) { %>
-                    <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">manual</span>
-                  <% } %>
-                  <% if (doc.meta && doc.meta.reference && doc.meta.reference.folio) { %>
-                    <p class="text-[10px] text-gray-400">Ref. factura <%= doc.meta.reference.folio %></p>
-                  <% } %>
-                  <p class="text-xs text-gray-500"><%= doc.receptorName %> · <%= doc.receptorRut %></p>
-                  <p class="text-[10px] text-gray-400">
-                    <%= doc.siiStatus || '—' %>
-                    <% if (doc.meta && doc.meta.dryRun) { %> · dry-run<% } %>
-                    <% if (doc.requestId) { %> · ref <%= doc.requestId %><% } %>
-                  </p>
+            <% const dt = Number(doc.dteType); %>
+            <article class="dte-doc-row">
+              <div class="dte-doc-row__main">
+                <div class="dte-doc-row__badges">
+                  <span class="dte-badge dte-badge--<%= dt === 61 ? 'nc' : (dt === 46 ? 'fc' : 'fv') %>">
+                    <%= dt === 61 ? 'NC 61' : (dt === 46 ? 'FC 46' : 'FV 33') %>
+                  </span>
+                  <% if (doc.meta && doc.meta.dryRun) { %><span class="dte-badge dte-badge--muted">dry-run</span><% } %>
+                  <span class="dte-badge dte-badge--muted"><%= doc.siiStatus || '—' %></span>
                 </div>
-                <span class="text-emerald-600 font-bold"><%= formatCLP(doc.total || 0) %></span>
+                <strong class="dte-doc-row__folio">N° <%= doc.folio %></strong>
+                <p class="dte-doc-row__party"><%= doc.receptorName %> · <%= doc.receptorRut %></p>
+                <% if (doc.meta && doc.meta.reference && doc.meta.reference.folio) { %>
+                  <p class="dte-doc-row__ref">Ref. <%= doc.meta.reference.folio %></p>
+                <% } %>
               </div>
-              <% if (doc.pdfUrl) { %>
-                <a href="<%= doc.pdfUrl %>" target="_blank" class="text-xs px-2 py-1 rounded-lg bg-blue-500/10 text-blue-700 border border-blue-500/25 inline-block mt-1"><%= t('admin.common.view_document') %></a>
-              <% } %>
-            </div>
+              <div class="dte-doc-row__side">
+                <span class="dte-doc-row__amount"><%= formatCLP(doc.total || 0) %></span>
+                <% if (doc.pdfUrl) { %>
+                  <a href="<%= doc.pdfUrl %>" target="_blank" rel="noopener" class="dte-doc-row__link"><%= t('admin.common.view_document') %></a>
+                <% } %>
+              </div>
+            </article>
           <% }); %>
         </div>
       <% } %>
