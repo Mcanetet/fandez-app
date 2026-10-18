@@ -15,7 +15,7 @@ const unassignedRequestWatcher = require('../lib/unassignedRequestWatcher');
 const { getRequestTimeouts } = require('../lib/requestTimeouts');
 const aland = require('../lib/aland');
 const notifications = require('../lib/notifications');
-const { CANCELLATION_REASONS } = require('../lib/pricing');
+const { CLIENT_CANCEL_REASONS } = require('../lib/pricing');
 
 function isAlreadyNoProviderRefund(request) {
   if (!request) return false;
@@ -536,7 +536,7 @@ router.get('/servicio/:id', requireRole('client'), requireModule('client_solicit
     tracking: req.query.tracking || null,
     checkoutDraft,
     inlinePayFlow,
-    cancellationReasons: CANCELLATION_REASONS,
+    cancellationReasons: CLIENT_CANCEL_REASONS,
     resolvedServicePath,
     mpEmbedCheckout: mp.isEmbedCheckoutAvailable(),
     mpPublicKey: mp.getPublicKey(),

@@ -43,6 +43,7 @@ const {
   getServicePriceSummary,
   MIN_WORK_BASE_CLP,
   CANCELLATION_REASONS,
+  CLIENT_CANCEL_REASONS,
   resolveCancellationTier,
   getCancellationFeeClp,
   getCancellationReasonLabel,
@@ -2202,7 +2203,7 @@ function previewCancellationFee(requestId, clientId) {
     fee,
     paid,
     refundAmount: Math.max(0, paid - fee),
-    reasons: CANCELLATION_REASONS,
+    reasons: CLIENT_CANCEL_REASONS,
     policy: getCancellationPolicy().cancellations
   };
 }

@@ -3315,6 +3315,13 @@ body.is-search-minimized #waitingOrderPanel {
 body.is-searching-tech #alandFabRoot {
   z-index: 9600 !important;
 }
+/* Cancelar / seguridad por encima del overlay (z-9500) y de Sofía (z-9600) */
+#cancelModal {
+  z-index: 9700 !important;
+}
+#safetyModal {
+  z-index: 9800 !important;
+}
 #alandFabRoot {
   z-index: 9600;
 }
@@ -3653,9 +3660,42 @@ body.is-searching-tech #alandFabRoot {
 .cancel-money-row--total strong {
   color: var(--zilo-accent);
 }
+.cancel-refund-line {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #166534;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.85rem;
+}
 .cancel-reason-list {
   display: grid;
   gap: 0.5rem;
+}
+.cancel-reason-list--compact {
+  gap: 0.4rem;
+}
+.cancel-reason-list--compact .cancel-reason-option {
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.75rem;
+  align-items: center;
+}
+.cancel-reason-list--compact .cancel-reason-check {
+  margin-top: 0;
+  width: 1rem;
+  height: 1rem;
+}
+.cancel-reason-list--compact .cancel-reason-text {
+  font-size: 0.875rem;
+}
+.cancel-confirm-btn--solid {
+  color: #fff !important;
+  background: #B91C1C !important;
+  border-color: #B91C1C !important;
+}
+.cancel-confirm-btn--solid:hover:not(:disabled) {
+  background: #991B1B !important;
 }
 .cancel-reason-option {
   display: flex;
@@ -3722,8 +3762,32 @@ body.is-searching-tech #alandFabRoot {
   background: #FFF1F2;
 }
 .cancel-confirm-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  opacity: 0.55;
+  cursor: wait;
+}
+.cancel-reason-list--attention {
+  outline: 2px solid rgba(196, 92, 20, 0.55);
+  outline-offset: 4px;
+  border-radius: 0.85rem;
+  animation: cancelReasonPulse 0.7s ease-in-out 2;
+}
+@keyframes cancelReasonPulse {
+  0%, 100% { background: transparent; }
+  50% { background: rgba(196, 92, 20, 0.08); }
+}
+.cancel-policy-details summary {
+  list-style: none;
+}
+.cancel-policy-details summary::-webkit-details-marker {
+  display: none;
+}
+.cancel-policy-details summary::after {
+  content: ' ›';
+  color: var(--zilo-muted);
+  font-weight: 500;
+}
+.cancel-policy-details[open] summary::after {
+  content: ' ˅';
 }
 
 /* Llamada WebRTC in-app */

@@ -1832,6 +1832,14 @@
     other: 'client.service.cancel_tip_default'
   };
 
+  function pinModalToBody(modal) {
+    if (!modal) return;
+    // Misma estrategia que el overlay de búsqueda: fuera de stacking contexts del layout.
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
+  }
+
   function closeCancelModal() {
     const modal = document.getElementById('cancelModal');
     if (!modal) return;
@@ -1851,13 +1859,19 @@
     }
   }
 
+  function focusCancelReasons() {
+    const fieldset = document.getElementById('cancelReasonFieldset');
+    const list = document.getElementById('cancelReasonList');
+    fieldset?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    list?.classList.add('cancel-reason-list--attention');
+    setTimeout(() => list?.classList.remove('cancel-reason-list--attention'), 1600);
+  }
+
   function renderCancelReasons(reasons) {
     const list = document.getElementById('cancelReasonList');
     if (!list) return;
     list.innerHTML = '';
     cancelSelectedReason = null;
-    const confirmBtn = document.getElementById('cancelModalConfirm');
-    if (confirmBtn) confirmBtn.disabled = true;
     const tip = document.getElementById('cancelSoftTip');
     tip?.classList.add('hidden');
     if (!reasons.length) {
@@ -1893,12 +1907,6 @@
         list.querySelectorAll('.cancel-reason-option').forEach((el) => {
           el.classList.toggle('is-selected', el === label);
         });
-        if (confirmBtn) confirmBtn.disabled = false;
-        if (tip) {
-          const tipKey = CANCEL_SOFT_TIPS[reason.id] || CANCEL_SOFT_TIPS.other;
-          tip.textContent = t(tipKey);
-          tip.classList.remove('hidden');
-        }
       });
 
       label.appendChild(input);
@@ -1909,78 +1917,37 @@
   }
 
   function applyCancelPreview(data) {
-    const moneyCard = document.getElementById('cancelMoneyCard');
-    const policyList = document.getElementById('cancelPolicyList');
     const paidEl = document.getElementById('cancelPaidAmount');
     const feeEl = document.getElementById('cancelFeeSummary');
     const refundEl = document.getElementById('cancelRefundSummary');
-    const lossEl = document.getElementById('cancelLossHint');
-    const hookEl = document.getElementById('cancelRetentionHook');
+    const oneLiner = document.getElementById('cancelRefundOneLiner');
+    const confirmBtn = document.getElementById('cancelModalConfirm');
     const fmt = (n) => '$' + Number(n || 0).toLocaleString('es-CL');
     const fee = Number(data?.fee || 0);
     const paid = Number(data?.paid || 0);
     const refund = Number(data?.refundAmount != null ? data.refundAmount : Math.max(0, paid - fee));
-    const tier = data?.tier || 'beforeAccepted';
-    const policy = data?.policy || {};
-    const labels = data?.policyLabels || {};
-    const beforeLabel = labels.beforeAccepted || fmt(policy.beforeAccepted || 0);
-    const afterLabel = labels.afterTechAccepted || fmt(policy.afterTechAccepted || 0);
-    const enRouteLabel = labels.enRoute || fmt(policy.enRoute || 10000);
-    const verifiedLabel = labels.onSiteVerified || fmt(policy.onSiteVerified || 15000);
-    const diagnosisLabel = labels.afterDiagnosis || labels.enRouteOrOnSite || fmt(policy.afterDiagnosis || policy.enRouteOrOnSite || 20000);
-
-    if (hookEl) {
-      if (tier === 'afterDiagnosis') {
-        hookEl.textContent = t('client.service.cancel_hook_diagnosis', { fee: data.feeLabel || diagnosisLabel });
-      } else if (tier === 'onSiteVerified') {
-        hookEl.textContent = t('client.service.cancel_hook_verified', { fee: data.feeLabel || verifiedLabel });
-      } else if (tier === 'enRoute' || tier === 'enRouteOrOnSite') {
-        hookEl.textContent = t('client.service.cancel_hook_onsite', { fee: data.feeLabel || enRouteLabel });
-      } else if (tier === 'afterTechAccepted') {
-        hookEl.textContent = t('client.service.cancel_hook_accepted', { fee: data.feeLabel || afterLabel });
-      } else {
-        hookEl.textContent = t('client.service.cancel_retention_hook');
-      }
-    }
-
-    if (policyList) {
-      policyList.innerHTML = `
-        <li class="${tier === 'beforeAccepted' ? 'is-current' : ''}">
-          <span>${t('client.service.cancel_policy_before')}</span>
-          <strong>${beforeLabel}</strong>
-        </li>
-        <li class="${tier === 'enRoute' || tier === 'enRouteOrOnSite' ? 'is-current' : ''}">
-          <span>${t('client.service.cancel_policy_enroute')}</span>
-          <strong>${enRouteLabel}</strong>
-        </li>
-        <li class="${tier === 'onSiteVerified' ? 'is-current' : ''}">
-          <span>${t('client.service.cancel_policy_verified')}</span>
-          <strong>${verifiedLabel}</strong>
-        </li>
-        <li class="${tier === 'afterDiagnosis' ? 'is-current' : ''}">
-          <span>${t('client.service.cancel_policy_diagnosis')}</span>
-          <strong>${diagnosisLabel}</strong>
-        </li>`;
-    }
+    const feeLabel = data.feeLabel || fmt(fee);
+    const refundLabel = data.refundLabel || fmt(refund);
 
     if (paidEl) paidEl.textContent = data.paidLabel || fmt(paid);
-    if (feeEl) {
-      feeEl.textContent = fee > 0
-        ? (data.feeLabel || fmt(fee))
-        : t('client.service.cancel_fee_free_short');
+    if (feeEl) feeEl.textContent = fee > 0 ? feeLabel : t('client.service.cancel_fee_free_short');
+    if (refundEl) refundEl.textContent = refundLabel;
+
+    if (oneLiner) {
+      if (refund > 0 && fee > 0) {
+        oneLiner.textContent = t('client.service.cancel_refund_line_partial', { refund: refundLabel, fee: feeLabel });
+      } else if (refund > 0) {
+        oneLiner.textContent = t('client.service.cancel_refund_line_full', { refund: refundLabel });
+      } else {
+        oneLiner.textContent = t('client.service.cancel_refund_line_none');
+      }
     }
-    if (refundEl) {
-      refundEl.textContent = data.refundLabel || fmt(refund);
-      refundEl.classList.remove('hidden');
+    if (confirmBtn && refund > 0) {
+      confirmBtn.textContent = t('client.service.cancel_confirm_btn');
     }
-    if (lossEl) {
-      lossEl.textContent = fee > 0
-        ? t('client.service.cancel_loss_hint', { fee: data.feeLabel || fmt(fee) })
-        : t('client.service.cancel_loss_hint_free');
-    }
-    const destBox = document.getElementById('cancelRefundDestination');
-    destBox?.classList.toggle('hidden', refund < 1);
-    moneyCard?.classList.remove('hidden');
+    // Destino por defecto: tarjeta (input hidden checked en el modal).
+    const cardRadio = document.querySelector('input[name="cancelRefundDest"][value="card"]');
+    if (cardRadio) cardRadio.checked = true;
   }
 
   async function openCancelModal(requestId) {
@@ -1988,13 +1955,17 @@
     cancelSelectedReason = null;
     const modal = document.getElementById('cancelModal');
     const list = document.getElementById('cancelReasonList');
-    const moneyCard = document.getElementById('cancelMoneyCard');
     const confirmBtn = document.getElementById('cancelModalConfirm');
     if (!modal || !list) return;
 
-    moneyCard?.classList.add('hidden');
-    if (confirmBtn) confirmBtn.disabled = true;
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = t('client.service.cancel_confirm_btn');
+    }
+    const oneLiner = document.getElementById('cancelRefundOneLiner');
+    if (oneLiner) oneLiner.textContent = t('client.service.cancel_refund_line_loading');
     renderCancelReasons(parseEmbeddedCancelReasons());
+    pinModalToBody(modal);
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
 
@@ -2016,10 +1987,14 @@
   }
 
   async function submitCancelModal() {
-    if (!cancelTargetId) return;
+    if (!cancelTargetId) {
+      FandezNotify.show(t('client.service.cancel_search_error'), 'error');
+      return;
+    }
     const reasonCode = cancelSelectedReason
       || document.querySelector('#cancelReasonList input[name="cancelReason"]:checked')?.value;
     if (!reasonCode) {
+      focusCancelReasons();
       FandezNotify.show(t('client.service.cancel_reason_required'), 'warning');
       return;
     }
@@ -2032,7 +2007,7 @@
     if (btnSearch) btnSearch.disabled = true;
     if (btnScheduled) btnScheduled.disabled = true;
     try {
-      const refundDestination = document.querySelector('input[name="cancelRefundDest"]:checked')?.value || 'credit';
+      const refundDestination = document.querySelector('input[name="cancelRefundDest"]:checked')?.value || 'card';
       const response = await fetch(`/cliente/solicitud/${encodeURIComponent(cancelTargetId)}/cancelar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -2091,7 +2066,7 @@
       }
       setTimeout(() => { window.location.href = '/cliente'; }, refundAmt > 0 && dest === 'card' ? 3500 : 2200);
     } catch (err) {
-      if (btn) btn.disabled = !cancelSelectedReason;
+      if (btn) btn.disabled = false;
       if (keepBtn) keepBtn.disabled = false;
       if (btnSearch) btnSearch.disabled = false;
       if (btnScheduled) btnScheduled.disabled = false;
@@ -2165,6 +2140,7 @@
       });
     });
     if (submit) submit.disabled = true;
+    pinModalToBody(modal);
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
   }
