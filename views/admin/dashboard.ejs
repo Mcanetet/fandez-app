@@ -1019,14 +1019,16 @@ if (typeof hasPerm !== 'function') {
 
         <fieldset class="dte-issuer__section">
           <legend class="dte-issuer__legend">3. Ítems y montos</legend>
-          <p class="dte-issuer__hint mb-3">Agrega una o más líneas. Montos con IVA incluido; el desglose neto/IVA se calcula solo.</p>
+          <p class="dte-issuer__hint mb-3">Descripción, cantidad, valor neto (unitario) y valor bruto (línea con IVA). Si editas neto o bruto, el otro se recalcula.</p>
           <div class="dte-issuer__money dte-issuer__money--sheet">
-            <div class="dte-lines-sheet" id="manualDteLinesSheet">
+            <div class="dte-lines-sheet dte-lines-sheet--full" id="manualDteLinesSheet">
               <div class="dte-lines-sheet__head" aria-hidden="true">
-                <span class="dte-lines-sheet__col-n">#</span>
-                <span class="dte-lines-sheet__col-desc">Descripción</span>
-                <span class="dte-lines-sheet__col-amt">Total IVA incl.</span>
-                <span class="dte-lines-sheet__col-act"></span>
+                <span>#</span>
+                <span>Descripción</span>
+                <span>Cant.</span>
+                <span>Valor neto</span>
+                <span>Valor bruto</span>
+                <span></span>
               </div>
               <div id="manualDteLinesBody" class="dte-lines-sheet__body"></div>
               <div class="dte-lines-sheet__foot">

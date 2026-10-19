@@ -4564,16 +4564,29 @@
       if (!linesBody) return [];
       return Array.from(linesBody.querySelectorAll('.dte-lines-sheet__row')).map((row) => {
         const name = String(row.querySelector('.dte-line-desc')?.value || '').trim().slice(0, 80);
-        const totalIvaIncluded = Math.max(0, Math.round(Number(row.querySelector('.dte-line-amt')?.value) || 0));
-        return { name, totalIvaIncluded };
-      }).filter((l) => l.name && l.totalIvaIncluded > 0);
+        const qty = Number(row.querySelector('.dte-line-qty')?.value);
+        const unitNeto = Math.max(0, Math.round(Number(row.querySelector('.dte-line-neto')?.value) || 0));
+        const bruto = Math.max(0, Math.round(Number(row.querySelector('.dte-line-bruto')?.value) || 0));
+        return {
+          name,
+          qty: Number.isFinite(qty) && qty > 0 ? qty : 1,
+          unitNeto,
+          valorNeto: unitNeto,
+          totalIvaIncluded: bruto,
+          bruto
+        };
+      }).filter((l) => l.name && (l.unitNeto > 0 || l.totalIvaIncluded > 0));
     }
 
     function updateAmountPreview() {
       const lines = collectLines();
-      const total = lines.reduce((s, l) => s + l.totalIvaIncluded, 0);
-      const neto = Math.round(total / 1.19);
-      const iva = total - neto;
+      const total = lines.reduce((s, l) => {
+        const lineNeto = Math.round((l.unitNeto || 0) * (l.qty || 1));
+        const bruto = l.totalIvaIncluded > 0 ? l.totalIvaIncluded : Math.round(lineNeto * 1.19);
+        return s + bruto;
+      }, 0);
+      const neto = lines.reduce((s, l) => s + Math.round((l.unitNeto || 0) * (l.qty || 1)), 0);
+      const iva = Math.max(0, total - neto);
       if (totalEl) totalEl.value = String(total);
       if (descEl) {
         const first = lines[0]?.name || LINE_DEFAULTS[currentDocType()] || 'Servicios Fandez';
@@ -4598,6 +4611,33 @@
       });
     }
 
+    function syncRowFrom(row, source) {
+      if (!row || row.dataset.syncing === '1') return;
+      row.dataset.syncing = '1';
+      const qtyEl = row.querySelector('.dte-line-qty');
+      const netoEl = row.querySelector('.dte-line-neto');
+      const brutoEl = row.querySelector('.dte-line-bruto');
+      let qty = Number(qtyEl?.value);
+      if (!Number.isFinite(qty) || qty <= 0) qty = 1;
+      if (qtyEl && String(qtyEl.value) !== String(qty)) qtyEl.value = String(qty);
+
+      let unitNeto = Math.max(0, Math.round(Number(netoEl?.value) || 0));
+      let bruto = Math.max(0, Math.round(Number(brutoEl?.value) || 0));
+
+      if (source === 'bruto' && bruto > 0) {
+        const lineNeto = Math.round(bruto / 1.19);
+        unitNeto = Math.max(0, Math.round(lineNeto / qty));
+        if (netoEl) netoEl.value = unitNeto ? String(unitNeto) : '';
+        const recalcBruto = Math.round(unitNeto * qty * 1.19);
+        if (brutoEl && recalcBruto > 0) brutoEl.value = String(recalcBruto);
+      } else if ((source === 'neto' || source === 'qty') && unitNeto > 0) {
+        bruto = Math.round(unitNeto * qty * 1.19);
+        if (brutoEl) brutoEl.value = bruto ? String(bruto) : '';
+      }
+      row.dataset.syncing = '0';
+      updateAmountPreview();
+    }
+
     function addLineRow(preset = {}) {
       if (!linesBody) return;
       const row = document.createElement('div');
@@ -4605,20 +4645,32 @@
       row.innerHTML = `
         <span class="dte-lines-sheet__idx">1</span>
         <input type="text" class="dte-line-desc" maxlength="80" placeholder="Descripción del ítem" value="">
-        <input type="number" class="dte-line-amt" min="0" step="1" inputmode="numeric" placeholder="0" value="">
+        <input type="number" class="dte-line-qty" min="0.001" step="1" inputmode="decimal" placeholder="1" value="1" title="Cantidad">
+        <input type="number" class="dte-line-neto" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Valor neto unitario">
+        <input type="number" class="dte-line-bruto" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Valor bruto línea (IVA incl.)">
         <button type="button" class="dte-lines-sheet__remove" title="Quitar ítem" aria-label="Quitar ítem">×</button>
       `;
       const desc = row.querySelector('.dte-line-desc');
-      const amt = row.querySelector('.dte-line-amt');
+      const qty = row.querySelector('.dte-line-qty');
+      const neto = row.querySelector('.dte-line-neto');
+      const bruto = row.querySelector('.dte-line-bruto');
       if (desc && preset.name) desc.value = preset.name;
-      if (amt && preset.totalIvaIncluded != null) amt.value = String(preset.totalIvaIncluded || '');
+      if (qty && preset.qty != null) qty.value = String(preset.qty);
+      if (neto && preset.unitNeto != null && preset.unitNeto !== '') neto.value = String(preset.unitNeto);
+      if (bruto && preset.totalIvaIncluded != null && preset.totalIvaIncluded !== '') {
+        bruto.value = String(preset.totalIvaIncluded);
+      }
       desc?.addEventListener('input', updateAmountPreview);
-      amt?.addEventListener('input', updateAmountPreview);
+      qty?.addEventListener('input', () => syncRowFrom(row, 'qty'));
+      neto?.addEventListener('input', () => syncRowFrom(row, 'neto'));
+      bruto?.addEventListener('input', () => syncRowFrom(row, 'bruto'));
       row.querySelector('.dte-lines-sheet__remove')?.addEventListener('click', () => {
         const rows = linesBody.querySelectorAll('.dte-lines-sheet__row');
         if (rows.length <= 1) {
           if (desc) desc.value = LINE_DEFAULTS[currentDocType()] || '';
-          if (amt) amt.value = '';
+          if (qty) qty.value = '1';
+          if (neto) neto.value = '';
+          if (bruto) bruto.value = '';
           updateAmountPreview();
           return;
         }
@@ -4626,7 +4678,11 @@
         updateAmountPreview();
       });
       linesBody.appendChild(row);
-      updateAmountPreview();
+      if (preset.unitNeto || preset.totalIvaIncluded) {
+        syncRowFrom(row, preset.unitNeto ? 'neto' : 'bruto');
+      } else {
+        updateAmountPreview();
+      }
       return row;
     }
 
@@ -4635,7 +4691,7 @@
       const rows = linesBody.querySelectorAll('.dte-lines-sheet__row');
       const def = LINE_DEFAULTS[currentDocType()] || 'Servicios Fandez';
       if (!rows.length) {
-        addLineRow({ name: def, totalIvaIncluded: '' });
+        addLineRow({ name: def, qty: 1 });
         return;
       }
       if (forceResetDesc) {
@@ -4699,7 +4755,7 @@
       e.target.dataset.touched = '1';
     });
 
-    addLineBtn?.addEventListener('click', () => addLineRow({ name: '', totalIvaIncluded: '' }));
+    addLineBtn?.addEventListener('click', () => addLineRow({ name: '', qty: 1 }));
     form.querySelectorAll('input[name="dteTypeRadio"]').forEach((radio) => {
       radio.addEventListener('change', syncDocTypeUi);
     });
@@ -4795,11 +4851,14 @@
       const rawType = Number(checkedType || typeSel?.value);
       const dteType = [61, 46, 43].includes(rawType) ? rawType : 33;
       const lines = collectLines();
-      const totalClp = lines.reduce((s, l) => s + l.totalIvaIncluded, 0);
+      const totalClp = lines.reduce((s, l) => {
+        const lineNeto = Math.round((l.unitNeto || 0) * (l.qty || 1));
+        return s + (l.totalIvaIncluded > 0 ? l.totalIvaIncluded : Math.round(lineNeto * 1.19));
+      }, 0);
       const defaultDesc = LINE_DEFAULTS[String(dteType)] || 'Servicios Fandez';
       if (!lines.length || totalClp < 1) {
-        if (msg) msg.textContent = 'Agrega al menos un ítem con descripción y monto.';
-        FandezNotify.show('Agrega al menos un ítem con descripción y monto.', 'error');
+        if (msg) msg.textContent = 'Agrega al menos un ítem con descripción, cantidad y neto o bruto.';
+        FandezNotify.show('Agrega al menos un ítem con descripción, cantidad y neto o bruto.', 'error');
         if (submitBtn) submitBtn.disabled = false;
         return;
       }
