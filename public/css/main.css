@@ -7654,7 +7654,10 @@ body.launch-notice-open {
   gap: 0.55rem;
 }
 @media (min-width: 640px) {
-  .dte-type-grid { grid-template-columns: repeat(3, 1fr); }
+  .dte-type-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
+  .dte-type-grid { grid-template-columns: repeat(4, 1fr); }
 }
 .dte-type-card { display: block; cursor: pointer; }
 .dte-type-card input {
@@ -7869,6 +7872,7 @@ body.launch-notice-open {
   text-transform: uppercase;
 }
 .dte-badge--fv { background: #ecfdf5; color: #047857; }
+.dte-badge--lf { background: #f3e8ff; color: #7e22ce; }
 .dte-badge--fc { background: #e0f2fe; color: #0369a1; }
 .dte-badge--nc { background: #ffedd5; color: #c2410c; }
 .dte-badge--muted { background: #f5f5f4; color: #78716c; }

@@ -1922,7 +1922,7 @@
     });
   }
 
-  document.getElementById('btnAutoReconcile')?.addEventListener('click', async () => {
+  const runAutoReconcile = async () => {
     const res = await adminFetch('/finanzas/conciliar', { method: 'POST' });
     const data = await res.json();
     if (data.success) {
@@ -1931,6 +1931,98 @@
     } else {
       FandezNotify.show(data.error || 'Sin coincidencias', 'error');
     }
+  };
+  document.getElementById('btnAutoReconcile')?.addEventListener('click', runAutoReconcile);
+  document.getElementById('btnAutoReconcileTop')?.addEventListener('click', runAutoReconcile);
+
+  const formatClpUi = (n) => {
+    const v = Math.round(Number(n) || 0);
+    try {
+      return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(v);
+    } catch (_) {
+      return `$${v}`;
+    }
+  };
+
+  const refreshFinancePeriod = async (period) => {
+    if (!period) return;
+    const res = await adminFetch(`/finanzas/periodo.json?period=${encodeURIComponent(period)}`);
+    const data = await res.json();
+    if (!data.success) {
+      FandezNotify.show(data.error || 'No se pudo cargar el período', 'error');
+      return;
+    }
+    const iva = data.iva || {};
+    const bank = data.bank || {};
+    const center = document.getElementById('financeMonthCenter');
+    if (center) center.dataset.period = iva.period || period;
+    const setText = (id, text) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+    setText('ivaPayableVal', formatClpUi(iva.ivaPagar));
+    setText('ivaDebitVal', formatClpUi(iva.ivaDebito));
+    setText('ivaCreditVal', formatClpUi(iva.ivaCredito));
+    setText('bankCoverageVal', `${bank.coveragePct != null ? bank.coveragePct : 0}%`);
+    setText('bankOpenVal', `${bank.openCount || 0} abiertos`);
+    if (iva.note) setText('ivaMonthNote', iva.note);
+    const exportLink = document.getElementById('btnExportIvaCsv');
+    if (exportLink) exportLink.href = `${window.FandezAdminBase || '/admin'}/finanzas/iva.csv?period=${encodeURIComponent(iva.period || period)}`;
+    const list = document.getElementById('ivaDebitList');
+    if (list) {
+      const lines = (iva.debitLines || []).slice(0, 8);
+      if (!lines.length) {
+        list.classList.add('hidden');
+        list.innerHTML = '';
+      } else {
+        list.classList.remove('hidden');
+        list.innerHTML = lines.map((l) => (
+          `<div class="flex justify-between gap-2 border-b border-white/10 py-1"><span>${l.label}<span class="block text-slate-400">${l.date}</span></span><strong>${formatClpUi(l.iva)}</strong></div>`
+        )).join('');
+      }
+    }
+  };
+
+  document.getElementById('financePeriodSelect')?.addEventListener('change', (e) => {
+    refreshFinancePeriod(e.target.value);
+  });
+
+  const uploadBankCsv = async (file) => {
+    if (!file) return;
+    const text = await file.text();
+    const res = await adminFetch('/finanzas/banco/import-csv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csv: text })
+    });
+    const data = await res.json();
+    if (data.success) {
+      FandezNotify.show(adminMsg(ADMIN_JS.csvImported || 'CSV importado: {{count}}', { count: data.imported || 0 }), 'success');
+      setTimeout(() => location.reload(), 700);
+    } else {
+      FandezNotify.show(data.error || 'No se pudo importar el CSV', 'error');
+    }
+  };
+  document.getElementById('bankCsvInput')?.addEventListener('change', (e) => uploadBankCsv(e.target.files && e.target.files[0]));
+  document.getElementById('bankCsvInputInline')?.addEventListener('change', (e) => uploadBankCsv(e.target.files && e.target.files[0]));
+
+  document.querySelectorAll('.btn-ignore-mov').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (!id) return;
+      const res = await adminFetch(`/finanzas/banco/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ignored' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        FandezNotify.show(ADMIN_JS.movIgnored || 'Movimiento ignorado', 'success');
+        setTimeout(() => location.reload(), 500);
+      } else {
+        FandezNotify.show(data.error || 'No se pudo ignorar', 'error');
+      }
+    });
   });
 
   document.getElementById('btnSiiSync')?.addEventListener('click', async () => {
@@ -4473,7 +4565,10 @@
       if (typeSel) typeSel.value = type;
       const isNc = type === '61';
       const isPurchase = type === '46';
+      const isLiq = type === '43';
       if (refFields) refFields.classList.toggle('hidden', !isNc);
+      const liqFields = document.getElementById('manualDteLiqFields');
+      if (liqFields) liqFields.classList.toggle('hidden', !isLiq);
       const refFolio = document.getElementById('manualDteRefFolio');
       if (refFolio) refFolio.required = isNc;
       const hint = document.getElementById('manualDteTypeHint');
@@ -4483,19 +4578,32 @@
       if (submitBtn) {
         submitBtn.textContent = isNc
           ? 'Emitir nota de crédito 61'
-          : (isPurchase ? 'Emitir factura de compra 46' : 'Emitir factura 33');
+          : (isPurchase
+            ? 'Emitir factura de compra 46'
+            : (isLiq ? 'Emitir liquidación-factura 43' : 'Emitir factura 33'));
       }
       if (hint) {
         hint.textContent = isPurchase
           ? 'Compra a particular: Fandez emite; el RUT es del vendedor (p. ej. chatarra). Queda también en Finanzas → Compras.'
           : (isNc
             ? 'Obligatorio indicar el folio del documento que anulas o corriges.'
-            : 'Factura de venta Fandez → receptor (socio u otro).');
+            : (isLiq
+              ? 'Liquidación-factura al mandante (socio): el total es la comisión IVA incl. Opcional: bruto cobrado y líquido a pagar.'
+              : 'Factura de venta Fandez → receptor (socio u otro).'));
       }
-      if (rutLabel) rutLabel.textContent = isPurchase ? 'RUT vendedor *' : 'RUT receptor *';
-      if (nameLabel) nameLabel.textContent = isPurchase ? 'Nombre vendedor *' : 'Razón social *';
+      if (rutLabel) {
+        rutLabel.textContent = isPurchase
+          ? 'RUT vendedor *'
+          : (isLiq ? 'RUT mandante *' : 'RUT receptor *');
+      }
+      if (nameLabel) {
+        nameLabel.textContent = isPurchase
+          ? 'Nombre vendedor *'
+          : (isLiq ? 'Razón social mandante *' : 'Razón social *');
+      }
       const defaults = {
         '33': 'Servicios Fandez',
+        '43': 'Liquidación comisión Fandez',
         '46': 'Compra de chatarra / materiales',
         '61': 'Nota de crédito Fandez'
       };
@@ -4547,11 +4655,13 @@
       if (msg) msg.textContent = 'Emitiendo…';
       const checkedType = form.querySelector('input[name="dteTypeRadio"]:checked')?.value;
       const rawType = Number(checkedType || typeSel?.value);
-      const dteType = rawType === 61 ? 61 : (rawType === 46 ? 46 : 33);
+      const dteType = [61, 46, 43].includes(rawType) ? rawType : 33;
       const totalClp = Math.round(Number(document.getElementById('manualDteTotal')?.value) || 0);
       const defaultDesc = dteType === 61
         ? 'Nota de crédito Fandez'
-        : (dteType === 46 ? 'Compra de chatarra / materiales' : 'Servicios Fandez');
+        : (dteType === 46
+          ? 'Compra de chatarra / materiales'
+          : (dteType === 43 ? 'Liquidación comisión Fandez' : 'Servicios Fandez'));
       const payload = {
         dteType,
         providerId: partnerSel?.value || null,
@@ -4568,6 +4678,12 @@
         notes: document.getElementById('manualDteNotes')?.value?.trim() || null,
         requestId: document.getElementById('manualDteRequestId')?.value?.trim() || null
       };
+      if (dteType === 43) {
+        const bruto = Math.round(Number(document.getElementById('manualDteLiqBruto')?.value) || 0);
+        const liquido = Math.round(Number(document.getElementById('manualDteLiqLiquido')?.value) || 0);
+        if (bruto > 0) payload.liquidationBruto = bruto;
+        if (liquido > 0) payload.liquidationLiquido = liquido;
+      }
       if (dteType === 61) {
         payload.refFolio = Math.round(Number(document.getElementById('manualDteRefFolio')?.value) || 0);
         payload.refDate = document.getElementById('manualDteRefDate')?.value || null;
@@ -4588,7 +4704,7 @@
         }
         const folio = data.document?.folio;
         const dt = Number(data.document?.dteType);
-        const typeLabel = dt === 61 ? 'NC' : (dt === 46 ? 'FC' : 'Factura');
+        const typeLabel = dt === 61 ? 'NC' : (dt === 46 ? 'FC' : (dt === 43 ? 'LF' : 'Factura'));
         const dry = data.dryRun || data.document?.meta?.dryRun;
         const okMsg = dry
           ? `${typeLabel} ${folio} generada (dry-run, sin envío SII)`

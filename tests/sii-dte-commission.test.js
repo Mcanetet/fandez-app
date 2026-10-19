@@ -181,4 +181,34 @@ describe('SII DTE · factura manual', () => {
     expect(result.document.meta.kind).toBe('factura_compra');
     expect(result.document.total).toBe(150000);
   });
+
+  test('generateLiquidationInvoice 43 dry-run', async () => {
+    const { generateLiquidationInvoice } = require('../lib/sii-dte/generateManualInvoice');
+    const { normalizeDteType, dteKindLabel } = require('../lib/sii-dte/dteTypes');
+    expect(normalizeDteType(43)).toBe(43);
+    expect(dteKindLabel(43)).toBe('liquidacion_factura');
+
+    const result = await generateLiquidationInvoice({
+      receptor: {
+        rut: '76.111.222-3',
+        name: 'Socio Mandante SpA',
+        giro: 'Servicios técnicos',
+        address: 'Ñuñoa 50',
+        commune: 'Ñuñoa',
+        city: 'Santiago'
+      },
+      totalClp: 18800,
+      description: 'Liquidación comisión Fandez',
+      liquidationBruto: 100000,
+      liquidationLiquido: 81200
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+    expect(result.document.dteType).toBe(43);
+    expect(result.document.phase).toBe('liquidation');
+    expect(result.document.meta.kind).toBe('liquidacion_factura');
+    expect(result.document.meta.liquidation.bruto).toBe(100000);
+    expect(result.document.meta.liquidation.liquido).toBe(81200);
+    expect(result.document.total).toBe(18800);
+  });
 });

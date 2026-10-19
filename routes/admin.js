@@ -1842,6 +1842,49 @@ router.post('/finanzas/banco/import', requireRole('admin'), requireAdminPermissi
   res.json(result);
 });
 
+router.post('/finanzas/banco/import-csv', requireRole('admin'), requireAdminPermission('finanzas.manage'), (req, res) => {
+  const finance = require('../lib/finance');
+  const csv = req.body?.csv || req.body?.text || req.body?.content || '';
+  const result = finance.reconciliation.importBankCsv(csv);
+  store.logSecurityEvent('finanzas_banco_csv', `${result.imported || 0} movs`, req);
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+router.patch('/finanzas/banco/:id', requireRole('admin'), requireAdminPermission('finanzas.manage'), (req, res) => {
+  const finance = require('../lib/finance');
+  const result = finance.reconciliation.updateBankMovement(req.params.id, req.body || {});
+  store.logSecurityEvent('finanzas_banco_update', req.params.id, req);
+  res.status(result.success ? 200 : 404).json(result);
+});
+
+router.get('/finanzas/periodo.json', requireRole('admin'), requireAdminPermission('finanzas.manage', 'finanzas.export', 'finanzas.view'), (req, res) => {
+  const pack = store.getFinancePeriodPack(req.query.period);
+  res.json({ success: true, ...pack });
+});
+
+router.get('/finanzas/iva.csv', requireRole('admin'), requireAdminPermission('finanzas.export'), (req, res) => {
+  const pack = store.getFinancePeriodPack(req.query.period);
+  const iva = pack.iva || {};
+  const lines = [
+    'tipo,id,fecha,etiqueta,iva,neto_o_total,fuente',
+    ...(iva.debitLines || []).map((l) => [
+      'debito', l.id, l.date, csvEscape(l.label), l.iva, l.appTotal || l.netFees || '', l.source
+    ].join(',')),
+    ...(iva.creditLines || []).map((l) => [
+      'credito', l.id, l.date, csvEscape(l.label), l.iva, l.total || '', l.source
+    ].join(','))
+  ];
+  lines.push('');
+  lines.push(`resumen,periodo,${iva.period},IVA debito,${iva.ivaDebito}`);
+  lines.push(`resumen,periodo,${iva.period},IVA credito,${iva.ivaCredito}`);
+  lines.push(`resumen,periodo,${iva.period},IVA a pagar,${iva.ivaPagar}`);
+  lines.push(`resumen,periodo,${iva.period},Saldo a favor,${iva.ivaFavor}`);
+  store.logSecurityEvent('finanzas_iva_export', iva.period || '', req);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="fandez-iva-${iva.period || 'mes'}.csv"`);
+  res.send('\uFEFF' + lines.join('\n'));
+});
+
 router.post('/finanzas/conciliar', requireRole('admin'), requireAdminPermission('finanzas.manage'), (req, res) => {
   const finance = require('../lib/finance');
   const result = finance.reconciliation.autoReconcile(store.getPayments());
@@ -1867,7 +1910,7 @@ router.post('/dte/retry', requireRole('admin'), requireAdminPermission('document
 });
 
 /**
- * Factura 33, Factura de Compra 46 o Nota de Crédito 61 (Admin → documentos).
+ * Factura 33, Liquidación-Factura 43, Factura de Compra 46 o Nota de Crédito 61.
  */
 router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
   try {
@@ -1906,6 +1949,9 @@ router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documen
       description: body.description || body.glosa || body.lineDescription,
       commissionClp: body.commissionClp,
       cardFeeClp: body.cardFeeClp,
+      liquidationBruto: body.liquidationBruto ?? body.brutoLiquidado,
+      liquidationLiquido: body.liquidationLiquido ?? body.liquidoAPagar,
+      liquidationComision: body.liquidationComision,
       refFolio: body.refFolio || body.referenceFolio,
       refDteType: body.refDteType || 33,
       refDate: body.refDate || body.referenceDate,
@@ -1985,7 +2031,9 @@ router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documen
 
     const eventName = dteType === 61
       ? 'dte_credit_note'
-      : (dteType === 46 ? 'dte_purchase_invoice' : 'dte_manual');
+      : (dteType === 46
+        ? 'dte_purchase_invoice'
+        : (dteType === 43 ? 'dte_liquidation' : 'dte_manual'));
     store.logSecurityEvent(
       eventName,
       `${result.document.id} type=${result.document.dteType} folio=${result.document.folio} total=${result.document.total} to=${result.document.receptorRut}`,

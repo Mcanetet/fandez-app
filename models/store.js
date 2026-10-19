@@ -10501,13 +10501,25 @@ function bumpFinanceBucket(map, key, amount = 0, count = 1) {
   map[key].amount += amount;
 }
 
-function getAccountingPack() {
+function getAccountingPack(opts = {}) {
   const finance = require('../lib/finance');
   return finance.buildAccountingPack({
     requests,
     payments: getPayments(),
     pricing: getPricingConfig(),
-    getAllDteDocuments
+    getAllDteDocuments,
+    period: opts.period
+  });
+}
+
+function getFinancePeriodPack(period) {
+  const finance = require('../lib/finance');
+  return finance.buildPeriodPack({
+    requests,
+    payments: getPayments(),
+    pricing: getPricingConfig(),
+    getAllDteDocuments,
+    period
   });
 }
 
@@ -10606,8 +10618,9 @@ function getFinancialReport() {
     accounting = {
       pnl: { income: {}, expenses: {}, netResult: 0 },
       balanceSheet: { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0 },
-      bank: { reconciliation: {}, movements: [] },
+      bank: { reconciliation: {}, movements: [], period: {} },
       purchases: { invoices: [], connection: {} },
+      tax: { month: {}, lifetime: {}, recentPeriods: [] },
       sales: [],
       costs: [],
       dte: { documentsCount: 0, amount: 0, note: null }
@@ -10943,6 +10956,7 @@ module.exports = {
   getAdminStats,
   getFinancialReport,
   getAccountingPack,
+  getFinancePeriodPack,
   getConsentsSummary,
   recordConsent,
   recordRegistrationConsents,
