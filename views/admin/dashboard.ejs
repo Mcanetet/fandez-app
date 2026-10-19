@@ -971,17 +971,39 @@ if (typeof hasPerm !== 'function') {
               <label class="dte-label" for="manualDtePartner" id="manualDtePartnerLabel"><%= t('admin.documentos.manual_partner') %></label>
               <select id="manualDtePartner" name="providerId" class="zilo-input w-full text-sm">
                 <option value=""><%= t('admin.documentos.manual_partner_none') %></option>
-                <% partnersForDte.forEach(function(p) { %>
-                  <option value="<%= p.id %>"
-                    data-rut="<%= p.rut %>"
-                    data-name="<%= p.legalName || p.name %>"
-                    data-giro="<%= p.giro || '' %>"
-                    data-address="<%= p.address || '' %>"
-                    data-commune="<%= p.commune || '' %>"
-                    data-city="<%= p.city || '' %>"
-                    data-email="<%= p.email || '' %>"
-                  ><%= p.name %> · <%= p.rut %></option>
-                <% }); %>
+                <% const dtePresets = partnersForDte.filter(function(p) { return p.preset; }); %>
+                <% const dtePartnersOnly = partnersForDte.filter(function(p) { return !p.preset; }); %>
+                <% if (dtePresets.length) { %>
+                  <optgroup label="Receptores frecuentes">
+                    <% dtePresets.forEach(function(p) { %>
+                      <option value="<%= p.id %>"
+                        data-preset="1"
+                        data-rut="<%= p.rut %>"
+                        data-name="<%= p.legalName || p.name %>"
+                        data-giro="<%= p.giro || '' %>"
+                        data-address="<%= p.address || '' %>"
+                        data-commune="<%= p.commune || '' %>"
+                        data-city="<%= p.city || '' %>"
+                        data-email="<%= p.email || '' %>"
+                      ><%= p.name %> · <%= p.rut %></option>
+                    <% }); %>
+                  </optgroup>
+                <% } %>
+                <% if (dtePartnersOnly.length) { %>
+                  <optgroup label="Socios Fandez">
+                    <% dtePartnersOnly.forEach(function(p) { %>
+                      <option value="<%= p.id %>"
+                        data-rut="<%= p.rut %>"
+                        data-name="<%= p.legalName || p.name %>"
+                        data-giro="<%= p.giro || '' %>"
+                        data-address="<%= p.address || '' %>"
+                        data-commune="<%= p.commune || '' %>"
+                        data-city="<%= p.city || '' %>"
+                        data-email="<%= p.email || '' %>"
+                      ><%= p.name %> · <%= p.rut %></option>
+                    <% }); %>
+                  </optgroup>
+                <% } %>
               </select>
             </div>
             <div>

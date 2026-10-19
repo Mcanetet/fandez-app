@@ -4766,7 +4766,10 @@
       if (!opt || !opt.value) return;
       const set = (id, val) => {
         const el = document.getElementById(id);
-        if (el) el.value = val || '';
+        if (el) {
+          el.value = val || '';
+          if (id === 'manualDteName') el.dataset.fromLookup = '1';
+        }
       };
       set('manualDteRut', opt.dataset.rut);
       set('manualDteName', opt.dataset.name);
@@ -4775,6 +4778,14 @@
       set('manualDteCommune', opt.dataset.commune || 'Santiago');
       set('manualDteCity', opt.dataset.city || 'Santiago');
       set('manualDteEmail', opt.dataset.email);
+      const giroEl = document.getElementById('manualDteGiro');
+      if (giroEl && opt.dataset.giro) giroEl.dataset.touched = '1';
+      const rutHint = document.getElementById('manualDteRutHint');
+      if (rutHint) {
+        rutHint.textContent = opt.dataset.preset === '1'
+          ? 'Receptor frecuente cargado (no es socio Fandez).'
+          : 'Datos del socio cargados.';
+      }
     }
 
     partnerSel?.addEventListener('change', () => {
@@ -4862,9 +4873,13 @@
         if (submitBtn) submitBtn.disabled = false;
         return;
       }
+      const rawProviderId = partnerSel?.value || null;
+      const providerId = rawProviderId && !String(rawProviderId).startsWith('preset:')
+        ? rawProviderId
+        : null;
       const payload = {
         dteType,
-        providerId: partnerSel?.value || null,
+        providerId,
         rut: document.getElementById('manualDteRut')?.value?.trim(),
         name: document.getElementById('manualDteName')?.value?.trim(),
         giro: document.getElementById('manualDteGiro')?.value?.trim()

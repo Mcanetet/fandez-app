@@ -749,7 +749,9 @@ router.get('/', requireRole('admin'), async (req, res) => {
     }, []),
     dtePartners: safeAdminCall('dtePartners', () => {
       const sii = require('../lib/sii-dte');
-      return store.USERS
+      const { listReceptorPresets } = require('../lib/sii-dte/receptorPresets');
+      const presets = listReceptorPresets();
+      const partners = store.USERS
         .filter((u) => u.role === 'provider')
         .map((u) => {
           const billing = sii.pickPartnerBilling(u);
@@ -762,11 +764,13 @@ router.get('/', requireRole('admin'), async (req, res) => {
             giro: billing.giro,
             address: billing.address,
             commune: billing.commune,
-            city: billing.city
+            city: billing.city,
+            preset: false
           };
         })
         .filter((p) => p.rut)
         .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'es'));
+      return [...presets, ...partners];
     }, []),
     notificationStats: safeAdminCall('notificationStats', () => notifications.getStats(), { total: 0, sent: 0, failed: 0, emailConfigured: false }),
     recentNotifications: safeAdminCall('recentNotifications', () => notifications.getRecent(30), []),
