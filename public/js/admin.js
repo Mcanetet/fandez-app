@@ -4560,18 +4560,32 @@
       return String(checked?.value || typeSel?.value || '33');
     }
 
+    function lineNetoAfterDisc(l) {
+      const sub = Math.round((l.unitNeto || 0) * (l.qty || 1));
+      const disc = Math.min(sub, Math.max(0, Math.round(Number(l.discountMonto) || 0)));
+      return Math.max(0, sub - disc);
+    }
+
     function collectLines() {
       if (!linesBody) return [];
       return Array.from(linesBody.querySelectorAll('.dte-lines-sheet__row')).map((row) => {
         const name = String(row.querySelector('.dte-line-desc')?.value || '').trim().slice(0, 80);
         const qty = Number(row.querySelector('.dte-line-qty')?.value);
         const unitNeto = Math.max(0, Math.round(Number(row.querySelector('.dte-line-neto')?.value) || 0));
+        const discountMonto = Math.max(0, Math.round(Number(row.querySelector('.dte-line-disc')?.value) || 0));
         const bruto = Math.max(0, Math.round(Number(row.querySelector('.dte-line-bruto')?.value) || 0));
+        const q = Number.isFinite(qty) && qty > 0 ? qty : 1;
+        const neto = Math.max(0, Math.round(unitNeto * q) - Math.min(Math.round(unitNeto * q), discountMonto));
+        const iva = bruto > 0 ? Math.max(0, bruto - neto) : Math.round(neto * 0.19);
         return {
           name,
-          qty: Number.isFinite(qty) && qty > 0 ? qty : 1,
+          qty: q,
           unitNeto,
+          discountMonto,
+          descuento: discountMonto,
           valorNeto: unitNeto,
+          neto,
+          iva,
           totalIvaIncluded: bruto,
           bruto
         };
@@ -4580,12 +4594,13 @@
 
     function updateAmountPreview() {
       const lines = collectLines();
+      const discountTotal = lines.reduce((s, l) => s + (l.discountMonto || 0), 0);
+      const neto = lines.reduce((s, l) => s + lineNetoAfterDisc(l), 0);
       const total = lines.reduce((s, l) => {
-        const lineNeto = Math.round((l.unitNeto || 0) * (l.qty || 1));
+        const lineNeto = lineNetoAfterDisc(l);
         const bruto = l.totalIvaIncluded > 0 ? l.totalIvaIncluded : Math.round(lineNeto * 1.19);
         return s + bruto;
       }, 0);
-      const neto = lines.reduce((s, l) => s + Math.round((l.unitNeto || 0) * (l.qty || 1)), 0);
       const iva = Math.max(0, total - neto);
       if (totalEl) totalEl.value = String(total);
       if (descEl) {
@@ -4597,9 +4612,13 @@
         if (el) el.textContent = raw ? String(val) : fmtClp(val);
       };
       setTxt('manualDtePreviewCount', lines.length, true);
+      setTxt('manualDtePreviewDiscount', discountTotal);
       setTxt('manualDtePreviewNeto', neto);
       setTxt('manualDtePreviewIva', iva);
       setTxt('manualDtePreviewTotal', total);
+      setTxt('manualDteFootNeto', neto);
+      setTxt('manualDteFootIva', iva);
+      setTxt('manualDteFootBruto', total);
       renumberLines();
     }
 
@@ -4616,24 +4635,48 @@
       row.dataset.syncing = '1';
       const qtyEl = row.querySelector('.dte-line-qty');
       const netoEl = row.querySelector('.dte-line-neto');
+      const unitBrutoEl = row.querySelector('.dte-line-unit-bruto');
+      const discEl = row.querySelector('.dte-line-disc');
+      const ivaEl = row.querySelector('.dte-line-iva');
       const brutoEl = row.querySelector('.dte-line-bruto');
       let qty = Number(qtyEl?.value);
       if (!Number.isFinite(qty) || qty <= 0) qty = 1;
       if (qtyEl && String(qtyEl.value) !== String(qty)) qtyEl.value = String(qty);
 
       let unitNeto = Math.max(0, Math.round(Number(netoEl?.value) || 0));
+      let unitBruto = Math.max(0, Math.round(Number(unitBrutoEl?.value) || 0));
+      let discount = Math.max(0, Math.round(Number(discEl?.value) || 0));
       let bruto = Math.max(0, Math.round(Number(brutoEl?.value) || 0));
 
-      if (source === 'bruto' && bruto > 0) {
-        const lineNeto = Math.round(bruto / 1.19);
-        unitNeto = Math.max(0, Math.round(lineNeto / qty));
+      if (source === 'unit-bruto' && unitBruto > 0) {
+        unitNeto = Math.max(0, Math.round(unitBruto / 1.19));
         if (netoEl) netoEl.value = unitNeto ? String(unitNeto) : '';
-        const recalcBruto = Math.round(unitNeto * qty * 1.19);
-        if (brutoEl && recalcBruto > 0) brutoEl.value = String(recalcBruto);
-      } else if ((source === 'neto' || source === 'qty') && unitNeto > 0) {
-        bruto = Math.round(unitNeto * qty * 1.19);
-        if (brutoEl) brutoEl.value = bruto ? String(bruto) : '';
+        unitBruto = Math.round(unitNeto * 1.19);
+        if (unitBrutoEl) unitBrutoEl.value = unitBruto ? String(unitBruto) : '';
+      } else if (source === 'bruto' && bruto > 0) {
+        const netoAfter = Math.round(bruto / 1.19);
+        const subtotal = netoAfter + discount;
+        unitNeto = Math.max(0, Math.round(subtotal / qty));
+        if (netoEl) netoEl.value = unitNeto ? String(unitNeto) : '';
+        unitBruto = Math.round(unitNeto * 1.19);
+        if (unitBrutoEl) unitBrutoEl.value = unitBruto ? String(unitBruto) : '';
+      } else if (unitNeto > 0) {
+        unitBruto = Math.round(unitNeto * 1.19);
+        if (unitBrutoEl) unitBrutoEl.value = unitBruto ? String(unitBruto) : '';
+      } else if (unitBrutoEl) {
+        unitBrutoEl.value = '';
       }
+
+      const subtotal = Math.round(unitNeto * qty);
+      discount = Math.min(subtotal, discount);
+      if (discEl && String(discEl.value || '') !== (discount ? String(discount) : '')) {
+        discEl.value = discount ? String(discount) : '';
+      }
+      const netoLine = Math.max(0, subtotal - discount);
+      bruto = Math.round(netoLine * 1.19);
+      if (brutoEl) brutoEl.value = bruto ? String(bruto) : '';
+      if (ivaEl) ivaEl.textContent = unitNeto > 0 ? fmtClp(Math.max(0, bruto - netoLine)) : '—';
+
       row.dataset.syncing = '0';
       updateAmountPreview();
     }
@@ -4647,22 +4690,32 @@
         <input type="text" class="dte-line-desc" maxlength="80" placeholder="Descripción del ítem" value="">
         <input type="number" class="dte-line-qty" min="0.001" step="1" inputmode="decimal" placeholder="1" value="1" title="Cantidad">
         <input type="number" class="dte-line-neto" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Valor neto unitario">
-        <input type="number" class="dte-line-bruto" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Valor bruto línea (IVA incl.)">
+        <input type="number" class="dte-line-unit-bruto" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Valor total unitario (con IVA)">
+        <input type="number" class="dte-line-disc" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Descuento en pesos (neto)">
+        <span class="dte-line-iva" title="IVA 19% de la línea">—</span>
+        <input type="number" class="dte-line-bruto" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Total valor bruto (con IVA)">
         <button type="button" class="dte-lines-sheet__remove" title="Quitar ítem" aria-label="Quitar ítem">×</button>
       `;
       const desc = row.querySelector('.dte-line-desc');
       const qty = row.querySelector('.dte-line-qty');
       const neto = row.querySelector('.dte-line-neto');
+      const unitBruto = row.querySelector('.dte-line-unit-bruto');
+      const disc = row.querySelector('.dte-line-disc');
       const bruto = row.querySelector('.dte-line-bruto');
       if (desc && preset.name) desc.value = preset.name;
       if (qty && preset.qty != null) qty.value = String(preset.qty);
       if (neto && preset.unitNeto != null && preset.unitNeto !== '') neto.value = String(preset.unitNeto);
+      if (disc && preset.discountMonto != null && preset.discountMonto !== '') {
+        disc.value = String(preset.discountMonto);
+      }
       if (bruto && preset.totalIvaIncluded != null && preset.totalIvaIncluded !== '') {
         bruto.value = String(preset.totalIvaIncluded);
       }
       desc?.addEventListener('input', updateAmountPreview);
       qty?.addEventListener('input', () => syncRowFrom(row, 'qty'));
       neto?.addEventListener('input', () => syncRowFrom(row, 'neto'));
+      unitBruto?.addEventListener('input', () => syncRowFrom(row, 'unit-bruto'));
+      disc?.addEventListener('input', () => syncRowFrom(row, 'disc'));
       bruto?.addEventListener('input', () => syncRowFrom(row, 'bruto'));
       row.querySelector('.dte-lines-sheet__remove')?.addEventListener('click', () => {
         const rows = linesBody.querySelectorAll('.dte-lines-sheet__row');
@@ -4670,7 +4723,11 @@
           if (desc) desc.value = LINE_DEFAULTS[currentDocType()] || '';
           if (qty) qty.value = '1';
           if (neto) neto.value = '';
+          if (unitBruto) unitBruto.value = '';
+          if (disc) disc.value = '';
           if (bruto) bruto.value = '';
+          const ivaEl = row.querySelector('.dte-line-iva');
+          if (ivaEl) ivaEl.textContent = '—';
           updateAmountPreview();
           return;
         }
@@ -4678,8 +4735,8 @@
         updateAmountPreview();
       });
       linesBody.appendChild(row);
-      if (preset.unitNeto || preset.totalIvaIncluded) {
-        syncRowFrom(row, preset.unitNeto ? 'neto' : 'bruto');
+      if (preset.unitNeto || preset.totalIvaIncluded || preset.discountMonto) {
+        syncRowFrom(row, preset.unitNeto || preset.discountMonto ? 'neto' : 'bruto');
       } else {
         updateAmountPreview();
       }
@@ -4863,13 +4920,13 @@
       const dteType = [61, 46, 43].includes(rawType) ? rawType : 33;
       const lines = collectLines();
       const totalClp = lines.reduce((s, l) => {
-        const lineNeto = Math.round((l.unitNeto || 0) * (l.qty || 1));
+        const lineNeto = lineNetoAfterDisc(l);
         return s + (l.totalIvaIncluded > 0 ? l.totalIvaIncluded : Math.round(lineNeto * 1.19));
       }, 0);
       const defaultDesc = LINE_DEFAULTS[String(dteType)] || 'Servicios Fandez';
       if (!lines.length || totalClp < 1) {
-        if (msg) msg.textContent = 'Agrega al menos un ítem con descripción, cantidad y neto o bruto.';
-        FandezNotify.show('Agrega al menos un ítem con descripción, cantidad y neto o bruto.', 'error');
+        if (msg) msg.textContent = 'Agrega al menos un ítem con descripción, cantidad y valor neto.';
+        FandezNotify.show('Agrega al menos un ítem con descripción, cantidad y valor neto.', 'error');
         if (submitBtn) submitBtn.disabled = false;
         return;
       }

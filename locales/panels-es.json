@@ -170,7 +170,7 @@
   "admin.documentos.manual_partner_none": "— Receptor libre —",
   "admin.documentos.manual_total": "Total IVA incluido (CLP)",
   "admin.documentos.manual_description": "Glosa / detalle",
-  "admin.documentos.manual_lines_hint": "Tabla de ítems: descripción + monto IVA incluido por línea",
+  "admin.documentos.manual_lines_hint": "Ítems: neto unitario, descuento ($) e IVA 19% calculado por línea",
   "admin.documentos.manual_ref_title": "Documento que referencia (obligatorio en NC)",
   "admin.documentos.manual_ref_folio": "Folio factura 33",
   "admin.documentos.manual_ref_date": "Fecha factura",

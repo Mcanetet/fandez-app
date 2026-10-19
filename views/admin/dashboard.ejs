@@ -1041,20 +1041,39 @@ if (typeof hasPerm !== 'function') {
 
         <fieldset class="dte-issuer__section">
           <legend class="dte-issuer__legend">3. Ítems y montos</legend>
-          <p class="dte-issuer__hint mb-3">Descripción, cantidad, valor neto (unitario) y valor bruto (línea con IVA). Si editas neto o bruto, el otro se recalcula.</p>
+          <p class="dte-issuer__hint mb-3">Valor neto unitario → valor total unitario (con IVA) → total valor bruto de la línea. Puedes editar cualquiera; el resto se recalcula. Desc. $ es descuento neto por ítem.</p>
           <div class="dte-issuer__money dte-issuer__money--sheet">
-            <div class="dte-lines-sheet dte-lines-sheet--full" id="manualDteLinesSheet">
-              <div class="dte-lines-sheet__head" aria-hidden="true">
-                <span>#</span>
-                <span>Descripción</span>
-                <span>Cant.</span>
-                <span>Valor neto</span>
-                <span>Valor bruto</span>
-                <span></span>
+            <div class="dte-lines-sheet dte-lines-sheet--full dte-lines-sheet--iva" id="manualDteLinesSheet">
+              <div class="dte-lines-sheet__scroll">
+                <div class="dte-lines-sheet__head" aria-hidden="true">
+                  <span>#</span>
+                  <span>Descripción</span>
+                  <span>Cant.</span>
+                  <span>Valor neto unitario</span>
+                  <span>Valor total unitario</span>
+                  <span>Desc. $</span>
+                  <span>IVA</span>
+                  <span>Total valor bruto (con IVA)</span>
+                  <span></span>
+                </div>
+                <div id="manualDteLinesBody" class="dte-lines-sheet__body"></div>
               </div>
-              <div id="manualDteLinesBody" class="dte-lines-sheet__body"></div>
               <div class="dte-lines-sheet__foot">
                 <button type="button" id="manualDteAddLine" class="dte-lines-sheet__add">+ Agregar ítem</button>
+                <div class="dte-lines-sheet__totals" aria-live="polite">
+                  <div class="dte-lines-sheet__tot">
+                    <span class="dte-lines-sheet__tot-label">Total neto</span>
+                    <strong id="manualDteFootNeto">$0</strong>
+                  </div>
+                  <div class="dte-lines-sheet__tot">
+                    <span class="dte-lines-sheet__tot-label">IVA 19%</span>
+                    <strong id="manualDteFootIva">$0</strong>
+                  </div>
+                  <div class="dte-lines-sheet__tot dte-lines-sheet__tot--bruto">
+                    <span class="dte-lines-sheet__tot-label">Total valor bruto (con IVA)</span>
+                    <strong id="manualDteFootBruto">$0</strong>
+                  </div>
+                </div>
                 <input type="hidden" id="manualDteTotal" name="totalClp" value="0">
                 <input type="hidden" id="manualDteDescription" name="description" value="Servicios Fandez">
               </div>
@@ -1063,9 +1082,10 @@ if (typeof hasPerm !== 'function') {
               <p class="dte-preview__title">Desglose IVA 19%</p>
               <dl class="dte-preview__rows">
                 <div><dt>Ítems</dt><dd id="manualDtePreviewCount">0</dd></div>
-                <div><dt>Neto</dt><dd id="manualDtePreviewNeto">$0</dd></div>
-                <div><dt>IVA</dt><dd id="manualDtePreviewIva">$0</dd></div>
-                <div class="is-total"><dt>Total</dt><dd id="manualDtePreviewTotal">$0</dd></div>
+                <div><dt>Descuentos</dt><dd id="manualDtePreviewDiscount">$0</dd></div>
+                <div><dt>Total neto</dt><dd id="manualDtePreviewNeto">$0</dd></div>
+                <div><dt>IVA 19%</dt><dd id="manualDtePreviewIva">$0</dd></div>
+                <div class="is-total"><dt>Total valor bruto (con IVA)</dt><dd id="manualDtePreviewTotal">$0</dd></div>
               </dl>
             </aside>
           </div>
