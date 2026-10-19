@@ -10,6 +10,7 @@
   "admin.common.offline": "○ Offline",
   "admin.common.export_csv": "Export CSV",
   "admin.common.view_document": "View document",
+  "admin.common.download_xml": "Download XML",
   "admin.common.reissue": "Reissue",
   "admin.common.approve": "Approve",
   "admin.common.reject": "Reject",

@@ -4541,27 +4541,115 @@
     const msg = document.getElementById('manualDteMsg');
     const descEl = document.getElementById('manualDteDescription');
     const totalEl = document.getElementById('manualDteTotal');
+    const linesBody = document.getElementById('manualDteLinesBody');
+    const addLineBtn = document.getElementById('manualDteAddLine');
+
+    const LINE_DEFAULTS = {
+      '33': 'Servicios Fandez',
+      '43': 'Liquidación comisión Fandez',
+      '46': 'Compra de chatarra / materiales',
+      '61': 'Nota de crédito Fandez'
+    };
 
     function fmtClp(n) {
       return '$' + Math.round(Number(n) || 0).toLocaleString('es-CL');
     }
 
+    function currentDocType() {
+      const checked = form.querySelector('input[name="dteTypeRadio"]:checked');
+      return String(checked?.value || typeSel?.value || '33');
+    }
+
+    function collectLines() {
+      if (!linesBody) return [];
+      return Array.from(linesBody.querySelectorAll('.dte-lines-sheet__row')).map((row) => {
+        const name = String(row.querySelector('.dte-line-desc')?.value || '').trim().slice(0, 80);
+        const totalIvaIncluded = Math.max(0, Math.round(Number(row.querySelector('.dte-line-amt')?.value) || 0));
+        return { name, totalIvaIncluded };
+      }).filter((l) => l.name && l.totalIvaIncluded > 0);
+    }
+
     function updateAmountPreview() {
-      const total = Math.max(0, Math.round(Number(totalEl?.value) || 0));
+      const lines = collectLines();
+      const total = lines.reduce((s, l) => s + l.totalIvaIncluded, 0);
       const neto = Math.round(total / 1.19);
       const iva = total - neto;
-      const setTxt = (id, val) => {
+      if (totalEl) totalEl.value = String(total);
+      if (descEl) {
+        const first = lines[0]?.name || LINE_DEFAULTS[currentDocType()] || 'Servicios Fandez';
+        descEl.value = first;
+      }
+      const setTxt = (id, val, raw) => {
         const el = document.getElementById(id);
-        if (el) el.textContent = fmtClp(val);
+        if (el) el.textContent = raw ? String(val) : fmtClp(val);
       };
+      setTxt('manualDtePreviewCount', lines.length, true);
       setTxt('manualDtePreviewNeto', neto);
       setTxt('manualDtePreviewIva', iva);
       setTxt('manualDtePreviewTotal', total);
+      renumberLines();
+    }
+
+    function renumberLines() {
+      if (!linesBody) return;
+      Array.from(linesBody.querySelectorAll('.dte-lines-sheet__row')).forEach((row, idx) => {
+        const n = row.querySelector('.dte-lines-sheet__idx');
+        if (n) n.textContent = String(idx + 1);
+      });
+    }
+
+    function addLineRow(preset = {}) {
+      if (!linesBody) return;
+      const row = document.createElement('div');
+      row.className = 'dte-lines-sheet__row';
+      row.innerHTML = `
+        <span class="dte-lines-sheet__idx">1</span>
+        <input type="text" class="dte-line-desc" maxlength="80" placeholder="Descripción del ítem" value="">
+        <input type="number" class="dte-line-amt" min="0" step="1" inputmode="numeric" placeholder="0" value="">
+        <button type="button" class="dte-lines-sheet__remove" title="Quitar ítem" aria-label="Quitar ítem">×</button>
+      `;
+      const desc = row.querySelector('.dte-line-desc');
+      const amt = row.querySelector('.dte-line-amt');
+      if (desc && preset.name) desc.value = preset.name;
+      if (amt && preset.totalIvaIncluded != null) amt.value = String(preset.totalIvaIncluded || '');
+      desc?.addEventListener('input', updateAmountPreview);
+      amt?.addEventListener('input', updateAmountPreview);
+      row.querySelector('.dte-lines-sheet__remove')?.addEventListener('click', () => {
+        const rows = linesBody.querySelectorAll('.dte-lines-sheet__row');
+        if (rows.length <= 1) {
+          if (desc) desc.value = LINE_DEFAULTS[currentDocType()] || '';
+          if (amt) amt.value = '';
+          updateAmountPreview();
+          return;
+        }
+        row.remove();
+        updateAmountPreview();
+      });
+      linesBody.appendChild(row);
+      updateAmountPreview();
+      return row;
+    }
+
+    function ensureDefaultLine(forceResetDesc) {
+      if (!linesBody) return;
+      const rows = linesBody.querySelectorAll('.dte-lines-sheet__row');
+      const def = LINE_DEFAULTS[currentDocType()] || 'Servicios Fandez';
+      if (!rows.length) {
+        addLineRow({ name: def, totalIvaIncluded: '' });
+        return;
+      }
+      if (forceResetDesc) {
+        const firstDesc = rows[0].querySelector('.dte-line-desc');
+        const known = Object.values(LINE_DEFAULTS);
+        if (firstDesc && (!firstDesc.value || known.includes(firstDesc.value))) {
+          firstDesc.value = def;
+        }
+      }
+      updateAmountPreview();
     }
 
     function syncDocTypeUi() {
-      const checked = form.querySelector('input[name="dteTypeRadio"]:checked');
-      const type = String(checked?.value || typeSel?.value || '33');
+      const type = currentDocType();
       if (typeSel) typeSel.value = type;
       const isNc = type === '61';
       const isPurchase = type === '46';
@@ -4601,16 +4689,7 @@
           ? 'Nombre vendedor *'
           : (isLiq ? 'Razón social mandante *' : 'Razón social *');
       }
-      const defaults = {
-        '33': 'Servicios Fandez',
-        '43': 'Liquidación comisión Fandez',
-        '46': 'Compra de chatarra / materiales',
-        '61': 'Nota de crédito Fandez'
-      };
-      const known = Object.values(defaults);
-      if (descEl && (!descEl.dataset.touched || known.includes(descEl.value))) {
-        descEl.value = defaults[type] || defaults['33'];
-      }
+      ensureDefaultLine(true);
       if (giroEl && !giroEl.dataset.touched) {
         giroEl.value = isPurchase ? 'Particular' : 'Servicios técnicos';
       }
@@ -4620,14 +4699,12 @@
       e.target.dataset.touched = '1';
     });
 
-    descEl?.addEventListener('input', () => { descEl.dataset.touched = '1'; });
-    totalEl?.addEventListener('input', updateAmountPreview);
+    addLineBtn?.addEventListener('click', () => addLineRow({ name: '', totalIvaIncluded: '' }));
     form.querySelectorAll('input[name="dteTypeRadio"]').forEach((radio) => {
       radio.addEventListener('change', syncDocTypeUi);
     });
     typeSel?.addEventListener('change', syncDocTypeUi);
     syncDocTypeUi();
-    updateAmountPreview();
 
     function fillFromPartnerOption(opt) {
       if (!opt || !opt.value) return;
@@ -4649,6 +4726,67 @@
       fillFromPartnerOption(opt);
     });
 
+    const rutInput = document.getElementById('manualDteRut');
+    const rutHint = document.getElementById('manualDteRutHint');
+    let lastLookupRut = '';
+    const lookupReceptorByRut = async () => {
+      const rut = String(rutInput?.value || '').trim();
+      if (!rut || rut === lastLookupRut) return;
+      const nameEl = document.getElementById('manualDteName');
+      const alreadyNamed = nameEl && nameEl.value && nameEl.value.trim().length > 2
+        && nameEl.dataset.fromLookup !== '1';
+      if (alreadyNamed) return;
+      if (rutHint) rutHint.textContent = 'Buscando RUT…';
+      try {
+        const res = await adminFetch(`/dte/receptor-lookup?rut=${encodeURIComponent(rut)}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success || !data.receptor) {
+          lastLookupRut = rut;
+          if (rutHint) {
+            rutHint.textContent = data.error
+              || 'RUT nuevo: completa razón social a mano (personas naturales no siempre aparecen).';
+          }
+          return;
+        }
+        const r = data.receptor;
+        lastLookupRut = rut;
+        const set = (id, val, force) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (!force && el.value && el.dataset.touched === '1') return;
+          el.value = val || '';
+          if (id === 'manualDteName') el.dataset.fromLookup = '1';
+        };
+        set('manualDteRut', r.rut, true);
+        set('manualDteName', r.name, true);
+        if (r.giro) set('manualDteGiro', r.giro, true);
+        // Dirección solo si viene de socio/DTE Fandez (APIs públicas ya no la entregan)
+        if (r.address) set('manualDteAddress', r.address, false);
+        if (r.commune) set('manualDteCommune', r.commune, false);
+        if (r.city) set('manualDteCity', r.city, false);
+        if (r.email) set('manualDteEmail', r.email, false);
+        if (rutHint) {
+          const src = r.source === 'fandez_partner'
+            ? 'socio Fandez'
+            : (r.source === 'fandez_dte' ? 'DTE previo' : 'registro público');
+          const filled = [];
+          if (r.name) filled.push('razón social');
+          if (r.giro) filled.push('giro');
+          if (r.email) filled.push('email DTE');
+          if (r.address) filled.push('dirección');
+          rutHint.textContent = `Autocompletado (${src}): ${filled.join(', ') || 'parcial'}.${r.note ? ' ' + r.note : ''}`;
+        }
+      } catch (_) {
+        if (rutHint) rutHint.textContent = 'No se pudo consultar el RUT. Complétalo a mano.';
+      }
+    };
+    rutInput?.addEventListener('blur', lookupReceptorByRut);
+    rutInput?.addEventListener('change', lookupReceptorByRut);
+    document.getElementById('manualDteName')?.addEventListener('input', (e) => {
+      e.target.dataset.touched = '1';
+      delete e.target.dataset.fromLookup;
+    });
+
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
       if (submitBtn) submitBtn.disabled = true;
@@ -4656,12 +4794,15 @@
       const checkedType = form.querySelector('input[name="dteTypeRadio"]:checked')?.value;
       const rawType = Number(checkedType || typeSel?.value);
       const dteType = [61, 46, 43].includes(rawType) ? rawType : 33;
-      const totalClp = Math.round(Number(document.getElementById('manualDteTotal')?.value) || 0);
-      const defaultDesc = dteType === 61
-        ? 'Nota de crédito Fandez'
-        : (dteType === 46
-          ? 'Compra de chatarra / materiales'
-          : (dteType === 43 ? 'Liquidación comisión Fandez' : 'Servicios Fandez'));
+      const lines = collectLines();
+      const totalClp = lines.reduce((s, l) => s + l.totalIvaIncluded, 0);
+      const defaultDesc = LINE_DEFAULTS[String(dteType)] || 'Servicios Fandez';
+      if (!lines.length || totalClp < 1) {
+        if (msg) msg.textContent = 'Agrega al menos un ítem con descripción y monto.';
+        FandezNotify.show('Agrega al menos un ítem con descripción y monto.', 'error');
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
       const payload = {
         dteType,
         providerId: partnerSel?.value || null,
@@ -4674,7 +4815,8 @@
         city: document.getElementById('manualDteCity')?.value?.trim(),
         email: document.getElementById('manualDteEmail')?.value?.trim(),
         totalClp,
-        description: document.getElementById('manualDteDescription')?.value?.trim() || defaultDesc,
+        lines,
+        description: lines[0]?.name || defaultDesc,
         notes: document.getElementById('manualDteNotes')?.value?.trim() || null,
         requestId: document.getElementById('manualDteRequestId')?.value?.trim() || null
       };

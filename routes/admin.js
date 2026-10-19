@@ -1910,6 +1910,33 @@ router.post('/dte/retry', requireRole('admin'), requireAdminPermission('document
 });
 
 /**
+ * Autocompletar receptor por RUT (socios / DTEs previos / API empresas).
+ */
+router.get('/dte/receptor-lookup', requireRole('admin'), requireAdminPermission('documentos.manage', 'documentos.view'), async (req, res) => {
+  try {
+    const sii = require('../lib/sii-dte');
+    const rut = String(req.query.rut || '').trim();
+    if (!rut) return res.status(400).json({ success: false, error: 'Indica un RUT' });
+    const dteDocs = await sii.listRecent(80).catch(() => []);
+    const result = await sii.lookupReceptor(rut, {
+      users: store.USERS || [],
+      dteDocs,
+      external: req.query.local !== '1'
+    });
+    if (!result.found) {
+      return res.status(404).json({
+        success: false,
+        error: result.message || 'No se encontró el RUT',
+        code: result.error || 'not_found'
+      });
+    }
+    return res.json({ success: true, receptor: result });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message || 'Error al consultar RUT' });
+  }
+});
+
+/**
  * Factura 33, Liquidación-Factura 43, Factura de Compra 46 o Nota de Crédito 61.
  */
 router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
@@ -1947,6 +1974,7 @@ router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documen
         : receptor,
       totalClp: body.totalClp != null ? body.totalClp : body.total,
       description: body.description || body.glosa || body.lineDescription,
+      lines: Array.isArray(body.lines) ? body.lines : undefined,
       commissionClp: body.commissionClp,
       cardFeeClp: body.cardFeeClp,
       liquidationBruto: body.liquidationBruto ?? body.brutoLiquidado,

@@ -986,54 +986,59 @@ if (typeof hasPerm !== 'function') {
             </div>
             <div>
               <label class="dte-label" for="manualDteRut" id="manualDteRutLabel">RUT *</label>
-              <input id="manualDteRut" name="rut" required class="zilo-input w-full text-sm" placeholder="12.345.678-9" autocomplete="off">
+              <input id="manualDteRut" name="rut" required class="zilo-input w-full text-sm" placeholder="12.345.678-9" autocomplete="off" inputmode="text">
+              <p id="manualDteRutHint" class="dte-issuer__hint mt-1" aria-live="polite">Al salir del RUT se autocompleta si es socio, DTE previo o empresa en registro público.</p>
             </div>
             <div>
               <label class="dte-label" for="manualDteName" id="manualDteNameLabel">Nombre / razón social *</label>
               <input id="manualDteName" name="name" required class="zilo-input w-full text-sm" placeholder="Nombre completo o empresa">
             </div>
             <div>
-              <label class="dte-label" for="manualDteGiro">Giro</label>
-              <input id="manualDteGiro" name="giro" class="zilo-input w-full text-sm" placeholder="Particular" value="Servicios técnicos">
+              <label class="dte-label" for="manualDteGiro">Giro *</label>
+              <input id="manualDteGiro" name="giro" required class="zilo-input w-full text-sm" placeholder="Ej. Servicios técnicos / Particular" value="Servicios técnicos" maxlength="40">
             </div>
             <div>
-              <label class="dte-label" for="manualDteEmail">Email</label>
-              <input id="manualDteEmail" name="email" type="email" class="zilo-input w-full text-sm" placeholder="opcional@correo.cl">
+              <label class="dte-label" for="manualDteEmail">Email DTE</label>
+              <input id="manualDteEmail" name="email" type="email" class="zilo-input w-full text-sm" placeholder="dte@empresa.cl">
             </div>
             <div class="dte-issuer__full">
-              <label class="dte-label" for="manualDteAddress">Dirección</label>
-              <input id="manualDteAddress" name="address" class="zilo-input w-full text-sm" placeholder="Calle, número" value="Santiago">
+              <label class="dte-label" for="manualDteAddress">Dirección *</label>
+              <input id="manualDteAddress" name="address" required class="zilo-input w-full text-sm" placeholder="Calle, número (ingreso manual)" value="Santiago" maxlength="70">
+              <p class="dte-issuer__hint mt-1">La dirección ya no viene en consultas públicas (Ley 21.719). Si es socio Fandez, se toma del contrato.</p>
             </div>
             <div>
-              <label class="dte-label" for="manualDteCommune">Comuna</label>
-              <input id="manualDteCommune" name="commune" class="zilo-input w-full text-sm" value="Santiago">
+              <label class="dte-label" for="manualDteCommune">Comuna *</label>
+              <input id="manualDteCommune" name="commune" required class="zilo-input w-full text-sm" value="Santiago" maxlength="20">
             </div>
             <div>
-              <label class="dte-label" for="manualDteCity">Ciudad</label>
-              <input id="manualDteCity" name="city" class="zilo-input w-full text-sm" value="Santiago">
+              <label class="dte-label" for="manualDteCity">Ciudad *</label>
+              <input id="manualDteCity" name="city" required class="zilo-input w-full text-sm" value="Santiago" maxlength="20">
             </div>
           </div>
         </fieldset>
 
         <fieldset class="dte-issuer__section">
-          <legend class="dte-issuer__legend">3. Monto y detalle</legend>
-          <div class="dte-issuer__money">
-            <div class="dte-issuer__money-fields">
-              <div>
-                <label class="dte-label" for="manualDteTotal"><%= t('admin.documentos.manual_total') %> *</label>
-                <div class="dte-amount-wrap">
-                  <span class="dte-amount-wrap__prefix">$</span>
-                  <input id="manualDteTotal" name="totalClp" type="number" min="1" step="1" required class="zilo-input w-full text-sm dte-amount-input" placeholder="150000" inputmode="numeric">
-                </div>
+          <legend class="dte-issuer__legend">3. Ítems y montos</legend>
+          <p class="dte-issuer__hint mb-3">Agrega una o más líneas. Montos con IVA incluido; el desglose neto/IVA se calcula solo.</p>
+          <div class="dte-issuer__money dte-issuer__money--sheet">
+            <div class="dte-lines-sheet" id="manualDteLinesSheet">
+              <div class="dte-lines-sheet__head" aria-hidden="true">
+                <span class="dte-lines-sheet__col-n">#</span>
+                <span class="dte-lines-sheet__col-desc">Descripción</span>
+                <span class="dte-lines-sheet__col-amt">Total IVA incl.</span>
+                <span class="dte-lines-sheet__col-act"></span>
               </div>
-              <div>
-                <label class="dte-label" for="manualDteDescription"><%= t('admin.documentos.manual_description') %></label>
-                <input id="manualDteDescription" name="description" class="zilo-input w-full text-sm" value="Servicios Fandez" maxlength="80">
+              <div id="manualDteLinesBody" class="dte-lines-sheet__body"></div>
+              <div class="dte-lines-sheet__foot">
+                <button type="button" id="manualDteAddLine" class="dte-lines-sheet__add">+ Agregar ítem</button>
+                <input type="hidden" id="manualDteTotal" name="totalClp" value="0">
+                <input type="hidden" id="manualDteDescription" name="description" value="Servicios Fandez">
               </div>
             </div>
             <aside class="dte-preview" aria-live="polite">
               <p class="dte-preview__title">Desglose IVA 19%</p>
               <dl class="dte-preview__rows">
+                <div><dt>Ítems</dt><dd id="manualDtePreviewCount">0</dd></div>
                 <div><dt>Neto</dt><dd id="manualDtePreviewNeto">$0</dd></div>
                 <div><dt>IVA</dt><dd id="manualDtePreviewIva">$0</dd></div>
                 <div class="is-total"><dt>Total</dt><dd id="manualDtePreviewTotal">$0</dd></div>
@@ -1134,6 +1139,7 @@ if (typeof hasPerm !== 'function') {
                 <% if (doc.pdfUrl) { %>
                   <a href="<%= doc.pdfUrl %>" target="_blank" rel="noopener" class="dte-doc-row__link"><%= t('admin.common.view_document') %></a>
                 <% } %>
+                <a href="/documentos/tributarios/sii/<%= doc.id %>/xml" class="dte-doc-row__link" download><%= t('admin.common.download_xml') %></a>
               </div>
             </article>
           <% }); %>

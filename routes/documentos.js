@@ -71,6 +71,15 @@ router.get('/factura-socio/:requestId', (req, res) => {
   return res.sendFile(filePath);
 });
 
+function canAccessSiiDoc(req, doc) {
+  if (!doc) return false;
+  if (req.session.user?.role === 'admin') return true;
+  const request = store.getAllRequests().find((r) => r.id === doc.requestId);
+  if (canAccessDocument(req, request)) return true;
+  if (req.session.user?.role === 'provider' && doc.providerId === req.session.user.id) return true;
+  return false;
+}
+
 /** Representación impresa SII directo (lib/sii-dte → data/dte/sii). */
 router.get('/tributarios/sii/:docId', async (req, res) => {
   if (!store.isReady()) {
@@ -78,23 +87,12 @@ router.get('/tributarios/sii/:docId', async (req, res) => {
   }
   const siiDte = require('../lib/sii-dte');
   const doc = await siiDte.findById(req.params.docId);
-  if (!doc) {
+  if (!doc || !canAccessSiiDoc(req, doc)) {
     return res.status(404).render('error', {
       title: 'Documento no encontrado',
-      message: 'No encontramos ese DTE.',
+      message: 'No encontramos ese DTE o no tienes acceso.',
       code: 404
     });
-  }
-  const request = store.getAllRequests().find((r) => r.id === doc.requestId);
-  if (!canAccessDocument(req, request) && req.session.user?.role !== 'admin') {
-    // Socio receptor del DTE de comisión
-    if (!(req.session.user?.role === 'provider' && doc.providerId === req.session.user.id)) {
-      return res.status(404).render('error', {
-        title: 'Documento no encontrado',
-        message: 'No tienes acceso a este documento tributario.',
-        code: 404
-      });
-    }
   }
   const filePath = doc.pdfPath || path.join(DTE_DIR, 'sii', `${doc.id}.html`);
   if (filePath && fs.existsSync(filePath)) return res.sendFile(path.resolve(filePath));
@@ -103,6 +101,37 @@ router.get('/tributarios/sii/:docId', async (req, res) => {
     message: 'El documento aún no está generado.',
     code: 404
   });
+});
+
+/** XML EnvioDTE para set de pruebas / envío SII. */
+router.get('/tributarios/sii/:docId/xml', async (req, res) => {
+  if (!store.isReady()) {
+    return res.status(503).json({ error: 'Cargando…' });
+  }
+  const siiDte = require('../lib/sii-dte');
+  const doc = await siiDte.findById(req.params.docId);
+  if (!doc || !canAccessSiiDoc(req, doc)) {
+    return res.status(404).render('error', {
+      title: 'XML no encontrado',
+      message: 'No encontramos el XML de ese DTE o no tienes acceso.',
+      code: 404
+    });
+  }
+  const filePath = doc.xmlPath || path.join(DTE_DIR, 'sii', `${doc.id}.xml`);
+  const resolved = path.resolve(filePath);
+  const allowedRoot = path.resolve(path.join(DTE_DIR, 'sii'));
+  if (!resolved.startsWith(`${allowedRoot}${path.sep}`) || !fs.existsSync(resolved)) {
+    return res.status(404).render('error', {
+      title: 'XML no disponible',
+      message: 'El XML aún no está generado.',
+      code: 404
+    });
+  }
+  const folio = doc.folio || '0';
+  const dteType = doc.dteType || 33;
+  res.setHeader('Content-Type', 'application/xml; charset=ISO-8859-1');
+  res.setHeader('Content-Disposition', `attachment; filename="F${folio}T${dteType}.xml"`);
+  return res.sendFile(resolved);
 });
 
 router.get('/tributarios/:docId', (req, res) => {
