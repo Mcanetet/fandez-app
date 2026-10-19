@@ -7745,14 +7745,18 @@ body.launch-notice-open {
 .dte-lines-sheet--full .dte-lines-sheet__row {
   grid-template-columns: 1.75rem minmax(0, 1.4fr) 4rem 6.25rem 6.25rem 2rem;
 }
+.dte-lines-sheet.dte-lines-sheet--iva {
+  overflow: visible;
+}
 .dte-lines-sheet--iva .dte-lines-sheet__scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  border-radius: 0.95rem 0.95rem 0 0;
 }
-.dte-lines-sheet--iva .dte-lines-sheet__head,
-.dte-lines-sheet--iva .dte-lines-sheet__row {
-  min-width: 52rem;
-  grid-template-columns: 1.5rem minmax(7.5rem, 1.2fr) 3.25rem 5.75rem 5.75rem 4.5rem 4.5rem 6.5rem 1.75rem;
+.dte-lines-sheet.dte-lines-sheet--iva .dte-lines-sheet__head,
+.dte-lines-sheet.dte-lines-sheet--iva .dte-lines-sheet__row {
+  min-width: 54rem;
+  grid-template-columns: 1.5rem minmax(8rem, 1.3fr) 3.25rem 6rem 6rem 4.75rem 4.75rem 7rem 1.75rem;
 }
 .dte-lines-sheet--iva .dte-lines-sheet__head span {
   font-size: 0.58rem;
@@ -7766,12 +7770,24 @@ body.launch-notice-open {
   font-weight: 600;
   color: #57534e;
   padding: 0.35rem 0.4rem;
+  min-height: 2.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 .dte-lines-sheet__row input.dte-line-disc {
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: #b45309;
+}
+.dte-lines-sheet__row input.dte-line-unit-bruto {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #0f766e;
+  background: #f0fdfa;
+  border-color: rgba(15, 118, 110, 0.18);
 }
 .dte-lines-sheet__head {
   background: #f8fafc;
@@ -7816,12 +7832,14 @@ body.launch-notice-open {
 }
 .dte-lines-sheet__row input.dte-line-amt,
 .dte-lines-sheet__row input.dte-line-neto,
+.dte-lines-sheet__row input.dte-line-unit-bruto,
 .dte-lines-sheet__row input.dte-line-bruto,
 .dte-lines-sheet__row input.dte-line-qty {
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
+.dte-doc-search { max-width: 28rem; }
 .dte-lines-sheet__row input.dte-line-qty {
   text-align: center;
   font-weight: 500;

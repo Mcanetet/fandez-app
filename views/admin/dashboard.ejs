@@ -1043,7 +1043,7 @@ if (typeof hasPerm !== 'function') {
           <legend class="dte-issuer__legend">3. Ítems y montos</legend>
           <p class="dte-issuer__hint mb-3">Valor neto unitario → valor total unitario (con IVA) → total valor bruto de la línea. Puedes editar cualquiera; el resto se recalcula. Desc. $ es descuento neto por ítem.</p>
           <div class="dte-issuer__money dte-issuer__money--sheet">
-            <div class="dte-lines-sheet dte-lines-sheet--full dte-lines-sheet--iva" id="manualDteLinesSheet">
+            <div class="dte-lines-sheet dte-lines-sheet--iva" id="manualDteLinesSheet">
               <div class="dte-lines-sheet__scroll">
                 <div class="dte-lines-sheet__head" aria-hidden="true">
                   <span>#</span>
@@ -1160,15 +1160,28 @@ if (typeof hasPerm !== 'function') {
 
       <div class="dte-list-head">
         <h4 class="text-sm font-semibold text-gray-800"><%= t('admin.documentos.sii_list_title') %></h4>
-        <span class="text-[10px] text-gray-400"><%= siiDocs.length %> doc.</span>
+        <span class="text-[10px] text-gray-400" id="siiDocsCountLabel"><%= siiDocs.length %> doc.</span>
       </div>
       <% if (!siiDocs.length) { %>
         <p class="dte-empty mb-5"><%= t('admin.documentos.sii_list_empty') %></p>
       <% } else { %>
-        <div class="dte-doc-list mb-6">
+        <div class="dte-doc-search mb-3">
+          <label class="sr-only" for="siiDocsSearch">Buscar facturas emitidas</label>
+          <input type="search" id="siiDocsSearch" class="zilo-input w-full text-sm" placeholder="Buscar por folio, RUT, razón social o tipo (33/43/46/61)…" autocomplete="off">
+        </div>
+        <div class="dte-doc-list mb-6" id="siiDocsList">
           <% siiDocs.forEach(function(doc) { %>
             <% const dt = Number(doc.dteType); %>
-            <article class="dte-doc-row">
+            <% const searchBlob = [
+              String(doc.folio || ''),
+              String(doc.receptorName || ''),
+              String(doc.receptorRut || ''),
+              String(dt),
+              dt === 61 ? 'NC 61 nota credito' : (dt === 46 ? 'FC 46 compra' : (dt === 43 ? 'LF 43 liquidacion' : 'FV 33 factura')),
+              String(doc.siiStatus || ''),
+              doc.meta && doc.meta.reference && doc.meta.reference.folio ? ('ref ' + doc.meta.reference.folio) : ''
+            ].join(' ').toLowerCase(); %>
+            <article class="dte-doc-row" data-search="<%= searchBlob.replace(/"/g, '&quot;') %>">
               <div class="dte-doc-row__main">
                 <div class="dte-doc-row__badges">
                   <span class="dte-badge dte-badge--<%= dt === 61 ? 'nc' : (dt === 46 ? 'fc' : (dt === 43 ? 'lf' : 'fv')) %>">
@@ -1193,6 +1206,7 @@ if (typeof hasPerm !== 'function') {
             </article>
           <% }); %>
         </div>
+        <p class="dte-empty mb-5 hidden" id="siiDocsSearchEmpty">No hay facturas que coincidan con la búsqueda.</p>
       <% } %>
 
       <h4 class="text-sm font-semibold text-gray-800 mb-2"><%= t('admin.documentos.legacy_list_title') %></h4>

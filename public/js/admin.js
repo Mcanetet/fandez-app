@@ -4662,9 +4662,12 @@
         if (unitBrutoEl) unitBrutoEl.value = unitBruto ? String(unitBruto) : '';
       } else if (unitNeto > 0) {
         unitBruto = Math.round(unitNeto * 1.19);
-        if (unitBrutoEl) unitBrutoEl.value = unitBruto ? String(unitBruto) : '';
-      } else if (unitBrutoEl) {
-        unitBrutoEl.value = '';
+      } else {
+        unitBruto = 0;
+      }
+      // Siempre refresca "valor total unitario" (neto unitario × 1.19)
+      if (unitBrutoEl) {
+        unitBrutoEl.value = unitBruto > 0 ? String(unitBruto) : '';
       }
 
       const subtotal = Math.round(unitNeto * qty);
@@ -4688,12 +4691,12 @@
       row.innerHTML = `
         <span class="dte-lines-sheet__idx">1</span>
         <input type="text" class="dte-line-desc" maxlength="80" placeholder="Descripción del ítem" value="">
-        <input type="number" class="dte-line-qty" min="0.001" step="1" inputmode="decimal" placeholder="1" value="1" title="Cantidad">
-        <input type="number" class="dte-line-neto" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Valor neto unitario">
-        <input type="number" class="dte-line-unit-bruto" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Valor total unitario (con IVA)">
-        <input type="number" class="dte-line-disc" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Descuento en pesos (neto)">
-        <span class="dte-line-iva" title="IVA 19% de la línea">—</span>
-        <input type="number" class="dte-line-bruto" min="0" step="1" inputmode="numeric" placeholder="0" value="" title="Total valor bruto (con IVA)">
+        <input type="number" class="dte-line-qty" min="0.001" step="1" inputmode="decimal" placeholder="Cant." value="1" title="Cantidad" aria-label="Cantidad">
+        <input type="number" class="dte-line-neto" min="0" step="1" inputmode="numeric" placeholder="Neto unit." value="" title="Valor neto unitario" aria-label="Valor neto unitario">
+        <input type="number" class="dte-line-unit-bruto" min="0" step="1" inputmode="numeric" placeholder="Total unit." value="" title="Valor total unitario (con IVA)" aria-label="Valor total unitario con IVA">
+        <input type="number" class="dte-line-disc" min="0" step="1" inputmode="numeric" placeholder="Desc. $" value="" title="Descuento en pesos (neto)" aria-label="Descuento">
+        <span class="dte-line-iva" title="IVA 19% de la línea" aria-label="IVA">—</span>
+        <input type="number" class="dte-line-bruto" min="0" step="1" inputmode="numeric" placeholder="Bruto c/IVA" value="" title="Total valor bruto (con IVA)" aria-label="Total valor bruto con IVA">
         <button type="button" class="dte-lines-sheet__remove" title="Quitar ítem" aria-label="Quitar ítem">×</button>
       `;
       const desc = row.querySelector('.dte-line-desc');
@@ -4991,6 +4994,28 @@
         FandezNotify.show(err.message || 'Error al emitir', 'error');
         if (submitBtn) submitBtn.disabled = false;
       }
+    });
+  })();
+
+  (function bindSiiDocsSearch() {
+    const input = document.getElementById('siiDocsSearch');
+    const list = document.getElementById('siiDocsList');
+    const empty = document.getElementById('siiDocsSearchEmpty');
+    const countLabel = document.getElementById('siiDocsCountLabel');
+    if (!input || !list) return;
+    const rows = () => Array.from(list.querySelectorAll('.dte-doc-row'));
+    const total = rows().length;
+    input.addEventListener('input', () => {
+      const q = String(input.value || '').trim().toLowerCase().replace(/\./g, '');
+      let visible = 0;
+      rows().forEach((row) => {
+        const blob = String(row.dataset.search || '').replace(/\./g, '');
+        const ok = !q || blob.includes(q);
+        row.classList.toggle('hidden', !ok);
+        if (ok) visible += 1;
+      });
+      if (empty) empty.classList.toggle('hidden', visible > 0);
+      if (countLabel) countLabel.textContent = q ? `${visible} / ${total} doc.` : `${total} doc.`;
     });
   })();
 
