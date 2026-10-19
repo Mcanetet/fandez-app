@@ -179,6 +179,8 @@
   "admin.documentos.manual_ref_code_2": "2 · Corrige texto",
   "admin.documentos.manual_ref_code_3": "3 · Corrige montos",
   "admin.documentos.manual_ref_reason": "Razón de la NC",
+  "admin.documentos.manual_observation": "Observación (aparece en la factura)",
+  "admin.documentos.manual_observation_hint": "Se imprime en el documento y va como descripción adicional (DscItem) en el XML.",
   "admin.documentos.manual_notes": "Nota interna",
   "admin.documentos.manual_request": "ID solicitud (opcional)",
   "admin.documentos.manual_submit": "Emitir documento",

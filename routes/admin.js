@@ -1992,6 +1992,7 @@ router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documen
       reference: body.reference || null,
       requestId: body.requestId || null,
       notes: body.notes || null,
+      observation: body.observation || body.observacion || body.obs || null,
       issuedBy: req.session.user?.email || req.session.user?.id || 'admin',
       force: body.force === true || body.force === 'true'
     });

@@ -178,6 +178,8 @@
   "admin.documentos.manual_ref_code_2": "2 · Correct text",
   "admin.documentos.manual_ref_code_3": "3 · Correct amounts",
   "admin.documentos.manual_ref_reason": "Credit note reason",
+  "admin.documentos.manual_observation": "Observation (shown on invoice)",
+  "admin.documentos.manual_observation_hint": "Printed on the document and sent as DscItem in the XML.",
   "admin.documentos.manual_notes": "Internal note",
   "admin.documentos.manual_request": "Request ID (optional)",
   "admin.documentos.manual_submit": "Issue document",

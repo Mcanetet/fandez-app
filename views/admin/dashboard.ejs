@@ -1111,8 +1111,13 @@ if (typeof hasPerm !== 'function') {
           <legend class="dte-issuer__legend">Opcional</legend>
           <div class="dte-issuer__grid">
             <div class="dte-issuer__full">
+              <label class="dte-label" for="manualDteObservation"><%= t('admin.documentos.manual_observation') %></label>
+              <input id="manualDteObservation" name="observation" class="zilo-input w-full text-sm" maxlength="500" placeholder="Ej. Orden de compra 123 · Condiciones de pago">
+              <p class="dte-issuer__hint mt-1"><%= t('admin.documentos.manual_observation_hint') %></p>
+            </div>
+            <div class="dte-issuer__full">
               <label class="dte-label" for="manualDteNotes"><%= t('admin.documentos.manual_notes') %></label>
-              <input id="manualDteNotes" name="notes" class="zilo-input w-full text-sm" maxlength="400" placeholder="Solo uso interno">
+              <input id="manualDteNotes" name="notes" class="zilo-input w-full text-sm" maxlength="400" placeholder="Solo uso interno — no sale en la factura">
             </div>
             <div>
               <label class="dte-label" for="manualDteRequestId"><%= t('admin.documentos.manual_request') %></label>

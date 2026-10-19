@@ -4891,6 +4891,7 @@
         totalClp,
         lines,
         description: lines[0]?.name || defaultDesc,
+        observation: document.getElementById('manualDteObservation')?.value?.trim() || null,
         notes: document.getElementById('manualDteNotes')?.value?.trim() || null,
         requestId: document.getElementById('manualDteRequestId')?.value?.trim() || null
       };
