@@ -147,8 +147,10 @@
   "admin.briefs.section_e": "E — Ops / riesgos",
   "admin.briefs.section_f": "F — Cierre",
 
-  "admin.documentos.title": "Boletas y facturas electrónicas",
-  "admin.documentos.subtitle": "Boletas y facturas electrónicas (SII) con el proveedor configurado",
+  "admin.documentos.title": "Emitir facturas",
+  "admin.documentos.subtitle": "Emite factura 33, liquidación 43, compra 46 o nota de crédito 61",
+  "admin.documentos.issued_title": "Facturas emitidas",
+  "admin.documentos.issued_subtitle": "Consulta, busca y descarga PDF/XML de documentos ya emitidos",
   "admin.documentos.sii_config": "Configuración SII",
   "admin.documentos.dte_email_label": "Correo DTE",
   "admin.documentos.dte_email_hint": "recepción de facturas y emisión de documentos tributarios",

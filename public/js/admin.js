@@ -7,7 +7,8 @@
     finanzas: 'Finanzas',
     crm: 'CRM socios',
     briefs: 'Briefs servicio',
-    documentos: 'DTE / SII',
+    documentos: 'Emitir facturas',
+    'facturas-emitidas': 'Facturas emitidas',
     contratos: 'Contratos socios',
     notificaciones: 'Notificaciones',
     modulos: 'Módulos',
@@ -4988,7 +4989,9 @@
           : `${typeLabel} ${folio} emitida`;
         if (msg) msg.textContent = okMsg;
         FandezNotify.show(okMsg, 'success');
-        setTimeout(() => location.reload(), 900);
+        const next = new URL(window.location.href);
+        next.searchParams.set('tab', 'facturas-emitidas');
+        setTimeout(() => { window.location.href = next.pathname + next.search; }, 700);
       } catch (err) {
         if (msg) msg.textContent = err.message || 'Error';
         FandezNotify.show(err.message || 'Error al emitir', 'error');

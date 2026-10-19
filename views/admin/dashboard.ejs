@@ -875,18 +875,23 @@ if (typeof hasPerm !== 'function') {
       </div>
     </section>
 
-    <!-- DOCUMENTOS TRIBUTARIOS -->
+    <!-- EMITIR FACTURAS -->
     <section class="<%= panelClass('documentos') %>" data-panel="documentos" data-subtitle="<%= t('admin.documentos.subtitle') %>">
       <%
         const siiDocs = typeof siiDteDocuments !== 'undefined' ? siiDteDocuments : [];
         const siiSt = typeof siiDteStatus !== 'undefined' ? siiDteStatus : {};
         const partnersForDte = typeof dtePartners !== 'undefined' ? dtePartners : [];
       %>
-      <div class="flex justify-between items-start gap-3 mb-4">
+      <div class="flex justify-between items-start gap-3 mb-4 flex-wrap">
         <p class="text-xs text-gray-500 sm:hidden"><%= t('admin.documentos.subtitle') %></p>
-        <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full ml-auto <%= (siiSt.configured && !siiSt.dryRun) ? 'bg-emerald-500/15 text-emerald-600' : 'bg-yellow-500/15 text-yellow-700' %>">
-          <%= siiSt.configured && !siiSt.dryRun ? 'SII ' + (siiSt.environment || '') : (dteStatus.mode === 'production' ? 'LibreDTE' : t('admin.common.demo_mode')) %>
-        </span>
+        <div class="flex items-center gap-2 ml-auto">
+          <button type="button" class="admin-goto-tab text-xs px-3 py-1.5 rounded-lg border border-teal-200 bg-teal-50 text-teal-800 font-semibold" data-tab="facturas-emitidas">
+            Ver facturas emitidas →
+          </button>
+          <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full <%= (siiSt.configured && !siiSt.dryRun) ? 'bg-emerald-500/15 text-emerald-600' : 'bg-yellow-500/15 text-yellow-700' %>">
+            <%= siiSt.configured && !siiSt.dryRun ? 'SII ' + (siiSt.environment || '') : (dteStatus.mode === 'production' ? 'LibreDTE' : t('admin.common.demo_mode')) %>
+          </span>
+        </div>
       </div>
 
       <div class="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/25 text-xs text-gray-600 mb-4">
@@ -1156,19 +1161,33 @@ if (typeof hasPerm !== 'function') {
           </button>
         </footer>
       </form>
+      <% } else { %>
+        <p class="dte-empty">No tienes permiso para emitir. Puedes revisar las facturas en el módulo <strong>Facturas emitidas</strong>.</p>
       <% } %>
+    </section>
+
+    <!-- FACTURAS EMITIDAS -->
+    <section class="<%= panelClass('facturas-emitidas') %>" data-panel="facturas-emitidas" data-subtitle="<%= t('admin.documentos.issued_subtitle') %>">
+      <div class="flex justify-between items-start gap-3 mb-4 flex-wrap">
+        <p class="text-xs text-gray-500"><%= t('admin.documentos.issued_subtitle') %></p>
+        <% if (hasPerm('documentos.manage')) { %>
+          <button type="button" class="admin-goto-tab text-xs px-3 py-1.5 rounded-lg border border-teal-200 bg-teal-50 text-teal-800 font-semibold" data-tab="documentos">
+            + Emitir factura
+          </button>
+        <% } %>
+      </div>
 
       <div class="dte-list-head">
         <h4 class="text-sm font-semibold text-gray-800"><%= t('admin.documentos.sii_list_title') %></h4>
         <span class="text-[10px] text-gray-400" id="siiDocsCountLabel"><%= siiDocs.length %> doc.</span>
       </div>
+      <div class="dte-doc-search mb-3">
+        <label class="sr-only" for="siiDocsSearch">Buscar facturas emitidas</label>
+        <input type="search" id="siiDocsSearch" class="zilo-input w-full text-sm" placeholder="Buscar por folio, RUT, razón social o tipo (33/43/46/61)…" autocomplete="off">
+      </div>
       <% if (!siiDocs.length) { %>
-        <p class="dte-empty mb-5"><%= t('admin.documentos.sii_list_empty') %></p>
+        <p class="dte-empty mb-5" id="siiDocsEmpty"><%= t('admin.documentos.sii_list_empty') %></p>
       <% } else { %>
-        <div class="dte-doc-search mb-3">
-          <label class="sr-only" for="siiDocsSearch">Buscar facturas emitidas</label>
-          <input type="search" id="siiDocsSearch" class="zilo-input w-full text-sm" placeholder="Buscar por folio, RUT, razón social o tipo (33/43/46/61)…" autocomplete="off">
-        </div>
         <div class="dte-doc-list mb-6" id="siiDocsList">
           <% siiDocs.forEach(function(doc) { %>
             <% const dt = Number(doc.dteType); %>
@@ -1206,10 +1225,10 @@ if (typeof hasPerm !== 'function') {
             </article>
           <% }); %>
         </div>
-        <p class="dte-empty mb-5 hidden" id="siiDocsSearchEmpty">No hay facturas que coincidan con la búsqueda.</p>
       <% } %>
+      <p class="dte-empty mb-5 hidden" id="siiDocsSearchEmpty">No hay facturas que coincidan con la búsqueda.</p>
 
-      <h4 class="text-sm font-semibold text-gray-800 mb-2"><%= t('admin.documentos.legacy_list_title') %></h4>
+      <h4 class="text-sm font-semibold text-gray-800 mb-2 mt-6"><%= t('admin.documentos.legacy_list_title') %></h4>
       <% if (!dteDocuments.length) { %>
         <p class="text-center py-6 text-gray-500 text-sm"><%= t('admin.documentos.empty') %></p>
       <% } else { %>

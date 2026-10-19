@@ -745,7 +745,7 @@ router.get('/', requireRole('admin'), async (req, res) => {
     }, { provider: 'sii_direct', dryRun: true, configured: false }),
     siiDteDocuments: await safeAdminCallAsync('siiDteDocuments', async () => {
       const sii = require('../lib/sii-dte');
-      return sii.listRecent(40);
+      return sii.listRecent(100);
     }, []),
     dtePartners: safeAdminCall('dtePartners', () => {
       const sii = require('../lib/sii-dte');
