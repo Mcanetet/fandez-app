@@ -80,12 +80,13 @@ function canAccessSiiDoc(req, doc) {
   return false;
 }
 
-/** Representación impresa SII directo (lib/sii-dte → data/dte/sii). */
+/** Representación impresa SII directo (lib/sii-dte → data/dte/sii o DB). */
 router.get('/tributarios/sii/:docId', async (req, res) => {
   if (!store.isReady()) {
     return res.status(503).render('error', { title: 'Cargando…', message: 'Espera unos segundos.', code: 503 });
   }
   const siiDte = require('../lib/sii-dte');
+  const { resolveArtifact } = require('../lib/sii-dte/artifacts');
   const doc = await siiDte.findById(req.params.docId);
   if (!doc || !canAccessSiiDoc(req, doc)) {
     return res.status(404).render('error', {
@@ -94,11 +95,34 @@ router.get('/tributarios/sii/:docId', async (req, res) => {
       code: 404
     });
   }
-  const filePath = doc.pdfPath || path.join(DTE_DIR, 'sii', `${doc.id}.html`);
-  if (filePath && fs.existsSync(filePath)) return res.sendFile(path.resolve(filePath));
+
+  const art = resolveArtifact(doc, 'html');
+  if (art.source === 'file' && art.path) {
+    res.type('html');
+    return res.sendFile(art.path);
+  }
+  if (art.source === 'db' && art.content) {
+    res.type('html');
+    return res.send(art.content);
+  }
+
+  // Fallback: regenerar HTML desde los datos del documento
+  try {
+    const { renderCommissionInvoiceHtml } = require('../lib/sii-dte/pdf/render');
+    const html = await renderCommissionInvoiceHtml(doc);
+    if (html) {
+      doc.htmlContent = html;
+      try { await require('../lib/sii-dte/repository').save(doc); } catch (_) { /* best effort */ }
+      res.type('html');
+      return res.send(html);
+    }
+  } catch (err) {
+    console.error('[documentos] regenerate html:', err.message);
+  }
+
   return res.status(404).render('error', {
     title: 'Archivo no disponible',
-    message: 'El documento aún no está generado.',
+    message: 'El documento aún no está generado. Vuelve a emitir o contacta soporte.',
     code: 404
   });
 });
@@ -109,6 +133,7 @@ router.get('/tributarios/sii/:docId/xml', async (req, res) => {
     return res.status(503).json({ error: 'Cargando…' });
   }
   const siiDte = require('../lib/sii-dte');
+  const { resolveArtifact } = require('../lib/sii-dte/artifacts');
   const doc = await siiDte.findById(req.params.docId);
   if (!doc || !canAccessSiiDoc(req, doc)) {
     return res.status(404).render('error', {
@@ -117,21 +142,25 @@ router.get('/tributarios/sii/:docId/xml', async (req, res) => {
       code: 404
     });
   }
-  const filePath = doc.xmlPath || path.join(DTE_DIR, 'sii', `${doc.id}.xml`);
-  const resolved = path.resolve(filePath);
-  const allowedRoot = path.resolve(path.join(DTE_DIR, 'sii'));
-  if (!resolved.startsWith(`${allowedRoot}${path.sep}`) || !fs.existsSync(resolved)) {
-    return res.status(404).render('error', {
-      title: 'XML no disponible',
-      message: 'El XML aún no está generado.',
-      code: 404
-    });
-  }
+
+  const art = resolveArtifact(doc, 'xml');
   const folio = doc.folio || '0';
   const dteType = doc.dteType || 33;
   res.setHeader('Content-Type', 'application/xml; charset=ISO-8859-1');
   res.setHeader('Content-Disposition', `attachment; filename="F${folio}T${dteType}.xml"`);
-  return res.sendFile(resolved);
+
+  if (art.source === 'file' && art.path) {
+    return res.sendFile(art.path);
+  }
+  if (art.source === 'db' && art.content) {
+    return res.send(art.content);
+  }
+
+  return res.status(404).render('error', {
+    title: 'XML no disponible',
+    message: 'Este documento se emitió antes de guardar el XML en base de datos. Emite de nuevo para descargarlo, o revisa el respaldo en el servidor.',
+    code: 404
+  });
 });
 
 router.get('/tributarios/:docId', (req, res) => {
