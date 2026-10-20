@@ -96,20 +96,22 @@ router.get('/tributarios/sii/:docId', async (req, res) => {
     });
   }
 
-  const art = resolveArtifact(doc, 'html');
-  if (art.source === 'file' && art.path) {
-    res.type('html');
-    return res.sendFile(art.path);
-  }
-  if (art.source === 'db' && art.content) {
-    res.type('html');
-    return res.send(art.content);
-  }
-
-  // Fallback: regenerar HTML desde los datos del documento
+  // Siempre regenera RIMP con el template vigente (TED solo si hay XML).
   try {
     const { renderCommissionInvoiceHtml } = require('../lib/sii-dte/pdf/render');
-    const html = await renderCommissionInvoiceHtml(doc);
+    const artXml = resolveArtifact(doc, 'xml');
+    let tedXml = null;
+    if (artXml.source === 'file' && artXml.path) {
+      try { tedXml = fs.readFileSync(artXml.path, 'utf8'); } catch (_) { /* ignore */ }
+    } else if (artXml.source === 'db' && artXml.content) {
+      tedXml = artXml.content;
+    }
+    // TED es el nodo <TED>…</TED>, no el EnvioDTE completo
+    if (tedXml) {
+      const m = String(tedXml).match(/<TED[\s\S]*?<\/TED>/i);
+      tedXml = m ? m[0] : null;
+    }
+    const html = await renderCommissionInvoiceHtml(doc, { tedXml: tedXml || undefined });
     if (html) {
       doc.htmlContent = html;
       try { await require('../lib/sii-dte/repository').save(doc); } catch (_) { /* best effort */ }
@@ -118,6 +120,16 @@ router.get('/tributarios/sii/:docId', async (req, res) => {
     }
   } catch (err) {
     console.error('[documentos] regenerate html:', err.message);
+  }
+
+  const art = resolveArtifact(doc, 'html');
+  if (art.source === 'file' && art.path) {
+    res.type('html');
+    return res.sendFile(art.path);
+  }
+  if (art.source === 'db' && art.content) {
+    res.type('html');
+    return res.send(art.content);
   }
 
   return res.status(404).render('error', {
