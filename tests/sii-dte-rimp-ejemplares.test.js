@@ -65,15 +65,20 @@ describe('SII DTE · RIMP Chile', () => {
 
   test('tributario: sin CEDIBLE ni acuse (ejemplar sin destino)', async () => {
     const html = await renderCommissionInvoiceHtml(baseDoc(33), { exemplar: 'tributario' });
+    const body = html.split('<body>')[1] || html;
     expect(html).toContain('FACTURA ELECTRÓNICA');
     expect(html).toContain('lang="es-CL"');
-    expect(html).toContain('S.I.I. —');
-    expect(html).toContain('Comuna:');
-    expect(html).toContain('Timbre Electrónico SII');
-    expect(html).toContain('Res.');
-    expect(html).toContain('Verifique documento: www.sii.cl');
-    expect(html).not.toContain(LEYENDA_DESTINO_CEDIBLE);
-    expect(html).not.toContain('Acuse de Recibo');
+    expect(body).toContain('S.I.I. —');
+    expect(body).toContain('Comuna:');
+    expect(body).toContain('Timbre Electrónico SII');
+    expect(body).toContain('Res.');
+    expect(body).toContain('Verifique documento: www.sii.cl');
+    expect(body).not.toContain(`class="destino-cedible"`);
+    expect(body).not.toContain('Acuse de Recibo');
+    expect(body).toContain('Imprimir / Guardar PDF');
+    expect(body).toContain('Descargar XML');
+    expect(body).toContain('Enviar por correo');
+    expect(body).toContain('dteViewerBar');
     expect((html.match(/class="sheet/g) || []).length).toBe(1);
   });
 

@@ -148,6 +148,41 @@ router.get('/tributarios/sii/:docId', async (req, res) => {
   });
 });
 
+/**
+ * Reenvío por correo (patrón facturadores Chile: link + XML).
+ * Body: { email, exemplar?, includeXml? }
+ */
+router.post('/tributarios/sii/:docId/enviar', async (req, res) => {
+  if (!store.isReady()) {
+    return res.status(503).json({ success: false, error: 'Cargando…' });
+  }
+  if (!req.session?.user) {
+    return res.status(401).json({ success: false, error: 'Inicia sesión para reenviar el documento.' });
+  }
+  const siiDte = require('../lib/sii-dte');
+  const { sendDocumentEmail } = require('../lib/sii-dte/sendDocumentEmail');
+  const doc = await siiDte.findById(req.params.docId);
+  if (!doc || !canAccessSiiDoc(req, doc)) {
+    return res.status(404).json({ success: false, error: 'Documento no encontrado.' });
+  }
+  try {
+    const body = req.body || {};
+    const result = await sendDocumentEmail(doc, {
+      to: body.email || body.to || body.correo,
+      exemplar: body.exemplar || body.ejemplar || req.query.ejemplar,
+      includeXml: body.includeXml !== false,
+      sentBy: req.session.user.email || req.session.user.id
+    });
+    if (result.error) {
+      return res.status(422).json({ success: false, error: result.error });
+    }
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[documentos] enviar DTE', err.message);
+    return res.status(500).json({ success: false, error: err.message || 'No se pudo enviar' });
+  }
+});
+
 /** XML EnvioDTE para set de pruebas / envío SII. */
 router.get('/tributarios/sii/:docId/xml', async (req, res) => {
   if (!store.isReady()) {
