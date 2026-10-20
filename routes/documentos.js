@@ -97,8 +97,10 @@ router.get('/tributarios/sii/:docId', async (req, res) => {
   }
 
   // Siempre regenera RIMP con el template vigente (TED solo si hay XML).
+  // Un archivo = un ejemplar: ?ejemplar=tributario|cedible
   try {
-    const { renderCommissionInvoiceHtml } = require('../lib/sii-dte/pdf/render');
+    const { renderCommissionInvoiceHtml, normalizeExemplar } = require('../lib/sii-dte/pdf/render');
+    const exemplar = normalizeExemplar(req.query.ejemplar || req.query.copia, doc.dteType);
     const artXml = resolveArtifact(doc, 'xml');
     let tedXml = null;
     if (artXml.source === 'file' && artXml.path) {
@@ -111,11 +113,18 @@ router.get('/tributarios/sii/:docId', async (req, res) => {
       const m = String(tedXml).match(/<TED[\s\S]*?<\/TED>/i);
       tedXml = m ? m[0] : null;
     }
-    const html = await renderCommissionInvoiceHtml(doc, { tedXml: tedXml || undefined });
+    const html = await renderCommissionInvoiceHtml(doc, {
+      tedXml: tedXml || undefined,
+      exemplar
+    });
     if (html) {
-      doc.htmlContent = html;
-      try { await require('../lib/sii-dte/repository').save(doc); } catch (_) { /* best effort */ }
+      // Cachea solo el tributario como HTML “principal” del doc.
+      if (exemplar === 'tributario') {
+        doc.htmlContent = html;
+        try { await require('../lib/sii-dte/repository').save(doc); } catch (_) { /* best effort */ }
+      }
       res.type('html');
+      res.set('Content-Disposition', `inline; filename="DTE-${doc.folio || doc.id}-${exemplar}.html"`);
       return res.send(html);
     }
   } catch (err) {

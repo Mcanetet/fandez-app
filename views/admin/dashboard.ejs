@@ -1236,10 +1236,13 @@ if (typeof hasPerm !== 'function') {
               </div>
               <div class="dte-doc-row__side">
                 <span class="dte-doc-row__amount"><%= formatCLP(doc.total || 0) %></span>
-                <% if (doc.pdfUrl) { %>
-                  <a href="<%= doc.pdfUrl %>" target="_blank" rel="noopener" class="dte-doc-row__link"><%= t('admin.common.view_document') %></a>
-                <% } %>
-                <a href="/documentos/tributarios/sii/<%= doc.id %>/xml" class="dte-doc-row__link" download><%= t('admin.common.download_xml') %></a>
+                <div class="dte-doc-row__links">
+                  <a href="/documentos/tributarios/sii/<%= doc.id %>?ejemplar=tributario" target="_blank" rel="noopener" class="dte-doc-row__link"><%= t('admin.common.view_tributario') %></a>
+                  <% if (dt === 33 || dt === 43) { %>
+                    <a href="/documentos/tributarios/sii/<%= doc.id %>?ejemplar=cedible" target="_blank" rel="noopener" class="dte-doc-row__link"><%= t('admin.common.view_cedible') %></a>
+                  <% } %>
+                  <a href="/documentos/tributarios/sii/<%= doc.id %>/xml" class="dte-doc-row__link" download><%= t('admin.common.download_xml') %></a>
+                </div>
               </div>
             </article>
           <% }); %>

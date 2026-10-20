@@ -8116,11 +8116,19 @@ body.launch-notice-open {
   font-variant-numeric: tabular-nums;
   color: #047857;
 }
+.dte-doc-row__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem 0.65rem;
+  max-width: 14rem;
+}
 .dte-doc-row__link {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--dte-accent);
   text-decoration: none;
+  white-space: nowrap;
 }
 .dte-doc-row__link:hover { text-decoration: underline; }
 

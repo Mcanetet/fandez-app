@@ -5,6 +5,7 @@ process.env.NODE_ENV = 'test';
 const {
   renderCommissionInvoiceHtml,
   supportsCedible,
+  normalizeExemplar,
   LEYENDA_CEDIBLE
 } = require('../lib/sii-dte/pdf/render');
 
@@ -45,22 +46,34 @@ describe('SII DTE · RIMP ejemplares', () => {
     expect(supportsCedible(46)).toBe(false);
   });
 
-  test('factura 33 incluye tributario y cedible con leyenda', async () => {
-    const html = await renderCommissionInvoiceHtml(baseDoc(33));
-    expect(html).toContain('EJEMPLAR TRIBUTARIO');
-    expect(html).toContain('EJEMPLAR CEDIBLE');
-    expect(html).toContain(LEYENDA_CEDIBLE);
-    expect(html).toContain('data-exemplar="tributario"');
-    expect(html).toContain('data-exemplar="cedible"');
-    expect(html).toContain('Acuse de recibo');
-    expect((html.match(/class="sheet/g) || []).length).toBe(2);
+  test('normalizeExemplar: un archivo = un ejemplar', () => {
+    expect(normalizeExemplar(undefined, 33)).toBe('tributario');
+    expect(normalizeExemplar('cedible', 33)).toBe('cedible');
+    expect(normalizeExemplar('cedible', 61)).toBe('tributario');
   });
 
-  test('nota de crédito 61 solo ejemplar tributario', async () => {
-    const html = await renderCommissionInvoiceHtml(baseDoc(61));
+  test('tributario: pie EJEMPLAR TRIBUTARIO, sin leyenda cedible', async () => {
+    const html = await renderCommissionInvoiceHtml(baseDoc(33), { exemplar: 'tributario' });
     expect(html).toContain('EJEMPLAR TRIBUTARIO');
-    expect(html).not.toContain('EJEMPLAR CEDIBLE');
-    expect(html).not.toContain('CEDIBLE CON SU FIRMA');
+    expect(html).toContain('data-exemplar="tributario"');
+    expect(html).not.toContain('COPIA CEDIBLE');
+    expect(html).not.toContain(LEYENDA_CEDIBLE);
     expect((html.match(/class="sheet/g) || []).length).toBe(1);
+  });
+
+  test('cedible: COPIA CEDIBLE abajo con leyenda Ley 19.983', async () => {
+    const html = await renderCommissionInvoiceHtml(baseDoc(33), { exemplar: 'cedible' });
+    expect(html).toContain('COPIA CEDIBLE');
+    expect(html).toContain(LEYENDA_CEDIBLE);
+    expect(html).toContain('Acuse de recibo');
+    expect(html).toContain('data-exemplar="cedible"');
+    expect(html.indexOf('Timbre Electrónico')).toBeLessThan(html.indexOf('COPIA CEDIBLE'));
+    expect((html.match(/class="sheet/g) || []).length).toBe(1);
+  });
+
+  test('nota de crédito ignora pedido de cedible', async () => {
+    const html = await renderCommissionInvoiceHtml(baseDoc(61), { exemplar: 'cedible' });
+    expect(html).toContain('EJEMPLAR TRIBUTARIO');
+    expect(html).not.toContain('COPIA CEDIBLE');
   });
 });

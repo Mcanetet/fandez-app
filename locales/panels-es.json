@@ -10,6 +10,8 @@
   "admin.common.offline": "○ Offline",
   "admin.common.export_csv": "Exportar CSV",
   "admin.common.view_document": "Ver documento",
+  "admin.common.view_tributario": "Tributario",
+  "admin.common.view_cedible": "Cedible",
   "admin.common.download_xml": "Descargar XML",
   "admin.common.reissue": "Reemitir",
   "admin.common.approve": "Aprobar",
