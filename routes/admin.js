@@ -1943,6 +1943,29 @@ router.get('/dte/receptor-lookup', requireRole('admin'), requireAdminPermission(
 /**
  * Factura 33, Liquidación-Factura 43, Factura de Compra 46 o Nota de Crédito 61.
  */
+/**
+ * Set de pruebas SII: varios DTE en un solo EnvioDTE (referencia SET + CASO).
+ * Body: { setId, cases: [{ caseNumber, dteType, receptor, lines|totalClp, reference? }] }
+ */
+router.post('/dte/certification-set', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
+  try {
+    const sii = require('../lib/sii-dte');
+    const body = req.body || {};
+    const result = await sii.generateCertificationSet({
+      setId: body.setId || body.setID || body.idSet,
+      cases: body.cases || body.casos || [],
+      issuedBy: req.session.user?.email || req.session.user?.id || 'admin'
+    });
+    if (result.error) {
+      return res.status(422).json({ success: false, ...result });
+    }
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[admin] dte/certification-set', err);
+    return res.status(500).json({ success: false, error: err.message || 'Error al armar el set' });
+  }
+});
+
 router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
   try {
     const sii = require('../lib/sii-dte');
@@ -1994,7 +2017,10 @@ router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documen
       notes: body.notes || null,
       observation: body.observation || body.observacion || body.obs || null,
       issuedBy: req.session.user?.email || req.session.user?.id || 'admin',
-      force: body.force === true || body.force === 'true'
+      force: body.force === true || body.force === 'true',
+      setId: body.setId || body.setID || null,
+      caseNumber: body.caseNumber || body.caso || null,
+      setCase: body.setCase || body.setCaso || null
     });
 
     if (result.error) {

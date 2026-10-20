@@ -1148,6 +1148,25 @@ if (typeof hasPerm !== 'function') {
               <label class="dte-label" for="manualDteRequestId"><%= t('admin.documentos.manual_request') %></label>
               <input id="manualDteRequestId" name="requestId" class="zilo-input w-full text-sm" placeholder="ID solicitud">
             </div>
+            <div>
+              <label class="dte-label" for="manualDteSetId">Set SII (ID)</label>
+              <input id="manualDteSetId" name="setId" class="zilo-input w-full text-sm" inputmode="numeric" placeholder="Ej. 1221626">
+            </div>
+            <div>
+              <label class="dte-label" for="manualDteCaseNumber">N° caso set</label>
+              <input id="manualDteCaseNumber" name="caseNumber" type="number" min="1" step="1" class="zilo-input w-full text-sm" placeholder="1">
+              <p class="dte-issuer__hint mt-1">Agrega referencia <code>SET</code> → <code>CASO {id}-{n}</code> (certificación).</p>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="dte-issuer__section">
+          <legend class="dte-issuer__legend">Set de pruebas (multi-DTE)</legend>
+          <p class="dte-issuer__hint mb-2">Arma todos los casos del PDF del SII en un solo EnvioDTE. JSON con <code>setId</code> y <code>cases[]</code>.</p>
+          <textarea id="certSetJson" class="zilo-input w-full text-sm font-mono" rows="8" placeholder='{"setId":"1221626","cases":[{"caseNumber":1,"dteType":33,"receptor":{"rut":"66.666.666-6","name":"Cliente Set","giro":"Servicios","address":"Santiago","commune":"Santiago","city":"Santiago"},"lines":[{"name":"Item AFECTO","qty":1,"unitNeto":10000}]}]}'></textarea>
+          <div class="flex flex-wrap items-center gap-2 mt-2">
+            <button type="button" id="certSetSubmit" class="dte-issuer__submit">Enviar set completo al SII</button>
+            <span id="certSetMsg" class="dte-issuer__msg text-sm" aria-live="polite"></span>
           </div>
         </fieldset>
 

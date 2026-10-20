@@ -152,13 +152,13 @@ Si falla: **no reuses folios**. Emite de nuevo con folios siguientes del CAF. Si
 | NC 61 con ref a factura + CodRef | ✅ | Formulario NC |
 | TED RSR/IT1, CAF, ISO-8859-1, firma Set | ✅ | Corregido en `fb83473` |
 | Preset receptor SII `60.803.000-K` | ✅ | Solo carátula / receptor frecuente |
-| Referencia `TpoDocRef=SET` + `CASO id-n` | ❌ | Hay que agregarla para certificación |
-| Varios DTE en un solo EnvioDTE | ❌ | Hoy 1 DTE por emisión |
+| Referencia `TpoDocRef=SET` + `CASO id-n` | ✅ | Admin emitir: Set SII + N° caso; o JSON set |
+| Varios DTE en un solo EnvioDTE | ✅ | `POST /admin/dte/certification-set` |
 | Línea exenta `IndExe` | ❌ | Si el set pide caso mixto |
 | Descuento global `DscRcgGlobal` | ❌ | Si el set lo pide |
 | Nota de débito 56 | ❌ | Set básico completo suele pedirla |
 
-**Implicancia:** puedes emitir y validar XML/estructura en maullin documento a documento, pero el **set oficial** casi siempre exige referencia SET + **un ZIP con todos los casos**. Eso es el siguiente desarrollo si quieres cerrar certificación sin armar el XML a mano.
+**Cómo usar:** en Admin → Emitir facturas → campos *Set SII* / *N° caso*, o el bloque *Set de pruebas (multi-DTE)* con JSON `{ setId, cases[] }`. En dry-run arma el EnvioDTE sin subir; con `SII_DTE_DRY_RUN=false` firma el Set y sube el ZIP a maullin.
 
 ---
 
@@ -168,7 +168,7 @@ Si falla: **no reuses folios**. Emite de nuevo con folios siguientes del CAF. Si
 2. Poner `SII_DTE_DRY_RUN=false`, `SII_ENVIRONMENT=sandbox`.
 3. Emitir **1 factura 33 de humo** (montos libres) → ver Track aceptado.
 4. Completar la tabla de la sección 2 con el PDF del SII.
-5. Cuando exista soporte SET + multi-DTE (o script de certificación), generar el envío único.
+5. Armar el set completo (JSON en Admin o `generateCertificationSet`) → un solo Track.
 6. Subir, anotar Track, solicitar revisión en el portal SII.
 7. Guardar XML/PDF de cada caso en backup (no solo en disco efímero).
 

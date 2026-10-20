@@ -4954,7 +4954,9 @@
         description: lines[0]?.name || defaultDesc,
         observation: document.getElementById('manualDteObservation')?.value?.trim() || null,
         notes: document.getElementById('manualDteNotes')?.value?.trim() || null,
-        requestId: document.getElementById('manualDteRequestId')?.value?.trim() || null
+        requestId: document.getElementById('manualDteRequestId')?.value?.trim() || null,
+        setId: document.getElementById('manualDteSetId')?.value?.trim() || null,
+        caseNumber: document.getElementById('manualDteCaseNumber')?.value?.trim() || null
       };
       if (dteType === 43) {
         const bruto = Math.round(Number(document.getElementById('manualDteLiqBruto')?.value) || 0);
@@ -4998,6 +5000,51 @@
         if (submitBtn) submitBtn.disabled = false;
       }
     });
+
+    (function bindCertSetSubmit() {
+      const btn = document.getElementById('certSetSubmit');
+      const ta = document.getElementById('certSetJson');
+      const msg = document.getElementById('certSetMsg');
+      if (!btn || !ta) return;
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        if (msg) msg.textContent = 'Armando set…';
+        let body;
+        try {
+          body = JSON.parse(String(ta.value || '').trim());
+        } catch (e) {
+          if (msg) msg.textContent = 'JSON inválido';
+          FandezNotify.show('JSON del set inválido', 'error');
+          btn.disabled = false;
+          return;
+        }
+        try {
+          const res = await adminFetch('/dte/certification-set', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(body)
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'No se pudo armar el set');
+          }
+          const n = (data.documents || []).length;
+          const dry = data.dryRun;
+          const okMsg = dry
+            ? `Set ${data.setId}: ${n} DTE empaquetados (dry-run)`
+            : `Set ${data.setId}: ${n} DTE enviados` + (data.trackId ? ` · Track ${data.trackId}` : '');
+          if (msg) msg.textContent = okMsg;
+          FandezNotify.show(okMsg, 'success');
+          const next = new URL(window.location.href);
+          next.searchParams.set('tab', 'facturas-emitidas');
+          setTimeout(() => { window.location.href = next.pathname + next.search; }, 900);
+        } catch (err) {
+          if (msg) msg.textContent = err.message || 'Error';
+          FandezNotify.show(err.message || 'Error al enviar set', 'error');
+          btn.disabled = false;
+        }
+      });
+    })();
   })();
 
   (function bindSiiDocsSearch() {
