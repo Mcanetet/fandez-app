@@ -1237,13 +1237,22 @@ if (typeof hasPerm !== 'function') {
           <span id="siiDocsSummaryCount"><%= siiDocs.length %> documentos</span>
           <span class="dte-filters__dot">·</span>
           <span id="siiDocsSummaryTotal">Total <%= formatCLP(siiDocs.reduce(function(s, d) { return s + (Number(d.total) || 0); }, 0)) %></span>
+          <span class="dte-filters__spacer"></span>
+          <label class="dte-page-size" for="siiDocsPageSize">
+            <span>Por página</span>
+            <select id="siiDocsPageSize" class="dte-page-size__select">
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </label>
         </div>
       </div>
 
       <% if (!siiDocs.length) { %>
         <p class="dte-empty mb-5" id="siiDocsEmpty"><%= t('admin.documentos.sii_list_empty') %></p>
       <% } else { %>
-        <div class="dte-doc-list mb-6" id="siiDocsList">
+        <div class="dte-doc-list mb-3" id="siiDocsList">
           <% siiDocs.forEach(function(doc) { %>
             <% const dt = Number(doc.dteType); %>
             <% const typeKey = dt === 61 ? 'nc' : (dt === 46 ? 'fc' : (dt === 43 ? 'lf' : 'fv')); %>
@@ -1299,6 +1308,11 @@ if (typeof hasPerm !== 'function') {
               </div>
             </article>
           <% }); %>
+        </div>
+        <div class="dte-pager mb-6" id="siiDocsPager" hidden>
+          <button type="button" class="dte-pager__btn" id="siiDocsPrev" aria-label="Página anterior">← Anterior</button>
+          <span class="dte-pager__info" id="siiDocsPageInfo">Página 1</span>
+          <button type="button" class="dte-pager__btn" id="siiDocsNext" aria-label="Página siguiente">Siguiente →</button>
         </div>
       <% } %>
       <p class="dte-empty mb-5 hidden" id="siiDocsSearchEmpty">No hay documentos con estos filtros.</p>

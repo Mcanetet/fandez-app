@@ -5056,9 +5056,25 @@
     const summaryCount = document.getElementById('siiDocsSummaryCount');
     const summaryTotal = document.getElementById('siiDocsSummaryTotal');
     const exportLink = document.getElementById('siiDocsExportCsv');
+    const pageSizeSel = document.getElementById('siiDocsPageSize');
+    const pager = document.getElementById('siiDocsPager');
+    const pageInfo = document.getElementById('siiDocsPageInfo');
+    const prevBtn = document.getElementById('siiDocsPrev');
+    const nextBtn = document.getElementById('siiDocsNext');
     if (!list) return;
 
-    const state = { type: '', status: '', dry: '', q: '' };
+    const allowedSizes = new Set([10, 25, 50]);
+    const storedSize = Number(localStorage.getItem('fandez.siiDocsPageSize') || 10);
+    const state = {
+      type: '',
+      status: '',
+      dry: '',
+      q: '',
+      page: 1,
+      pageSize: allowedSizes.has(storedSize) ? storedSize : 10
+    };
+    if (pageSizeSel) pageSizeSel.value = String(state.pageSize);
+
     const rows = () => Array.from(list.querySelectorAll('.dte-doc-row'));
     const total = rows().length;
     const clp = (n) => Math.round(Number(n) || 0).toLocaleString('es-CL');
@@ -5083,37 +5099,72 @@
       exportLink.href = qs ? `${base}?${qs}` : base;
     }
 
-    function apply() {
+    function matchedRows() {
       const q = String(state.q || '').trim().toLowerCase().replace(/\./g, '');
-      let visible = 0;
-      let sum = 0;
-      rows().forEach((row) => {
+      return rows().filter((row) => {
         const typeOk = !state.type || String(row.dataset.type || '') === state.type;
         const statusOk = !state.status || String(row.dataset.status || '') === state.status;
         const dryOk = state.dry === '' || String(row.dataset.dry || '0') === state.dry;
         const blob = String(row.dataset.search || '').replace(/\./g, '');
         const qOk = !q || blob.includes(q);
-        const ok = typeOk && statusOk && dryOk && qOk;
-        row.classList.toggle('hidden', !ok);
-        if (ok) {
-          visible += 1;
-          sum += Number(row.dataset.total) || 0;
-        }
+        return typeOk && statusOk && dryOk && qOk;
       });
-      if (empty) empty.classList.toggle('hidden', visible > 0);
+    }
+
+    function apply() {
+      const matched = matchedRows();
+      const matchCount = matched.length;
+      const pages = Math.max(1, Math.ceil(matchCount / state.pageSize) || 1);
+      if (state.page > pages) state.page = pages;
+      if (state.page < 1) state.page = 1;
+      const start = (state.page - 1) * state.pageSize;
+      const end = start + state.pageSize;
+      const onPage = new Set(matched.slice(start, end));
+      let sum = 0;
+      matched.forEach((row) => { sum += Number(row.dataset.total) || 0; });
+
+      rows().forEach((row) => {
+        row.classList.toggle('hidden', !onPage.has(row));
+      });
+
+      if (empty) empty.classList.toggle('hidden', matchCount > 0);
       if (countLabel) {
-        countLabel.textContent = visible === total ? `${total} doc.` : `${visible} / ${total} doc.`;
+        countLabel.textContent = matchCount === total
+          ? `${total} doc.`
+          : `${matchCount} / ${total} doc.`;
       }
-      if (summaryCount) summaryCount.textContent = `${visible} documento${visible === 1 ? '' : 's'}`;
+      if (summaryCount) {
+        const from = matchCount ? start + 1 : 0;
+        const to = Math.min(end, matchCount);
+        summaryCount.textContent = matchCount
+          ? `${from}–${to} de ${matchCount} documento${matchCount === 1 ? '' : 's'}`
+          : '0 documentos';
+      }
       if (summaryTotal) summaryTotal.textContent = `Total $${clp(sum)}`;
+
+      if (pager) {
+        pager.hidden = matchCount === 0;
+        if (pageInfo) {
+          pageInfo.textContent = matchCount
+            ? `Página ${state.page} de ${pages}`
+            : 'Sin resultados';
+        }
+        if (prevBtn) prevBtn.disabled = state.page <= 1 || matchCount === 0;
+        if (nextBtn) nextBtn.disabled = state.page >= pages || matchCount === 0;
+      }
       syncExportHref();
+    }
+
+    function resetPageAndApply() {
+      state.page = 1;
+      apply();
     }
 
     root?.querySelectorAll('[data-filter-type]').forEach((btn) => {
       btn.addEventListener('click', () => {
         state.type = btn.getAttribute('data-filter-type') || '';
         setChipActive('data-filter-type', state.type);
-        apply();
+        resetPageAndApply();
       });
     });
     root?.querySelectorAll('[data-filter-status]').forEach((btn) => {
@@ -5122,7 +5173,7 @@
         state.dry = '';
         setChipActive('data-filter-status', state.status);
         root.querySelectorAll('[data-filter-dry]').forEach((b) => b.classList.remove('is-active'));
-        apply();
+        resetPageAndApply();
       });
     });
     root?.querySelectorAll('[data-filter-dry]').forEach((btn) => {
@@ -5136,11 +5187,27 @@
         });
         const allStatus = root.querySelector('[data-filter-status=""]');
         if (allStatus) allStatus.classList.toggle('is-active', !state.status);
-        apply();
+        resetPageAndApply();
       });
     });
     input?.addEventListener('input', () => {
       state.q = input.value || '';
+      resetPageAndApply();
+    });
+    pageSizeSel?.addEventListener('change', () => {
+      const n = Number(pageSizeSel.value) || 10;
+      state.pageSize = allowedSizes.has(n) ? n : 10;
+      try { localStorage.setItem('fandez.siiDocsPageSize', String(state.pageSize)); } catch (_) { /* ignore */ }
+      resetPageAndApply();
+    });
+    prevBtn?.addEventListener('click', () => {
+      if (state.page > 1) {
+        state.page -= 1;
+        apply();
+      }
+    });
+    nextBtn?.addEventListener('click', () => {
+      state.page += 1;
       apply();
     });
     apply();
