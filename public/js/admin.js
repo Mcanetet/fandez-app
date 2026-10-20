@@ -5055,12 +5055,13 @@
     const countLabel = document.getElementById('siiDocsCountLabel');
     const summaryCount = document.getElementById('siiDocsSummaryCount');
     const summaryTotal = document.getElementById('siiDocsSummaryTotal');
-    const exportLink = document.getElementById('siiDocsExportCsv');
     const pageSizeSel = document.getElementById('siiDocsPageSize');
     const pager = document.getElementById('siiDocsPager');
     const pageInfo = document.getElementById('siiDocsPageInfo');
     const prevBtn = document.getElementById('siiDocsPrev');
     const nextBtn = document.getElementById('siiDocsNext');
+    const exportOpen = document.getElementById('siiDocsExportOpen');
+    const exportModal = document.getElementById('siiDocsExportModal');
     if (!list) return;
 
     const allowedSizes = new Set([10, 25, 50]);
@@ -5087,16 +5088,180 @@
       });
     }
 
-    function syncExportHref() {
-      if (!exportLink) return;
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function ymd(d) {
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+    function daysInMonth(year, month1to12) {
+      return new Date(year, month1to12, 0).getDate();
+    }
+    function formatClDate(iso) {
+      if (!iso) return '—';
+      const [y, m, d] = String(iso).split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    function openExportModal() {
+      if (!exportModal) return;
+      const fromEl = document.getElementById('siiExportFrom');
+      const toEl = document.getElementById('siiExportTo');
+      const yearEl = document.getElementById('siiExportYear');
+      const monthEl = document.getElementById('siiExportMonth');
+      const errEl = document.getElementById('siiExportError');
+      if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
+
+      if (yearEl && !yearEl.options.length) {
+        const nowY = new Date().getFullYear();
+        for (let y = nowY + 1; y >= nowY - 8; y -= 1) {
+          const opt = document.createElement('option');
+          opt.value = String(y);
+          opt.textContent = String(y);
+          if (y === nowY) opt.selected = true;
+          yearEl.appendChild(opt);
+        }
+      }
+
+      // Default: este mes
+      applyExportPreset('this_month');
+      exportModal.classList.remove('hidden');
+      exportModal.classList.add('flex');
+      exportModal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeExportModal() {
+      if (!exportModal) return;
+      exportModal.classList.add('hidden');
+      exportModal.classList.remove('flex');
+      exportModal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    function setExportPresetActive(preset) {
+      document.querySelectorAll('#siiExportPresets [data-preset]').forEach((btn) => {
+        btn.classList.toggle('is-active', btn.getAttribute('data-preset') === preset);
+      });
+    }
+
+    function updateExportPreview() {
+      const from = document.getElementById('siiExportFrom')?.value || '';
+      const to = document.getElementById('siiExportTo')?.value || '';
+      const preview = document.getElementById('siiExportPreviewRange');
+      if (preview) {
+        preview.textContent = from && to
+          ? `${formatClDate(from)} → ${formatClDate(to)}`
+          : 'Elige un periodo';
+      }
+    }
+
+    function applyExportPreset(preset) {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth() + 1;
+      let from;
+      let to;
+      if (preset === 'last_month') {
+        const lm = m === 1 ? 12 : m - 1;
+        const ly = m === 1 ? y - 1 : y;
+        from = `${ly}-${pad2(lm)}-01`;
+        to = `${ly}-${pad2(lm)}-${pad2(daysInMonth(ly, lm))}`;
+        const yearEl = document.getElementById('siiExportYear');
+        const monthEl = document.getElementById('siiExportMonth');
+        if (yearEl) yearEl.value = String(ly);
+        if (monthEl) monthEl.value = pad2(lm);
+      } else if (preset === 'this_year') {
+        from = `${y}-01-01`;
+        to = `${y}-12-31`;
+        const yearEl = document.getElementById('siiExportYear');
+        const monthEl = document.getElementById('siiExportMonth');
+        if (yearEl) yearEl.value = String(y);
+        if (monthEl) monthEl.value = '';
+      } else if (preset === 'last_year') {
+        from = `${y - 1}-01-01`;
+        to = `${y - 1}-12-31`;
+        const yearEl = document.getElementById('siiExportYear');
+        const monthEl = document.getElementById('siiExportMonth');
+        if (yearEl) yearEl.value = String(y - 1);
+        if (monthEl) monthEl.value = '';
+      } else if (preset === 'last_12') {
+        const start = new Date(y, m - 12, 1);
+        from = ymd(start);
+        to = ymd(now);
+        const yearEl = document.getElementById('siiExportYear');
+        const monthEl = document.getElementById('siiExportMonth');
+        if (yearEl) yearEl.value = String(y);
+        if (monthEl) monthEl.value = '';
+      } else {
+        // this_month
+        from = `${y}-${pad2(m)}-01`;
+        to = `${y}-${pad2(m)}-${pad2(daysInMonth(y, m))}`;
+        const yearEl = document.getElementById('siiExportYear');
+        const monthEl = document.getElementById('siiExportMonth');
+        if (yearEl) yearEl.value = String(y);
+        if (monthEl) monthEl.value = pad2(m);
+      }
+      const fromEl = document.getElementById('siiExportFrom');
+      const toEl = document.getElementById('siiExportTo');
+      if (fromEl) fromEl.value = from;
+      if (toEl) toEl.value = to;
+      setExportPresetActive(preset);
+      updateExportPreview();
+    }
+
+    function applyMonthYearFields() {
+      const year = Number(document.getElementById('siiExportYear')?.value);
+      const month = String(document.getElementById('siiExportMonth')?.value || '');
+      if (!year) return;
+      const fromEl = document.getElementById('siiExportFrom');
+      const toEl = document.getElementById('siiExportTo');
+      if (month) {
+        const mm = Number(month);
+        if (fromEl) fromEl.value = `${year}-${pad2(mm)}-01`;
+        if (toEl) toEl.value = `${year}-${pad2(mm)}-${pad2(daysInMonth(year, mm))}`;
+        setExportPresetActive('');
+      } else {
+        if (fromEl) fromEl.value = `${year}-01-01`;
+        if (toEl) toEl.value = `${year}-12-31`;
+        setExportPresetActive('');
+      }
+      updateExportPreview();
+    }
+
+    function buildExportUrl() {
+      const from = document.getElementById('siiExportFrom')?.value || '';
+      const to = document.getElementById('siiExportTo')?.value || '';
       const base = (window.FandezAdminBase || '/admin') + '/dte/export.csv';
       const params = new URLSearchParams();
+      params.set('from', from);
+      params.set('to', to);
       if (state.type) params.set('type', state.type);
       if (state.status) params.set('status', state.status);
       if (state.dry !== '') params.set('dry', state.dry);
       if (state.q) params.set('q', state.q);
-      const qs = params.toString();
-      exportLink.href = qs ? `${base}?${qs}` : base;
+      return `${base}?${params.toString()}`;
+    }
+
+    function confirmExport() {
+      const from = document.getElementById('siiExportFrom')?.value || '';
+      const to = document.getElementById('siiExportTo')?.value || '';
+      const errEl = document.getElementById('siiExportError');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+        if (errEl) {
+          errEl.textContent = 'Elige un periodo válido (desde y hasta).';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      if (from > to) {
+        if (errEl) {
+          errEl.textContent = 'La fecha desde no puede ser posterior a hasta.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      if (errEl) errEl.classList.add('hidden');
+      window.location.href = buildExportUrl();
+      closeExportModal();
     }
 
     function matchedRows() {
@@ -5152,7 +5317,6 @@
         if (prevBtn) prevBtn.disabled = state.page <= 1 || matchCount === 0;
         if (nextBtn) nextBtn.disabled = state.page >= pages || matchCount === 0;
       }
-      syncExportHref();
     }
 
     function resetPageAndApply() {
@@ -5210,6 +5374,33 @@
       state.page += 1;
       apply();
     });
+
+    exportOpen?.addEventListener('click', openExportModal);
+    exportModal?.querySelectorAll('[data-close-sii-export]').forEach((el) => {
+      el.addEventListener('click', closeExportModal);
+    });
+    document.getElementById('siiExportPresets')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-preset]');
+      if (!btn) return;
+      applyExportPreset(btn.getAttribute('data-preset'));
+    });
+    document.getElementById('siiExportYear')?.addEventListener('change', applyMonthYearFields);
+    document.getElementById('siiExportMonth')?.addEventListener('change', applyMonthYearFields);
+    document.getElementById('siiExportFrom')?.addEventListener('change', () => {
+      setExportPresetActive('');
+      updateExportPreview();
+    });
+    document.getElementById('siiExportTo')?.addEventListener('change', () => {
+      setExportPresetActive('');
+      updateExportPreview();
+    });
+    document.getElementById('siiExportConfirm')?.addEventListener('click', confirmExport);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && exportModal && !exportModal.classList.contains('hidden')) {
+        closeExportModal();
+      }
+    });
+
     apply();
   })();
 

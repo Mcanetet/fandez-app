@@ -1914,17 +1914,28 @@ router.post('/dte/retry', requireRole('admin'), requireAdminPermission('document
 });
 
 /**
- * Reporte CSV de DTEs emitidos (filtros: type, status, dry, q).
- * Patrón facturadores Chile: libro de ventas / listado exportable.
+ * Reporte CSV de DTEs (periodo from/to + type/status/dry/q).
  */
 router.get('/dte/export.csv', requireRole('admin'), requireAdminPermission('documentos.view', 'documentos.manage'), async (req, res) => {
   try {
     const sii = require('../lib/sii-dte');
     const { shortTypeLabel } = require('../lib/sii-dte/dteTypes');
-    const docs = await sii.listRecent(500);
+    const from = String(req.query.from || req.query.desde || '').slice(0, 10);
+    const to = String(req.query.to || req.query.hasta || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Indica un periodo válido (from y to en formato AAAA-MM-DD).'
+      });
+    }
+    if (from > to) {
+      return res.status(400).json({ success: false, error: 'La fecha desde no puede ser posterior a hasta.' });
+    }
+
+    const docs = await sii.listForExport({ from, to, limit: 8000 });
     const typeFilter = String(req.query.type || req.query.dteType || '').replace(/\D/g, '');
     const statusFilter = String(req.query.status || '').trim().toLowerCase();
-    const dryFilter = String(req.query.dry || '').trim(); // '' | '0' | '1'
+    const dryFilter = String(req.query.dry || '').trim();
     const q = String(req.query.q || '').trim().toLowerCase().replace(/\./g, '');
 
     const filtered = (docs || []).filter((doc) => {
@@ -1976,15 +1987,16 @@ router.get('/dte/export.csv', requireRole('admin'), requireAdminPermission('docu
       ].join(','));
     });
     lines.push('');
+    lines.push(`periodo_desde,${from}`);
+    lines.push(`periodo_hasta,${to}`);
     lines.push(`documentos,${filtered.length}`);
     lines.push(`suma_neto,${Math.round(sumNeto)}`);
     lines.push(`suma_iva,${Math.round(sumIva)}`);
     lines.push(`suma_total,${Math.round(sumTotal)}`);
 
-    store.logSecurityEvent('dte_export', `${filtered.length} filas`, req);
-    const stamp = new Date().toISOString().slice(0, 10);
+    store.logSecurityEvent('dte_export', `${from}:${to}:${filtered.length}`, req);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="fandez-dte-${stamp}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="fandez-dte-${from}_${to}.csv"`);
     res.send('\uFEFF' + lines.join('\n'));
   } catch (err) {
     console.error('[admin] dte/export.csv', err);

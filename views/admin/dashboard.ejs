@@ -1190,9 +1190,9 @@ if (typeof hasPerm !== 'function') {
       <div class="flex justify-between items-start gap-3 mb-4 flex-wrap">
         <p class="text-xs text-gray-500"><%= t('admin.documentos.issued_subtitle') %></p>
         <div class="flex flex-wrap gap-2">
-          <a id="siiDocsExportCsv" href="<%= adminBase %>/dte/export.csv" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 font-semibold hover:border-teal-300">
-            Descargar reporte CSV
-          </a>
+          <button type="button" id="siiDocsExportOpen" class="dte-export-btn">
+            Descargar reporte
+          </button>
           <% if (hasPerm('documentos.manage')) { %>
             <button type="button" class="admin-goto-tab text-xs px-3 py-1.5 rounded-lg border border-teal-200 bg-teal-50 text-teal-800 font-semibold" data-tab="documentos">
               + Emitir factura
@@ -3936,6 +3936,79 @@ if (typeof hasPerm !== 'function') {
     </div>
     <div id="adminRequestCaseBody" class="admin-modal-body flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5 py-4 space-y-3 text-sm">
       <p class="text-gray-500">Cargando…</p>
+    </div>
+  </div>
+</div>
+
+<div id="siiDocsExportModal" class="admin-modal fixed inset-0 z-[210] hidden items-end sm:items-center justify-center p-0 sm:p-4" aria-hidden="true">
+  <div class="admin-modal-backdrop absolute inset-0" data-close-sii-export></div>
+  <div class="admin-modal-sheet dte-export-sheet relative w-full max-w-lg flex flex-col rounded-t-2xl sm:rounded-2xl" role="dialog" aria-labelledby="siiDocsExportTitle" aria-modal="true">
+    <div class="admin-modal-head flex items-start justify-between gap-3 px-5 pt-5 pb-3 shrink-0 border-b border-black/8">
+      <div class="min-w-0">
+        <p class="dte-export-kicker">Libro de documentos</p>
+        <h4 id="siiDocsExportTitle" class="text-lg font-semibold tracking-tight text-slate-900">Descargar reporte</h4>
+        <p class="text-xs text-slate-500 mt-1">Elige el periodo como en un facturador: mes, año o fechas exactas.</p>
+      </div>
+      <button type="button" class="text-slate-400 hover:text-slate-700 text-xl leading-none" data-close-sii-export aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="admin-modal-body px-5 py-4 space-y-4">
+      <div>
+        <p class="dte-export-label">Atajos</p>
+        <div class="dte-export-presets" id="siiExportPresets">
+          <button type="button" class="dte-export-preset is-active" data-preset="this_month">Este mes</button>
+          <button type="button" class="dte-export-preset" data-preset="last_month">Mes anterior</button>
+          <button type="button" class="dte-export-preset" data-preset="this_year">Este año</button>
+          <button type="button" class="dte-export-preset" data-preset="last_year">Año anterior</button>
+          <button type="button" class="dte-export-preset" data-preset="last_12">Últimos 12 meses</button>
+        </div>
+      </div>
+
+      <div class="dte-export-grid">
+        <div>
+          <label class="dte-export-label" for="siiExportMonth">Mes</label>
+          <select id="siiExportMonth" class="dte-export-field">
+            <option value="">—</option>
+            <option value="01">Enero</option>
+            <option value="02">Febrero</option>
+            <option value="03">Marzo</option>
+            <option value="04">Abril</option>
+            <option value="05">Mayo</option>
+            <option value="06">Junio</option>
+            <option value="07">Julio</option>
+            <option value="08">Agosto</option>
+            <option value="09">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </div>
+        <div>
+          <label class="dte-export-label" for="siiExportYear">Año</label>
+          <select id="siiExportYear" class="dte-export-field"></select>
+        </div>
+      </div>
+
+      <div class="dte-export-grid">
+        <div>
+          <label class="dte-export-label" for="siiExportFrom">Desde</label>
+          <input type="date" id="siiExportFrom" class="dte-export-field">
+        </div>
+        <div>
+          <label class="dte-export-label" for="siiExportTo">Hasta</label>
+          <input type="date" id="siiExportTo" class="dte-export-field">
+        </div>
+      </div>
+
+      <div class="dte-export-preview" id="siiExportPreview">
+        <span class="dte-export-preview__label">Periodo seleccionado</span>
+        <strong id="siiExportPreviewRange">—</strong>
+      </div>
+      <p class="text-[11px] text-slate-500" id="siiExportHint">Se respetan los filtros activos de tipo y estado del listado.</p>
+      <p class="text-[11px] text-rose-600 hidden" id="siiExportError"></p>
+    </div>
+    <div class="admin-modal-foot flex flex-wrap gap-2 justify-end px-5 py-4 border-t border-black/8 shrink-0">
+      <button type="button" class="admin-secondary-btn !py-2 !px-3 text-sm" data-close-sii-export>Cancelar</button>
+      <button type="button" id="siiExportConfirm" class="dte-export-confirm">Descargar CSV</button>
     </div>
   </div>
 </div>
