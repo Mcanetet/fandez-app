@@ -5047,26 +5047,103 @@
     })();
   })();
 
-  (function bindSiiDocsSearch() {
+  (function bindSiiDocsFilters() {
+    const root = document.getElementById('siiDocsFilters');
     const input = document.getElementById('siiDocsSearch');
     const list = document.getElementById('siiDocsList');
     const empty = document.getElementById('siiDocsSearchEmpty');
     const countLabel = document.getElementById('siiDocsCountLabel');
-    if (!input || !list) return;
+    const summaryCount = document.getElementById('siiDocsSummaryCount');
+    const summaryTotal = document.getElementById('siiDocsSummaryTotal');
+    const exportLink = document.getElementById('siiDocsExportCsv');
+    if (!list) return;
+
+    const state = { type: '', status: '', dry: '', q: '' };
     const rows = () => Array.from(list.querySelectorAll('.dte-doc-row'));
     const total = rows().length;
-    input.addEventListener('input', () => {
-      const q = String(input.value || '').trim().toLowerCase().replace(/\./g, '');
+    const clp = (n) => Math.round(Number(n) || 0).toLocaleString('es-CL');
+
+    function setChipActive(groupAttr, value) {
+      if (!root) return;
+      root.querySelectorAll(`[${groupAttr}]`).forEach((btn) => {
+        const v = btn.getAttribute(groupAttr) || '';
+        btn.classList.toggle('is-active', v === value);
+      });
+    }
+
+    function syncExportHref() {
+      if (!exportLink) return;
+      const base = (window.FandezAdminBase || '/admin') + '/dte/export.csv';
+      const params = new URLSearchParams();
+      if (state.type) params.set('type', state.type);
+      if (state.status) params.set('status', state.status);
+      if (state.dry !== '') params.set('dry', state.dry);
+      if (state.q) params.set('q', state.q);
+      const qs = params.toString();
+      exportLink.href = qs ? `${base}?${qs}` : base;
+    }
+
+    function apply() {
+      const q = String(state.q || '').trim().toLowerCase().replace(/\./g, '');
       let visible = 0;
+      let sum = 0;
       rows().forEach((row) => {
+        const typeOk = !state.type || String(row.dataset.type || '') === state.type;
+        const statusOk = !state.status || String(row.dataset.status || '') === state.status;
+        const dryOk = state.dry === '' || String(row.dataset.dry || '0') === state.dry;
         const blob = String(row.dataset.search || '').replace(/\./g, '');
-        const ok = !q || blob.includes(q);
+        const qOk = !q || blob.includes(q);
+        const ok = typeOk && statusOk && dryOk && qOk;
         row.classList.toggle('hidden', !ok);
-        if (ok) visible += 1;
+        if (ok) {
+          visible += 1;
+          sum += Number(row.dataset.total) || 0;
+        }
       });
       if (empty) empty.classList.toggle('hidden', visible > 0);
-      if (countLabel) countLabel.textContent = q ? `${visible} / ${total} doc.` : `${total} doc.`;
+      if (countLabel) {
+        countLabel.textContent = visible === total ? `${total} doc.` : `${visible} / ${total} doc.`;
+      }
+      if (summaryCount) summaryCount.textContent = `${visible} documento${visible === 1 ? '' : 's'}`;
+      if (summaryTotal) summaryTotal.textContent = `Total $${clp(sum)}`;
+      syncExportHref();
+    }
+
+    root?.querySelectorAll('[data-filter-type]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.type = btn.getAttribute('data-filter-type') || '';
+        setChipActive('data-filter-type', state.type);
+        apply();
+      });
     });
+    root?.querySelectorAll('[data-filter-status]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.status = btn.getAttribute('data-filter-status') || '';
+        state.dry = '';
+        setChipActive('data-filter-status', state.status);
+        root.querySelectorAll('[data-filter-dry]').forEach((b) => b.classList.remove('is-active'));
+        apply();
+      });
+    });
+    root?.querySelectorAll('[data-filter-dry]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const v = btn.getAttribute('data-filter-dry') || '';
+        state.dry = state.dry === v ? '' : v;
+        state.status = '';
+        setChipActive('data-filter-status', '');
+        root.querySelectorAll('[data-filter-dry]').forEach((b) => {
+          b.classList.toggle('is-active', (b.getAttribute('data-filter-dry') || '') === state.dry && state.dry !== '');
+        });
+        const allStatus = root.querySelector('[data-filter-status=""]');
+        if (allStatus) allStatus.classList.toggle('is-active', !state.status);
+        apply();
+      });
+    });
+    input?.addEventListener('input', () => {
+      state.q = input.value || '';
+      apply();
+    });
+    apply();
   })();
 
   document.querySelectorAll('.btn-set-app-mode').forEach((btn) => {

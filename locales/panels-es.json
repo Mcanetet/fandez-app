@@ -152,7 +152,7 @@
   "admin.documentos.title": "Emitir facturas",
   "admin.documentos.subtitle": "Emite factura 33, liquidación 43, compra 46 o nota de crédito 61",
   "admin.documentos.issued_title": "Facturas emitidas",
-  "admin.documentos.issued_subtitle": "Consulta, busca y descarga PDF/XML de documentos ya emitidos",
+  "admin.documentos.issued_subtitle": "Filtra por tipo, exporta reporte CSV y descarga PDF/XML",
   "admin.documentos.sii_config": "Configuración SII",
   "admin.documentos.dte_email_label": "Correo DTE",
   "admin.documentos.dte_email_hint": "recepción de facturas y emisión de documentos tributarios",

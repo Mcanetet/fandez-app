@@ -1914,6 +1914,85 @@ router.post('/dte/retry', requireRole('admin'), requireAdminPermission('document
 });
 
 /**
+ * Reporte CSV de DTEs emitidos (filtros: type, status, dry, q).
+ * Patrón facturadores Chile: libro de ventas / listado exportable.
+ */
+router.get('/dte/export.csv', requireRole('admin'), requireAdminPermission('documentos.view', 'documentos.manage'), async (req, res) => {
+  try {
+    const sii = require('../lib/sii-dte');
+    const { shortTypeLabel } = require('../lib/sii-dte/dteTypes');
+    const docs = await sii.listRecent(500);
+    const typeFilter = String(req.query.type || req.query.dteType || '').replace(/\D/g, '');
+    const statusFilter = String(req.query.status || '').trim().toLowerCase();
+    const dryFilter = String(req.query.dry || '').trim(); // '' | '0' | '1'
+    const q = String(req.query.q || '').trim().toLowerCase().replace(/\./g, '');
+
+    const filtered = (docs || []).filter((doc) => {
+      const dt = String(Number(doc.dteType) || 33);
+      if (typeFilter && dt !== typeFilter) return false;
+      const st = String(doc.siiStatus || '').toLowerCase();
+      if (statusFilter && st !== statusFilter) return false;
+      const dry = Boolean(doc.meta?.dryRun);
+      if (dryFilter === '1' && !dry) return false;
+      if (dryFilter === '0' && dry) return false;
+      if (q) {
+        const blob = [
+          doc.folio, doc.receptorName, doc.receptorRut, dt,
+          shortTypeLabel(doc.dteType), st, doc.trackId, dry ? 'dry-run' : 'real'
+        ].join(' ').toLowerCase().replace(/\./g, '');
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+
+    const lines = [
+      'fecha,tipo,tipo_glosa,folio,receptor_rut,receptor_nombre,neto,iva,total,estado_sii,track_id,ambiente,dry_run,fase,id'
+    ];
+    let sumNeto = 0;
+    let sumIva = 0;
+    let sumTotal = 0;
+    filtered.forEach((doc) => {
+      const when = String(doc.signedAt || doc.sentAt || doc.createdAt || '').slice(0, 10);
+      const dry = Boolean(doc.meta?.dryRun);
+      sumNeto += Number(doc.neto) || 0;
+      sumIva += Number(doc.iva) || 0;
+      sumTotal += Number(doc.total) || 0;
+      lines.push([
+        csvEscape(when),
+        Number(doc.dteType) || 33,
+        csvEscape(shortTypeLabel(doc.dteType)),
+        doc.folio || '',
+        csvEscape(doc.receptorRut || ''),
+        csvEscape(doc.receptorName || ''),
+        Math.round(Number(doc.neto) || 0),
+        Math.round(Number(doc.iva) || 0),
+        Math.round(Number(doc.total) || 0),
+        csvEscape(doc.siiStatus || ''),
+        csvEscape(doc.trackId || ''),
+        csvEscape(doc.environment || ''),
+        dry ? 'si' : 'no',
+        csvEscape(doc.phase || ''),
+        csvEscape(doc.id || '')
+      ].join(','));
+    });
+    lines.push('');
+    lines.push(`documentos,${filtered.length}`);
+    lines.push(`suma_neto,${Math.round(sumNeto)}`);
+    lines.push(`suma_iva,${Math.round(sumIva)}`);
+    lines.push(`suma_total,${Math.round(sumTotal)}`);
+
+    store.logSecurityEvent('dte_export', `${filtered.length} filas`, req);
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="fandez-dte-${stamp}.csv"`);
+    res.send('\uFEFF' + lines.join('\n'));
+  } catch (err) {
+    console.error('[admin] dte/export.csv', err);
+    res.status(500).json({ success: false, error: err.message || 'No se pudo exportar' });
+  }
+});
+
+/**
  * Autocompletar receptor por RUT (socios / DTEs previos / API empresas).
  */
 router.get('/dte/receptor-lookup', requireRole('admin'), requireAdminPermission('documentos.manage', 'documentos.view'), async (req, res) => {

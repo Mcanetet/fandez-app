@@ -152,7 +152,7 @@
   "admin.documentos.title": "Issue invoices",
   "admin.documentos.subtitle": "Issue invoice 33, liquidation 43, purchase 46 or credit note 61",
   "admin.documentos.issued_title": "Issued invoices",
-  "admin.documentos.issued_subtitle": "Search and download PDF/XML of documents already issued",
+  "admin.documentos.issued_subtitle": "Filter by type, export CSV report and download PDF/XML",
   "admin.documentos.sii_config": "SII configuration",
   "admin.documentos.dte_email_label": "DTE email",
   "admin.documentos.dte_email_hint": "invoice reception and tax document issuance",

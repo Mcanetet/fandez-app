@@ -1189,44 +1189,97 @@ if (typeof hasPerm !== 'function') {
     <section class="<%= panelClass('facturas-emitidas') %>" data-panel="facturas-emitidas" data-subtitle="<%= t('admin.documentos.issued_subtitle') %>">
       <div class="flex justify-between items-start gap-3 mb-4 flex-wrap">
         <p class="text-xs text-gray-500"><%= t('admin.documentos.issued_subtitle') %></p>
-        <% if (hasPerm('documentos.manage')) { %>
-          <button type="button" class="admin-goto-tab text-xs px-3 py-1.5 rounded-lg border border-teal-200 bg-teal-50 text-teal-800 font-semibold" data-tab="documentos">
-            + Emitir factura
-          </button>
-        <% } %>
+        <div class="flex flex-wrap gap-2">
+          <a id="siiDocsExportCsv" href="<%= adminBase %>/dte/export.csv" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 font-semibold hover:border-teal-300">
+            Descargar reporte CSV
+          </a>
+          <% if (hasPerm('documentos.manage')) { %>
+            <button type="button" class="admin-goto-tab text-xs px-3 py-1.5 rounded-lg border border-teal-200 bg-teal-50 text-teal-800 font-semibold" data-tab="documentos">
+              + Emitir factura
+            </button>
+          <% } %>
+        </div>
       </div>
 
       <div class="dte-list-head">
         <h4 class="text-sm font-semibold text-gray-800"><%= t('admin.documentos.sii_list_title') %></h4>
         <span class="text-[10px] text-gray-400" id="siiDocsCountLabel"><%= siiDocs.length %> doc.</span>
       </div>
-      <div class="dte-doc-search mb-3">
-        <label class="sr-only" for="siiDocsSearch">Buscar facturas emitidas</label>
-        <input type="search" id="siiDocsSearch" class="zilo-input w-full text-sm" placeholder="Buscar por folio, RUT, razón social o tipo (33/43/46/61)…" autocomplete="off">
+
+      <div class="dte-filters" id="siiDocsFilters">
+        <div class="dte-filters__row">
+          <span class="dte-filters__label">Tipo</span>
+          <div class="dte-filters__chips" role="group" aria-label="Filtrar por tipo de documento">
+            <button type="button" class="dte-chip is-active" data-filter-type="">Todos</button>
+            <button type="button" class="dte-chip dte-chip--fv" data-filter-type="33">Factura 33</button>
+            <button type="button" class="dte-chip dte-chip--lf" data-filter-type="43">Liquidación 43</button>
+            <button type="button" class="dte-chip dte-chip--fc" data-filter-type="46">Compra 46</button>
+            <button type="button" class="dte-chip dte-chip--nc" data-filter-type="61">Nota crédito 61</button>
+          </div>
+        </div>
+        <div class="dte-filters__row">
+          <span class="dte-filters__label">Estado</span>
+          <div class="dte-filters__chips" role="group" aria-label="Filtrar por estado SII">
+            <button type="button" class="dte-chip is-active" data-filter-status="">Todos</button>
+            <button type="button" class="dte-chip" data-filter-status="signed">Firmado</button>
+            <button type="button" class="dte-chip" data-filter-status="sent">Enviado</button>
+            <button type="button" class="dte-chip" data-filter-status="accepted">Aceptado</button>
+            <button type="button" class="dte-chip" data-filter-status="rejected">Rechazado</button>
+            <button type="button" class="dte-chip" data-filter-dry="1">Solo dry-run</button>
+            <button type="button" class="dte-chip" data-filter-dry="0">Solo reales</button>
+          </div>
+        </div>
+        <div class="dte-doc-search">
+          <label class="sr-only" for="siiDocsSearch">Buscar facturas emitidas</label>
+          <input type="search" id="siiDocsSearch" class="zilo-input w-full text-sm" placeholder="Buscar folio, RUT o razón social…" autocomplete="off">
+        </div>
+        <div class="dte-filters__summary" id="siiDocsSummary">
+          <span id="siiDocsSummaryCount"><%= siiDocs.length %> documentos</span>
+          <span class="dte-filters__dot">·</span>
+          <span id="siiDocsSummaryTotal">Total <%= formatCLP(siiDocs.reduce(function(s, d) { return s + (Number(d.total) || 0); }, 0)) %></span>
+        </div>
       </div>
+
       <% if (!siiDocs.length) { %>
         <p class="dte-empty mb-5" id="siiDocsEmpty"><%= t('admin.documentos.sii_list_empty') %></p>
       <% } else { %>
         <div class="dte-doc-list mb-6" id="siiDocsList">
           <% siiDocs.forEach(function(doc) { %>
             <% const dt = Number(doc.dteType); %>
+            <% const typeKey = dt === 61 ? 'nc' : (dt === 46 ? 'fc' : (dt === 43 ? 'lf' : 'fv')); %>
+            <% const typeLabel = dt === 61 ? 'NC 61' : (dt === 46 ? 'FC 46' : (dt === 43 ? 'LF 43' : 'FV 33')); %>
+            <% const typeWords = dt === 61 ? 'nota credito' : (dt === 46 ? 'factura compra' : (dt === 43 ? 'liquidacion' : 'factura')); %>
+            <% const statusKey = String(doc.siiStatus || '').toLowerCase(); %>
+            <% const dry = !!(doc.meta && doc.meta.dryRun); %>
+            <% const when = doc.signedAt || doc.sentAt || doc.createdAt || ''; %>
+            <% const whenLabel = when ? String(when).slice(0, 10) : ''; %>
             <% const searchBlob = [
               String(doc.folio || ''),
               String(doc.receptorName || ''),
               String(doc.receptorRut || ''),
               String(dt),
-              dt === 61 ? 'NC 61 nota credito' : (dt === 46 ? 'FC 46 compra' : (dt === 43 ? 'LF 43 liquidacion' : 'FV 33 factura')),
-              String(doc.siiStatus || ''),
+              typeLabel,
+              typeWords,
+              statusKey,
+              dry ? 'dry-run' : 'real',
+              whenLabel,
+              doc.trackId || '',
               doc.meta && doc.meta.reference && doc.meta.reference.folio ? ('ref ' + doc.meta.reference.folio) : ''
             ].join(' ').toLowerCase(); %>
-            <article class="dte-doc-row" data-search="<%= searchBlob.replace(/"/g, '&quot;') %>">
+            <article
+              class="dte-doc-row"
+              data-search="<%= searchBlob.replace(/"/g, '&quot;') %>"
+              data-type="<%= dt %>"
+              data-status="<%= statusKey %>"
+              data-dry="<%= dry ? '1' : '0' %>"
+              data-total="<%= Math.round(Number(doc.total) || 0) %>"
+            >
               <div class="dte-doc-row__main">
                 <div class="dte-doc-row__badges">
-                  <span class="dte-badge dte-badge--<%= dt === 61 ? 'nc' : (dt === 46 ? 'fc' : (dt === 43 ? 'lf' : 'fv')) %>">
-                    <%= dt === 61 ? 'NC 61' : (dt === 46 ? 'FC 46' : (dt === 43 ? 'LF 43' : 'FV 33')) %>
-                  </span>
-                  <% if (doc.meta && doc.meta.dryRun) { %><span class="dte-badge dte-badge--muted">dry-run</span><% } %>
+                  <span class="dte-badge dte-badge--<%= typeKey %>"><%= typeLabel %></span>
+                  <% if (dry) { %><span class="dte-badge dte-badge--muted">dry-run</span><% } %>
                   <span class="dte-badge dte-badge--muted"><%= doc.siiStatus || '—' %></span>
+                  <% if (whenLabel) { %><span class="dte-badge dte-badge--date"><%= whenLabel %></span><% } %>
                 </div>
                 <strong class="dte-doc-row__folio">N° <%= doc.folio %></strong>
                 <p class="dte-doc-row__party"><%= doc.receptorName %> · <%= doc.receptorRut %></p>
@@ -1237,18 +1290,18 @@ if (typeof hasPerm !== 'function') {
               <div class="dte-doc-row__side">
                 <span class="dte-doc-row__amount"><%= formatCLP(doc.total || 0) %></span>
                 <div class="dte-doc-row__links">
-                  <a href="/documentos/tributarios/sii/<%= doc.id %>?ejemplar=tributario" class="dte-doc-row__link"><%= t('admin.common.view_tributario') %></a>
+                  <a href="/documentos/tributarios/sii/<%= doc.id %>?ejemplar=tributario" class="dte-doc-row__btn"><%= t('admin.common.view_tributario') %></a>
                   <% if (dt === 33 || dt === 43 || dt === 46) { %>
-                    <a href="/documentos/tributarios/sii/<%= doc.id %>?ejemplar=cedible" class="dte-doc-row__link"><%= t('admin.common.view_cedible') %></a>
+                    <a href="/documentos/tributarios/sii/<%= doc.id %>?ejemplar=cedible" class="dte-doc-row__btn dte-doc-row__btn--ghost"><%= t('admin.common.view_cedible') %></a>
                   <% } %>
-                  <a href="/documentos/tributarios/sii/<%= doc.id %>/xml" class="dte-doc-row__link" download><%= t('admin.common.download_xml') %></a>
+                  <a href="/documentos/tributarios/sii/<%= doc.id %>/xml" class="dte-doc-row__btn dte-doc-row__btn--ghost" download>XML</a>
                 </div>
               </div>
             </article>
           <% }); %>
         </div>
       <% } %>
-      <p class="dte-empty mb-5 hidden" id="siiDocsSearchEmpty">No hay facturas que coincidan con la búsqueda.</p>
+      <p class="dte-empty mb-5 hidden" id="siiDocsSearchEmpty">No hay documentos con estos filtros.</p>
 
       <h4 class="text-sm font-semibold text-gray-800 mb-2 mt-6"><%= t('admin.documentos.legacy_list_title') %></h4>
       <% if (!dteDocuments.length) { %>
