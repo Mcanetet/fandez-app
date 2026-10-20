@@ -127,6 +127,10 @@ Representación impresa: `GET /documentos/tributarios/sii/:docId`
 
 Antes de producción debes completar el **set de pruebas** del SII con el certificado de certificación y CAF de prueba. El dry-run permite integrar el flujo de negocio sin esperar la certificación.
 
+Checklist operativo (casos 33/61, carátula, errores típicos y gaps del módulo):
+
+→ **[SII-SET-PRUEBAS-CHECKLIST.md](./SII-SET-PRUEBAS-CHECKLIST.md)**
+
 ## Arquitectura
 
 ```
