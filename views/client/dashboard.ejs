@@ -30,55 +30,53 @@
     <%- include('../partials/site-alert') %>
 
     <% const refundAttention = (typeof attentionItems !== 'undefined' ? attentionItems : []).filter(function(i){ return i.type === 'refund_pending'; }); %>
-    <% if (refundAttention.length) { %>
-    <section class="mb-5 space-y-2" aria-label="<%= t('client.dashboard.refund_section') %>">
-      <% refundAttention.forEach(function(item) { %>
-        <a href="<%= item.url || '/cliente/historial' %>" class="block p-4 rounded-2xl border border-[rgba(42,106,91,0.22)] bg-[var(--aland-soft)] hover:border-[rgba(42,106,91,0.4)] transition">
-          <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--aland-strong)] mb-1"><%= t('client.dashboard.refund_kicker') %></p>
-          <strong class="text-sm block text-zilo-text"><%= item.title %></strong>
-          <p class="text-xs text-zilo-muted mt-1 leading-relaxed"><%= item.body %></p>
-          <span class="inline-block text-[11px] font-semibold text-[var(--aland-strong)] mt-2"><%= t('client.dashboard.refund_see_historial') %> →</span>
-        </a>
-      <% }); %>
-    </section>
-    <% } %>
-
+    <%
+      function compactRefundBits(item) {
+        const raw = String(item && item.body || '');
+        const cut = raw.indexOf(':');
+        const name = cut > 0 ? raw.slice(0, cut).trim() : String(item && item.title || '');
+        const amountMatch = raw.match(/\$\s*[\d.]+/);
+        const amount = amountMatch ? amountMatch[0].replace(/\s/g, '') : '';
+        return { name: name || t('client.dashboard.refund_kicker'), amount: amount };
+      }
+    %>
     <% const hasActive = activeRequests && activeRequests.length > 0; %>
     <% const isReturning = Boolean((typeof lastCompleted !== 'undefined' && lastCompleted) || (passport && passport.entries && passport.entries.length)); %>
-    <% const cancelFeeLabel = typeof formatCLP === 'function' ? formatCLP(10000) : '$10.000'; %>
 
-    <% if (hasActive) { %>
-    <!-- Solicitudes en curso → luego pedir otro -->
-    <section class="mb-6" id="clientActiveRequests">
-      <div class="flex items-center justify-between gap-2 mb-2">
-        <h2 class="zilo-label !mb-0"><%= t('client.dashboard.requests_in_progress') %></h2>
-        <span class="text-[10px] font-semibold text-zilo-accent tabular-nums"><%= t(activeRequests.length === 1 ? 'client.dashboard.active_one' : 'client.dashboard.active_many', { count: activeRequests.length }) %></span>
-      </div>
-      <p class="text-[11px] text-zilo-muted leading-relaxed mb-3"><%= t('client.dashboard.cancel_fee_note', { fee: cancelFeeLabel }) %></p>
-      <div class="space-y-2 mb-5">
-        <% activeRequests.forEach(function(req) { %>
-          <a href="/cliente/servicio/<%= req.serviceId %>?tracking=<%= req.id %>"
-            class="flex items-center gap-3 p-4 rounded-2xl zilo-card-premium border border-zilo-accent/20 hover:border-zilo-accent/40 transition">
-            <div class="flex-1 min-w-0">
-              <strong class="text-sm block truncate text-zilo-text"><%= req.serviceName %></strong>
-              <span class="text-xs text-zilo-muted block mt-0.5 truncate"><%= req.statusLabel || req.status %><% if (req.etaLabel) { %> · ETA <%= req.etaLabel %><% } %></span>
-            </div>
-            <span class="text-[11px] font-semibold text-zilo-accent shrink-0"><%= t('client.dashboard.follow') %></span>
+    <% if (refundAttention.length || hasActive) { %>
+    <section class="home-status-stack" aria-label="<%= t('client.dashboard.refund_section') %>">
+      <% if (refundAttention.length) { %>
+      <div class="home-status-group" aria-label="<%= t('client.dashboard.refund_section') %>">
+        <% refundAttention.forEach(function(item) {
+          const bits = compactRefundBits(item);
+        %>
+          <a href="<%= item.url || '/cliente/historial' %>" class="home-status-row home-status-row--refund">
+            <span class="home-status-kicker"><%= t('client.dashboard.refund_kicker') %></span>
+            <span class="home-status-main"><%= bits.name %></span>
+            <% if (bits.amount) { %><strong class="home-status-amt"><%= bits.amount %></strong><% } %>
           </a>
         <% }); %>
       </div>
+      <% } %>
 
+      <% if (hasActive) { %>
+      <div class="home-status-group" id="clientActiveRequests">
+        <% activeRequests.forEach(function(req) { %>
+          <a href="/cliente/servicio/<%= req.serviceId %>?tracking=<%= req.id %>" class="home-status-row home-status-row--active">
+            <span class="home-status-kicker"><%= t('client.dashboard.follow') %></span>
+            <span class="home-status-main"><%= req.serviceName %></span>
+            <span class="home-status-meta"><%= req.statusLabel || req.status %><% if (req.etaLabel) { %> · <%= req.etaLabel %><% } %></span>
+          </a>
+        <% }); %>
+      </div>
+      <% } %>
+    </section>
+    <% } %>
+
+    <% if (hasActive) { %>
+    <section class="mb-5">
       <% if (mod('client_solicitar')) { %>
-      <details class="group" open>
-        <summary class="cursor-pointer list-none flex items-center justify-between gap-2 py-2">
-          <span>
-            <span class="zilo-label !mb-0" data-tour="services" id="servicesSection"><%= t('client.dashboard.request_another') %></span>
-            <span class="block text-xs text-zilo-muted mt-0.5"><%= t('client.dashboard.request_another_hint') %></span>
-          </span>
-          <span class="text-[11px] text-zilo-accent font-semibold group-open:hidden"><%= t('client.dashboard.show') %></span>
-          <span class="text-[11px] text-zilo-muted font-semibold hidden group-open:inline"><%= t('client.dashboard.hide') %></span>
-        </summary>
-        <div class="mt-3 space-y-5 mb-2">
+        <div class="space-y-5 mb-2" data-tour="services" id="servicesSection">
           <div class="mb-1">
             <%- include('../partials/task-search', { taskSearchIndex: typeof taskSearchIndex !== 'undefined' ? taskSearchIndex : [], taskSearchMode: 'client' }) %>
           </div>
@@ -95,7 +93,6 @@
           </div>
           <% } %>
         </div>
-      </details>
       <% } %>
     </section>
 

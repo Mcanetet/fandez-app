@@ -5652,6 +5652,75 @@ body.admin-modal-open {
 .service-lean #btnRequest {
   display: none !important;
 }
+.home-status-stack {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.home-status-group {
+  display: grid;
+  gap: 0.3rem;
+}
+.home-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.15rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.7rem;
+  text-decoration: none;
+  border: 1px solid var(--zilo-border);
+  background: #fff;
+}
+.home-status-row--refund {
+  border-color: rgba(42, 106, 91, 0.2);
+  background: var(--aland-soft, #f3f7f5);
+}
+.home-status-row--active {
+  border-color: rgba(196, 92, 20, 0.22);
+}
+.home-status-kicker {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--zilo-muted);
+  flex: 0 0 auto;
+}
+.home-status-row--refund .home-status-kicker {
+  color: var(--aland-strong, #2a6a5b);
+}
+.home-status-row--active .home-status-kicker {
+  color: var(--zilo-accent);
+}
+.home-status-main {
+  min-width: 0;
+  flex: 0 1 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--zilo-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-status-amt {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--aland-strong, #2a6a5b);
+  white-space: nowrap;
+}
+.home-status-meta {
+  margin-left: auto;
+  min-width: 0;
+  max-width: 52%;
+  font-size: 10px;
+  color: var(--zilo-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
 .service-cancel-policy {
   margin-top: 0.15rem;
   padding-top: 0.15rem;
