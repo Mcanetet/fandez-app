@@ -5649,6 +5649,9 @@ body.admin-modal-open {
 .service-lean #urgencyScheduleDetails summary span:last-child {
   display: none;
 }
+.service-lean #btnRequest {
+  display: none !important;
+}
 body:has(#servicePage.service-lean) .legal-footer,
 body:has(#servicePage.service-lean) #alandFabRoot,
 body:has(#servicePage.service-lean) .cookie-banner,
