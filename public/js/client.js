@@ -314,6 +314,7 @@
   }
 
   function showAddressOnMap(lat, lng, label, { approximate = false } = {}) {
+    if (page?.classList.contains('service-lean')) return;
     if (typeof FandezMap === 'undefined') return;
     const mapEl = document.getElementById('addressMap');
     if (!mapEl) return;
@@ -478,7 +479,8 @@
       if (ring) ring.classList.toggle('border-zilo-accent', Boolean(on));
     });
     const panel = document.getElementById('activitySelectedPanel');
-    if (panel) {
+    const leanPage = page?.classList.contains('service-lean');
+    if (panel && !leanPage) {
       if (!meta || !meta.id) {
         panel.classList.add('hidden');
       } else {
@@ -797,6 +799,10 @@
     return page?.dataset?.cleaning === '1' || page?.dataset?.serviceId === 'limpieza';
   }
 
+  function isOtrosService() {
+    return page?.dataset?.otros === '1' || page?.dataset?.serviceId === 'otros';
+  }
+
   function readCleaningFactors() {
     return {
       hasPets: Boolean(document.getElementById('cleaningHasPets')?.checked),
@@ -949,6 +955,12 @@
     return { localTime, timeZone };
   }
 
+  function formatPayCta(amountText) {
+    const label = t('client.service.pay_cta') || t('client.service.continue_pay') || 'Pagar';
+    if (amountText && amountText !== '—') return `${label} ${amountText}`;
+    return label;
+  }
+
   async function updatePricePreview() {
     const visitEl = document.getElementById('displayVisitPrice');
     if (!visitEl) return;
@@ -1025,6 +1037,10 @@
 
       const stickyTotal = document.getElementById('stickyTotal');
       if (stickyTotal) stickyTotal.textContent = f.estimatedTotal;
+      const stickyBtn = document.getElementById('btnRequestSticky');
+      if (stickyBtn && !stickyBtn.disabled) {
+        stickyBtn.textContent = formatPayCta(f.estimatedTotal);
+      }
 
       const svcRow = document.getElementById('servicePriceRow');
       if (svcRow) {
@@ -3976,7 +3992,9 @@
       };
     }
 
-    const activityId = document.getElementById('activityId')?.value || '';
+    const activityId = isOtrosService()
+      ? 'otro'
+      : (document.getElementById('activityId')?.value || '');
     const customName = document.getElementById('customActivityName')?.value.trim() || '';
     const notes = document.getElementById('notes')?.value.trim() || '';
     const gardenIntakeJob = isGardenIntakeService();
@@ -4018,9 +4036,19 @@
       document.getElementById('activityId')?.focus();
       return;
     }
-    if (activityId === 'otro' && customName.length < 4) {
-      FandezNotify.show('En Otro, describe el servicio que necesitas', 'warning');
+    if ((activityId === 'otro' || isOtrosService()) && customName.length < 3) {
+      FandezNotify.show(
+        isOtrosService()
+          ? (t('client.js.need_otros_name') || 'Indica el nombre del servicio')
+          : 'En Otro, describe el servicio que necesitas',
+        'warning'
+      );
       document.getElementById('customActivityName')?.focus();
+      return;
+    }
+    if (isOtrosService() && notes.length < 10) {
+      FandezNotify.show(t('client.js.need_otros_desc') || 'Describe el servicio (mín. 10 caracteres)', 'warning');
+      document.getElementById('notes')?.focus();
       return;
     }
     if (landscapeJob) {
@@ -4053,6 +4081,8 @@
     const hasProblemPhoto = Boolean(cachedProblemPhoto || clientPhotoInput?.files?.length || resumeKeepClientPhoto);
     if ((gardenJob || fvIntakeJob) && !hasProblemPhoto) {
       if (fvIntakeJob || (gardenJob && !cleaningJob && isGardenIntakeService())) {
+        const more = document.getElementById('moreOrderDetails');
+        if (more) more.open = true;
         FandezNotify.show(
           fvIntakeJob ? 'Sube una foto del techo o del tablero' : t('client.js.need_garden_photo'),
           'warning'
@@ -4067,12 +4097,14 @@
       brandNotVisible = true;
     }
 
-    const continueLabel = t('client.js.continue_payment');
+    const continueLabel = formatPayCta(document.getElementById('stickyTotal')?.textContent || '');
     const stickyBtn = document.getElementById('btnRequestSticky');
     const setBusy = (busy) => {
       submitInFlight = busy;
-      btnRequest.disabled = busy;
-      btnRequest.textContent = busy ? t('client.js.processing') : continueLabel;
+      if (btnRequest) {
+        btnRequest.disabled = busy;
+        btnRequest.textContent = busy ? t('client.js.processing') : continueLabel;
+      }
       if (stickyBtn) {
         stickyBtn.disabled = busy;
         stickyBtn.textContent = busy ? t('client.js.processing') : continueLabel;
@@ -4131,7 +4163,7 @@
           activityId: gardenIntakeJob || fvIntakeJob
             ? (document.getElementById('activityId')?.value || activityId)
             : activityId,
-          customName: activityId === 'otro' ? customName : undefined,
+          customName: (activityId === 'otro' || isOtrosService()) ? customName : undefined,
           squareMeters: gardenJob ? squareMeters : undefined,
           landscapeProject: landscapeJob ? landscapeProject : undefined,
           gardenIntake: gardenIntakeJob ? gardenIntake : undefined,
@@ -4288,20 +4320,33 @@
   const stickyBar = document.getElementById('stickyOrderBar');
   const requestFormEl = document.getElementById('requestForm');
   if (stickyBar && requestFormEl && !trackingId) {
-    const observer = new IntersectionObserver(([entry]) => {
-      // En flujo de pago el sticky “Continuar al pago” confunde: el brick ya está en pantalla.
-      if (page?.dataset?.payFlow === '1' || page?.classList?.contains('service-pay-flow')) {
-        stickyBar.classList.remove('is-visible');
-        stickyBar.classList.add('service-pay-flow-hide');
-        stickyBar.setAttribute('aria-hidden', 'true');
-        return;
-      }
-      const visible = !entry.isIntersecting && !requestFormEl.classList.contains('hidden');
-      stickyBar.classList.toggle('is-visible', visible);
-      stickyBar.setAttribute('aria-hidden', visible ? 'false' : 'true');
-    }, { threshold: 0, rootMargin: '0px 0px -80px 0px' });
-    observer.observe(requestFormEl);
+    const hideStickyForPay = () => {
+      stickyBar.classList.remove('is-visible');
+      stickyBar.classList.add('service-pay-flow-hide');
+      stickyBar.setAttribute('aria-hidden', 'true');
+    };
+    if (page?.dataset?.payFlow === '1' || page?.classList?.contains('service-pay-flow')) {
+      hideStickyForPay();
+    } else if (page?.classList.contains('service-lean')) {
+      stickyBar.classList.add('is-visible');
+      stickyBar.setAttribute('aria-hidden', 'false');
+    } else {
+      const observer = new IntersectionObserver(([entry]) => {
+        if (page?.dataset?.payFlow === '1' || page?.classList?.contains('service-pay-flow')) {
+          hideStickyForPay();
+          return;
+        }
+        const visible = !entry.isIntersecting && !requestFormEl.classList.contains('hidden');
+        stickyBar.classList.toggle('is-visible', visible);
+        stickyBar.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      }, { threshold: 0, rootMargin: '0px 0px -80px 0px' });
+      observer.observe(requestFormEl);
+    }
   }
+
+  document.getElementById('addressMapDetails')?.addEventListener('toggle', (ev) => {
+    if (ev.currentTarget.open) ensureAddressMapSize();
+  });
 
   function syncActiveRequestOnResume() {
     if (!currentRequestId) return;

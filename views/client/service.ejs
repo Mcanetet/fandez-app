@@ -1,7 +1,8 @@
 <% const payFlowNow = typeof inlinePayFlow !== 'undefined' && inlinePayFlow; %>
 <%- include('../partials/head', { useMap: !payFlowNow, preloadMp: typeof mpEmbedCheckout !== 'undefined' && mpEmbedCheckout }) %>
 
-<% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria', 'paisajismo', 'limpieza', 'escombros', 'fotovoltaico', 'piscinas']; %>
+<% const brandOptionalServices = ['pintura', 'cerrajero', 'jardineria', 'paisajismo', 'limpieza', 'escombros', 'fotovoltaico', 'piscinas', 'otros']; %>
+<% const isOtros = String(service.id || '') === 'otros'; %>
 <% const brandOptional = brandOptionalServices.indexOf(String(service.id || '').toLowerCase()) !== -1; %>
 <% const isGarden = String(service.id || '') === 'paisajismo'; %>
 <% const isFv = String(service.id || '') === 'fotovoltaico'; %>
@@ -13,8 +14,11 @@
 <% const draftAmount = (typeof checkoutDraft !== 'undefined' && checkoutDraft)
   ? (checkoutDraft.amountDue || checkoutDraft.visitTotal || checkoutDraft.basePrice || 0)
   : 0; %>
-<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter<%= payFlowNow ? ' service-pay-flow' : '' %>" id="servicePage"
+<% const leanCheckout = !(typeof tracking !== 'undefined' && tracking); %>
+<% const displayFrom = typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice); %>
+<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter<%= payFlowNow ? ' service-pay-flow' : '' %><%= leanCheckout ? ' service-lean' : '' %>" id="servicePage"<%- leanCheckout ? ' data-lean="1"' : '' %>
   data-service-id="<%= service.id %>"
+  data-otros="<%= isOtros ? '1' : '0' %>"
   data-service-name="<%= service.name %>"
   data-client-id="<%= user && user.id ? user.id : '' %>"
   data-visit-price="<%= typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice) %>"
@@ -48,8 +52,10 @@
   }) %>
 
   <main class="flex-1 px-5 py-5 pb-28">
+    <% if (!leanCheckout) { %>
     <%- include('../partials/checkout-progress', { checkoutStep: typeof tracking !== 'undefined' && tracking ? 3 : 1 }) %>
     <%- include('../partials/trust-strip', { trustStats: typeof trustStats !== 'undefined' ? trustStats : {} }) %>
+    <% } %>
 
     <section id="waitingOrderPanel" class="hidden waiting-order-panel" aria-live="polite">
       <div class="waiting-order-status">
@@ -79,7 +85,7 @@
       </div>
     </section>
 
-    <% if (!(typeof tracking !== 'undefined' && tracking)) { %>
+    <% if (!(typeof tracking !== 'undefined' && tracking) && !leanCheckout) { %>
     <div class="mb-4 p-3 rounded-2xl border service-sales-block <%= isProjectPath ? 'border-emerald-200 bg-emerald-50/60' : 'border-amber-200 bg-amber-50/50' %>">
       <p class="text-[11px] font-semibold uppercase tracking-wide <%= isProjectPath ? 'text-emerald-800' : 'text-amber-900' %> mb-0.5">
         <%= isProjectPath ? t('client.service.path_project_badge') : t('client.service.path_now_badge') %>
@@ -102,18 +108,38 @@
     <script type="application/json" id="checkoutDraftJson"><%- JSON.stringify(checkoutDraft).replace(/</g, '\\u003c') %></script>
     <% } %>
 
+    <% if (!leanCheckout) { %>
     <%- include('../partials/service-overview-card', {
       overview: typeof serviceOverview !== 'undefined' ? serviceOverview : null,
       service: service,
       t: t
     }) %>
+    <% } %>
 
+    <% if (leanCheckout) { %>
+    <div id="pricingBox" class="sr-only" aria-hidden="true">
+      <span id="displayVisitPrice"><%= formatCLP(displayFrom) %></span>
+      <span id="displayServicePrice"><%= formatCLP(0) %></span>
+      <span id="displayTotalPrice"><%= perM2 ? '—' : formatCLP(displayFrom) %></span>
+      <span id="displayScheduleAdj"></span>
+      <span id="displayUrgencyAdj"></span>
+      <span id="displayTransferCost"></span>
+      <span id="scheduleAdjustmentLabel"></span>
+      <span id="urgencyAdjustmentLabel"></span>
+      <span id="transferCostLabel"></span>
+      <span id="transferCostHint"></span>
+      <div id="scheduleAdjustmentRow" class="hidden"></div>
+      <div id="urgencyAdjustmentRow" class="hidden"></div>
+      <div id="zoneAdjustmentRow" class="hidden"></div>
+      <div id="transferCostRow" class="hidden"></div>
+      <div id="servicePriceRow" class="hidden"></div>
+    </div>
+    <% } else { %>
     <div class="p-5 rounded-2xl zilo-card-premium mb-5 zilo-page-enter-delay-1" id="pricingBox">
       <div class="flex items-baseline justify-between gap-3 mb-4">
         <p class="zilo-label mb-0"><%= t('client.service.rates') %></p>
         <p class="text-[10px] font-medium text-zilo-muted tracking-wide shrink-0"><%= t('client.prices_iva') %></p>
       </div>
-      <% const displayFrom = typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice); %>
       <% const escombrosMin = Number(typeof service !== 'undefined' && service.minJobPrice) || 297500; %>
       <div class="flex justify-between py-3 border-b border-zilo-border">
         <span class="text-zilo-muted text-sm"><%= isGarden ? 'Evaluación técnica' : (isEscombros ? (t('client.from_price') + ' / m²') : (perM2 ? t('client.service.work_base_m2') : t('client.service.work_base'))) %></span>
@@ -164,96 +190,9 @@
         </ul>
       </details>
     </div>
-
-    <% if (urgencyTiers && urgencyTiers.length) { %>
-    <%
-      const primaryTierIds = { today: 1, immediate: 1, critical: 1 };
-      const primaryUrgency = isProjectPath
-        ? []
-        : urgencyTiers.filter(function(tier) { return primaryTierIds[tier.id]; });
-      const scheduleUrgency = urgencyTiers.filter(function(tier) { return !primaryTierIds[tier.id]; });
-      const projectUrgency = isProjectPath
-        ? (scheduleUrgency.length ? scheduleUrgency : urgencyTiers.filter(function(tier) { return tier.id !== 'immediate'; }))
-        : [];
-      const hasToday = !isProjectPath && urgencyTiers.some(function(tier) { return tier.id === 'today'; });
-      function urgencyBadge(tier) {
-        const pct = Number(tier.surchargePercent != null ? tier.surchargePercent : tier.adjustmentPercent) || 0;
-        if (pct > 0) return { text: '+' + pct + '%', cls: 'text-amber-700' };
-        if (pct < 0) return { text: pct + '%', cls: 'text-emerald-700' };
-        return { text: t('client.service.urgency_normal'), cls: 'text-zilo-muted' };
-      }
-    %>
-    <div class="p-5 rounded-2xl zilo-card-premium mb-5 zilo-page-enter-delay-1">
-      <p class="zilo-label mb-1"><%= isProjectPath ? t('client.service.when_project') : t('client.service.when') %></p>
-      <p class="text-[11px] text-zilo-muted mb-3"><%= isProjectPath ? t('client.service.when_project_hint') : t('client.service.when_hint') %></p>
-      <div class="space-y-2" id="urgencyOptions">
-        <% if (isProjectPath) {
-          projectUrgency.forEach(function(tier, idx) {
-            const isDefault = idx === 0;
-            const badge = urgencyBadge(tier);
-        %>
-          <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer urgency-option <%= isDefault ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-tier="<%= tier.id %>">
-            <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="mt-1 accent-zilo-accent" <%= isDefault ? 'checked' : '' %>>
-            <div class="flex-1 min-w-0">
-              <div class="flex justify-between items-start gap-2">
-                <strong class="text-sm"><%= tier.label %></strong>
-                <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
-              </div>
-              <% if (tier.description) { %><p class="text-[11px] text-zilo-muted mt-0.5"><%= tier.description %></p><% } %>
-            </div>
-          </label>
-        <% }); } else {
-          (primaryUrgency.length ? primaryUrgency : urgencyTiers).forEach(function(tier) {
-          const isFastTier = tier.id === 'immediate' || tier.id === 'critical';
-          const isDefault = hasToday ? tier.id === 'today' : (isFastTier || tier === urgencyTiers[0]);
-          const isUpgrade = isFastTier;
-          const badge = urgencyBadge(tier);
-        %>
-          <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer urgency-option <%= isDefault ? 'border-zilo-accent bg-zilo-accent/5' : (isUpgrade ? 'border-amber-300/70 bg-amber-50/40' : 'border-zilo-border') %>" data-tier="<%= tier.id %>">
-            <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="mt-1 accent-zilo-accent" <%= isDefault ? 'checked' : '' %>>
-            <div class="flex-1 min-w-0">
-              <div class="flex justify-between items-start gap-2">
-                <strong class="text-sm"><%= tier.id === 'today' ? t('client.service.urgency_today') : (isFastTier ? t('client.service.urgency_now') : tier.label) %></strong>
-                <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
-              </div>
-              <% if (isUpgrade) { %>
-                <p class="text-[11px] text-amber-800/80 mt-0.5"><%= tier.description || t('client.service.urgency_now_sla') %></p>
-              <% } else if (tier.description) { %>
-                <p class="text-[11px] text-zilo-muted mt-0.5"><%= tier.description %></p>
-              <% } %>
-            </div>
-          </label>
-        <% }); %>
-        <% if (scheduleUrgency.length && primaryUrgency.length) { %>
-        <details class="rounded-xl border border-zilo-border overflow-hidden" id="urgencyScheduleDetails">
-          <summary class="px-3 py-2.5 text-sm cursor-pointer text-zilo-muted hover:text-zilo-text list-none flex items-center justify-between gap-2">
-            <span><%= t('client.service.schedule_later') %></span>
-            <span class="text-[10px] uppercase tracking-wide"><%= t('client.service.schedule_later_hint') %></span>
-          </summary>
-          <div class="space-y-2 p-2 pt-0 border-t border-zilo-border">
-            <% scheduleUrgency.forEach(function(tier) {
-              const badge = urgencyBadge(tier);
-            %>
-              <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer urgency-option border-zilo-border" data-tier="<%= tier.id %>">
-                <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="mt-1 accent-zilo-accent">
-                <div class="flex-1 min-w-0">
-                  <div class="flex justify-between items-start gap-2">
-                    <strong class="text-sm"><%= tier.label %></strong>
-                    <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
-                  </div>
-                  <% if (tier.description) { %><p class="text-[11px] text-zilo-muted mt-0.5"><%= tier.description %></p><% } %>
-                </div>
-              </label>
-            <% }); %>
-          </div>
-        </details>
-        <% } %>
-        <% } %>
-      </div>
-    </div>
     <% } %>
 
-    <% if (mod('client_aland')) { %>
+    <% if (mod('client_aland') && !leanCheckout) { %>
     <section class="p-4 rounded-xl zilo-card-premium mb-5 zilo-page-enter-delay-1 border border-aland/25 aland-surface" id="alandChatSection" data-auto-open="<%= (typeof currentQuery !== 'undefined' && String(currentQuery).includes('aland=1')) ? '1' : '0' %>">
       <div class="flex items-center justify-between mb-3">
         <div>
@@ -276,7 +215,7 @@
 
     <section id="requestForm" class="space-y-4 zilo-page-enter-delay-2<%= payFlowNow ? ' hidden' : '' %>">
       <div id="serviceOrderSections" class="space-y-4<%= payFlowNow ? ' hidden' : '' %>">
-      <% if (mod('client_regalo')) { %>
+      <% if (mod('client_regalo') && !leanCheckout) { %>
       <div class="p-4 rounded-2xl zilo-gift-card">
         <label class="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" id="giftToggle" class="w-5 h-5 rounded accent-zilo-accent">
@@ -303,7 +242,21 @@
       </div>
       <% } %>
 
-      <% if (isGarden) { %>
+      <% if (isOtros) { %>
+      <div id="otrosCustomBlock" class="space-y-3 p-4 rounded-2xl border border-zilo-accent/20 bg-zilo-accent/[0.04]">
+        <input type="hidden" id="activityId" name="activityId" value="otro">
+        <div>
+          <label for="customActivityName" class="zilo-label block mb-1.5"><%= t('client.service.otros_name') %> *</label>
+          <input type="text" id="customActivityName" name="customActivityName" maxlength="120" required class="zilo-input w-full" placeholder="<%= t('client.service.otros_name_ph') %>">
+          <p class="text-[11px] text-zilo-muted mt-1"><%= t('client.service.otros_name_hint') %></p>
+        </div>
+        <div>
+          <label for="notes" class="zilo-label block mb-1.5"><%= t('client.service.otros_desc') %> *</label>
+          <textarea id="notes" rows="4" required class="zilo-input resize-none" placeholder="<%= t('client.service.otros_desc_ph') %>"></textarea>
+          <p class="text-[11px] text-zilo-muted mt-1"><%= t('client.service.otros_desc_hint') %></p>
+        </div>
+      </div>
+      <% } else if (isGarden) { %>
         <%- include('../partials/garden-intake') %>
       <% } else if (isFv) { %>
         <%- include('../partials/fv-intake') %>
@@ -316,8 +269,7 @@
         const hideGenericOtro = usesPackages || isEscombros;
       %>
       <div id="activityPickerBlock">
-        <p class="zilo-label mb-1"><%= usesPackages ? t('client.service.package_label') : t('client.service.subservice') %> *</p>
-        <p class="text-[11px] text-zilo-muted mb-3"><%= usesPackages ? t('client.service.package_hint') : t('client.service.subservice_pick_hint') %></p>
+        <p class="zilo-label mb-3"><%= usesPackages ? t('client.service.package_label') : t('client.service.subservice') %></p>
         <div class="space-y-2" id="activityCardList" role="radiogroup" aria-label="<%= usesPackages ? t('client.service.package_label') : t('client.service.subservice') %>">
           <% activities.forEach(function(act) {
             const unit = act.pricingUnit || 'job';
@@ -326,7 +278,9 @@
               : (unit === 'm3'
                 ? (formatCLP(act.pricePerM2 || act.basePrice) + ' / m³')
                 : formatCLP(act.basePrice));
-            const priceLabel = usesPackages ? ('desde ' + rawPrice.replace(/^desde\s+/i, '')) : rawPrice;
+            const priceLabel = leanCheckout
+              ? rawPrice.replace(/^desde\s+/i, '')
+              : (usesPackages ? ('desde ' + rawPrice.replace(/^desde\s+/i, '')) : rawPrice);
             const blurb = act.clientBlurb || act.description || '';
             const isPkg = Boolean(act.suggested) || String(act.quoteMode || '') === 'escombros_package' || String(act.quoteMode || '') === 'client_package';
           %>
@@ -339,7 +293,7 @@
               data-min-m2="<%= act.minM2 || (unit === 'm3' || unit === 'm2' ? 1 : 15) %>"
               data-quote-mode="<%= act.quoteMode || '' %>"
               data-suggested="<%= act.suggested ? '1' : '' %>"
-              data-blurb="<%= String(blurb).replace(/"/g, '&quot;') %>"
+              data-blurb="<%= leanCheckout ? '' : String(blurb).replace(/"/g, '&quot;') %>"
               data-price-label="<%= priceLabel %>">
               <input type="radio" name="activityPick" value="<%= act.id %>" class="sr-only activity-card-radio" data-activity-radio<%= act.suggested ? ' checked' : '' %>>
               <span class="activity-card__radio mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 border-zilo-border flex items-center justify-center" aria-hidden="true">
@@ -349,13 +303,13 @@
                 <span class="flex items-start justify-between gap-3">
                   <span class="min-w-0">
                     <span class="text-sm font-semibold text-zilo-text leading-snug"><%= act.name %></span>
-                    <% if (act.suggested) { %>
+                    <% if (act.suggested && !leanCheckout) { %>
                     <span class="ml-1.5 inline-flex align-middle text-[9px] font-bold uppercase tracking-wide text-zilo-accent bg-zilo-accent/10 px-1.5 py-0.5 rounded-full"><%= t('client.service.package_popular') %></span>
                     <% } %>
                   </span>
                   <span class="text-sm font-bold text-zilo-accent tabular-nums whitespace-nowrap"><%= priceLabel %></span>
                 </span>
-                <% if (blurb) { %>
+                <% if (blurb && !leanCheckout) { %>
                 <span class="block text-[11px] text-zilo-muted mt-1 leading-relaxed <%= isPkg ? '' : 'line-clamp-2' %>"><%= blurb %></span>
                 <% } %>
               </span>
@@ -381,13 +335,16 @@
                 <span class="text-sm font-semibold text-zilo-text">Otro</span>
                 <span class="text-sm font-bold text-zilo-muted tabular-nums whitespace-nowrap"><%= isCleaning ? 'desde $1.500 / m²' : 'desde $100.000' %></span>
               </span>
+              <% if (!leanCheckout) { %>
               <span class="block text-[11px] text-zilo-muted mt-1 leading-relaxed"><%= t('client.service.subservice_other_blurb') %></span>
+              <% } %>
             </span>
           </label>
           <% } %>
         </div>
         <input type="hidden" id="activityId" name="activityId" value="" required>
 
+        <% if (!leanCheckout) { %>
         <div id="activitySelectedPanel" class="hidden mt-3 p-4 rounded-2xl border border-zilo-accent/25 bg-gradient-to-br from-zilo-accent/[0.07] to-transparent">
           <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-accent mb-1"><%= t('client.service.subservice_selected') %></p>
           <p class="text-base font-semibold text-zilo-text leading-snug" id="activitySelectedName">—</p>
@@ -398,6 +355,7 @@
           </p>
           <p class="text-[10px] text-zilo-muted mt-1"><%= t('client.service.subservice_price_note') %></p>
         </div>
+        <% } %>
 
         <div id="customActivityFields" class="hidden mt-3 space-y-2 p-3 rounded-xl border border-zilo-border bg-zilo-surface/40">
           <label for="customActivityName" class="zilo-label block"><%= t('client.service.subservice_other_label') %> *</label>
@@ -423,41 +381,148 @@
       <% if (isCleaning) { %>
       <div id="cleaningFactors" class="space-y-3 p-4 rounded-2xl border border-sky-200/80 bg-sky-50/50">
         <div>
-          <p class="zilo-label mb-1">Condiciones del servicio</p>
+          <p class="zilo-label mb-1">Condiciones</p>
+          <% if (!leanCheckout) { %>
           <p class="text-[11px] text-zilo-muted">Cada opción suma +15% al total. Los materiales van incluidos.</p>
+          <% } %>
         </div>
         <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
           <input type="checkbox" id="cleaningHasPets" class="mt-0.5 accent-[#14B8A6] shrink-0">
           <span class="min-w-0">
             <span class="text-sm font-medium block">Mascotas dentro de la casa</span>
-            <span class="text-[11px] text-zilo-muted">+15% por pelo, olores y cuidado extra</span>
+            <% if (!leanCheckout) { %><span class="text-[11px] text-zilo-muted">+15% por pelo, olores y cuidado extra</span><% } else { %><span class="text-[11px] text-zilo-muted">+15%</span><% } %>
           </span>
         </label>
         <label class="flex items-start gap-3 p-3 rounded-xl border border-zilo-border bg-white cursor-pointer">
           <input type="checkbox" id="cleaningPostEvent" class="mt-0.5 accent-[#14B8A6] shrink-0">
           <span class="min-w-0">
             <span class="text-sm font-medium block">Post evento / post fiesta</span>
-            <span class="text-[11px] text-zilo-muted">+15% por suciedad extra tras reunión o celebración</span>
+            <% if (!leanCheckout) { %><span class="text-[11px] text-zilo-muted">+15% por suciedad extra tras reunión o celebración</span><% } else { %><span class="text-[11px] text-zilo-muted">+15%</span><% } %>
           </span>
         </label>
       </div>
       <% } %>
       <% } %>
 
-      <div class="pt-2 border-t border-zilo-border space-y-4">
+      <% if (urgencyTiers && urgencyTiers.length) { %>
+      <%
+        const primaryTierIds = { today: 1, immediate: 1, critical: 1 };
+        const primaryUrgency = isProjectPath
+          ? []
+          : urgencyTiers.filter(function(tier) { return primaryTierIds[tier.id]; });
+        const scheduleUrgency = urgencyTiers.filter(function(tier) { return !primaryTierIds[tier.id]; });
+        const projectUrgency = isProjectPath
+          ? (scheduleUrgency.length ? scheduleUrgency : urgencyTiers.filter(function(tier) { return tier.id !== 'immediate'; }))
+          : [];
+        const hasToday = !isProjectPath && urgencyTiers.some(function(tier) { return tier.id === 'today'; });
+        function urgencyBadge(tier) {
+          const pct = Number(tier.surchargePercent != null ? tier.surchargePercent : tier.adjustmentPercent) || 0;
+          if (pct > 0) return { text: '+' + pct + '%', cls: 'text-amber-700' };
+          if (pct < 0) return { text: pct + '%', cls: 'text-emerald-700' };
+          return { text: t('client.service.urgency_normal'), cls: 'text-zilo-muted' };
+        }
+      %>
+      <div class="<%= leanCheckout ? 'space-y-2' : 'p-4 rounded-2xl zilo-card-premium' %>" id="urgencyBlock">
+        <p class="zilo-label<%= leanCheckout ? '' : ' mb-2' %>"><%= isProjectPath ? t('client.service.when_project') : t('client.service.when') %></p>
+        <% if (!leanCheckout) { %>
+        <p class="text-[11px] text-zilo-muted mb-3"><%= isProjectPath ? t('client.service.when_project_hint') : t('client.service.when_hint') %></p>
+        <% } %>
+        <div class="space-y-2" id="urgencyOptions">
+          <% if (isProjectPath) {
+            projectUrgency.forEach(function(tier, idx) {
+              const isDefault = idx === 0;
+              const badge = urgencyBadge(tier);
+          %>
+            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer urgency-option <%= isDefault ? 'border-zilo-accent bg-zilo-accent/5' : 'border-zilo-border' %>" data-tier="<%= tier.id %>">
+              <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="accent-zilo-accent" <%= isDefault ? 'checked' : '' %>>
+              <div class="flex-1 min-w-0 flex justify-between items-center gap-2">
+                <strong class="text-sm"><%= tier.label %></strong>
+                <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
+              </div>
+            </label>
+          <% }); } else {
+            (primaryUrgency.length ? primaryUrgency : urgencyTiers).forEach(function(tier) {
+            const isFastTier = tier.id === 'immediate' || tier.id === 'critical';
+            const isDefault = hasToday ? tier.id === 'today' : (isFastTier || tier === urgencyTiers[0]);
+            const isUpgrade = isFastTier;
+            const badge = urgencyBadge(tier);
+          %>
+            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer urgency-option <%= isDefault ? 'border-zilo-accent bg-zilo-accent/5' : (isUpgrade ? 'border-amber-300/70 bg-amber-50/40' : 'border-zilo-border') %>" data-tier="<%= tier.id %>">
+              <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="accent-zilo-accent" <%= isDefault ? 'checked' : '' %>>
+              <div class="flex-1 min-w-0 flex justify-between items-center gap-2">
+                <strong class="text-sm"><%= tier.id === 'today' ? t('client.service.urgency_today') : (isFastTier ? t('client.service.urgency_now') : tier.label) %></strong>
+                <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
+              </div>
+            </label>
+          <% }); %>
+          <% if (scheduleUrgency.length && primaryUrgency.length) { %>
+          <details class="rounded-xl border border-zilo-border overflow-hidden" id="urgencyScheduleDetails">
+            <summary class="px-3 py-2.5 text-sm cursor-pointer text-zilo-muted hover:text-zilo-text list-none">
+              <span><%= t('client.service.schedule_later') %></span>
+            </summary>
+            <div class="space-y-2 p-2 pt-0 border-t border-zilo-border">
+              <% scheduleUrgency.forEach(function(tier) {
+                const badge = urgencyBadge(tier);
+              %>
+                <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer urgency-option border-zilo-border" data-tier="<%= tier.id %>">
+                  <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="accent-zilo-accent">
+                  <div class="flex-1 min-w-0 flex justify-between items-center gap-2">
+                    <strong class="text-sm"><%= tier.label %></strong>
+                    <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
+                  </div>
+                </label>
+              <% }); %>
+            </div>
+          </details>
+          <% } %>
+          <% } %>
+        </div>
+      </div>
+      <% } %>
+
+      <div class="<%= leanCheckout ? '' : 'pt-2 border-t border-zilo-border' %> space-y-3" id="serviceAddressBlock">
+        <div>
+          <label for="address" class="zilo-label block mb-1.5" id="addressLabel"><%= t('client.service.address') %></label>
+          <p id="giftDestinationHint" class="hidden text-[11px] text-zilo-muted leading-relaxed mb-1.5"><%= t('client.service.gift_destination_hint') %></p>
+          <input type="text" id="address" placeholder="<%= t('client.service.address_ph') %>"
+            value="<%= typeof profile !== 'undefined' ? profile.address : '' %>" class="zilo-input" autocomplete="street-address">
+          <input type="hidden" id="lat"><input type="hidden" id="lng">
+        </div>
+        <% if (leanCheckout) { %>
+        <div id="addressMap" class="sr-only" aria-hidden="true"></div>
+        <p id="mapStatus" class="sr-only" aria-hidden="true"></p>
+        <div id="coverageAlert" class="hidden p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs leading-relaxed" role="alert"></div>
+        <% } else { %>
+        <div>
+          <label class="zilo-label block mb-1.5"><%= t('client.service.location') %></label>
+          <div id="addressMap" class="service-address-map w-full rounded-2xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
+          <p id="mapStatus" class="text-[10px] text-zilo-muted mt-1.5"><%= t('client.service.map_hint') %></p>
+          <div id="coverageAlert" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs leading-relaxed" role="alert"></div>
+        </div>
+        <% } %>
+      </div>
+
+      <details class="rounded-xl border border-zilo-border overflow-hidden<%= leanCheckout && !isGarden && !isFv ? ' hidden' : '' %>" id="moreOrderDetails" <%= (isGarden || isFv) ? 'open' : '' %>>
+        <summary class="px-3 py-2.5 text-sm cursor-pointer text-zilo-muted"><%= (isGarden || isFv) ? t('client.service.more_photo_required') : t('client.service.more_optional') %></summary>
+        <div class="p-3 pt-0 space-y-4">
+        <% if (!isOtros) { %>
         <div>
           <label for="notes" class="zilo-label block mb-1.5"><%= t('client.service.detail') %> <span class="font-normal text-zilo-muted"><%= t('client.service.detail_opt') %></span></label>
           <textarea id="notes" rows="3" placeholder="<%= isFv ? t('client.service.detail_fv_ph') : (isGarden ? t('client.service.detail_landscape_ph') : (isProjectPath ? t('client.service.detail_project_ph') : (perM2 ? t('client.service.detail_garden_ph') : t('client.service.detail_ph')))) %>" class="zilo-input resize-none"></textarea>
-          <p class="text-[11px] text-zilo-muted mt-1"><%= isProjectPath ? t('client.service.detail_hint_project') : t('client.service.detail_hint_now') %></p>
         </div>
+        <% } %>
 
         <div>
           <label class="zilo-label block mb-1.5"><%= isFv ? t('client.service.photo_fv') : ((perM2 || isGarden) ? t('client.service.photo_garden') : t('client.service.photo')) %> <% if (isGarden || isFv) { %><span class="font-normal text-zilo-muted">*</span><% } else { %><span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span><% } %></label>
+          <% if (!leanCheckout || isGarden || isFv) { %>
           <p class="text-[11px] text-zilo-muted mb-2"><%= isFv ? t('client.service.photo_fv_hint') : ((perM2 || isGarden) ? t('client.service.photo_garden_hint') : t('client.service.photo_optional_hint')) %></p>
           <button type="button" id="btnPhotoHelp" class="w-full mb-3 py-2.5 px-3 rounded-xl border border-zilo-accent/30 bg-zilo-accent/10 text-zilo-accent text-xs font-semibold text-left flex items-center gap-2">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <span><%= t('client.service.photo_help_link') %></span>
           </button>
+          <% } else { %>
+          <button type="button" id="btnPhotoHelp" class="hidden" tabindex="-1" aria-hidden="true"></button>
+          <% } %>
           <%- include('../partials/media-pick', { id: 'clientPhoto', accept: 'image/*', hint: 'Cámara o galería / archivos.' }) %>
           <div id="clientPhotoPreview" class="hidden mt-2">
             <img src="" alt="<%= t('client.service.preview_alt') %>" class="w-full max-h-40 object-cover rounded-xl border border-zilo-border">
@@ -466,7 +531,6 @@
 
         <div id="brandPhotoBlock" class="<%= brandOptional ? 'hidden' : '' %>">
           <label class="zilo-label block mb-1.5"><%= t('client.service.photo_brand') %> <span class="font-normal text-zilo-muted"><%= t('client.service.photo_opt') %></span></label>
-          <p class="text-[11px] text-zilo-muted mb-2"><%= t('client.service.photo_brand_hint') %></p>
           <%- include('../partials/media-pick', { id: 'clientBrandPhoto', accept: 'image/*', hint: 'Cámara o galería / archivos.' }) %>
           <div id="clientBrandPhotoPreview" class="hidden mt-2">
             <img src="" alt="<%= t('client.service.photo_brand') %>" class="w-full max-h-40 object-cover rounded-xl border border-zilo-border">
@@ -474,32 +538,18 @@
         </div>
 
         <label class="flex items-start gap-2.5 p-3 rounded-xl border border-zilo-border cursor-pointer <%= brandOptional ? 'hidden' : '' %>" id="brandNotVisibleLabel">
-          <input type="checkbox" id="brandNotVisible" class="mt-0.5 accent-zilo-accent shrink-0" <%= brandOptional ? 'checked' : '' %>>
+          <input type="checkbox" id="brandNotVisible" class="mt-0.5 accent-zilo-accent shrink-0" <%= (brandOptional || leanCheckout) ? 'checked' : '' %>>
           <span class="text-sm leading-snug">
             <strong class="block font-medium"><%= t('client.service.brand_not_visible') %></strong>
-            <span class="text-[11px] text-zilo-muted"><%= t('client.service.brand_not_visible_hint') %></span>
           </span>
         </label>
-      </div>
-
-      <div class="pt-2 border-t border-zilo-border space-y-3" id="serviceAddressBlock">
-        <div>
-          <label for="address" class="zilo-label block mb-1.5" id="addressLabel"><%= t('client.service.address') %></label>
-          <p id="giftDestinationHint" class="hidden text-[11px] text-zilo-muted leading-relaxed mb-1.5"><%= t('client.service.gift_destination_hint') %></p>
-          <input type="text" id="address" placeholder="<%= t('client.service.address_ph') %>"
-            value="<%= typeof profile !== 'undefined' ? profile.address : '' %>" class="zilo-input" autocomplete="street-address">
-          <input type="hidden" id="lat"><input type="hidden" id="lng">
         </div>
-        <div>
-          <label class="zilo-label block mb-1.5"><%= t('client.service.location') %></label>
-          <div id="addressMap" class="service-address-map w-full rounded-2xl overflow-hidden border border-zilo-border bg-zilo-bg"></div>
-          <p id="mapStatus" class="text-[10px] text-zilo-muted mt-1.5"><%= t('client.service.map_hint') %></p>
-          <div id="coverageAlert" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs leading-relaxed" role="alert"></div>
-        </div>
-      </div>
+      </details>
 
-      <button type="button" id="btnRequest" class="zilo-btn-primary w-full"><%= t('client.service.continue_pay') %></button>
+      <button type="button" id="btnRequest" class="zilo-btn-primary w-full<%= leanCheckout ? ' hidden' : '' %>"><%= t('client.service.continue_pay') %></button>
+      <% if (!leanCheckout) { %>
       <p class="text-center text-[10px] text-zilo-muted"><%= t('client.service.secure_pay') %></p>
+      <% } %>
       </div>
     </section>
 
@@ -509,7 +559,6 @@
         <p class="text-[10px] font-semibold uppercase tracking-wide text-zilo-muted"><%= t('checkout.pay_subtitle') %></p>
         <p class="text-3xl font-bold text-zilo-accent tabular-nums mt-1" id="inlinePayTotal"><%= draftAmount > 0 ? formatCLP(draftAmount) : '—' %></p>
         <p class="text-[10px] text-zilo-muted mt-1.5"><%= t('client.prices_iva') %> · <%= t('client.service.secure_pay') %></p>
-        <p class="text-[10px] text-zilo-muted/90 mt-2 leading-relaxed"><%= t('client.service.parts_policy_hint') %></p>
       </div>
       <div class="zilo-card-premium rounded-2xl p-4 space-y-2">
         <p class="zilo-label mb-1"><%= t('checkout.billing_title') %></p>
@@ -523,11 +572,13 @@
             <%= t('checkout.billing_company') %>
           </label>
         </div>
-        <input type="text" id="inlineBillRut" value="<%= billInline.rut || '' %>" placeholder="RUT" class="zilo-input !py-2 text-sm">
-        <input type="text" id="inlineBillLegalName" value="<%= billInline.legalName || profile.name %>" placeholder="Nombre o razón social" class="zilo-input !py-2 text-sm">
-        <input type="text" id="inlineBillGiro" value="<%= billInline.giro || '' %>" placeholder="Giro (empresa)" class="zilo-input !py-2 text-sm <%= billInline.type === 'empresa' ? '' : 'hidden' %>">
-        <input type="text" id="inlineBillFiscalAddress" value="<%= billInline.fiscalAddress || profile.address || '' %>" placeholder="Dirección fiscal" class="zilo-input !py-2 text-sm">
-        <input type="email" id="inlineBillInvoiceEmail" value="<%= billInline.invoiceEmail || profile.email %>" placeholder="Email facturación" class="zilo-input !py-2 text-sm">
+        <div id="inlineBillCompanyFields" class="space-y-2 <%= billInline.type === 'empresa' ? '' : 'hidden' %>">
+          <input type="text" id="inlineBillRut" value="<%= billInline.rut || '' %>" placeholder="RUT" class="zilo-input !py-2 text-sm">
+          <input type="text" id="inlineBillLegalName" value="<%= billInline.legalName || profile.name %>" placeholder="Nombre o razón social" class="zilo-input !py-2 text-sm">
+          <input type="text" id="inlineBillGiro" value="<%= billInline.giro || '' %>" placeholder="Giro" class="zilo-input !py-2 text-sm">
+          <input type="text" id="inlineBillFiscalAddress" value="<%= billInline.fiscalAddress || profile.address || '' %>" placeholder="Dirección fiscal" class="zilo-input !py-2 text-sm">
+          <input type="email" id="inlineBillInvoiceEmail" value="<%= billInline.invoiceEmail || profile.email %>" placeholder="Email facturación" class="zilo-input !py-2 text-sm">
+        </div>
       </div>
       <section id="inlineMpEmbedSection" class="zilo-card-premium rounded-2xl p-4 checkout-mp-block">
         <h2 class="zilo-label mb-2">Datos de tu tarjeta</h2>
@@ -558,14 +609,15 @@
       </section>
     </section>
 
-    <div id="stickyOrderBar" class="sticky-order-bar<%= payFlowNow ? ' service-pay-flow-hide' : '' %>" aria-hidden="true">
+    <div id="stickyOrderBar" class="sticky-order-bar<%= payFlowNow ? ' service-pay-flow-hide' : '' %><%= leanCheckout ? ' is-visible' : '' %>" aria-hidden="<%= leanCheckout && !payFlowNow ? 'false' : 'true' %>">
       <div class="sticky-order-inner max-w-lg mx-auto">
         <div class="min-w-0">
+          <% if (!leanCheckout) { %>
           <p class="text-[10px] text-zilo-muted uppercase tracking-wide"><%= t('client.service.visit_est') %></p>
-          <strong class="text-zilo-accent text-base" id="stickyTotal"><%= perM2 ? '—' : formatCLP(typeof displayFrom !== 'undefined' ? displayFrom : (service.fromPrice || pricing.servicePrice)) %></strong>
-          <p class="text-[9px] text-zilo-muted font-medium mt-0.5"><%= t('client.prices_iva') %></p>
+          <% } %>
+          <strong class="text-zilo-accent <%= leanCheckout ? 'text-lg' : 'text-base' %>" id="stickyTotal"><%= perM2 ? '—' : formatCLP(displayFrom) %></strong>
         </div>
-        <button type="button" id="btnRequestSticky" class="sticky-order-btn"><%= t('client.service.continue_pay') %></button>
+        <button type="button" id="btnRequestSticky" class="sticky-order-btn"><%= t('client.service.pay_cta') %></button>
       </div>
     </div>
 

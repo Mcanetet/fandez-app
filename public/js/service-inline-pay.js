@@ -44,7 +44,7 @@
     return {
       type,
       rut: document.getElementById('inlineBillRut')?.value?.trim() || '',
-      legalName: document.getElementById('inlineBillLegalName')?.value?.trim() || '',
+      legalName: document.getElementById('inlineBillLegalName')?.value?.trim() || page?.dataset?.userName || '',
       giro: document.getElementById('inlineBillGiro')?.value?.trim() || '',
       fiscalAddress: document.getElementById('inlineBillFiscalAddress')?.value?.trim() || '',
       invoiceEmail: document.getElementById('inlineBillInvoiceEmail')?.value?.trim() || ''
@@ -53,8 +53,9 @@
 
   function billingReady() {
     const b = getBilling();
-    if (!b.rut || !b.legalName || !b.fiscalAddress || !b.invoiceEmail) return false;
-    if (b.type === 'empresa' && !b.giro) return false;
+    if (b.type === 'empresa') {
+      return Boolean(b.rut && b.legalName && b.giro && b.fiscalAddress && b.invoiceEmail);
+    }
     return true;
   }
 
@@ -174,7 +175,7 @@
           onBeforeSubmit: () => {
             if (!billingReady()) {
               inlineRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              return 'Completa RUT y datos de facturación para pagar.';
+              return 'Completa RUT, razón social y giro para factura empresa.';
             }
             return null;
           }
@@ -221,12 +222,15 @@
 
   window.FandezServiceInlinePay = { open: openInlineCheckout, remount: recalcAndMount };
 
+  function syncInlineBillingFields() {
+    const isEmpresa = document.querySelector('#inlineCheckout input[name="billingType"]:checked')?.value === 'empresa';
+    document.getElementById('inlineBillCompanyFields')?.classList.toggle('hidden', !isEmpresa);
+    document.getElementById('inlineBillGiro')?.classList.toggle('hidden', !isEmpresa);
+  }
   document.querySelectorAll('#inlineCheckout input[name="billingType"]').forEach((radio) => {
-    radio.addEventListener('change', () => {
-      const isEmpresa = radio.value === 'empresa' && radio.checked;
-      document.getElementById('inlineBillGiro')?.classList.toggle('hidden', !isEmpresa);
-    });
+    radio.addEventListener('change', syncInlineBillingFields);
   });
+  syncInlineBillingFields();
 
   document.getElementById('inlineCheckoutFallback')?.addEventListener('click', async (e) => {
     e.preventDefault();

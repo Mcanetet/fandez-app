@@ -5640,6 +5640,21 @@ body.admin-modal-open {
   opacity: 1;
   pointer-events: auto;
 }
+.service-lean main {
+  padding-bottom: 7.5rem;
+}
+.service-lean .activity-card {
+  padding: 0.85rem 1rem;
+}
+.service-lean #urgencyScheduleDetails summary span:last-child {
+  display: none;
+}
+body:has(#servicePage.service-lean) .legal-footer,
+body:has(#servicePage.service-lean) #alandFabRoot,
+body:has(#servicePage.service-lean) .cookie-banner,
+body:has(#servicePage.service-lean) #cookieBanner {
+  display: none !important;
+}
 .sticky-order-inner {
   display: flex;
   align-items: center;
