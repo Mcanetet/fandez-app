@@ -502,6 +502,22 @@
         <% } %>
       </div>
 
+      <%
+        const cancelPol = (typeof cancellationPolicy !== 'undefined' && cancellationPolicy)
+          ? cancellationPolicy
+          : ((pricing && pricing.cancellations) || {});
+        const cancelFree = !Number(cancelPol.beforeAccepted);
+      %>
+      <div class="service-cancel-policy" id="cancelPolicyNote">
+        <p class="service-cancel-policy__title"><%= t('client.service.cancel_policy_title') %></p>
+        <ul>
+          <li><span><%= t('client.service.cancel_policy_before') %></span><strong><%= cancelFree ? t('client.service.cancel_policy_free') : formatCLP(cancelPol.beforeAccepted) %></strong></li>
+          <li><span><%= t('client.service.cancel_policy_enroute') %></span><strong><%= formatCLP(cancelPol.enRoute != null ? cancelPol.enRoute : 10000) %></strong></li>
+          <li><span><%= t('client.service.cancel_policy_arrived') %></span><strong><%= formatCLP(cancelPol.onSiteVerified != null ? cancelPol.onSiteVerified : 15000) %></strong></li>
+          <li><span><%= t('client.service.cancel_policy_diagnosis') %></span><strong><%= formatCLP(cancelPol.afterDiagnosis != null ? cancelPol.afterDiagnosis : 30000) %></strong></li>
+        </ul>
+      </div>
+
       <details class="rounded-xl border border-zilo-border overflow-hidden<%= leanCheckout && !isGarden && !isFv ? ' hidden' : '' %>" id="moreOrderDetails" <%= (isGarden || isFv) ? 'open' : '' %>>
         <summary class="px-3 py-2.5 text-sm cursor-pointer text-zilo-muted"><%= (isGarden || isFv) ? t('client.service.more_photo_required') : t('client.service.more_optional') %></summary>
         <div class="p-3 pt-0 space-y-4">

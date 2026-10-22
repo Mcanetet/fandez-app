@@ -59,7 +59,7 @@
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
         <h2 class="text-sm font-semibold mb-1">Cancelaciones</h2>
         <p class="text-xs text-gray-500 mb-4">Monto retenido al cancelar (CLP). Devolución = visita pagada − retención. Escala según avance del servicio.</p>
-        <% const cancelCfg = pricing.cancellations || { beforeAccepted: 0, afterTechAccepted: 0, enRoute: 15000, onSiteVerified: 20000, afterDiagnosis: 30000 }; %>
+        <% const cancelCfg = pricing.cancellations || { beforeAccepted: 0, afterTechAccepted: 0, enRoute: 10000, onSiteVerified: 15000, afterDiagnosis: 30000 }; %>
         <div class="grid grid-cols-1 gap-3">
           <div>
             <label class="text-xs text-gray-500">Antes de que el técnico acepte</label>
@@ -73,18 +73,18 @@
           </div>
           <div>
             <label class="text-xs text-gray-500">Técnico en camino</label>
-            <input type="number" name="cancelEnRoute" value="<%= cancelCfg.enRoute != null ? cancelCfg.enRoute : 15000 %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">También aplica si llegó al domicilio pero aún no validó el código. Default $15.000.</p>
+            <input type="number" name="cancelEnRoute" value="<%= cancelCfg.enRoute != null ? cancelCfg.enRoute : 10000 %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Técnico va hacia el cliente. Default $10.000.</p>
           </div>
           <div>
-            <label class="text-xs text-gray-500">Código validado / en diagnóstico</label>
-            <input type="number" name="cancelOnSiteVerified" value="<%= cancelCfg.onSiteVerified != null ? cancelCfg.onSiteVerified : 20000 %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Código OK o presupuesto aún pendiente de aprobación. Default $20.000.</p>
+            <label class="text-xs text-gray-500">Llegó al domicilio</label>
+            <input type="number" name="cancelOnSiteVerified" value="<%= cancelCfg.onSiteVerified != null ? cancelCfg.onSiteVerified : 15000 %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
+            <p class="text-[10px] text-gray-400 mt-1">Ya está en el domicilio o diagnosticando. Default $15.000.</p>
           </div>
           <div>
-            <label class="text-xs text-gray-500">Presupuesto aprobado por el cliente</label>
+            <label class="text-xs text-gray-500">Hizo el diagnóstico</label>
             <input type="number" name="cancelAfterDiagnosis" value="<%= cancelCfg.afterDiagnosis != null ? cancelCfg.afterDiagnosis : (cancelCfg.enRouteOrOnSite || 30000) %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Cliente ya aprobó el presupuesto (pago adicional) o el trabajo continúa. Default $30.000.</p>
+            <p class="text-[10px] text-gray-400 mt-1">Presupuesto enviado o aprobado, o el trabajo continúa. Default $30.000.</p>
           </div>
         </div>
       </section>
