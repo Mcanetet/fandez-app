@@ -371,3 +371,34 @@ picture {
 #clientDashboard.home-client .nav-client-bar {
   background-color: #ffffff !important;
 }
+
+#servicePage.service-track,
+#servicePage.service-track.min-h-screen {
+  background-color: #ffffff !important;
+  color: #1A1814 !important;
+}
+#servicePage.service-track .zilo-btn-primary,
+#servicePage.service-track .sticky-track-btn--primary {
+  background-color: #C45C14 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+#servicePage.service-track .zilo-btn-ghost,
+#servicePage.service-track .sticky-track-btn--ghost {
+  background-color: #ffffff !important;
+  color: #1A1814 !important;
+}
+#servicePage.service-track .track-hero__title,
+#servicePage.service-track .trip-step strong {
+  color: #1A1814 !important;
+}
+#servicePage.service-track .trip-step.active strong,
+#servicePage.service-track .track-cancel__list li strong,
+#servicePage.service-track .track-more summary {
+  color: #C45C14 !important;
+}
+#servicePage.service-track .track-hero__sub,
+#servicePage.service-track .track-kicker,
+#servicePage.service-track .trip-step.done strong {
+  color: #6B635A !important;
+}

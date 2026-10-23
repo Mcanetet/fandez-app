@@ -5877,6 +5877,10 @@ body:has(#servicePage.service-track) #cookieBanner {
 }
 
 #servicePage.service-track {
+  --zilo-accent-soft: #ffffff;
+  --home-ink: #1A1814;
+  --home-muted: #6B635A;
+  --home-touch: #C45C14;
   background: #fff;
   color: #1A1814;
 }
@@ -5895,12 +5899,32 @@ body:has(#servicePage.service-track) #cookieBanner {
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.25;
+  color: #1A1814;
 }
 #servicePage.service-track .track-hero__sub {
   margin: 0.25rem 0 0;
   font-size: 0.8125rem;
   color: #6B635A;
   line-height: 1.35;
+}
+#servicePage.service-track .zilo-btn-primary,
+#servicePage.service-track .sticky-track-btn--primary {
+  background: #C45C14 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border-color: #C45C14 !important;
+}
+#servicePage.service-track .zilo-btn-ghost,
+#servicePage.service-track .sticky-track-btn--ghost {
+  background: #ffffff !important;
+  color: #1A1814 !important;
+  border-color: #E6E0D8 !important;
+}
+#servicePage.service-track .zilo-btn-ghost:hover,
+#servicePage.service-track .zilo-btn-ghost:focus-visible {
+  background: #ffffff !important;
+  color: #C45C14 !important;
+  border-color: rgba(196, 92, 20, 0.35) !important;
 }
 #servicePage.service-track .track-more-action {
   display: block;
@@ -5925,11 +5949,29 @@ body:has(#servicePage.service-track) #cookieBanner {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #8A7D72;
+  color: #6B635A;
 }
 #servicePage.service-track .trip-step p { display: none; }
 #servicePage.service-track .trip-step { padding: 0.28rem 0; }
-#servicePage.service-track .trip-step strong { font-size: 0.8125rem; }
+#servicePage.service-track .trip-step strong {
+  font-size: 0.8125rem;
+  color: #1A1814;
+}
+#servicePage.service-track .trip-step.done strong { color: #6B635A; }
+#servicePage.service-track .trip-step.active strong { color: #C45C14; }
+#servicePage.service-track .trip-step.done .trip-dot {
+  background: #C45C14;
+}
+#servicePage.service-track .trip-step:not(:last-child)::before {
+  background: rgba(26, 24, 20, 0.1);
+}
+#servicePage.service-track #arrivalCodeCard {
+  background: #fff;
+  border-color: rgba(196, 92, 20, 0.2);
+}
+#servicePage.service-track .live-track-shell {
+  background: #fff;
+}
 #servicePage.service-track #providerLiveCard {
   padding: 0;
   border: 0;
