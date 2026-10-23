@@ -29,6 +29,12 @@
 
     <p class="text-xs text-zilo-muted mb-4"><%= t('provider.mando_page.hint') %></p>
 
+    <%- include('../partials/job-month-calendar', {
+      calendarEvents: typeof calendarEvents !== 'undefined' ? calendarEvents : [],
+      calendarTitle: t('provider.calendar.title'),
+      calendarHint: t('provider.calendar.hint')
+    }) %>
+
     <% if (requests.length > 0) { %>
     <section class="mb-4 zilo-card-premium rounded-2xl p-4" aria-label="<%= t('provider.mando_page.map_title') %>">
       <p class="zilo-label mb-2"><%= t('provider.mando_page.map_title') %></p>
@@ -125,7 +131,7 @@
 </div>
 
 <%- include('../partials/call-overlay') %>
-<%- include('../partials/footer', { pageScript: '/js/mando.js', extraScripts: ['/js/map.js', '/js/image-upload.js', '/js/job-chat.js', '/js/webrtc-call.js'] }) %>
+<%- include('../partials/footer', { pageScript: '/js/mando.js', extraScripts: ['/js/map.js', '/js/image-upload.js', '/js/job-chat.js', '/js/webrtc-call.js', '/js/job-month-calendar.js'] }) %>
 <script>
   window.MANDO_TECH_MARKERS = <%- JSON.stringify(typeof technicianMarkers !== 'undefined' ? technicianMarkers : []) %>;
 </script>

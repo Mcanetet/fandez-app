@@ -456,24 +456,27 @@
             </label>
           <% }); %>
           <% if (scheduleUrgency.length && primaryUrgency.length) { %>
-          <details class="rounded-xl border border-zilo-border overflow-hidden" id="urgencyScheduleDetails">
-            <summary class="px-3 py-2.5 text-sm cursor-pointer text-zilo-muted hover:text-zilo-text list-none">
-              <span><%= t('client.service.schedule_later') %></span>
-            </summary>
-            <div class="space-y-2 p-2 pt-0 border-t border-zilo-border">
-              <% scheduleUrgency.forEach(function(tier) {
-                const badge = urgencyBadge(tier);
-              %>
-                <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer urgency-option border-zilo-border" data-tier="<%= tier.id %>">
-                  <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="accent-zilo-accent">
-                  <div class="flex-1 min-w-0 flex justify-between items-center gap-2">
-                    <strong class="text-sm"><%= tier.label %></strong>
-                    <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
-                  </div>
-                </label>
-              <% }); %>
+          <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer urgency-option border-zilo-border" id="scheduleOpenCard" data-opens-schedule="1">
+            <input type="radio" name="urgencyWhenUi" value="scheduled" class="accent-zilo-accent" id="urgencyProgramadoToggle">
+            <div class="flex-1 min-w-0 flex justify-between items-center gap-2">
+              <strong class="text-sm"><%= t('client.service.urgency_scheduled') %></strong>
+              <span class="text-xs font-medium shrink-0 text-emerald-700">−10%</span>
             </div>
-          </details>
+          </label>
+          <div id="scheduleWhenBox" class="hidden rounded-xl border border-zilo-accent/25 bg-zilo-accent/[0.04] p-2 space-y-2">
+            <p class="px-1 text-[11px] text-zilo-muted"><%= t('client.service.schedule_box_hint') %></p>
+            <% scheduleUrgency.forEach(function(tier) {
+              const badge = urgencyBadge(tier);
+            %>
+              <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer urgency-option border-zilo-border bg-white" data-tier="<%= tier.id %>">
+                <input type="radio" name="urgencyTier" value="<%= tier.id %>" class="accent-zilo-accent">
+                <div class="flex-1 min-w-0 flex justify-between items-center gap-2">
+                  <strong class="text-sm"><%= tier.label %></strong>
+                  <span class="text-xs font-medium shrink-0 urgency-pct <%= badge.cls %>"><%= badge.text %></span>
+                </div>
+              </label>
+            <% }); %>
+          </div>
           <% } %>
           <% } %>
         </div>

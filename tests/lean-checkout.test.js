@@ -95,6 +95,8 @@ describe('Checkout lean (estilo Mercado Libre)', () => {
   test('footer legal y Sofía FAB se ocultan en la ficha lean', () => {
     expect(css).toMatch(/body:has\(#servicePage\.service-lean\) #alandFabRoot/);
     expect(css).toMatch(/body:has\(#servicePage\.service-lean\) \.legal-footer/);
+    expect(css).not.toMatch(/#urgencyScheduleDetails summary span:last-child\s*\{\s*display:\s*none/);
+    expect(css).not.toMatch(/#scheduleWhenBox[^{]*\{\s*display:\s*none/);
   });
 
   test('gasfitería ahora: HTML visible es paquete + cuándo + dirección + Pagar', () => {
@@ -104,6 +106,9 @@ describe('Checkout lean (estilo Mercado Libre)', () => {
     expect(html).toContain('Grifería y llaves');
     expect(html).toContain('$105.000');
     expect(html).toContain('id="urgencyOptions"');
+    expect(html).toContain('id="scheduleWhenBox"');
+    expect(html).toContain('id="urgencyProgramadoToggle"');
+    expect(html).toContain('client.service.urgency_scheduled');
     expect(html).toContain('id="address"');
     expect(html).toContain('btnRequestSticky');
 

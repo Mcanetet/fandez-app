@@ -402,23 +402,60 @@
     });
   }
 
+  function isDeferredUrgency(tier) {
+    return ['tomorrow', 'two_days', 'scheduled'].includes(String(tier || ''));
+  }
+
+  function syncScheduleWhenBox(tier) {
+    const deferred = isDeferredUrgency(tier);
+    const box = document.getElementById('scheduleWhenBox');
+    const toggle = document.getElementById('urgencyProgramadoToggle');
+    const card = document.getElementById('scheduleOpenCard');
+    if (box) box.classList.toggle('hidden', !deferred);
+    if (toggle) toggle.checked = deferred;
+    if (card) {
+      card.classList.toggle('border-zilo-accent', deferred);
+      card.classList.toggle('bg-zilo-accent/5', deferred);
+      card.classList.toggle('border-zilo-border', !deferred);
+    }
+  }
+
+  function paintUrgencyOptions(tier) {
+    document.querySelectorAll('.urgency-option[data-tier]').forEach(el => {
+      const active = el.dataset.tier === tier;
+      el.classList.toggle('border-zilo-accent', active);
+      el.classList.toggle('bg-zilo-accent/5', active);
+      el.classList.toggle('border-zilo-border', !active);
+    });
+    syncScheduleWhenBox(tier);
+  }
+
   urgencyRadios.forEach(radio => {
     radio.addEventListener('change', () => {
       if (!radio.checked) return;
       selectedUrgencyTier = radio.value;
-      document.querySelectorAll('.urgency-option').forEach(el => {
-        const active = el.dataset.tier === selectedUrgencyTier;
-        el.classList.toggle('border-zilo-accent', active);
-        el.classList.toggle('bg-zilo-accent/5', active);
-        el.classList.toggle('border-zilo-border', !active);
-      });
-      const scheduleDetails = document.getElementById('urgencyScheduleDetails');
-      if (scheduleDetails && (selectedUrgencyTier === 'tomorrow' || selectedUrgencyTier === 'two_days' || selectedUrgencyTier === 'scheduled')) {
-        scheduleDetails.open = true;
-      }
+      paintUrgencyOptions(selectedUrgencyTier);
       updatePricePreview();
     });
   });
+
+  document.getElementById('urgencyProgramadoToggle')?.addEventListener('change', () => {
+    const first = document.querySelector('#scheduleWhenBox input[name="urgencyTier"]');
+    if (!first) return;
+    first.checked = true;
+    first.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
+  document.getElementById('scheduleOpenCard')?.addEventListener('click', (ev) => {
+    if (ev.target.closest('input')) return;
+    const toggle = document.getElementById('urgencyProgramadoToggle');
+    if (toggle && !toggle.checked) {
+      toggle.checked = true;
+      toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+
+  paintUrgencyOptions(selectedUrgencyTier);
 
   const activitySelect = document.getElementById('activityId');
   const customActivityFields = document.getElementById('customActivityFields');

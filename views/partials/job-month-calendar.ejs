@@ -1,0 +1,24 @@
+<%
+  const calEvents = Array.isArray(typeof calendarEvents !== 'undefined' ? calendarEvents : []) ? calendarEvents : [];
+  const calTitle = typeof calendarTitle !== 'undefined' ? calendarTitle : 'Calendario';
+  const calHint = typeof calendarHint !== 'undefined' ? calendarHint : '';
+%>
+<section class="job-cal" data-job-calendar aria-label="<%= calTitle %>">
+  <div class="job-cal__head">
+    <div class="min-w-0">
+      <p class="zilo-label !mb-0"><%= calTitle %></p>
+      <% if (calHint) { %><p class="text-[11px] text-zilo-muted mt-0.5"><%= calHint %></p><% } %>
+    </div>
+    <div class="job-cal__nav">
+      <button type="button" class="job-cal__nav-btn" data-cal-prev aria-label="Mes anterior">‹</button>
+      <strong class="job-cal__month" data-cal-month></strong>
+      <button type="button" class="job-cal__nav-btn" data-cal-next aria-label="Mes siguiente">›</button>
+    </div>
+  </div>
+  <div class="job-cal__weekdays" aria-hidden="true">
+    <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+  </div>
+  <div class="job-cal__grid" data-cal-grid></div>
+  <div class="job-cal__day" data-cal-day-list hidden></div>
+  <script type="application/json" data-cal-events><%- JSON.stringify(calEvents).replace(/</g, '\\u003c') %></script>
+</section>

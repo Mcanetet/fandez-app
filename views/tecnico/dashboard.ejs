@@ -84,6 +84,12 @@
       </div>
     <% } %>
 
+    <%- include('../partials/job-month-calendar', {
+      calendarEvents: typeof calendarEvents !== 'undefined' ? calendarEvents : [],
+      calendarTitle: t('tecnico.calendar.title'),
+      calendarHint: t('tecnico.calendar.hint')
+    }) %>
+
     <%
       function techJobPriority(j) {
         const s = j.techStatus || '';
@@ -281,7 +287,7 @@
 
 <%- include('../partials/onboarding-tour') %>
 
-<%- include('../partials/footer', { pageScript: '/js/tecnico.js', extraScripts: ['/js/visit-schedule.js', '/js/image-upload.js'] }) %>
+<%- include('../partials/footer', { pageScript: '/js/tecnico.js', extraScripts: ['/js/visit-schedule.js', '/js/image-upload.js', '/js/job-month-calendar.js'] }) %>
 <script src="/js/guide.js"></script>
 <script src="/js/map.js"></script>
 <script>

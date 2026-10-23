@@ -96,8 +96,12 @@ router.get('/', requireRole('tecnico'), (req, res) => {
   const jobs = allJobs
     .filter(r => r.techStatus !== 'completado' && r.status !== 'completed' && r.status !== 'cancelled')
     .map(serializeJob);
-  const { groupRequestsByAgendaDay } = require('../lib/jobAgenda');
+  const { groupRequestsByAgendaDay, buildCalendarEvents } = require('../lib/jobAgenda');
   const agenda = groupRequestsByAgendaDay(jobs);
+  const calendarEvents = buildCalendarEvents(jobs, {
+    viewerRole: 'tecnico',
+    viewerId: tecnico.id
+  });
   const completedJobs = allJobs
     .filter(r => r.techStatus === 'completado' || r.status === 'completed')
     .sort((a, b) => new Date(b.completedAt || b.updatedAt || 0) - new Date(a.completedAt || a.updatedAt || 0))
@@ -137,6 +141,7 @@ router.get('/', requireRole('tecnico'), (req, res) => {
     dossierCheck: store.canTechnicianOperate(tecnico),
     jobs,
     agenda,
+    calendarEvents,
     completedJobs,
     canClaimWall: store.technicianCanClaimAnyWall(tecnico),
     linkedProvider: req.session.linkedProvider || null,
