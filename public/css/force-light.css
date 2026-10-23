@@ -373,9 +373,16 @@ picture {
 }
 
 #servicePage.service-track,
-#servicePage.service-track.min-h-screen {
+#servicePage.service-track.min-h-screen,
+#servicePage.service-lean,
+#clientDashboard.home-client {
+  --zilo-accent-soft: #ffffff !important;
   background-color: #ffffff !important;
   color: #1A1814 !important;
+}
+#servicePage [class*="bg-zilo-accent/"],
+#clientDashboard.home-client [class*="bg-zilo-accent/"] {
+  background-color: #ffffff !important;
 }
 #servicePage.service-track .zilo-btn-primary,
 #servicePage.service-track .sticky-track-btn--primary {

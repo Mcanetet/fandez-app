@@ -6035,6 +6035,30 @@ body:has(#servicePage.service-track) #cookieBanner {
   background: #fff;
   border-top: 1px solid rgba(26, 24, 20, 0.08);
 }
+
+/* Cliente: cero fondos durazno. Naranja solo en CTA y letras. */
+#servicePage,
+#servicePage.service-track,
+#servicePage.service-lean,
+#clientDashboard.home-client {
+  --zilo-accent-soft: #ffffff;
+  --home-soft: #ffffff;
+}
+#servicePage [class*="bg-zilo-accent/"],
+#clientDashboard.home-client [class*="bg-zilo-accent/"] {
+  background-color: #ffffff !important;
+}
+#servicePage .zilo-btn-ghost:hover,
+#servicePage .zilo-btn-ghost:focus-visible,
+#clientDashboard.home-client .zilo-btn-ghost:hover {
+  background-color: #ffffff !important;
+}
+#servicePage #arrivalCodeCard,
+#servicePage #providerAvatar,
+#servicePage .live-track-shell,
+#servicePage #resumeDraftBanner {
+  background-color: #ffffff !important;
+}
 .sticky-order-inner {
   display: flex;
   align-items: center;
@@ -8785,7 +8809,7 @@ body.launch-notice-open {
   --home-muted: #6B635A;
   --home-touch: #C45C14;
   --home-money: #2F6B4F;
-  --home-soft: #F6E6D4;
+  --home-soft: #ffffff;
   width: 100%;
   max-width: 32rem;
   min-width: 0;
@@ -9038,7 +9062,7 @@ body.launch-notice-open {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 0.75rem;
-  background: #F6F3EE;
+  background: #ffffff;
   border-color: transparent;
 }
 .home-svc__name {
