@@ -6031,7 +6031,11 @@ body:has(#servicePage.service-track) #cookieBanner {
   color: #C45C14;
   padding: 0.35rem 0;
 }
-#servicePage.service-track .sticky-track-bar {
+#servicePage.service-track .sticky-track-bar,
+#servicePage.service-track #stickyTrackBar {
+  display: none !important;
+}
+#servicePage.service-track .nav-client-bar {
   background: #fff;
   border-top: 1px solid rgba(26, 24, 20, 0.08);
 }
