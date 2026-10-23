@@ -74,11 +74,17 @@
         <% activeRequests.forEach(function(req) {
           const phase = livePhase(req);
           const barPct = Math.round(((phase + 1) / 4) * 100);
-          const techName = req.technicianName || (req.visitTeam && req.visitTeam.technicianName) || '';
+          const shortStatus = phase >= 3
+            ? t('client.dashboard.live_step_home')
+            : phase === 2
+              ? t('client.dashboard.live_step_road')
+              : phase === 1
+                ? t('client.dashboard.live_step_assigned')
+                : t('client.dashboard.live_step_search');
         %>
           <a href="/cliente/servicio/<%= req.serviceId %>?tracking=<%= req.id %>" class="home-live">
             <strong class="home-live__title"><%= req.serviceName %></strong>
-            <p class="home-live__status"><%= req.statusLabel || req.status %><% if (techName) { %> · <%= techName %><% } %><% if (req.etaLabel) { %> · <%= req.etaLabel %><% } %></p>
+            <p class="home-live__status"><%= shortStatus %></p>
             <span class="home-live__bar" aria-hidden="true"><i style="width:<%= barPct %>%"></i></span>
             <span class="home-live__cta"><%= t('client.dashboard.live_cta') %></span>
           </a>
@@ -114,14 +120,15 @@
           </div>
           <div>
             <h3 class="home-section-title"><%= t('client.dashboard.now_title_active') %></h3>
-            <%- include('../partials/client-service-grid', { services: typeof servicesNow !== 'undefined' ? servicesNow : services, camino: 'ahora', gridId: 'servicesGridNowActive', formatCLP: formatCLP, t: t }) %>
+            <%- include('../partials/client-service-grid', {
+              services: (typeof servicesNow !== 'undefined' ? servicesNow : services).slice(0, 2),
+              camino: 'ahora',
+              gridId: 'servicesGridNowActive',
+              formatCLP: formatCLP,
+              t: t,
+              lean: true
+            }) %>
           </div>
-          <% if (mod('client_proyectos')) { %>
-          <div class="pt-2">
-            <h3 class="home-section-title"><%= t('client.dashboard.project_title') %></h3>
-            <%- include('../partials/client-service-grid', { services: typeof servicesProject !== 'undefined' ? servicesProject : [], camino: 'proyecto', gridId: 'servicesGridProjectActive', formatCLP: formatCLP, t: t }) %>
-          </div>
-          <% } %>
         </div>
       <% } %>
     </section>

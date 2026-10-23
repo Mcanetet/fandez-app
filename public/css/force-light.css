@@ -296,12 +296,12 @@ picture {
   #clientDashboard.home-client,
   #clientDashboard.home-client.min-h-screen,
   #clientDashboard.home-client main {
-    background-color: #F6F3EE !important;
+    background-color: #FAF9F6 !important;
     background-image: none !important;
     color: #1A1814 !important;
   }
   #clientDashboard.home-client .home-live {
-    background-color: #ffffff !important;
+    background-color: transparent !important;
     background-image: none !important;
     color: #1A1814 !important;
   }
@@ -318,17 +318,21 @@ picture {
   }
 }
 
-/* Home cliente: papel pálido, cajas blancas */
+/* Home cliente: papel casi blanco, visita sin recuadro */
 #clientDashboard.home-client,
 #clientDashboard.home-client.min-h-screen {
-  background-color: #F6F3EE !important;
+  background-color: #FAF9F6 !important;
   background-image: none !important;
   color: #1A1814 !important;
 }
 #clientDashboard.home-client .client-session-header {
-  background-color: rgba(246, 243, 238, 0.92) !important;
+  background-color: #FAF9F6 !important;
 }
-#clientDashboard.home-client .home-live,
+#clientDashboard.home-client .home-live {
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #1A1814 !important;
+}
 #clientDashboard.home-client .home-svc {
   background-color: #ffffff !important;
   background-image: none !important;
