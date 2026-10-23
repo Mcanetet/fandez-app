@@ -193,7 +193,7 @@
       card.innerHTML = `
         <div class="flex items-start justify-between gap-3 mb-2">
           <div class="min-w-0 flex-1">
-            <strong class="text-sm block">${escapeHtml(data.service.name)}</strong>
+            <strong class="text-sm block">${escapeHtml(req.customServiceName || req.activityName || data.service?.name || '')}</strong>
             <span class="text-xs text-zilo-muted block truncate">${escapeHtml(data.client.name)}</span>
             ${gift}
           </div>
@@ -341,7 +341,8 @@
       (typeof FandezIcons !== 'undefined' && data.service?.icon)
         ? FandezIcons.wrap(data.service.icon, data.service.color, 'w-12 h-12', 28)
         : '';
-    document.getElementById('modalServiceName').textContent = data.service?.name || '—';
+    document.getElementById('modalServiceName').textContent =
+      data.request?.customServiceName || data.request?.activityName || data.service?.name || '—';
     document.getElementById('modalClient').textContent = data.client?.name || '—';
     document.getElementById('modalAddress').textContent = data.request.zoneLabel || data.request.communeName || 'Zona disponible';
     document.getElementById('modalCoords').textContent = data.request.zoneLabel || data.request.communeName || '—';
@@ -653,6 +654,14 @@
       }
       Object.assign(body, schedule);
     }
+
+    const serviceId = wallItem?.request?.serviceId || currentRequest?.serviceId || '';
+    const technicianId = await askTechnicianId(serviceId);
+    if (!technicianId) {
+      if (btn) btn.disabled = false;
+      return;
+    }
+    body.technicianId = technicianId;
 
     if (navigator.geolocation) {
       try {

@@ -41,7 +41,7 @@
     const now = new Date();
     let year = now.getFullYear();
     let month = now.getMonth();
-    let selected = ymd(year, month, now.getDate());
+    let selected = '';
 
     const grid = root.querySelector('[data-cal-grid]');
     const monthEl = root.querySelector('[data-cal-month]');

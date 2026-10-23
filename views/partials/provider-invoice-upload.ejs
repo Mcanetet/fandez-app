@@ -9,10 +9,10 @@
     <%= t('provider.invoice.view_issued') %><% if (inv.folio) { %> · <%= inv.documentType || '' %> <%= inv.folio %><% } %>
   </a>
 <% } else if (inv.status === 'pending') { %>
-  <details class="provider-invoice-panel mt-1">
-    <summary class="text-xs text-zilo-accent font-semibold cursor-pointer py-1.5">
-      <%= t('provider.invoice.upload_link') %> · <%= formatCLP(inv.amount) %> (100%)
-    </summary>
+  <div class="provider-invoice-panel mt-1">
+    <p class="text-xs text-zilo-accent font-semibold py-1.5">
+      <%= t('provider.invoice.upload_link') %> · <%= formatCLP(inv.amount) %>
+    </p>
     <div class="provider-invoice-form mt-2 space-y-2 rounded-xl border border-amber-200/80 bg-amber-50/50 p-3"
          data-request-id="<%= requestId %>">
       <p class="text-[11px] text-zilo-text leading-relaxed font-medium">
@@ -57,5 +57,5 @@
         <%= t('provider.invoice.submit') %>
       </button>
     </div>
-  </details>
+  </div>
 <% } %>

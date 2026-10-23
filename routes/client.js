@@ -9,7 +9,7 @@ const { localizeServices } = require('../lib/i18n-admin');
 const { getPhotoTips } = require('../lib/photoTips');
 const { getServiceOverview } = require('../lib/serviceOverviews');
 const { buildTaskSearchIndex } = require('../lib/taskSearchIndex');
-const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
+const { requireRole } = require('../middleware/auth');
 const { requireModule } = require('../middleware/modules');
 const unassignedRequestWatcher = require('../lib/unassignedRequestWatcher');
 const { getRequestTimeouts } = require('../lib/requestTimeouts');
@@ -288,7 +288,7 @@ router.post('/solicitud/:id/sin-socio', async (req, res) => {
   });
 });
 
-router.use(requireRole('client'), requireVerifiedEmail);
+router.use(requireRole('client'));
 
 function syncSessionUser(req, user) {
   req.session.user.name = user.name;

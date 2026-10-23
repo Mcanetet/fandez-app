@@ -143,10 +143,10 @@
     <p class="text-sm font-semibold text-zilo-text mb-3 text-center"><%= t('landing.specialties') %></p>
     <div class="flex flex-wrap justify-center gap-2">
       <% (services || []).forEach(s => { %>
-        <span class="zilo-specialty-pill">
+        <a href="/registro?role=client&amp;servicio=<%= encodeURIComponent(s.id) %>" class="zilo-specialty-pill">
           <%- include('partials/service-icon', { icon: s.icon, size: 'xs' }) %>
           <%= s.name %>
-        </span>
+        </a>
       <% }); %>
     </div>
   </section>

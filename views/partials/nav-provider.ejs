@@ -1,16 +1,16 @@
 <nav class="fixed bottom-0 inset-x-0 w-full max-w-lg mx-auto nav-provider-bar flex safe-bottom z-50" aria-label="<%= t('provider.nav.aria') %>">
-  <a href="/proveedor" class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium <%= navActive === 'inicio' || navActive === 'muro' ? 'nav-provider-active' : 'text-zilo-muted' %>" aria-current="<%= navActive === 'inicio' || navActive === 'muro' ? 'page' : 'false' %>">
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-    <%= t('provider.nav.home') %>
-  </a>
-  <a href="/proveedor/alertas" class="relative flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium <%= navActive === 'alertas' ? 'nav-provider-active' : 'text-zilo-muted' %>" aria-current="<%= navActive === 'alertas' ? 'page' : 'false' %>">
+  <a href="/proveedor" class="relative flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium <%= navActive === 'inicio' || navActive === 'muro' ? 'nav-provider-active' : 'text-zilo-muted' %>" aria-current="<%= navActive === 'inicio' || navActive === 'muro' ? 'page' : 'false' %>">
     <span class="relative inline-flex">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
       <% if (typeof openAlertCount !== 'undefined' && openAlertCount > 0) { %>
         <span class="absolute -top-1 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center"><%= openAlertCount > 9 ? '9+' : openAlertCount %></span>
       <% } %>
     </span>
-    Alertas
+    <%= t('provider.nav.home') %>
+  </a>
+  <a href="/proveedor/equipo" class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium <%= navActive === 'equipo' ? 'nav-provider-active' : 'text-zilo-muted' %>" aria-current="<%= navActive === 'equipo' ? 'page' : 'false' %>">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    <%= t('provider.nav.team') %>
   </a>
   <% if (mod('provider_mando')) { %>
   <a href="/proveedor/mando" class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium <%= navActive === 'mando' ? 'nav-provider-active' : 'text-zilo-muted' %>" aria-current="<%= navActive === 'mando' ? 'page' : 'false' %>">

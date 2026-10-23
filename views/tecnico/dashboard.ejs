@@ -84,12 +84,6 @@
       </div>
     <% } %>
 
-    <%- include('../partials/job-month-calendar', {
-      calendarEvents: typeof calendarEvents !== 'undefined' ? calendarEvents : [],
-      calendarTitle: t('tecnico.calendar.title'),
-      calendarHint: t('tecnico.calendar.hint')
-    }) %>
-
     <%
       function techJobPriority(j) {
         const s = j.techStatus || '';
@@ -109,8 +103,14 @@
         return 10;
       }
       const sortedJobs = activeJobs.slice().sort((a, b) => techJobPriority(b) - techJobPriority(a));
-      const heroJob = sortedJobs[0] || null;
-      const otherJobs = sortedJobs.slice(1);
+      const pendingAccept = sortedJobs.filter(function(j) { return j.techStatus === 'asignado'; });
+      const heroJob = pendingAccept[0] || sortedJobs[0] || null;
+      const extraAccept = pendingAccept.filter(function(j) { return !heroJob || j.id !== heroJob.id; });
+      const otherJobs = sortedJobs.filter(function(j) {
+        if (!heroJob) return true;
+        if (j.id === heroJob.id) return false;
+        return j.techStatus !== 'asignado';
+      });
     %>
 
     <!-- 1) Una visita ahora + resto plegado -->
@@ -123,6 +123,9 @@
       <% } else { %>
         <div id="jobList" class="space-y-3">
           <%- include('../partials/tecnico-job-card', { j: heroJob, isHero: true, techLabels, requestTimeouts, t }) %>
+          <% extraAccept.forEach(function(j) { %>
+            <%- include('../partials/tecnico-job-card', { j: j, isHero: true, techLabels, requestTimeouts, t }) %>
+          <% }); %>
         </div>
         <% if (otherJobs.length) { %>
         <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold" id="sectionOtherJobs">
@@ -145,6 +148,13 @@
         <% } %>
       <% } %>
     </section>
+
+    <%- include('../partials/job-month-calendar', {
+      calendarEvents: typeof calendarEvents !== 'undefined' ? calendarEvents : [],
+      calendarTitle: t('tecnico.calendar.title'),
+      calendarHint: t('tecnico.calendar.hint'),
+      calendarCollapsed: true
+    }) %>
 
     <!-- 2) Pedidos hechos · siempre plegado -->
     <details class="zilo-card-premium rounded-2xl overflow-hidden provider-home-fold" id="sectionDone" data-tour="tech-history">

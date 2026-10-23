@@ -235,8 +235,8 @@
         : t('register.zone_hint_client');
     }
     if (unitInput) unitInput.required = false;
-    if (regionSelect) regionSelect.required = true;
-    if (addressInput) addressInput.required = true;
+    if (regionSelect) regionSelect.required = isProviderRole();
+    if (addressInput) addressInput.required = isProviderRole();
     if (lastCoverage && !lastCoverage.covered) showCoverage(lastCoverage);
   }
 
@@ -1134,6 +1134,17 @@
     e.preventDefault();
     clearRegisterError();
     resolveTypedCommune();
+
+    const clientSkipAddress = !isProviderRole() && !String(addressInput.value || '').trim();
+    if (clientSkipAddress) {
+      if (regionSelect) regionSelect.setCustomValidity('');
+      if (addressInput) addressInput.setCustomValidity('');
+      unlockSubmitFields();
+      const submitBtn = setSubmitting(true);
+      if (!submitBtn) return;
+      form.submit();
+      return;
+    }
 
     if (!getRegionCode()) {
       if (regionSelect) {

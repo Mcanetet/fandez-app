@@ -418,6 +418,10 @@
   }
   // Inicio limpio: pliegues cerrados salvo ancla explícita
   document.querySelectorAll('.provider-home-fold').forEach(function (el) {
+    if (el.id === 'activeJobsSection') {
+      el.open = true;
+      return;
+    }
     if (location.hash && el.id && location.hash === '#' + el.id) {
       el.open = true;
     } else {

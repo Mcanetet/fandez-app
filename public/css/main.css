@@ -5656,6 +5656,18 @@ body.admin-modal-open {
   padding: 0.85rem 0.9rem 0.75rem;
   margin-bottom: 1rem;
 }
+.job-cal--fold { padding: 0; }
+.job-cal__summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.9rem;
+  cursor: pointer;
+  list-style: none;
+}
+.job-cal__summary::-webkit-details-marker { display: none; }
+.job-cal__body { padding: 0 0.9rem 0.75rem; }
 .job-cal__head {
   display: flex;
   align-items: flex-start;

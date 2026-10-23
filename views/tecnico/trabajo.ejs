@@ -356,7 +356,7 @@
     <section id="stepTrayecto" data-wizard-panel="trayecto" class="zilo-card-premium rounded-2xl p-5 field-step <%= wizardStep === 'trayecto' ? '' : 'hidden' %>">
       <p class="zilo-label mb-1">Trayecto</p>
       <h2 class="text-sm font-semibold mb-2"><%= request.techStatus === 'aceptado' ? '¿Listo para ir?' : '¿Ya estás en la puerta?' %></h2>
-      <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'Al marcar “Salí hacia el cliente”, él verá que vas en camino y tu ubicación en vivo. El diagnóstico y posibles cambios de servicio se hacen al llegar.' : 'Confirma solo cuando estés en el domicilio.' %></p>
+      <p class="text-xs text-zilo-muted mb-3"><%= request.techStatus === 'aceptado' ? 'Al marcar “Voy en camino”, el cliente ve que sales y tu ubicación en vivo.' : 'Confirma solo cuando estés en el domicilio.' %></p>
       <% if (request.techStatus === 'aceptado') { %>
         <% const mapsUrlTrayecto = googleMapsDirectionsUrl(request.address, { communeName: request.communeName, lat: request.coords && request.coords.lat, lng: request.coords && request.coords.lng }); %>
         <% if (mapsUrlTrayecto) { %>
@@ -366,7 +366,7 @@
         <% } %>
       <% } %>
       <button type="button" id="btnTrayecto" data-next-status="<%= request.techStatus === 'aceptado' ? 'en_camino' : 'en_sitio' %>"
-        class="w-full py-4 rounded-xl zilo-btn-primary text-base"><%= request.techStatus === 'aceptado' ? 'Salí hacia el cliente' : 'Ya estoy en la puerta' %></button>
+        class="w-full py-4 rounded-xl zilo-btn-primary text-base"><%= request.techStatus === 'aceptado' ? 'Voy en camino' : 'Ya llegué' %></button>
     </section>
 
     <!-- Paso: Llegada — solo código -->
@@ -869,7 +869,7 @@
           </div>
         </div>
         <button type="button" id="btnBackToMaterials" class="<%= request.techStatus === 'comprando' || request.techStatus === 'reparando' || request.techStatus === 'presupuesto_aprobado' ? '' : 'hidden' %> w-full py-2.5 rounded-xl zilo-btn-ghost !text-xs">Volver a materiales</button>
-        <button type="button" id="btnCompletar" class="w-full py-4 rounded-xl zilo-btn-primary text-base" <%= (gardenDeliverables.length && !gardenProgress.complete && !isObserver) ? 'disabled' : '' %>>Trabajo listo</button>
+        <button type="button" id="btnCompletar" class="w-full py-4 rounded-xl zilo-btn-primary text-base" <%= (gardenDeliverables.length && !gardenProgress.complete && !isObserver) ? 'disabled' : '' %>>Cerrar visita</button>
       </div>
     </section>
 
@@ -922,10 +922,9 @@
   </main>
 
   <div class="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
-    <div class="max-w-lg mx-auto px-5 pb-5 pointer-events-auto">
-      <button type="button" id="btnOpenFieldChatFab" class="w-full py-3.5 rounded-2xl zilo-btn-primary shadow-lg flex items-center justify-center gap-2">
+    <div class="max-w-lg mx-auto px-5 pb-5 pointer-events-auto flex justify-end">
+      <button type="button" id="btnOpenFieldChatFab" class="w-12 h-12 rounded-full border border-zilo-border bg-white text-zilo-text flex items-center justify-center" aria-label="Mensajes con el cliente" title="Mensajes con el cliente">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        Mensajes con el cliente
       </button>
     </div>
   </div>

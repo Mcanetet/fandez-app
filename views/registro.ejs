@@ -43,6 +43,8 @@
     <% } %>
 
     <form id="registrationForm" action="/registro" method="POST" class="register-form <%= form.role === 'client' ? 'register-form--client' : '' %>">
+      <input type="hidden" name="servicio" value="<%= form.servicio || '' %>">
+      <input type="hidden" name="camino" value="<%= form.camino || 'ahora' %>">
       <div class="register-form__block">
         <span class="register-form__label"><%= t('register.role_label') %></span>
         <div class="register-role" id="roleSelector" role="group" aria-label="<%= t('register.role_label') %>">
@@ -154,7 +156,7 @@
         <div class="register-form__fields register-form__fields--zone">
         <div class="register-zone__region">
           <label for="address_region" class="register-form__label"><%= t('register.region') %></label>
-          <select id="address_region" name="address_region" required class="zilo-input">
+          <select id="address_region" name="address_region" class="zilo-input" <%= form.role === 'provider' ? 'required' : '' %>>
             <option value=""><%= t('register.region_placeholder') %></option>
             <% (registrationRegions || []).forEach(function(r) {
               var selectedRegion = form.addressRegion || 'region-metropolitana';
@@ -381,8 +383,8 @@
       if (phone) phone.required = true;
       const address = document.getElementById('address');
       const region = document.getElementById('address_region');
-      if (address) address.required = true;
-      if (region) region.required = true;
+      if (address) address.required = isProvider;
+      if (region) region.required = isProvider;
       const unit = document.getElementById('address_unit');
       const unitLabel = document.getElementById('addressUnitLabel');
       if (unit) unit.required = false;

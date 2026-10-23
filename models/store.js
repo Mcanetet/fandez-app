@@ -4203,14 +4203,15 @@ async function registerUser({
 
   const addr = (address || '').trim();
   const unit = (addressUnit || '').trim();
-  if (addr.length < 5) {
-    return {
-      errorKey: role === 'provider'
-        ? 'register.error_address_required_provider'
-        : 'register.error_address_required'
-    };
+  if (role === 'provider' && addr.length < 5) {
+    return { errorKey: 'register.error_address_required_provider' };
+  }
+  const skipClientAddress = role === 'client' && addr.length < 5;
+  if (!skipClientAddress && addr.length < 5) {
+    return { errorKey: 'register.error_address_required' };
   }
 
+  if (!skipClientAddress) {
   const regionCode = String(addressRegion || '').trim() || 'region-metropolitana';
   const communeMeta = addressCommune ? getCommune(regionCode, addressCommune) : null;
   if (!communeMeta) return { errorKey: 'register.error_commune_required' };
@@ -4266,6 +4267,7 @@ async function registerUser({
     : (geo.label || fullAddr);
   resolvedCoords = { lat, lng };
   resolvedPlaceId = (addressPlaceId || geo.placeId || '').trim() || null;
+  }
 
   if (role === 'client') {
     const billingType = clientBillingType === 'empresa' ? 'empresa' : 'natural';
@@ -7062,10 +7064,13 @@ function updateTechStatus(requestId, technicianId, techStatus, { lat, lng } = {}
 
   if (techStatus === 'aceptado') {
     const hasEta = request.etaMinutesMin && request.etaMinutesMax;
+    if (!hasEta && deferredJob && !hasSchedule) {
+      return { error: 'Propón fecha y hora de visita en el calendario antes de aceptar.' };
+    }
     if (!hasEta && !(deferredJob && hasSchedule)) {
-      return { error: deferredJob
-        ? 'Propón fecha y hora de visita en el calendario antes de aceptar.'
-        : 'Activa el GPS para calcular tu llegada en auto, o declara una ETA antes de aceptar.' };
+      request.etaMinutesMin = 45;
+      request.etaMinutesMax = 90;
+      request.etaLabel = formatEtaRangeLabel(45, 90, 'es');
     }
   }
   // Código de seguridad: se genera al salir (en camino) para que el cliente lo tenga listo

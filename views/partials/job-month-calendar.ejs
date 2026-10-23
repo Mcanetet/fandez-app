@@ -2,13 +2,19 @@
   const calEvents = Array.isArray(typeof calendarEvents !== 'undefined' ? calendarEvents : []) ? calendarEvents : [];
   const calTitle = typeof calendarTitle !== 'undefined' ? calendarTitle : 'Calendario';
   const calHint = typeof calendarHint !== 'undefined' ? calendarHint : '';
+  const calCollapsed = typeof calendarCollapsed === 'undefined' || calendarCollapsed;
+  const calCount = calEvents.length;
 %>
-<section class="job-cal" data-job-calendar aria-label="<%= calTitle %>">
-  <div class="job-cal__head">
+<details class="job-cal job-cal--fold" data-job-calendar aria-label="<%= calTitle %>"<%= calCollapsed ? '' : ' open' %>>
+  <summary class="job-cal__summary">
     <div class="min-w-0">
       <p class="zilo-label !mb-0"><%= calTitle %></p>
       <% if (calHint) { %><p class="text-[11px] text-zilo-muted mt-0.5"><%= calHint %></p><% } %>
     </div>
+    <span class="text-xs font-bold tabular-nums <%= calCount ? 'text-zilo-accent' : 'text-zilo-muted' %>"><%= calCount %></span>
+  </summary>
+  <div class="job-cal__body">
+  <div class="job-cal__head">
     <div class="job-cal__nav">
       <button type="button" class="job-cal__nav-btn" data-cal-prev aria-label="Mes anterior">‹</button>
       <strong class="job-cal__month" data-cal-month></strong>
@@ -21,4 +27,5 @@
   <div class="job-cal__grid" data-cal-grid></div>
   <div class="job-cal__day" data-cal-day-list hidden></div>
   <script type="application/json" data-cal-events><%- JSON.stringify(calEvents).replace(/</g, '\\u003c') %></script>
-</section>
+  </div>
+</details>

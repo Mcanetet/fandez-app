@@ -65,7 +65,7 @@
     if (mode === 'client') {
       return '/cliente/servicio/' + encodeURIComponent(entry.id) + '?camino=' + camino;
     }
-    return '/registro?role=client&billing=natural';
+    return '/registro?role=client&billing=natural&servicio=' + encodeURIComponent(entry.id) + '&camino=' + camino;
   }
 
   function setIntent(entry) {

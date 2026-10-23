@@ -28,6 +28,11 @@
 
   <main class="flex-1 px-5 py-5 pb-24">
     <%- include('../partials/site-alert') %>
+    <% if (typeof profile !== 'undefined' && profile && !profile.emailVerifiedAt) { %>
+    <a href="/verificar-email" class="mb-4 block px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 text-xs font-medium">
+      Confirma tu correo cuando puedas. Ya puedes pedir un técnico.
+    </a>
+    <% } %>
 
     <% const refundAttention = (typeof attentionItems !== 'undefined' ? attentionItems : []).filter(function(i){ return i.type === 'refund_pending'; }); %>
     <%

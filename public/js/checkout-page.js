@@ -75,8 +75,10 @@
 
   function billingReady() {
     const b = getBillingPayload();
-    if (!b.rut || !b.legalName || !b.fiscalAddress || !b.invoiceEmail) return false;
-    if (b.type === 'empresa' && !b.giro) return false;
+    if (!b.legalName || !b.invoiceEmail) return false;
+    if (b.type === 'empresa') {
+      if (!b.rut || !b.giro || !b.fiscalAddress) return false;
+    }
     return true;
   }
 
@@ -105,9 +107,10 @@
     const method = selectedPaymentMethod();
     const amount = total ?? 0;
     if (amount === 0) label.textContent = 'Confirmar servicio gratis';
-    else if (method === 'transfer') label.textContent = `Ver datos transferencia · ${fmt(amount)}`;
-    else if (mpEmbed) label.textContent = `Ver formulario de tarjeta · ${fmt(amount)}`;
-    else label.textContent = `Pagar con tarjeta · ${fmt(amount)}`;
+    else if (method === 'transfer') label.textContent = `Ver transferencia · ${fmt(amount)}`;
+    else label.textContent = `Pagar ${fmt(amount)}`;
+    const stickyBtn = document.getElementById('btnPaySticky');
+    if (stickyBtn && amount > 0) stickyBtn.textContent = `Pagar ${fmt(amount)}`;
   }
 
   async function ensureMpPay() {

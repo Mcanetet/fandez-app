@@ -29,12 +29,6 @@
 
     <p class="text-xs text-zilo-muted mb-4"><%= t('provider.mando_page.hint') %></p>
 
-    <%- include('../partials/job-month-calendar', {
-      calendarEvents: typeof calendarEvents !== 'undefined' ? calendarEvents : [],
-      calendarTitle: t('provider.calendar.title'),
-      calendarHint: t('provider.calendar.hint')
-    }) %>
-
     <% if (requests.length > 0) { %>
     <section class="mb-4 zilo-card-premium rounded-2xl p-4" aria-label="<%= t('provider.mando_page.map_title') %>">
       <p class="zilo-label mb-2"><%= t('provider.mando_page.map_title') %></p>
@@ -56,6 +50,12 @@
         <p class="zilo-display"><%= t('provider.mando_page.empty_title') %></p>
         <p class="text-sm"><%= t('provider.mando_page.empty_body') %></p>
       </div>
+      <%- include('../partials/job-month-calendar', {
+        calendarEvents: typeof calendarEvents !== 'undefined' ? calendarEvents : [],
+        calendarTitle: t('provider.calendar.title'),
+        calendarHint: t('provider.calendar.hint'),
+        calendarCollapsed: true
+      }) %>
     <% } else {
       const ag = (typeof agenda !== 'undefined' && agenda) ? agenda : { today: requests, tomorrow: [], later: [] };
       const agendaSections = [
@@ -88,6 +88,12 @@
           </section>
         <% }); %>
       </div>
+      <%- include('../partials/job-month-calendar', {
+        calendarEvents: typeof calendarEvents !== 'undefined' ? calendarEvents : [],
+        calendarTitle: t('provider.calendar.title'),
+        calendarHint: t('provider.calendar.hint'),
+        calendarCollapsed: true
+      }) %>
     <% } %>
   </main>
 

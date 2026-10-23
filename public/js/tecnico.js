@@ -186,7 +186,7 @@
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         (err) => reject(err || new Error('GPS denegado')),
-        { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30000 }
+        { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 180000 }
       );
     });
   }
@@ -234,11 +234,10 @@
 
   async function resolveAcceptPayload() {
     try {
-      const coords = await getCurrentCoords();
+      const coords = await getCurrentCoords(3500);
       return { lat: coords.lat, lng: coords.lng };
     } catch (_) {
-      notify(t('tecnico.js.enable_gps'), 'warning');
-      return askEtaRange();
+      return { etaMinutesMin: 45, etaMinutesMax: 90 };
     }
   }
 
@@ -348,7 +347,7 @@
       card.innerHTML = `
         <div class="tech-list-card__head">
           <div class="tech-list-card__body min-w-0 flex-1">
-            <strong class="text-sm block">${escapeHtml(data.service.name)}</strong>
+            <strong class="text-sm block">${escapeHtml(req.customServiceName || req.activityName || data.service?.name || '')}</strong>
             <span class="text-xs text-zilo-muted block truncate">${escapeHtml(data.client.name)}</span>
           </div>
           <div class="flex items-start gap-2 shrink-0">
@@ -449,8 +448,7 @@
         const schData = await schRes.json();
         if (!schRes.ok || !schData.success) throw new Error(schData.error || 'No se pudo guardar la agenda');
       } else {
-        const payload = coords || await askEtaRange();
-        if (!payload) throw new Error('Activa el GPS o indica tu hora estimada de llegada');
+        const payload = coords || { etaMinutesMin: 45, etaMinutesMax: 90 };
         const etaRes = await fetch(`/tecnico/trabajo/${jobId}/eta`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

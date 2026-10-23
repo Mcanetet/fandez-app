@@ -109,6 +109,13 @@ function setSessionUser(req, user, { admin = false, remember = true, activeRole 
   }
 }
 
+function clientSignupDestination(form = {}) {
+  const servicio = String(form.servicio || '').trim();
+  const camino = String(form.camino || 'ahora') === 'proyecto' ? 'proyecto' : 'ahora';
+  if (servicio) return `/cliente/servicio/${encodeURIComponent(servicio)}?camino=${camino}`;
+  return '/cliente';
+}
+
 function getDashboardPath(role) {
   const { getAdminBasePath } = require('../lib/appMode');
   const paths = {
@@ -126,7 +133,7 @@ async function redirectAfterAuth(req, res, user) {
     const { adminUrl } = require('../lib/appMode');
     return res.redirect(adminUrl('/login'));
   }
-  if (!store.isEmailVerified(user)) {
+  if (!store.isEmailVerified(user) && user.role !== 'client') {
     const qs = new URLSearchParams({ pending: '1' });
     try {
       const issue = await store.issueEmailVerification(user.id, {
@@ -167,7 +174,7 @@ router.get('/login', (req, res) => {
   }
   if (req.session.user) {
     const user = store.getUserById(req.session.user.id);
-    if (user && !store.isEmailVerified(user)) {
+    if (user && !store.isEmailVerified(user) && user.role !== 'client') {
       return res.redirect('/verificar-email?pending=1');
     }
     return res.redirect(getDashboardPath(req.session.user.role));
@@ -325,7 +332,9 @@ function registerFormFromBody(body) {
     clientBillingType: body.client_billing_type || body.clientBillingType || 'natural',
     clientRut: body.client_rut || body.clientRut,
     clientLegalName: body.client_legal_name || body.clientLegalName,
-    clientGiro: body.client_giro || body.clientGiro
+    clientGiro: body.client_giro || body.clientGiro,
+    servicio: String(body.servicio || '').trim(),
+    camino: String(body.camino || 'ahora')
   };
 }
 
@@ -504,7 +513,7 @@ router.get('/registro', (req, res) => {
   }
   if (req.session.user) {
     const user = store.getUserById(req.session.user.id);
-    if (user && !store.isEmailVerified(user)) return res.redirect('/verificar-email');
+    if (user && !store.isEmailVerified(user) && user.role !== 'client') return res.redirect('/verificar-email');
     return res.redirect(getDashboardPath(req.session.user.role));
   }
   const defaultRole = req.query.role === 'provider' ? 'provider' : 'client';
@@ -517,7 +526,9 @@ router.get('/registro', (req, res) => {
       role: defaultRole,
       specialties: [],
       clientBillingType,
-      addressRegion: 'region-metropolitana'
+      addressRegion: 'region-metropolitana',
+      servicio: String(req.query.servicio || '').trim(),
+      camino: String(req.query.camino || 'ahora')
     }
   }));
 });
@@ -682,6 +693,7 @@ router.post('/registro', async (req, res) => {
     }).catch(() => {});
   }
 
+  const clientNext = user.role === 'client' ? clientSignupDestination(form) : null;
   if (wantsJson(req)) {
     const mailQs = issue.authFailed
       ? 'welcome=1&mail=auth'
@@ -690,13 +702,14 @@ router.post('/registro', async (req, res) => {
         : (issue.demo ? 'welcome=1&mail=demo' : (issue.pending ? 'welcome=1&mail=pending' : 'welcome=1')));
     return res.json({
       success: true,
-      redirect: `/verificar-email?${mailQs}`,
+      redirect: clientNext || `/verificar-email?${mailQs}`,
       mailDemo: Boolean(issue.demo),
       mailError: issue.error || null,
       mailPending: Boolean(issue.pending),
       mailAuthFailed: Boolean(issue.authFailed)
     });
   }
+  if (clientNext) return res.redirect(clientNext);
   if (issue.pending) {
     return res.redirect('/verificar-email?welcome=1&mail=pending');
   }
