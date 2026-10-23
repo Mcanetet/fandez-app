@@ -8614,13 +8614,14 @@ body.launch-notice-open {
   text-align: center;
 }
 
-/* —— Home cliente: calma ML —— */
+/* —— Home cliente: blanco + naranja Fandez —— */
 #clientDashboard.home-client {
-  --home-paper: #FAF9F6;
+  --home-paper: #ffffff;
   --home-ink: #1A1814;
   --home-muted: #6B635A;
   --home-touch: #C45C14;
   --home-money: #2F6B4F;
+  --home-soft: #F6E6D4;
   width: 100%;
   max-width: 32rem;
   min-width: 0;
@@ -8647,8 +8648,8 @@ body.launch-notice-open {
 }
 #clientDashboard.home-client .client-session-header__name {
   max-width: min(62vw, 16.5rem);
-  font-family: Fraunces, Georgia, serif;
-  font-weight: 650;
+  font-family: inherit;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 #clientDashboard.home-client .client-session-header__role {
@@ -8676,9 +8677,9 @@ body.launch-notice-open {
 }
 .home-live__title {
   display: block;
-  font-family: Fraunces, Georgia, serif;
+  font-family: inherit;
   font-size: 1.35rem;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.15;
   color: var(--home-ink);
@@ -8692,9 +8693,9 @@ body.launch-notice-open {
 }
 .home-live__bar {
   display: block;
-  height: 4px;
+  height: 5px;
   border-radius: 99px;
-  background: rgba(26, 24, 20, 0.08);
+  background: var(--home-soft);
   margin-bottom: 0.85rem;
   overflow: hidden;
 }
@@ -8706,9 +8707,15 @@ body.launch-notice-open {
 }
 .home-live__cta {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.15rem;
+  padding: 0.55rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--home-touch);
+  color: #fff;
   font-size: 0.875rem;
-  font-weight: 800;
-  color: var(--home-touch);
+  font-weight: 750;
   letter-spacing: -0.01em;
 }
 
@@ -8723,9 +8730,9 @@ body.launch-notice-open {
 
 .home-hero__title {
   margin: 0 0 0.85rem;
-  font-family: Fraunces, Georgia, serif;
+  font-family: inherit;
   font-size: 1.75rem;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.15;
   color: var(--home-ink);
@@ -8733,9 +8740,9 @@ body.launch-notice-open {
 
 .home-section-title {
   margin: 0 0 0.7rem;
-  font-family: Fraunces, Georgia, serif;
+  font-family: inherit;
   font-size: 1.05rem;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--home-ink);
 }
@@ -8764,9 +8771,9 @@ body.launch-notice-open {
 }
 #clientDashboard .task-search--home .task-search__input {
   width: 100%;
-  background: #fff;
+  background: var(--home-soft);
   color: var(--home-ink);
-  border: 1px solid rgba(26, 24, 20, 0.1);
+  border: 1px solid rgba(196, 92, 20, 0.22);
   border-radius: 999px;
   padding: 0.85rem 3.1rem 0.85rem 1rem;
   font-size: 0.9375rem;
@@ -8814,7 +8821,7 @@ body.launch-notice-open {
   padding: 1rem 0.95rem;
   border-radius: 1.05rem;
   text-decoration: none;
-  border: 0;
+  border: 1px solid rgba(196, 92, 20, 0.16);
   background: #fff;
 }
 .home-svc--lean {
@@ -8866,16 +8873,16 @@ body.launch-notice-open {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #8A7D72;
+  color: var(--home-touch);
 }
 .home-svc__amt {
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--home-muted);
+  color: var(--home-ink);
 }
 .home-svc__min {
   font-size: 0.65rem;
-  color: #8A7D72;
+  color: var(--home-muted);
 }
 
 .home-repeat {

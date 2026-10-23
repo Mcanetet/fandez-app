@@ -15,7 +15,7 @@
       <% if (!isLean) { %>
       <%- include('service-icon', { icon: service.icon, size: 'lg' }) %>
       <% } %>
-      <span class="home-svc__name"><%= service.name %></span>
+      <span class="home-svc__name"><%= service.id === 'escombros' ? 'Escombros' : service.name %></span>
       <span class="home-svc__price">
         <span class="home-svc__from"><%= camino === 'proyecto' ? t('client.from_eval') : t('client.from_price') %></span>
         <span class="home-svc__amt tabular-nums"><%= formatCLP(service.averagePrice || service.fromPrice) %><% if (service.pricingUnit === 'm2') { %> / m²<% } %></span>
