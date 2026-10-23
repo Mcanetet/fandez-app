@@ -1048,7 +1048,7 @@
             <li><span><%= t('client.service.cancel_policy_arrived') %></span><strong><%= formatCLP(cancelPol.onSiteVerified != null ? cancelPol.onSiteVerified : 15000) %></strong></li>
             <li><span><%= t('client.service.cancel_policy_diagnosis') %></span><strong><%= formatCLP(cancelPol.afterDiagnosis != null ? cancelPol.afterDiagnosis : 30000) %></strong></li>
           </ul>
-          <button type="button" id="btnCancelService" class="track-cancel__btn"><%= t('client.service.cancel_track') %></button>
+          <button type="button" id="btnCancelService" class="zilo-btn-ghost w-full"><%= t('client.service.cancel_track') %></button>
         </div>
         <p id="contactPrivacyHint" class="sr-only"><%= t('client.service.contact_privacy_hint') %></p>
         <button type="button" id="openJobChatBtn" class="hidden zilo-btn-primary w-full mb-2 !text-sm"><%= t('client.service.chat_partner') %></button>
