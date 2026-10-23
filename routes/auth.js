@@ -231,7 +231,9 @@ router.post('/login', rateLimitLogin(12), async (req, res) => {
 
   if (user.role === 'client' && req.session.pendingReferral) {
     const referral = store.applyReferralCode(user.id, req.session.pendingReferral);
-    if (referral.success) req.session.referralBonus = referral.bonus;
+    if (referral.success) {
+      req.session.referralInvite = { creditCLP: referral.creditCLP || 5000 };
+    }
     delete req.session.pendingReferral;
   }
 
@@ -578,7 +580,9 @@ router.post('/registro', async (req, res) => {
 
         if (existingUser.role === 'client' && req.session.pendingReferral) {
           const referral = store.applyReferralCode(existingUser.id, req.session.pendingReferral);
-          if (referral.success) req.session.referralBonus = referral.bonus;
+          if (referral.success) {
+      req.session.referralInvite = { creditCLP: referral.creditCLP || 5000 };
+    }
           delete req.session.pendingReferral;
         }
 
@@ -671,7 +675,9 @@ router.post('/registro', async (req, res) => {
 
   if (user.role === 'client' && req.session.pendingReferral) {
     const referral = store.applyReferralCode(user.id, req.session.pendingReferral);
-    if (referral.success) req.session.referralBonus = referral.bonus;
+    if (referral.success) {
+      req.session.referralInvite = { creditCLP: referral.creditCLP || 5000 };
+    }
     delete req.session.pendingReferral;
   }
 

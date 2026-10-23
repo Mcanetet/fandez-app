@@ -303,6 +303,12 @@
           <span class="text-zilo-muted">Crédito Fandez</span>
           <span id="lineCredits" class="checkout-discount">—</span>
         </div>
+        <% if (summary.discountReferral) { %>
+        <div class="flex justify-between checkout-line pb-2" id="lineReferralRow">
+          <span class="text-zilo-muted">Invitación</span>
+          <span id="lineReferral" class="checkout-discount">−<%= formatCLP(summary.discountReferral) %></span>
+        </div>
+        <% } %>
         <div class="flex justify-between checkout-line pb-2 hidden" id="linePointsRow">
           <span class="text-zilo-muted">Puntos canjeados</span>
           <span id="linePoints" class="checkout-discount">—</span>

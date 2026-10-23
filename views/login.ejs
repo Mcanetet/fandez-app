@@ -14,9 +14,9 @@
       <p class="text-zilo-muted text-center text-sm mb-6"><%= t('auth.login_subtitle') %></p>
 
       <% if (typeof referralCode !== 'undefined' && referralCode && typeof mod === 'function' && mod('client_referidos')) { %>
-        <div class="mb-4 p-3 rounded-xl border border-zilo-accent/25 bg-zilo-accent/5 text-center">
-          <p class="text-sm text-zilo-accent"><%- t('auth.referral_code', { code: referralCode }) %></p>
-          <p class="text-xs text-zilo-muted mt-1"><%= t('auth.referral_credit') %></p>
+        <div class="mb-4 p-3 rounded-xl border border-zilo-border bg-white text-center">
+          <p class="text-sm text-zilo-text"><%- t('auth.referral_code', { code: referralCode }) %></p>
+          <p class="text-xs text-zilo-muted mt-1">$5.000 de descuento en tu primera visita.</p>
         </div>
       <% } %>
 

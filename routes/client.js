@@ -298,6 +298,8 @@ router.get('/', requireRole('client'), (req, res) => {
   const profile = store.getUserById(req.session.user.id);
   const referralBonus = req.session.referralBonus;
   if (referralBonus) delete req.session.referralBonus;
+  const referralInvite = req.session.referralInvite;
+  if (referralInvite) delete req.session.referralInvite;
   const timeoutMinutes = noProviderTimeoutMinutes();
   if (typeof store.recoverAutoApprovedTransfers === 'function') {
     const recovered = store.recoverAutoApprovedTransfers({ clientId: req.session.user.id });
@@ -336,6 +338,7 @@ router.get('/', requireRole('client'), (req, res) => {
     referral: store.getReferralStats(req.session.user.id),
     passport: store.getHomePassport(req.session.user.id),
     referralBonus,
+    referralInvite,
     formatCLP: store.formatCLP,
     navActive: 'inicio',
     activeRequests: store.getActiveRequestsForClient(req.session.user.id, req.locale),
@@ -377,6 +380,7 @@ router.get('/perfil', requireRole('client'), (req, res) => {
     referral,
     canSwitchToProvider: req.session.user.primaryRole === 'provider' || profile?.role === 'provider',
     formatCLP: store.formatCLP,
+    referralCreditCLP: store.getReferralConfig().creditCLP,
     navActive: 'perfil'
   });
 });
@@ -483,7 +487,13 @@ router.get('/invitar', requireRole('client'), requireModule('client_referidos'),
 router.post('/aplicar-codigo', requireRole('client'), requireModule('client_referidos'), (req, res) => {
   const result = store.applyReferralCode(req.session.user.id, req.body.code?.trim().toUpperCase());
   if (result.error) return res.status(400).json(result);
-  res.json({ success: true, bonus: result.bonus, message: `¡$${result.bonus.toLocaleString('es-CL')} de crédito agregado!` });
+  const credit = result.creditCLP || store.getReferralConfig().creditCLP || 5000;
+  res.json({
+    success: true,
+    bonus: 0,
+    creditCLP: credit,
+    message: `Listo. Tienes $${credit.toLocaleString('es-CL')} en tu primera visita.`
+  });
 });
 
 router.get('/servicio/:id', requireRole('client'), requireModule('client_solicitar'), (req, res) => {

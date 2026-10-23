@@ -92,15 +92,15 @@
       <section class="zilo-card-premium rounded-2xl p-5 border border-gray-200">
         <h2 class="text-sm font-semibold mb-1">Referidos (crédito)</h2>
         <p class="text-xs text-gray-500 mb-4">
-          El programa se enciende/apaga en <strong>Admin → Módulos → Referidos e invitaciones</strong> (ahora OFF).
-          Aquí solo defines el monto cuando lo reactives.
+          El programa se enciende/apaga en <strong>Admin → Módulos → Referidos e invitaciones</strong>.
+          El amigo descuenta el monto en su primera visita pagada. El que invita lo recibe cuando esa visita cierra. Tope: 5 amigos al mes.
         </p>
         <% const refCfg = pricing.referrals || { creditCLP: 5000, referrerPoints: 200 }; %>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="text-xs text-gray-500">Crédito por referido (CLP)</label>
             <input type="number" name="referralCreditClp" value="<%= refCfg.creditCLP %>" min="0" step="1000" class="zilo-input w-full mt-1" required>
-            <p class="text-[10px] text-gray-400 mt-1">Se acredita al invitador y al invitado al usar el código. Default $5.000.</p>
+            <p class="text-[10px] text-gray-400 mt-1">Se aplica en la primera visita del amigo. Default $5.000.</p>
           </div>
           <div>
             <label class="text-[10px] text-gray-500">Puntos al invitador (si Puntos Fandez está ON)</label>

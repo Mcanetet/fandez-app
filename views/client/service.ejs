@@ -23,7 +23,7 @@
     : ((pricing && pricing.cancellations) || {});
   const cancelFree = !Number(cancelPol.beforeAccepted);
 %>
-<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter<%= payFlowNow ? ' service-pay-flow' : '' %><%= leanCheckout ? ' service-lean' : '' %><%= isTracking ? ' service-track' : '' %>" id="servicePage"<%- leanCheckout ? ' data-lean="1"' : '' %><%- isTracking ? ' data-track="1"' : '' %>
+<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter client-skin<%= payFlowNow ? ' service-pay-flow' : '' %><%= leanCheckout ? ' service-lean' : '' %><%= isTracking ? ' service-track' : '' %>" id="servicePage"<%- leanCheckout ? ' data-lean="1"' : '' %><%- isTracking ? ' data-track="1"' : '' %>
   data-service-id="<%= service.id %>"
   data-otros="<%= isOtros ? '1' : '0' %>"
   data-service-name="<%= service.name %>"

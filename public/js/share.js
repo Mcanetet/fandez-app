@@ -3,17 +3,18 @@
   if (!page) return;
 
   const shareUrl = page.dataset.shareUrl;
-  const code = page.dataset.code;
-  const shareText = `¡Prueba Fandez! Servicios del hogar en Santiago. Usa mi código ${code} y ganamos $5.000 cada uno: ${shareUrl}`;
+  const credit = Number(page.dataset.credit || 5000);
+  const creditLabel = credit.toLocaleString('es-CL');
+  const shareText = `Te invito a Fandez. En tu primera visita tienes $${creditLabel} de descuento: ${shareUrl}`;
 
-  document.getElementById('btnCopyCode')?.addEventListener('click', () => {
-    navigator.clipboard.writeText(code).then(() => FandezNotify.show('Código copiado', 'success'));
+  document.getElementById('btnCopyLink')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(shareUrl).then(() => FandezNotify.show('Enlace copiado', 'success'));
   });
 
   document.getElementById('btnShare')?.addEventListener('click', async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Fandez — Invitación', text: shareText, url: shareUrl });
+        await navigator.share({ title: 'Fandez', text: shareText, url: shareUrl });
       } catch (_) {}
     } else {
       navigator.clipboard.writeText(shareText).then(() => FandezNotify.show('Enlace copiado para compartir', 'success'));

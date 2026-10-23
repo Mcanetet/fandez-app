@@ -12,7 +12,7 @@
     return 0;
   }
 %>
-<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter home-client" id="clientDashboard">
+<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter home-client client-skin" id="clientDashboard">
   <header class="app-session-header client-session-header sticky top-0 z-50" data-tour="welcome">
     <div class="app-session-header__row client-session-header__row">
       <a href="/cliente/perfil" class="app-session-header__identity client-session-header__identity group" aria-label="<%= t('nav.profile') %>">
@@ -266,11 +266,19 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
   const socket = io();
-  <% if (typeof referralBonus !== 'undefined' && referralBonus) { %>
+  <% if (typeof referralInvite !== 'undefined' && referralInvite && referralInvite.creditCLP) { %>
+  document.addEventListener('DOMContentLoaded', () => {
+    const amount = <%= Number(referralInvite.creditCLP) || 5000 %>;
+    const bonusMsg = (typeof FandezI18n !== 'undefined')
+      ? FandezI18n.t('client.js.referral_bonus', { amount: amount.toLocaleString(<%= locale === 'en' ? "'en-US'" : "'es-CL'" %>) })
+      : 'Tienes $' + amount.toLocaleString('es-CL') + ' en tu primera visita.';
+    FandezNotify.show(bonusMsg, 'success');
+  });
+  <% } else if (typeof referralBonus !== 'undefined' && referralBonus) { %>
   document.addEventListener('DOMContentLoaded', () => {
     const bonusMsg = (typeof FandezI18n !== 'undefined')
       ? FandezI18n.t('client.js.referral_bonus', { amount: '<%= referralBonus.toLocaleString(locale === "en" ? "en-US" : "es-CL") %>' })
-      : '¡$<%= referralBonus.toLocaleString("es-CL") %> de crédito por invitación!';
+      : 'Tienes $<%= referralBonus.toLocaleString("es-CL") %> en tu primera visita.';
     FandezNotify.show(bonusMsg, 'success');
   });
   <% } %>

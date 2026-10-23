@@ -6052,21 +6052,44 @@ body:has(#servicePage.service-track) #cookieBanner {
 }
 
 /* Cliente: cero fondos durazno. Naranja solo en CTA y letras. */
+.client-skin,
 #servicePage,
 #servicePage.service-track,
 #servicePage.service-lean,
-#clientDashboard.home-client {
+#clientDashboard.home-client,
+#historialPage,
+#hogarPage,
+#invitarPage,
+#profilePage,
+#alertsInboxPage.client-skin {
   --zilo-accent-soft: #ffffff;
+  --zilo-bg: #ffffff;
+  --zilo-surface: #ffffff;
+  --zilo-card: #ffffff;
+  --zilo-elevated: #ffffff;
+  --zilo-header-bg: #ffffff;
+  --home-paper: #ffffff;
   --home-soft: #ffffff;
+  --home-ink: #1A1814;
+  --home-muted: #6B635A;
+  --home-touch: #C45C14;
+  background-color: #ffffff;
+  background-image: none;
+  color: #1A1814;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
+.client-skin [class*="bg-zilo-accent/"],
 #servicePage [class*="bg-zilo-accent/"],
 #clientDashboard.home-client [class*="bg-zilo-accent/"] {
   background-color: #ffffff !important;
 }
+.client-skin .zilo-btn-ghost:hover,
+.client-skin .zilo-btn-ghost:focus-visible,
 #servicePage .zilo-btn-ghost:hover,
 #servicePage .zilo-btn-ghost:focus-visible,
 #clientDashboard.home-client .zilo-btn-ghost:hover {
   background-color: #ffffff !important;
+  color: #C45C14;
 }
 #servicePage #arrivalCodeCard,
 #servicePage #providerAvatar,
@@ -6074,6 +6097,113 @@ body:has(#servicePage.service-track) #cookieBanner {
 #servicePage #resumeDraftBanner {
   background-color: #ffffff !important;
 }
+.client-skin .zilo-card-premium,
+.client-skin .zilo-invite-hero,
+.client-skin .zilo-empty,
+.client-skin .zilo-stat,
+.client-skin .zilo-gift-card,
+.client-skin .historial-refund:not([class*="historial-refund--"]) {
+  background: #ffffff;
+  background-image: none;
+  box-shadow: none;
+  border-color: #E6E0D8;
+}
+.client-skin .zilo-gift-card {
+  border-color: rgba(196, 92, 20, 0.28);
+}
+.client-skin .zilo-display,
+.client-skin h1,
+.client-skin h2,
+.client-skin h3,
+.client-skin .app-session-header__meta h1,
+.client-skin .back-header-compact h1 {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #1A1814;
+}
+.client-skin .text-zilo-accent,
+.client-skin .nav-client-active {
+  color: #C45C14;
+}
+.client-skin .zilo-btn-primary,
+.client-skin a.bg-zilo-accent,
+.client-skin button.bg-zilo-accent {
+  background: #C45C14;
+  background-image: none;
+  color: #ffffff;
+  box-shadow: none;
+}
+.client-skin .zilo-btn-ghost {
+  background: #ffffff;
+  color: #1A1814;
+  border-color: #E6E0D8;
+}
+.client-skin .app-session-header,
+.client-skin .back-header-compact,
+.client-skin header.sticky,
+.client-skin .nav-client-bar {
+  background: #ffffff;
+  background-image: none;
+}
+.client-skin .nav-client-bar {
+  border-top: 1px solid rgba(26, 24, 20, 0.08);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.client-skin .zilo-input,
+.client-skin input.zilo-input,
+.client-skin textarea.zilo-input,
+.client-skin select.zilo-input {
+  background: #ffffff;
+  color: #1A1814;
+  border-color: #E6E0D8;
+}
+.client-skin .alert-inbox-summary,
+.client-skin .alert-inbox-card--medium {
+  background: #ffffff;
+  background-image: none;
+}
+.client-skin .alert-inbox-badge--medium {
+  background: #ffffff;
+  color: #C45C14;
+  border: 1px solid rgba(196, 92, 20, 0.28);
+}
+.client-skin .invite-hero__title {
+  margin: 0 0 0.65rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #1A1814;
+}
+.client-skin .invite-hero__sub {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: #6B635A;
+}
+.client-skin .invite-link {
+  padding: 0;
+}
+.client-skin .invite-link__url {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: #1A1814;
+  word-break: break-all;
+}
+.client-skin .invite-code {
+  border-top: 1px solid #E6E0D8;
+  padding-top: 1rem;
+}
+.client-skin .invite-code summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6B635A;
+}
+.client-skin .invite-code summary::-webkit-details-marker { display: none; }
 .sticky-order-inner {
   display: flex;
   align-items: center;

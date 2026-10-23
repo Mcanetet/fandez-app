@@ -1,56 +1,32 @@
 <%- include('../partials/head') %>
 
-<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-24 zilo-page-enter" id="invitarPage" data-share-url="<%= shareUrl %>" data-code="<%= referral.code %>">
-  <%- include('../partials/back-header', { backUrl: '/cliente', label: 'Beneficios', title: 'Invitar amigos' }) %>
+<% const credit = typeof referralCreditCLP === 'number' ? referralCreditCLP : 5000; %>
+<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-24 zilo-page-enter client-skin" id="invitarPage" data-share-url="<%= shareUrl %>" data-code="<%= referral.code %>" data-credit="<%= credit %>">
+  <%- include('../partials/back-header', { backUrl: '/cliente', label: 'Beneficios', title: 'Compartir' }) %>
 
-  <main class="flex-1 px-5 py-5 space-y-5">
-    <div class="p-6 rounded-2xl zilo-invite-hero text-center zilo-page-enter-delay-1">
-      <div class="w-14 h-14 mx-auto rounded-2xl bg-zilo-accent/10 border border-zilo-accent/20 flex items-center justify-center mb-4">
-        <svg class="w-7 h-7 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      </div>
-      <h2 class="zilo-display text-2xl mb-2"><%= formatCLP(typeof referralCreditCLP === 'number' ? referralCreditCLP : 0) %> por amigo</h2>
-      <p class="text-sm text-zilo-muted mb-5 leading-relaxed">Tú y tu amigo reciben el mismo crédito al unirse (si el programa está activo).</p>
-      <div class="p-4 rounded-xl bg-zilo-bg/60 border border-zilo-border mb-4">
-        <span class="zilo-label block mb-2">Tu código</span>
-        <strong class="text-2xl font-mono tracking-[0.2em] text-zilo-accent" id="referralCode"><%= referral.code %></strong>
-      </div>
-      <div class="flex gap-2">
-        <button type="button" id="btnCopyCode" class="zilo-btn-ghost flex-1 !text-sm">Copiar</button>
-        <button type="button" id="btnShare" class="zilo-btn-primary flex-1 !py-3 !text-sm">Compartir</button>
-      </div>
+  <main class="flex-1 px-5 py-8 space-y-8">
+    <section class="invite-hero">
+      <h2 class="invite-hero__title">Trae a alguien de confianza</h2>
+      <p class="invite-hero__sub">Comparte Fandez. Tu amigo tiene <%= formatCLP(credit) %> en su primera visita. Tú los recibes cuando esa visita cierre.</p>
+    </section>
+
+    <section class="invite-link">
+      <span class="zilo-label">Tu enlace</span>
+      <p class="invite-link__url" id="referralLink"><%= String(shareUrl || '').replace(/^https?:\/\//, '') %></p>
+    </section>
+
+    <div class="space-y-2">
+      <button type="button" id="btnShare" class="zilo-btn-primary">Compartir</button>
+      <button type="button" id="btnCopyLink" class="zilo-btn-ghost w-full">Copiar enlace</button>
     </div>
 
-    <div class="grid grid-cols-<%= (typeof mod === 'function' && mod('client_puntos')) ? '3' : '2' %> gap-2 zilo-page-enter-delay-2">
-      <div class="zilo-stat"><strong><%= referral.referralsCount %></strong><span>Invitados</span></div>
-      <% if (typeof mod === 'function' && mod('client_puntos')) { %>
-      <div class="zilo-stat"><strong class="text-zilo-accent"><%= referral.points %></strong><span>Puntos</span></div>
-      <% } %>
-      <div class="zilo-stat"><strong class="text-zilo-success"><%= formatCLP(referral.creditsCLP) %></strong><span>Crédito</span></div>
-    </div>
-
-    <section class="p-5 rounded-2xl zilo-card-premium zilo-page-enter-delay-2">
-      <p class="zilo-label mb-3">¿Tienes un código?</p>
-      <div class="flex gap-2">
-        <input type="text" id="inputReferralCode" placeholder="CÓDIGO" maxlength="12" class="zilo-input flex-1 uppercase font-mono">
+    <details class="invite-code">
+      <summary>¿Tienes un código?</summary>
+      <div class="flex gap-2 mt-3">
+        <input type="text" id="inputReferralCode" placeholder="CÓDIGO" maxlength="12" class="zilo-input flex-1 uppercase font-mono" autocomplete="off">
         <button type="button" id="btnApplyCode" class="zilo-btn-primary !w-auto !px-5 !py-3 text-sm shrink-0">Aplicar</button>
       </div>
-    </section>
-
-    <section class="space-y-3 zilo-page-enter-delay-3">
-      <p class="zilo-label">Más beneficios</p>
-      <% if (mod('client_regalo') && giftServiceId) { %>
-      <a href="/cliente/servicio/<%= giftServiceId %>?gift=1" class="block p-4 rounded-xl zilo-gift-card">
-        <strong class="text-sm block mb-1">Regala un servicio</strong>
-        <p class="text-xs text-zilo-muted">Modo Guardián incluido para tu familia</p>
-      </a>
-      <% } %>
-      <% if (typeof canUseWelcome !== 'undefined' && canUseWelcome) { %>
-      <div class="p-4 rounded-xl zilo-card-premium">
-        <strong class="text-sm block mb-1">10% primer servicio</strong>
-        <p class="text-xs text-zilo-muted">Usa el código promocional <span class="font-mono text-zilo-accent">BIENVENIDO</span> al pagar tu primer servicio.</p>
-      </div>
-      <% } %>
-    </section>
+    </details>
   </main>
 
   <%- include('../partials/nav-client', { navActive: 'invitar' }) %>

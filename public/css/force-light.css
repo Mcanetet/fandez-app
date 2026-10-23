@@ -372,17 +372,65 @@ picture {
   background-color: #ffffff !important;
 }
 
+.client-skin,
 #servicePage.service-track,
 #servicePage.service-track.min-h-screen,
 #servicePage.service-lean,
-#clientDashboard.home-client {
+#servicePage,
+#clientDashboard.home-client,
+#historialPage,
+#hogarPage,
+#invitarPage,
+#profilePage,
+#alertsInboxPage.client-skin {
   --zilo-accent-soft: #ffffff !important;
+  --zilo-bg: #ffffff !important;
+  --zilo-surface: #ffffff !important;
+  --zilo-card: #ffffff !important;
+  --home-paper: #ffffff !important;
+  --home-soft: #ffffff !important;
   background-color: #ffffff !important;
   color: #1A1814 !important;
 }
+.client-skin [class*="bg-zilo-accent/"],
 #servicePage [class*="bg-zilo-accent/"],
 #clientDashboard.home-client [class*="bg-zilo-accent/"] {
   background-color: #ffffff !important;
+}
+.client-skin .zilo-card-premium,
+.client-skin .zilo-invite-hero,
+.client-skin .zilo-empty,
+.client-skin .zilo-stat,
+.client-skin .zilo-gift-card,
+.client-skin .historial-refund:not([class*="historial-refund--"]),
+.client-skin .app-session-header,
+.client-skin .back-header-compact,
+.client-skin .nav-client-bar,
+.client-skin .alert-inbox-summary,
+.client-skin .alert-inbox-card--medium {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+.client-skin .zilo-btn-primary,
+.client-skin a.bg-zilo-accent,
+.client-skin button.bg-zilo-accent {
+  background-color: #C45C14 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+.client-skin .zilo-btn-ghost,
+.client-skin .zilo-btn-ghost:hover {
+  background-color: #ffffff !important;
+}
+.client-skin .zilo-display,
+.client-skin h1,
+.client-skin h2,
+.client-skin h3 {
+  color: #1A1814 !important;
+}
+.client-skin .text-zilo-accent,
+.client-skin .nav-client-active {
+  color: #C45C14 !important;
 }
 #servicePage.service-track .zilo-btn-primary,
 #servicePage.service-track .sticky-track-btn--primary {

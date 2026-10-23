@@ -1,6 +1,6 @@
 <%- include('../partials/head') %>
 
-<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-10 zilo-page-enter">
+<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-10 zilo-page-enter<%= user?.role === 'client' ? ' client-skin' : '' %>" id="<%= user?.role === 'client' ? 'clientLegalPage' : 'legalDatosPage' %>">
   <%- include('../partials/back-header', { backUrl: user.role === 'provider' ? '/proveedor/perfil' : '/cliente/perfil', label: 'Privacidad', title: 'Mis datos personales' }) %>
 
   <main class="flex-1 px-5 py-5 space-y-5">

@@ -33,9 +33,9 @@
     </div>
 
     <% if (typeof referralBanner !== 'undefined' && referralBanner) { %>
-      <div class="mb-6 p-4 rounded-xl zilo-card-premium border border-zilo-accent/20 bg-zilo-accent-soft/40">
-        <p class="text-sm font-medium text-zilo-accent"><%= t('landing.invite.received') %></p>
-        <p class="text-xs text-zilo-muted mt-1"><%- t('landing.invite.credit', { code: referralBanner }) %></p>
+      <div class="mb-6 p-4 rounded-xl border border-zilo-border bg-white">
+        <p class="text-sm font-medium text-zilo-text"><%= t('landing.invite.received') %></p>
+        <p class="text-xs text-zilo-muted mt-1">Código <%= referralBanner %> — $5.000 de descuento en tu primera visita.</p>
       </div>
     <% } %>
 

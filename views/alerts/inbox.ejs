@@ -7,7 +7,7 @@
 %>
 <%- include('../partials/head') %>
 
-<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-24 zilo-page-enter" id="alertsInboxPage"
+<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-24 zilo-page-enter<%= (user?.role === 'client') ? ' client-skin' : '' %>" id="alertsInboxPage"
   data-role="<%= user?.role || '' %>">
 
   <%- include('../partials/back-header', {

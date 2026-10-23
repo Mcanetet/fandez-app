@@ -1,6 +1,6 @@
 <%- include('../partials/head') %>
 
-<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-24 zilo-page-enter">
+<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-24 zilo-page-enter client-skin" id="profilePage">
   <%- include('../partials/back-header', { backUrl: '/cliente', label: t('client.profile.account'), title: t('client.profile.title'), showLogout: true }) %>
 
   <main class="flex-1 px-5 py-5 space-y-5">
@@ -137,8 +137,8 @@
           <svg class="w-5 h-5 text-zilo-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
         </div>
         <div>
-          <strong class="text-sm block">Invita y gana $5.000</strong>
-          <span class="text-xs text-zilo-muted font-mono"><%= referral.code %></span>
+          <strong class="text-sm block">Trae a alguien de confianza</strong>
+          <span class="text-xs text-zilo-muted"><%= formatCLP(typeof referralCreditCLP === 'number' ? referralCreditCLP : 5000) %> en su primera visita</span>
         </div>
       </div>
     </a>

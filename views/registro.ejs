@@ -20,9 +20,9 @@
     <%- include('partials/site-alert', { alertCompact: true }) %>
 
     <% if (typeof referralCode !== 'undefined' && referralCode && typeof mod === 'function' && mod('client_referidos')) { %>
-      <div class="mb-4 p-3 rounded-xl border border-zilo-accent/25 bg-zilo-accent-soft text-center">
-        <p class="text-sm text-zilo-accent-strong"><%- t('auth.referral_code', { code: referralCode }) %></p>
-        <p class="text-xs text-zilo-muted mt-1"><%= t('register.referral_credit') %></p>
+      <div class="mb-4 p-3 rounded-xl border border-zilo-border bg-white text-center">
+        <p class="text-sm text-zilo-text"><%- t('auth.referral_code', { code: referralCode }) %></p>
+        <p class="text-xs text-zilo-muted mt-1">$5.000 de descuento en tu primera visita.</p>
       </div>
     <% } %>
 
