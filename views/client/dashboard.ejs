@@ -121,12 +121,13 @@
           <div>
             <h3 class="home-section-title"><%= t('client.dashboard.now_title_active') %></h3>
             <%- include('../partials/client-service-grid', {
-              services: (typeof servicesNow !== 'undefined' ? servicesNow : services).slice(0, 2),
+              services: typeof servicesNow !== 'undefined' ? servicesNow : services,
               camino: 'ahora',
               gridId: 'servicesGridNowActive',
               formatCLP: formatCLP,
               t: t,
-              lean: true
+              lean: true,
+              carousel: true
             }) %>
           </div>
         </div>

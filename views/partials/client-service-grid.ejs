@@ -7,8 +7,9 @@
   const pathQ = camino === 'proyecto' ? 'proyecto' : 'ahora';
   const gid = gridId || ('servicesGrid-' + pathQ);
   const isLean = Boolean(typeof lean !== 'undefined' && lean);
+  const isCarousel = Boolean(typeof carousel !== 'undefined' && carousel);
 %>
-<div id="<%= gid %>" class="home-svc-grid grid grid-cols-2 gap-3 mb-2<%= isLean ? ' home-svc-grid--lean' : '' %>">
+<div id="<%= gid %>" class="home-svc-grid<%= isCarousel ? ' home-svc-grid--carousel' : ' grid grid-cols-2 gap-3' %> mb-2<%= isLean ? ' home-svc-grid--lean' : '' %>">
   <% list.forEach(function(service) { %>
     <a href="/cliente/servicio/<%= service.id %>?camino=<%= pathQ %>" data-service-id="<%= service.id %>" data-camino="<%= pathQ %>"
       class="home-svc service-item group<%= isLean ? ' home-svc--lean' : '' %>">

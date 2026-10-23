@@ -313,7 +313,7 @@ picture {
     color: #ffffff !important;
   }
   #clientDashboard.home-client .task-search--home .task-search__input {
-    background-color: #F6E6D4 !important;
+    background-color: #ffffff !important;
     background-image: none !important;
     color: #1A1814 !important;
   }
@@ -355,8 +355,12 @@ picture {
 #clientDashboard.home-client .task-search--home {
   background-color: transparent !important;
 }
+#clientDashboard.home-client .client-session-header__avatar {
+  background-color: #ffffff !important;
+  color: #1A1814 !important;
+}
 #clientDashboard.home-client .task-search--home .task-search__input {
-  background-color: #F6E6D4 !important;
+  background-color: #ffffff !important;
   background-image: none !important;
   color: #1A1814 !important;
 }
