@@ -5868,8 +5868,130 @@ body.admin-modal-open {
 body:has(#servicePage.service-lean) .legal-footer,
 body:has(#servicePage.service-lean) #alandFabRoot,
 body:has(#servicePage.service-lean) .cookie-banner,
-body:has(#servicePage.service-lean) #cookieBanner {
+body:has(#servicePage.service-lean) #cookieBanner,
+body:has(#servicePage.service-track) .legal-footer,
+body:has(#servicePage.service-track) #alandFabRoot,
+body:has(#servicePage.service-track) .cookie-banner,
+body:has(#servicePage.service-track) #cookieBanner {
   display: none !important;
+}
+
+#servicePage.service-track {
+  background: #fff;
+  color: #1A1814;
+}
+#servicePage.service-track main {
+  padding-top: 1rem;
+  padding-bottom: 6.5rem;
+}
+#servicePage.service-track .track-hero {
+  padding: 0 0 1rem;
+  border-bottom: 1px solid rgba(26, 24, 20, 0.08);
+  margin-bottom: 1rem;
+}
+#servicePage.service-track .track-hero__title {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+#servicePage.service-track .track-hero__sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: #6B635A;
+  line-height: 1.35;
+}
+#servicePage.service-track .track-more-action {
+  display: block;
+  width: 100%;
+  margin-top: 0.65rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #B83A2E;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+}
+#servicePage.service-track .track-process {
+  padding: 0 0 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(26, 24, 20, 0.08);
+}
+#servicePage.service-track .track-kicker {
+  margin: 0 0 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8A7D72;
+}
+#servicePage.service-track .trip-step p { display: none; }
+#servicePage.service-track .trip-step { padding: 0.28rem 0; }
+#servicePage.service-track .trip-step strong { font-size: 0.8125rem; }
+#servicePage.service-track #providerLiveCard {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#servicePage.service-track #providerVerification,
+#servicePage.service-track #providerAdherence,
+#servicePage.service-track #providerTeamDetails,
+#servicePage.service-track #providerBrandCard,
+#servicePage.service-track #providerStars,
+#servicePage.service-track #providerReviews,
+#servicePage.service-track #providerRating,
+#servicePage.service-track #providerAssignBadge,
+#servicePage.service-track #providerVerifiedStatus {
+  display: none !important;
+}
+#servicePage.service-track .track-cancel {
+  padding: 0.15rem 0 0.75rem;
+}
+#servicePage.service-track .track-cancel__list {
+  list-style: none;
+  margin: 0 0 0.85rem;
+  padding: 0;
+}
+#servicePage.service-track .track-cancel__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(26, 24, 20, 0.06);
+  font-size: 0.8125rem;
+}
+#servicePage.service-track .track-cancel__list li strong {
+  color: #C45C14;
+  font-weight: 700;
+  white-space: nowrap;
+}
+#servicePage.service-track .track-cancel__btn {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #B83A2E;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(184, 58, 46, 0.28);
+}
+#servicePage.service-track .track-more {
+  margin-top: 0.35rem;
+}
+#servicePage.service-track .track-more summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #C45C14;
+  padding: 0.35rem 0;
+}
+#servicePage.service-track .sticky-track-bar {
+  background: #fff;
+  border-top: 1px solid rgba(26, 24, 20, 0.08);
 }
 .sticky-order-inner {
   display: flex;

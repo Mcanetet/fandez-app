@@ -14,9 +14,16 @@
 <% const draftAmount = (typeof checkoutDraft !== 'undefined' && checkoutDraft)
   ? (checkoutDraft.amountDue || checkoutDraft.visitTotal || checkoutDraft.basePrice || 0)
   : 0; %>
-<% const leanCheckout = !(typeof tracking !== 'undefined' && tracking); %>
+<% const isTracking = Boolean(typeof tracking !== 'undefined' && tracking); %>
+<% const leanCheckout = !isTracking; %>
 <% const displayFrom = typeof serviceFromPrice !== 'undefined' ? serviceFromPrice : (service.fromPrice || pricing.servicePrice); %>
-<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter<%= payFlowNow ? ' service-pay-flow' : '' %><%= leanCheckout ? ' service-lean' : '' %>" id="servicePage"<%- leanCheckout ? ' data-lean="1"' : '' %>
+<%
+  const cancelPol = (typeof cancellationPolicy !== 'undefined' && cancellationPolicy)
+    ? cancellationPolicy
+    : ((pricing && pricing.cancellations) || {});
+  const cancelFree = !Number(cancelPol.beforeAccepted);
+%>
+<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter<%= payFlowNow ? ' service-pay-flow' : '' %><%= leanCheckout ? ' service-lean' : '' %><%= isTracking ? ' service-track' : '' %>" id="servicePage"<%- leanCheckout ? ' data-lean="1"' : '' %><%- isTracking ? ' data-track="1"' : '' %>
   data-service-id="<%= service.id %>"
   data-otros="<%= isOtros ? '1' : '0' %>"
   data-service-name="<%= service.name %>"
@@ -52,8 +59,8 @@
   }) %>
 
   <main class="flex-1 px-5 py-5 pb-28">
-    <% if (!leanCheckout) { %>
-    <%- include('../partials/checkout-progress', { checkoutStep: typeof tracking !== 'undefined' && tracking ? 3 : 1 }) %>
+    <% if (!isTracking && !leanCheckout) { %>
+    <%- include('../partials/checkout-progress', { checkoutStep: 1 }) %>
     <%- include('../partials/trust-strip', { trustStats: typeof trustStats !== 'undefined' ? trustStats : {} }) %>
     <% } %>
 
@@ -108,7 +115,7 @@
     <script type="application/json" id="checkoutDraftJson"><%- JSON.stringify(checkoutDraft).replace(/</g, '\\u003c') %></script>
     <% } %>
 
-    <% if (!leanCheckout) { %>
+    <% if (!isTracking && !leanCheckout) { %>
     <%- include('../partials/service-overview-card', {
       overview: typeof serviceOverview !== 'undefined' ? serviceOverview : null,
       service: service,
@@ -116,7 +123,7 @@
     }) %>
     <% } %>
 
-    <% if (leanCheckout) { %>
+    <% if (leanCheckout || isTracking) { %>
     <div id="pricingBox" class="sr-only" aria-hidden="true">
       <span id="displayVisitPrice"><%= formatCLP(displayFrom) %></span>
       <span id="displayServicePrice"><%= formatCLP(0) %></span>
@@ -192,7 +199,7 @@
     </div>
     <% } %>
 
-    <% if (mod('client_aland') && !leanCheckout) { %>
+    <% if (mod('client_aland') && !isTracking && !leanCheckout) { %>
     <section class="p-4 rounded-xl zilo-card-premium mb-5 zilo-page-enter-delay-1 border border-aland/25 aland-surface" id="alandChatSection" data-auto-open="<%= (typeof currentQuery !== 'undefined' && String(currentQuery).includes('aland=1')) ? '1' : '0' %>">
       <div class="flex items-center justify-between mb-3">
         <div>
@@ -505,12 +512,6 @@
         <% } %>
       </div>
 
-      <%
-        const cancelPol = (typeof cancellationPolicy !== 'undefined' && cancellationPolicy)
-          ? cancellationPolicy
-          : ((pricing && pricing.cancellations) || {});
-        const cancelFree = !Number(cancelPol.beforeAccepted);
-      %>
       <p class="text-[11px] text-zilo-muted leading-relaxed" id="cancelPolicyNote">
         <%= cancelFree ? t('client.service.cancel_policy_before') : t('client.service.cancel_policy_title') %>
         <% if (cancelFree) { %> · <%= t('client.service.cancel_policy_free') %><% } %>
@@ -914,15 +915,14 @@
           <a href="/cliente/invitar" class="block text-center py-2.5 rounded-xl zilo-btn-ghost !text-sm"><%= t('client.dashboard.refer_cta_title') %></a>
         </div>
       </section>
-      <div class="p-4 rounded-2xl zilo-card-premium mb-4" id="tripStatusHero">
-        <p class="zilo-label mb-1">Estado de tu visita</p>
-        <strong id="tripStatusTitle" class="text-base block text-zilo-text">Conectando con tu equipo…</strong>
-        <p id="tripStatusSub" class="text-sm text-zilo-muted mt-1 leading-relaxed">Te avisamos en cuanto el técnico acepte y salga hacia ti.</p>
+      <div class="track-hero" id="tripStatusHero">
+        <strong id="tripStatusTitle" class="track-hero__title">Conectando con tu equipo…</strong>
+        <p id="tripStatusSub" class="track-hero__sub">Te avisamos en cuanto el técnico acepte y salga hacia ti.</p>
         <div class="flex gap-2 mt-3">
           <button type="button" id="tripHeroChat" class="flex-1 py-2.5 rounded-xl zilo-btn-primary !text-xs">Mensajes</button>
           <a id="tripHeroCall" href="#" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-center hidden">Llamar</a>
         </div>
-        <button type="button" id="btnSafetyAlert" class="w-full mt-3 py-2.5 rounded-xl border border-red-300 bg-red-50 text-red-800 text-xs font-semibold">
+        <button type="button" id="btnSafetyAlert" class="track-more-action">
           Me siento inseguro
         </button>
       </div>
@@ -931,10 +931,10 @@
         <p id="arrivalCodeValue" class="text-3xl font-bold tracking-[0.35em] tabular-nums text-zilo-text text-center my-2">————</p>
         <p id="arrivalCodeHint" class="text-xs text-zilo-muted text-center leading-relaxed"><%= t('client.service.security_code_hint') %></p>
       </div>
-      <div class="p-4 rounded-2xl zilo-card-premium">
-        <div class="flex justify-between items-center mb-4">
-          <p class="zilo-label"><%= t('client.service.tracking') %></p>
-          <span id="tripEta" class="text-xs text-zilo-success font-medium"><%= t('client.service.eta') %></span>
+      <div class="track-process">
+        <div class="flex justify-between items-center mb-3">
+          <p class="track-kicker"><%= t('client.service.tracking') %></p>
+          <span id="tripEta" class="text-xs text-zilo-accent font-medium"><%= t('client.service.eta') %></span>
         </div>
         <div class="trip-timeline" id="tripTimeline" data-garden="<%= isGarden ? '1' : '0' %>">
           <% if (isGarden) { %>
@@ -1040,13 +1040,25 @@
             <div id="reviewsList" class="space-y-2 mb-2"></div>
           </div>
         </details>
-        <p id="contactPrivacyHint" class="text-[11px] text-zilo-muted mb-3 leading-relaxed"><%= t('client.service.contact_privacy_hint') %></p>
+        <div class="track-cancel">
+          <p class="track-kicker"><%= t('client.service.cancel_policy_title') %></p>
+          <ul class="track-cancel__list">
+            <li><span><%= t('client.service.cancel_policy_before') %></span><strong><%= cancelFree ? t('client.service.cancel_policy_free') : formatCLP(cancelPol.beforeAccepted) %></strong></li>
+            <li><span><%= t('client.service.cancel_policy_enroute') %></span><strong><%= formatCLP(cancelPol.enRoute != null ? cancelPol.enRoute : 10000) %></strong></li>
+            <li><span><%= t('client.service.cancel_policy_arrived') %></span><strong><%= formatCLP(cancelPol.onSiteVerified != null ? cancelPol.onSiteVerified : 15000) %></strong></li>
+            <li><span><%= t('client.service.cancel_policy_diagnosis') %></span><strong><%= formatCLP(cancelPol.afterDiagnosis != null ? cancelPol.afterDiagnosis : 30000) %></strong></li>
+          </ul>
+          <button type="button" id="btnCancelService" class="track-cancel__btn"><%= t('client.service.cancel_track') %></button>
+        </div>
+        <p id="contactPrivacyHint" class="sr-only"><%= t('client.service.contact_privacy_hint') %></p>
         <button type="button" id="openJobChatBtn" class="hidden zilo-btn-primary w-full mb-2 !text-sm"><%= t('client.service.chat_partner') %></button>
         <a id="providerPhone" href="#" class="hidden zilo-btn-ghost w-full mb-2"><%= t('client.service.call_tech') %></a>
-        <button type="button" id="btnChangeProvider" class="hidden w-full mb-2 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-semibold">Cambiar de socio (seguir buscando)</button>
-        <button type="button" id="btnCancelService" class="w-full mb-2 py-2.5 rounded-xl border border-red-200 bg-white text-red-700 text-xs font-semibold"><%= t('client.service.cancel_track') %></button>
-        <button type="button" id="btnSafetyReport" class="w-full mb-2 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-zilo-muted">Reportar problema de seguridad</button>
-        <a id="whatsappSupport" href="#aland-support" data-open-aland class="zilo-btn-ghost w-full text-aland-strong border-aland/25"><%= t('client.service.concierge') %></a>
+        <details class="track-more">
+          <summary>Más opciones</summary>
+          <button type="button" id="btnChangeProvider" class="hidden w-full mb-2 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-semibold">Cambiar de socio (seguir buscando)</button>
+          <button type="button" id="btnSafetyReport" class="w-full mb-2 py-2.5 rounded-xl zilo-btn-ghost !text-xs text-zilo-muted">Reportar problema de seguridad</button>
+          <a id="whatsappSupport" href="#aland-support" data-open-aland class="zilo-btn-ghost w-full text-aland-strong border-aland/25"><%= t('client.service.concierge') %></a>
+        </details>
       </div>
 
       <section id="jobChatPanel" class="job-chat-panel hidden p-0 rounded-2xl zilo-card-premium overflow-hidden border border-zilo-border">
