@@ -934,7 +934,7 @@
       <div class="track-process">
         <div class="flex justify-between items-center mb-3">
           <p class="track-kicker"><%= t('client.service.tracking') %></p>
-          <span id="tripEta" class="text-xs text-zilo-accent font-medium"><%= t('client.service.eta') %></span>
+          <span id="tripEta" class="track-eta" hidden></span>
         </div>
         <div class="trip-timeline" id="tripTimeline" data-garden="<%= isGarden ? '1' : '0' %>">
           <% if (isGarden) { %>
@@ -954,6 +954,7 @@
           <div class="trip-step" data-step="done"><span class="trip-dot"></span><div><strong class="text-xs"><%= t('client.service.timeline_done') %></strong><p class="text-[10px] text-zilo-muted"><%= t('client.service.done_sub') %></p></div></div>
           <% } %>
         </div>
+        <button type="button" id="trackMapLink" class="track-map-link hidden">Ver mapa</button>
       </div>
 
       <div id="gardenValidatePanel" class="hidden p-4 rounded-2xl zilo-card-premium border border-emerald-200/80 space-y-3">

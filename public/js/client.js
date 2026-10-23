@@ -2373,13 +2373,31 @@
       if (i < idx) el.classList.add('done');
       else if (i === idx) el.classList.add('active');
     });
+    syncTrackEtaAndMap(lastTrackedRequest, step);
+  }
+
+  function isTrackPage() {
+    return document.getElementById('servicePage')?.getAttribute('data-track') === '1';
+  }
+
+  function syncTrackEtaAndMap(request, step) {
     const etaEl = document.getElementById('tripEta');
-    if (!etaEl) return;
-    if (step === 'enroute') etaEl.textContent = t('client.js.enroute_home');
-    if (step === 'arrived') etaEl.textContent = isGardenTracking() ? 'Evaluación' : t('client.js.arrived');
-    if (step === 'working') etaEl.textContent = isGardenTracking() ? 'En ejecución' : 'En trabajo';
-    if (step === 'deliverables') etaEl.textContent = 'Entregables';
-    if (step === 'done') etaEl.textContent = 'Completado';
+    const mapLink = document.getElementById('trackMapLink');
+    const enRoute = step === 'enroute' || request?.techStatus === 'en_camino';
+    const mins = declaredEtaMinutes(request);
+    if (etaEl) {
+      if (enRoute && mins != null) {
+        etaEl.textContent = t('client.service.eta_minutes', { n: mins });
+        etaEl.hidden = false;
+      } else {
+        etaEl.textContent = '';
+        etaEl.hidden = true;
+      }
+    }
+    if (mapLink) {
+      const showMap = Boolean(request?.coords) && (enRoute || isLiveTrackingActive(request));
+      mapLink.classList.toggle('hidden', !showMap);
+    }
   }
 
   function updateArrivalCodeCard(request) {
@@ -2662,7 +2680,11 @@
     const declared = declaredEtaMinutes(request);
     const displayEta = etaMinutes != null ? etaMinutes : declared;
 
-    shell.classList.toggle('hidden', !request?.coords);
+    if (isTrackPage() && shell.dataset.open !== '1') {
+      shell.classList.add('hidden');
+    } else {
+      shell.classList.toggle('hidden', !request?.coords);
+    }
     if (hint) {
       hint.classList.toggle('hidden', !(deferred && !enRoute && !request?.etaLabel && request?.providerId));
     }
@@ -3727,10 +3749,7 @@
           locStatus.textContent = `Llegada estimada: ${request.etaLabel}`;
         }
       }
-      const tripEta = document.getElementById('tripEta');
-      if (tripEta && request?.etaLabel) {
-        tripEta.textContent = `ETA ${request.etaLabel}`;
-      }
+      syncTrackEtaAndMap(request, request?.techStatus === 'en_camino' ? 'enroute' : null);
     }
 
     loaderOverlay.classList.add('hidden');
@@ -3979,10 +3998,11 @@
           : t('client.js.tech_live_location');
         locStatus.classList.remove('hidden');
       }
-      const tripEta = document.getElementById('tripEta');
-      if (tripEta && payload.etaMinutes) {
-        tripEta.textContent = `ETA ${payload.etaMinutes} min`;
-      }
+      syncTrackEtaAndMap(lastTrackedRequest || {
+        liveEtaMinutes: payload.etaMinutes,
+        techStatus: 'en_camino',
+        coords: true
+      }, 'enroute');
       if (lastTrackedRequest && payload.etaMinutes != null) {
         lastTrackedRequest.liveEtaMinutes = payload.etaMinutes;
         if (payload.distanceKm != null) lastTrackedRequest.etaDistanceKm = payload.distanceKm;
@@ -4253,6 +4273,14 @@
 
   document.getElementById('tripHeroChat')?.addEventListener('click', openTrackingChat);
   document.getElementById('stickyTrackChat')?.addEventListener('click', openTrackingChat);
+  document.getElementById('trackMapLink')?.addEventListener('click', () => {
+    const shell = document.getElementById('liveTrackShell');
+    if (!shell) return;
+    shell.dataset.open = '1';
+    shell.classList.remove('hidden');
+    shell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => window.FandezMap?.maps?.trackingMap?.invalidateSize?.(), 220);
+  });
   document.getElementById('finalInvoiceAskBtn')?.addEventListener('click', openTrackingChat);
 
   // Desde historial: ?factura=1 abre el chat de consulta

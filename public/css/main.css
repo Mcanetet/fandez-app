@@ -5965,6 +5965,25 @@ body:has(#servicePage.service-track) #cookieBanner {
 #servicePage.service-track .trip-step:not(:last-child)::before {
   background: rgba(26, 24, 20, 0.1);
 }
+#servicePage.service-track .track-eta {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #C45C14;
+}
+#servicePage.service-track .track-eta[hidden] { display: none; }
+#servicePage.service-track .track-map-link {
+  display: inline-flex;
+  margin-top: 0.7rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #C45C14;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+#servicePage.service-track .track-map-link.hidden { display: none; }
+#servicePage.service-track #liveTrackEta { display: none !important; }
 #servicePage.service-track #arrivalCodeCard {
   background: #fff;
   border-color: rgba(196, 92, 20, 0.2);
