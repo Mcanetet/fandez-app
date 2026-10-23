@@ -174,6 +174,15 @@
       var first = root.querySelector('.task-search-result');
       if (first) first.click();
     });
+    var go = root.querySelector('[data-task-search-go]');
+    if (go) {
+      go.addEventListener('click', function () {
+        run();
+        var first = root.querySelector('.task-search-result');
+        if (first) first.click();
+        else input.focus();
+      });
+    }
   }
 
   function init() {

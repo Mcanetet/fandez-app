@@ -292,4 +292,70 @@ picture {
   picture {
     forced-color-adjust: none !important;
   }
+
+  #clientDashboard.home-client,
+  #clientDashboard.home-client.min-h-screen,
+  #clientDashboard.home-client main {
+    background-color: #F6F3EE !important;
+    background-image: none !important;
+    color: #1A1814 !important;
+  }
+  #clientDashboard.home-client .home-live {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #1A1814 !important;
+  }
+  #clientDashboard.home-client .home-live__title {
+    color: #1A1814 !important;
+  }
+  #clientDashboard.home-client .home-live__cta {
+    color: #C45C14 !important;
+  }
+  #clientDashboard.home-client .task-search--home .task-search__input {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #1A1814 !important;
+  }
+}
+
+/* Home cliente: papel pálido, cajas blancas */
+#clientDashboard.home-client,
+#clientDashboard.home-client.min-h-screen {
+  background-color: #F6F3EE !important;
+  background-image: none !important;
+  color: #1A1814 !important;
+}
+#clientDashboard.home-client .client-session-header {
+  background-color: rgba(246, 243, 238, 0.92) !important;
+}
+#clientDashboard.home-client .home-live,
+#clientDashboard.home-client .home-svc {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #1A1814 !important;
+}
+#clientDashboard.home-client .home-live__title {
+  color: #1A1814 !important;
+}
+#clientDashboard.home-client .home-live__cta,
+#clientDashboard.home-client .home-quiet-link span:last-child {
+  color: #C45C14 !important;
+}
+#clientDashboard.home-client .home-refund-line {
+  color: #2F6B4F !important;
+}
+#clientDashboard.home-client .task-search--home {
+  background-color: transparent !important;
+}
+#clientDashboard.home-client .task-search--home .task-search__input {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #1A1814 !important;
+}
+#clientDashboard.home-client .task-search--home .task-search__go {
+  background-color: #C45C14 !important;
+  color: #ffffff !important;
+}
+#clientDashboard.home-client .nav-client-bar {
+  background-color: #ffffff !important;
 }

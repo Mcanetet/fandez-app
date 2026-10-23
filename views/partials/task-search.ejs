@@ -5,15 +5,25 @@
 <%
   const _tsMode = typeof taskSearchMode !== 'undefined' ? taskSearchMode : 'landing';
   const _tsIndex = Array.isArray(taskSearchIndex) ? taskSearchIndex : [];
+  const _tsVariant = typeof taskSearchVariant !== 'undefined' ? taskSearchVariant : '';
+  const _tsLabel = typeof taskSearchLabel !== 'undefined' && taskSearchLabel
+    ? taskSearchLabel
+    : (typeof t === 'function' ? t('task_search.label') : '¿Qué necesitas?');
+  const _tsHint = typeof taskSearchHint !== 'undefined' && taskSearchHint
+    ? taskSearchHint
+    : (typeof t === 'function' ? t('task_search.hint') : 'Escribe el problema y te mostramos el servicio.');
+  const _tsPlaceholder = typeof taskSearchPlaceholder !== 'undefined' && taskSearchPlaceholder
+    ? taskSearchPlaceholder
+    : (typeof t === 'function' ? t('task_search.placeholder') : 'Ej: lavadora no centrifuga, fuga de agua, poda…');
 %>
 <div
-  class="task-search"
+  class="task-search<%= _tsVariant ? ' task-search--' + _tsVariant : '' %>"
   data-task-search
   data-mode="<%= _tsMode %>"
   role="search"
 >
   <label class="task-search__label" for="taskSearchInput-<%= _tsMode %>">
-    <%= typeof t === 'function' ? t('task_search.label') : '¿Qué necesitas?' %>
+    <%= _tsLabel %>
   </label>
   <div class="task-search__field">
     <span class="task-search__icon" aria-hidden="true">
@@ -26,12 +36,17 @@
       data-task-search-input
       autocomplete="off"
       enterkeyhint="search"
-      placeholder="<%= typeof t === 'function' ? t('task_search.placeholder') : 'Ej: lavadora no centrifuga, fuga de agua, poda…' %>"
+      placeholder="<%= _tsPlaceholder %>"
       aria-controls="taskSearchResults-<%= _tsMode %>"
     >
+    <% if (_tsVariant === 'home') { %>
+    <button type="button" class="task-search__go" data-task-search-go aria-label="<%= _tsLabel %>">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+    <% } %>
   </div>
   <p class="task-search__hint" data-task-search-hint>
-    <%= typeof t === 'function' ? t('task_search.hint') : 'Escribe el problema y te mostramos el servicio.' %>
+    <%= _tsHint %>
   </p>
   <div id="taskSearchResults-<%= _tsMode %>" class="task-search__results" data-task-search-results hidden role="listbox" aria-label="<%= typeof t === 'function' ? t('task_search.results_aria') : 'Servicios sugeridos' %>"></div>
   <p class="task-search__empty" data-task-search-empty hidden>
