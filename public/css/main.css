@@ -6073,6 +6073,11 @@ body:has(#servicePage.service-track) #cookieBanner {
   --home-ink: #1A1814;
   --home-muted: #6B635A;
   --home-touch: #C45C14;
+  --home-money: #C45C14;
+  --zilo-success: #C45C14;
+  --aland: #C45C14;
+  --aland-soft: #ffffff;
+  --aland-strong: #1A1814;
   background-color: #ffffff;
   background-image: none;
   color: #1A1814;
@@ -6102,7 +6107,10 @@ body:has(#servicePage.service-track) #cookieBanner {
 .client-skin .zilo-empty,
 .client-skin .zilo-stat,
 .client-skin .zilo-gift-card,
-.client-skin .historial-refund:not([class*="historial-refund--"]) {
+.client-skin .historial-refund,
+.client-skin .historial-refund--open,
+.client-skin .historial-refund--done,
+.client-skin .historial-refund--failed {
   background: #ffffff;
   background-image: none;
   box-shadow: none;
@@ -6121,7 +6129,28 @@ body:has(#servicePage.service-track) #cookieBanner {
   color: #1A1814;
 }
 .client-skin .text-zilo-accent,
-.client-skin .nav-client-active {
+.client-skin .nav-client-active,
+.client-skin .text-zilo-success,
+.client-skin .historial-refund__amount,
+.client-skin .historial-refund--open .historial-refund__label,
+.client-skin .historial-refund--done .historial-refund__label,
+.client-skin .home-refund-line,
+.client-skin .checkout-discount {
+  color: #C45C14;
+}
+.client-skin .historial-refund--failed .historial-refund__label {
+  color: #1A1814;
+}
+.client-skin .zilo-badge,
+.client-skin .zilo-badge-muted,
+.client-skin .zilo-badge-success {
+  background: #ffffff;
+  color: #1A1814;
+  border-color: #E6E0D8;
+}
+.client-skin .trip-step.done .trip-dot,
+.client-skin .step-item.is-done {
+  background: #C45C14;
   color: #C45C14;
 }
 .client-skin .zilo-btn-primary,
@@ -8953,7 +8982,7 @@ body.launch-notice-open {
   --home-ink: #1A1814;
   --home-muted: #6B635A;
   --home-touch: #C45C14;
-  --home-money: #2F6B4F;
+  --home-money: #C45C14;
   --home-soft: #ffffff;
   width: 100%;
   max-width: 32rem;

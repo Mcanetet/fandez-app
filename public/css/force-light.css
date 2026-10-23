@@ -350,7 +350,7 @@ picture {
   color: #C45C14 !important;
 }
 #clientDashboard.home-client .home-refund-line {
-  color: #2F6B4F !important;
+  color: #C45C14 !important;
 }
 #clientDashboard.home-client .task-search--home {
   background-color: transparent !important;
@@ -389,6 +389,11 @@ picture {
   --zilo-card: #ffffff !important;
   --home-paper: #ffffff !important;
   --home-soft: #ffffff !important;
+  --home-money: #C45C14 !important;
+  --zilo-success: #C45C14 !important;
+  --aland: #C45C14 !important;
+  --aland-soft: #ffffff !important;
+  --aland-strong: #1A1814 !important;
   background-color: #ffffff !important;
   color: #1A1814 !important;
 }
@@ -402,12 +407,18 @@ picture {
 .client-skin .zilo-empty,
 .client-skin .zilo-stat,
 .client-skin .zilo-gift-card,
-.client-skin .historial-refund:not([class*="historial-refund--"]),
+.client-skin .historial-refund,
+.client-skin .historial-refund--open,
+.client-skin .historial-refund--done,
+.client-skin .historial-refund--failed,
 .client-skin .app-session-header,
 .client-skin .back-header-compact,
 .client-skin .nav-client-bar,
 .client-skin .alert-inbox-summary,
-.client-skin .alert-inbox-card--medium {
+.client-skin .alert-inbox-card--medium,
+.client-skin .zilo-badge,
+.client-skin .zilo-badge-muted,
+.client-skin .zilo-badge-success {
   background-color: #ffffff !important;
   background-image: none !important;
 }
@@ -429,7 +440,12 @@ picture {
   color: #1A1814 !important;
 }
 .client-skin .text-zilo-accent,
-.client-skin .nav-client-active {
+.client-skin .nav-client-active,
+.client-skin .text-zilo-success,
+.client-skin .historial-refund__amount,
+.client-skin .historial-refund--open .historial-refund__label,
+.client-skin .historial-refund--done .historial-refund__label,
+.client-skin .home-refund-line {
   color: #C45C14 !important;
 }
 #servicePage.service-track .zilo-btn-primary,

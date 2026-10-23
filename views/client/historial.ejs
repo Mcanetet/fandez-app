@@ -62,7 +62,7 @@
               <% if (req.status === 'completed' && !req.clientReview) { %>
                 <button type="button" class="btn-rate zilo-btn-primary !py-2 !px-3 !text-xs flex-1" data-id="<%= req.id %>" data-service="<%= req.serviceName %>"><%= t('client.historial.rate') %></button>
               <% } else if (req.clientReview) { %>
-                <div class="text-[10px] text-zilo-success px-2">
+                <div class="text-[10px] text-zilo-accent px-2">
                   <span>★ <%= req.clientReview.rating %>/5 · <%= t('client.historial.rated') %></span>
                   <% if (req.clientReview.text) { %><p class="text-zilo-muted mt-1">“<%= req.clientReview.text %>”</p><% } %>
                 </div>
