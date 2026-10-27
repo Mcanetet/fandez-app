@@ -909,6 +909,61 @@ if (typeof hasPerm !== 'function') {
         <p class="mt-2 text-gray-500"><%= t('admin.documentos.prod_hint') %></p>
       </div>
 
+      <%
+        const cafByEnv = siiSt.cafsByEnv || { sandbox: [], production: [] };
+        const cafLevel = siiSt.cafLevel || 'ok';
+        const cafBox = cafLevel === 'critical'
+          ? 'bg-red-500/10 border-red-500/30'
+          : (cafLevel === 'warning' ? 'bg-amber-500/10 border-amber-500/30' : 'bg-white border-gray-200');
+        const renderCafRows = (rows) => {
+          const present = (rows || []).filter((row) => !row.missing);
+          return present;
+        };
+      %>
+      <div class="p-4 rounded-2xl border text-xs mb-4 <%= cafBox %>" id="dteCafUpload">
+        <strong class="text-gray-900 block mb-1"><%= t('admin.documentos.caf_title') %></strong>
+        <p class="text-gray-600 mb-3"><%= t('admin.documentos.caf_hint') %></p>
+        <p class="text-gray-500 mb-4"><%= t('admin.documentos.caf_upload_hint') %> · <%= t('admin.documentos.caf_active_env') %>: <strong><%= siiSt.environment === 'production' ? t('admin.documentos.caf_env_prod') : t('admin.documentos.caf_env_test') %></strong></p>
+        <div class="dte-caf-grid">
+          <%
+            const cafEnvs = [
+              { id: 'sandbox', title: t('admin.documentos.caf_env_test'), rows: cafByEnv.sandbox || [] },
+              { id: 'production', title: t('admin.documentos.caf_env_prod'), rows: cafByEnv.production || [] }
+            ];
+          %>
+          <% cafEnvs.forEach((envBlock) => { %>
+          <div class="dte-caf-col">
+            <div class="dte-caf-col__head">
+              <strong><%= envBlock.title %></strong>
+              <% if (hasPerm('documentos.manage')) { %>
+              <label class="dte-caf-upload-btn">
+                <%= t('admin.documentos.caf_upload') %>
+                <input type="file" accept=".xml,text/xml,application/xml" class="sr-only js-caf-file" data-caf-env="<%= envBlock.id %>">
+              </label>
+              <% } %>
+            </div>
+            <% const present = renderCafRows(envBlock.rows); %>
+            <% if (!present.length) { %>
+              <p class="text-gray-500 mt-2"><%= t('admin.documentos.caf_empty') %></p>
+            <% } else { %>
+              <ul class="dte-caf-list">
+                <% present.forEach((row) => { %>
+                <li>
+                  <strong><%= row.label || ('TD ' + row.dteType) %></strong>
+                  <span><%= row.folioFrom != null ? (row.folioFrom + '–' + row.folioTo) : '—' %></span>
+                  <% if (row.remaining != null) { %><span><%= t('admin.documentos.caf_remaining') %>: <%= row.remaining %></span><% } %>
+                  <% if (row.alerts && row.alerts.length) { %>
+                    <p class="<%= row.alerts[0].level === 'critical' ? 'text-red-700' : 'text-amber-800' %>"><%= row.alerts[0].message %></p>
+                  <% } %>
+                </li>
+                <% }); %>
+              </ul>
+            <% } %>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+
       <% if (hasPerm('documentos.manage')) { %>
       <script type="application/json" id="dtePartnersJson"><%- JSON.stringify(partnersForDte) %></script>
       <form id="manualDteForm" class="dte-issuer mb-6" novalidate>
@@ -1343,6 +1398,64 @@ if (typeof hasPerm !== 'function') {
             </div>
           <% }); %>
         </div>
+      <% } %>
+    </section>
+
+    <!-- LIBROS SII (certificación IECV) -->
+    <section class="<%= panelClass('libros-sii') %>" data-panel="libros-sii" data-subtitle="Libros ESPECIALES de certificación (ventas y compras)">
+      <p class="text-xs text-gray-500 mb-4">
+        Tras el Set Básico: arma el XML <code>LibroCompraVenta</code> (TipoLibro ESPECIAL + FolioNotificacion) y envíalo a maullin.
+        Atención ventas <strong>5137073</strong> · compras <strong>5137074</strong> · factor IVA uso común <strong>0,60</strong>.
+      </p>
+
+      <% if (hasPerm('documentos.manage')) { %>
+      <div class="grid gap-4 lg:grid-cols-2">
+        <fieldset class="dte-issuer__section">
+          <legend class="dte-issuer__legend">Libro de ventas · 5137073</legend>
+          <p class="dte-issuer__hint mb-2">Usa solo los DTE del Set Básico ya emitidos (referencia <code>CASO {setId}-n</code>).</p>
+          <div class="grid gap-2 sm:grid-cols-2">
+            <div>
+              <label class="dte-label" for="libroVentaFolio">Folio notificación</label>
+              <input id="libroVentaFolio" class="zilo-input w-full text-sm" inputmode="numeric" value="5137073">
+            </div>
+            <div>
+              <label class="dte-label" for="libroVentaSetId">ID Set Básico</label>
+              <input id="libroVentaSetId" class="zilo-input w-full text-sm" inputmode="numeric" placeholder="Ej. 1221626">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="dte-label" for="libroVentaPeriodo">Periodo tributario (opcional)</label>
+              <input id="libroVentaPeriodo" class="zilo-input w-full text-sm" placeholder="AAAA-MM — vacío = fecha más temprana del set">
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 mt-3">
+            <button type="button" id="libroVentaSubmit" class="dte-issuer__submit">Generar / enviar libro ventas</button>
+            <span id="libroVentaMsg" class="dte-issuer__msg text-sm" aria-live="polite"></span>
+          </div>
+        </fieldset>
+
+        <fieldset class="dte-issuer__section">
+          <legend class="dte-issuer__legend">Libro de compras · 5137074</legend>
+          <p class="dte-issuer__hint mb-2">JSON con la tabla del SII. Incluye <code>ivaUsoComun</code> donde corresponda; el resumen aplica <code>FctProp</code>.</p>
+          <div class="grid gap-2 sm:grid-cols-2 mb-2">
+            <div>
+              <label class="dte-label" for="libroCompraFolio">Folio notificación</label>
+              <input id="libroCompraFolio" class="zilo-input w-full text-sm" inputmode="numeric" value="5137074">
+            </div>
+            <div>
+              <label class="dte-label" for="libroCompraFct">FctProp (IVA uso común)</label>
+              <input id="libroCompraFct" class="zilo-input w-full text-sm" type="number" min="0.001" max="1" step="0.001" value="0.6">
+            </div>
+          </div>
+          <label class="dte-label" for="libroCompraJson">docs[]</label>
+          <textarea id="libroCompraJson" class="zilo-input w-full text-sm font-mono" rows="10" placeholder='{"folioNotificacion":"5137074","fctProp":0.6,"docs":[{"tpoDoc":33,"nroDoc":1,"fchDoc":"2026-03-01","rutDoc":"76.000.000-0","rznSoc":"Proveedor SpA","mntExe":0,"mntNeto":100000,"mntIVA":11400,"ivaUsoComun":7600,"mntTotal":119000}]}'></textarea>
+          <div class="flex flex-wrap items-center gap-2 mt-3">
+            <button type="button" id="libroCompraSubmit" class="dte-issuer__submit">Generar / enviar libro compras</button>
+            <span id="libroCompraMsg" class="dte-issuer__msg text-sm" aria-live="polite"></span>
+          </div>
+        </fieldset>
+      </div>
+      <% } else { %>
+        <p class="dte-empty">No tienes permiso para emitir libros. Revisa Facturas emitidas o pide acceso <code>documentos.manage</code>.</p>
       <% } %>
     </section>
 

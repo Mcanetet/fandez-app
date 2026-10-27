@@ -8130,6 +8130,63 @@ body.launch-notice-open {
 }
 
 /* —— Facturador DTE (admin documentos) —— */
+.dte-caf-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+@media (min-width: 720px) {
+  .dte-caf-grid { grid-template-columns: 1fr 1fr; }
+}
+.dte-caf-col {
+  border: 1px solid #e7e5e4;
+  border-radius: 0.9rem;
+  padding: 0.85rem 0.95rem;
+  background: #fff;
+}
+.dte-caf-col__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.dte-caf-upload-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.55rem;
+  background: #1A1814;
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dte-caf-upload-btn:hover { background: #C45C14; }
+.dte-caf-upload-btn input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.dte-caf-list {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+.dte-caf-list li {
+  display: grid;
+  gap: 0.15rem;
+  color: #44403c;
+}
 .dte-issuer {
   --dte-ink: #1c1917;
   --dte-mute: #78716c;

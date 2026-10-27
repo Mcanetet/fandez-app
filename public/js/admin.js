@@ -9,6 +9,7 @@
     briefs: 'Briefs servicio',
     documentos: 'Emitir facturas',
     'facturas-emitidas': 'Facturas emitidas',
+    'libros-sii': 'Libros SII',
     contratos: 'Contratos socios',
     notificaciones: 'Notificaciones',
     modulos: 'Módulos',
@@ -4508,6 +4509,42 @@
   document.getElementById('btnOpenaiUsageReload')?.addEventListener('click', loadOpenaiUsage);
   if (openaiUsagePanel) loadOpenaiUsage();
 
+  document.querySelectorAll('.js-caf-file').forEach((input) => {
+    input.addEventListener('change', async () => {
+      const file = input.files && input.files[0];
+      input.value = '';
+      if (!file) return;
+      const name = String(file.name || '').toLowerCase();
+      if (file.size > 400 * 1024 || (name && !name.endsWith('.xml'))) {
+        FandezNotify.show('Elige un XML de CAF del SII (máx. 400 KB).', 'error');
+        return;
+      }
+      const env = input.dataset.cafEnv || 'sandbox';
+      const label = input.closest('label');
+      const prev = label ? label.childNodes[0].textContent : '';
+      if (label) label.childNodes[0].textContent = 'Subiendo… ';
+      try {
+        const xml = await file.text();
+        const res = await adminFetch('/dte/caf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ environment: env, xml })
+        });
+        const data = await res.json();
+        if (data.success) {
+          FandezNotify.show(data.message || 'CAF guardado', 'success');
+          setTimeout(() => location.reload(), 700);
+        } else {
+          FandezNotify.show(data.error || 'No se pudo guardar el CAF', 'error');
+        }
+      } catch (_) {
+        FandezNotify.show('No se pudo leer o enviar el XML', 'error');
+      } finally {
+        if (label) label.childNodes[0].textContent = prev || 'Subir XML';
+      }
+    });
+  });
+
   document.querySelectorAll('.btn-retry-dte').forEach((btn) => {
     btn.addEventListener('click', async () => {
       btn.disabled = true;
@@ -5045,6 +5082,94 @@
         }
       });
     })();
+  })();
+
+  (function bindLibrosSii() {
+    const ventaBtn = document.getElementById('libroVentaSubmit');
+    const compraBtn = document.getElementById('libroCompraSubmit');
+    if (!ventaBtn && !compraBtn) return;
+
+    if (ventaBtn) {
+      ventaBtn.addEventListener('click', async () => {
+        const msg = document.getElementById('libroVentaMsg');
+        ventaBtn.disabled = true;
+        if (msg) msg.textContent = 'Armando libro de ventas…';
+        const body = {
+          folioNotificacion: document.getElementById('libroVentaFolio')?.value?.trim() || '5137073',
+          setId: document.getElementById('libroVentaSetId')?.value?.trim() || '',
+          periodoTributario: document.getElementById('libroVentaPeriodo')?.value?.trim() || undefined
+        };
+        try {
+          const res = await adminFetch('/dte/libro-ventas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(body)
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo armar el libro de ventas');
+          const okMsg = data.dryRun
+            ? `Libro ventas ${data.folioNotificacion}: ${data.docsCount} docs (dry-run)`
+            : `Libro ventas enviado` + (data.trackId ? ` · Track ${data.trackId}` : '');
+          if (msg) msg.textContent = okMsg;
+          FandezNotify.show(okMsg, 'success');
+          if (data.envioXmlUrl) {
+            setTimeout(() => { window.open(data.envioXmlUrl, '_blank'); }, 400);
+          }
+        } catch (err) {
+          if (msg) msg.textContent = err.message || 'Error';
+          FandezNotify.show(err.message || 'Error libro ventas', 'error');
+        } finally {
+          ventaBtn.disabled = false;
+        }
+      });
+    }
+
+    if (compraBtn) {
+      compraBtn.addEventListener('click', async () => {
+        const msg = document.getElementById('libroCompraMsg');
+        const ta = document.getElementById('libroCompraJson');
+        compraBtn.disabled = true;
+        if (msg) msg.textContent = 'Armando libro de compras…';
+        let parsed;
+        try {
+          parsed = JSON.parse(String(ta?.value || '').trim());
+        } catch (e) {
+          if (msg) msg.textContent = 'JSON inválido';
+          FandezNotify.show('JSON de compras inválido', 'error');
+          compraBtn.disabled = false;
+          return;
+        }
+        const body = {
+          folioNotificacion: document.getElementById('libroCompraFolio')?.value?.trim()
+            || parsed.folioNotificacion || '5137074',
+          fctProp: Number(document.getElementById('libroCompraFct')?.value || parsed.fctProp || 0.6),
+          periodoTributario: parsed.periodoTributario,
+          docs: parsed.docs || parsed.compras || (Array.isArray(parsed) ? parsed : [])
+        };
+        try {
+          const res = await adminFetch('/dte/libro-compras', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(body)
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo armar el libro de compras');
+          const okMsg = data.dryRun
+            ? `Libro compras ${data.folioNotificacion}: ${data.docsCount} docs · FctProp ${data.fctProp} (dry-run)`
+            : `Libro compras enviado` + (data.trackId ? ` · Track ${data.trackId}` : '');
+          if (msg) msg.textContent = okMsg;
+          FandezNotify.show(okMsg, 'success');
+          if (data.envioXmlUrl) {
+            setTimeout(() => { window.open(data.envioXmlUrl, '_blank'); }, 400);
+          }
+        } catch (err) {
+          if (msg) msg.textContent = err.message || 'Error';
+          FandezNotify.show(err.message || 'Error libro compras', 'error');
+        } finally {
+          compraBtn.disabled = false;
+        }
+      });
+    }
   })();
 
   (function bindSiiDocsFilters() {

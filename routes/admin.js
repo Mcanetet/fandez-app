@@ -1902,6 +1902,39 @@ function csvEscape(value) {
   return str;
 }
 
+router.post('/dte/caf', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
+  try {
+    const sii = require('../lib/sii-dte');
+    const xml = String(req.body?.xml || '');
+    const environment = String(req.body?.environment || '');
+    const expectedType = req.body?.dteType ? Number(req.body.dteType) : null;
+    const result = sii.saveCafUpload({
+      xml,
+      environment,
+      expectedType: Number.isFinite(expectedType) ? expectedType : null
+    });
+    store.logSecurityEvent(
+      'dte_caf_upload',
+      `${result.environment} ${result.label} ${result.folioFrom}–${result.folioTo}`,
+      req
+    );
+    return res.json({
+      success: true,
+      environment: result.environment,
+      dteType: result.dteType,
+      label: result.label,
+      folioFrom: result.folioFrom,
+      folioTo: result.folioTo,
+      authorizedAt: result.authorizedAt,
+      file: result.file,
+      status: result.status,
+      message: `CAF ${result.label} guardado en ${result.environment === 'production' ? 'productivo' : 'prueba'} (folios ${result.folioFrom}–${result.folioTo}).`
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message || 'No se pudo guardar el CAF.' });
+  }
+});
+
 router.post('/dte/retry', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
   const { requestId, phase } = req.body;
   if (!requestId || !phase) {
@@ -2054,6 +2087,50 @@ router.post('/dte/certification-set', requireRole('admin'), requireAdminPermissi
   } catch (err) {
     console.error('[admin] dte/certification-set', err);
     return res.status(500).json({ success: false, error: err.message || 'Error al armar el set' });
+  }
+});
+
+/**
+ * Libro de Ventas ESPECIAL (Atención 5137073).
+ * Body: { folioNotificacion, setId } o { docs[] / documentIds[] }
+ */
+router.post('/dte/libro-ventas', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
+  try {
+    const sii = require('../lib/sii-dte');
+    const body = req.body || {};
+    const result = await sii.generateLibroVentas({
+      ...body,
+      issuedBy: req.session.user?.email || req.session.user?.id || 'admin'
+    });
+    if (result.error) {
+      return res.status(422).json({ success: false, ...result });
+    }
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[admin] dte/libro-ventas', err);
+    return res.status(500).json({ success: false, error: err.message || 'Error al armar libro de ventas' });
+  }
+});
+
+/**
+ * Libro de Compras ESPECIAL (Atención 5137074).
+ * Body: { folioNotificacion, docs[], fctProp?: 0.6 }
+ */
+router.post('/dte/libro-compras', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
+  try {
+    const sii = require('../lib/sii-dte');
+    const body = req.body || {};
+    const result = await sii.generateLibroCompras({
+      ...body,
+      issuedBy: req.session.user?.email || req.session.user?.id || 'admin'
+    });
+    if (result.error) {
+      return res.status(422).json({ success: false, ...result });
+    }
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[admin] dte/libro-compras', err);
+    return res.status(500).json({ success: false, error: err.message || 'Error al armar libro de compras' });
   }
 });
 
