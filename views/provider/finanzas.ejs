@@ -18,46 +18,14 @@
     { id: 'cuenta ahorro', label: 'Cuenta de ahorro' }
   ];
 %>
-<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter">
-  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
-    <div class="app-session-header__row">
-      <div class="app-session-header__identity">
-        <a href="/proveedor" class="zilo-icon-btn" title="Volver" aria-label="Volver">
-          <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </a>
-        <div class="app-session-header__meta">
-          <p class="session-role-pill session-role-pill--provider"><%= t('session.role.provider') %></p>
-          <h1><%= t('provider.finance.page_title') %></h1>
-        </div>
-      </div>
-      <div class="app-session-header__end app-session-header__end--logout">
-        <%- include('../partials/lang-switcher') %>
-        <%- include('../partials/logout-btn', { withLabel: true }) %>
-      </div>
-    </div>
-  </header>
+<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter client-skin" id="finanzasPage">
+  <%- include('../partials/back-header', { backUrl: '/proveedor', title: t('provider.finance.page_title'), showLogout: true }) %>
 
-  <main class="flex-1 px-5 py-5 pb-28 space-y-4">
-    <section class="grid grid-cols-2 gap-2" aria-label="<%= t('provider.finance.title') %>">
-      <div class="tech-list-card rounded-2xl zilo-card-premium border border-zilo-accent/20">
-        <strong class="text-zilo-accent text-lg block"><%= formatCLP(stats.pendingPayout || ledger.pendingTotal || 0) %></strong>
-        <span class="text-[11px] text-zilo-muted"><%= t('provider.finance.pending') %></span>
-      </div>
-      <div class="tech-list-card rounded-2xl zilo-card-premium">
-        <strong class="text-lg block"><%= formatCLP(stats.paidTotal || ledger.paidTotal || 0) %></strong>
-        <span class="text-[11px] text-zilo-muted"><%= t('provider.finance.paid_total') %></span>
-      </div>
-      <div class="tech-list-card rounded-2xl zilo-card-premium">
-        <strong class="text-base block text-zilo-success"><%= stats.nextPayDateLabel || t('provider.finance.no_schedule') %></strong>
-        <span class="text-[11px] text-zilo-muted"><%= stats.nextPayAmount ? formatCLP(stats.nextPayAmount) : t('provider.finance.next_pay') %></span>
-      </div>
-      <div class="tech-list-card rounded-2xl zilo-card-premium">
-        <strong class="text-base block"><%= stats.monthCompleted || 0 %></strong>
-        <span class="text-[11px] text-zilo-muted"><%= t('provider.finance.month_jobs') %></span>
-      </div>
+  <main class="flex-1 px-5 py-5 pb-24 space-y-5">
+    <section aria-label="<%= t('provider.finance.title') %>">
+      <p class="home-hero__title" style="font-size:1.75rem"><%= formatCLP(stats.pendingPayout || ledger.pendingTotal || 0) %></p>
+      <p class="text-sm text-zilo-muted mt-1"><%= t('provider.finance.pending') %><% if (stats.nextPayDateLabel) { %> · <%= stats.nextPayDateLabel %><% } %></p>
     </section>
-
-    <p class="text-xs text-zilo-muted leading-relaxed"><%= t('provider.finance.hint') %></p>
 
     <section class="rounded-2xl zilo-card-premium border border-zilo-border p-4 space-y-3" id="payoutCadenceCard">
       <div>
@@ -141,7 +109,6 @@
         <p class="zilo-label mb-0"><%= t('provider.finance.ledger_title') %></p>
         <span class="text-[11px] text-zilo-muted tabular-nums"><%= (ledger.rows || []).length %></span>
       </div>
-      <p class="text-[11px] text-zilo-muted mb-3"><%= t('provider.finance.invoice_gate_hint') %></p>
 
       <% if (!(ledger.rows || []).length) { %>
         <div class="zilo-empty zilo-card-premium rounded-2xl">
@@ -163,8 +130,11 @@
                   <strong class="text-sm text-zilo-success block"><%= formatCLP(row.providerPayout) %></strong>
                 </div>
               </div>
-              <%- include('../partials/provider-settlement-summary', { settlement: row }) %>
-              <%- include('../partials/provider-invoice-upload', { invoicePlan: row.providerInvoicePlan, invoiceRequestId: row.id }) %>
+              <details class="mt-2">
+                <summary class="text-xs text-zilo-muted cursor-pointer py-1">Detalle</summary>
+                <%- include('../partials/provider-settlement-summary', { settlement: row }) %>
+                <%- include('../partials/provider-invoice-upload', { invoicePlan: row.providerInvoicePlan, invoiceRequestId: row.id }) %>
+              </details>
             </article>
           <% }); %>
         </div>

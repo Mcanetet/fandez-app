@@ -1374,9 +1374,9 @@ body.session-role--tecnico::before {
   border: 1px solid rgba(196, 92, 20, 0.28);
 }
 .session-role-pill--provider {
-  color: #1e4a36;
-  background: rgba(47, 107, 79, 0.12);
-  border: 1px solid rgba(47, 107, 79, 0.28);
+  color: #C45C14;
+  background: #ffffff;
+  border: 1px solid rgba(196, 92, 20, 0.28);
 }
 .session-role-pill--tecnico {
   color: #293241;
@@ -1421,7 +1421,7 @@ body.session-role--tecnico::before {
   background: var(--zilo-accent);
 }
 .session-mode-switch__btn--provider.is-active {
-  background: #2F6B4F;
+  background: #C45C14;
 }
 .session-mode-switch__hint {
   margin-top: 0.45rem;
@@ -2156,13 +2156,14 @@ body.session-role--tecnico::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  min-height: 4.35rem;
-  padding: 1.1rem 1.5rem;
-  border-radius: 1.15rem;
-  background: #fff;
-  border: 1px solid var(--zilo-border);
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+  gap: 0.75rem;
+  min-height: 0;
+  padding: 0.35rem 0.1rem 0.85rem;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(26, 24, 20, 0.08);
+  box-shadow: none;
 }
 #providerDashboard .provider-online-bar.is-blocked {
   opacity: 0.9;
@@ -2185,7 +2186,7 @@ body.session-role--tecnico::before {
   transition: background 0.2s ease;
 }
 #providerDashboard .provider-online-bar__indicator.is-on {
-  background: rgba(47, 107, 79, 0.14);
+  background: rgba(196, 92, 20, 0.14);
 }
 #providerDashboard .provider-online-bar__dot {
   width: 0.55rem;
@@ -2194,7 +2195,7 @@ body.session-role--tecnico::before {
   background: rgba(120, 113, 108, 0.55);
 }
 #providerDashboard .provider-online-bar__dot.is-on {
-  background: #2f6b4f;
+  background: #C45C14;
   animation: provider-dot-pulse 2.2s ease-in-out infinite;
 }
 @keyframes provider-dot-pulse {
@@ -6056,7 +6057,7 @@ body:has(#servicePage.service-track) #cookieBanner {
 #servicePage,
 #servicePage.service-track,
 #servicePage.service-lean,
-#clientDashboard.home-client,
+.home-client,
 #historialPage,
 #hogarPage,
 #invitarPage,
@@ -6085,14 +6086,14 @@ body:has(#servicePage.service-track) #cookieBanner {
 }
 .client-skin [class*="bg-zilo-accent/"],
 #servicePage [class*="bg-zilo-accent/"],
-#clientDashboard.home-client [class*="bg-zilo-accent/"] {
+.home-client [class*="bg-zilo-accent/"] {
   background-color: #ffffff !important;
 }
 .client-skin .zilo-btn-ghost:hover,
 .client-skin .zilo-btn-ghost:focus-visible,
 #servicePage .zilo-btn-ghost:hover,
 #servicePage .zilo-btn-ghost:focus-visible,
-#clientDashboard.home-client .zilo-btn-ghost:hover {
+.home-client .zilo-btn-ghost:hover {
   background-color: #ffffff !important;
   color: #C45C14;
 }
@@ -6130,6 +6131,7 @@ body:has(#servicePage.service-track) #cookieBanner {
 }
 .client-skin .text-zilo-accent,
 .client-skin .nav-client-active,
+.client-skin .nav-provider-active,
 .client-skin .text-zilo-success,
 .client-skin .historial-refund__amount,
 .client-skin .historial-refund--open .historial-refund__label,
@@ -6169,11 +6171,13 @@ body:has(#servicePage.service-track) #cookieBanner {
 .client-skin .app-session-header,
 .client-skin .back-header-compact,
 .client-skin header.sticky,
-.client-skin .nav-client-bar {
+.client-skin .nav-client-bar,
+.client-skin .nav-provider-bar {
   background: #ffffff;
   background-image: none;
 }
-.client-skin .nav-client-bar {
+.client-skin .nav-client-bar,
+.client-skin .nav-provider-bar {
   border-top: 1px solid rgba(26, 24, 20, 0.08);
   box-shadow: none;
   backdrop-filter: none;
@@ -7309,10 +7313,10 @@ body.fandez-install-visible {
 
 /* Provider bottom nav */
 .nav-provider-bar {
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(16px);
-  border-top: 2px solid rgba(47, 107, 79, 0.38);
-  box-shadow: 0 -6px 24px rgba(47, 107, 79, 0.08);
+  background: #ffffff;
+  backdrop-filter: none;
+  border-top: 1px solid rgba(26, 24, 20, 0.08);
+  box-shadow: none;
 }
 /* Nav inferior: sin translateX (evita scroll horizontal en móvil) */
 .nav-provider-bar,
@@ -7345,7 +7349,7 @@ body.fandez-install-visible {
 .legal-footer .flex {
   max-width: 100%;
 }
-.nav-provider-active { color: #2F6B4F !important; }
+.nav-provider-active { color: #C45C14 !important; }
 
 /* Activation checklist */
 .provider-activation-item.is-done { opacity: 0.85; }
@@ -9034,7 +9038,7 @@ body.launch-notice-open {
 }
 
 /* —— Home cliente: blanco + naranja Fandez —— */
-#clientDashboard.home-client {
+.home-client {
   --home-paper: #ffffff;
   --home-ink: #1A1814;
   --home-muted: #6B635A;
@@ -9050,33 +9054,33 @@ body.launch-notice-open {
   background-image: none;
   color: var(--home-ink);
 }
-#clientDashboard.home-client main,
-#clientDashboard.home-client .client-session-header,
-#clientDashboard.home-client .home-pulse-stack,
-#clientDashboard.home-client .home-live,
-#clientDashboard.home-client .task-search--home {
+.home-client main,
+.home-client .client-session-header,
+.home-client .home-pulse-stack,
+.home-client .home-live,
+.home-client .task-search--home {
   min-width: 0;
   max-width: 100%;
 }
-#clientDashboard.home-client .client-session-header {
+.home-client .client-session-header {
   background: var(--home-paper);
   border-bottom: 0;
 }
-#clientDashboard.home-client .client-session-header__avatar {
+.home-client .client-session-header__avatar {
   background: #fff;
   color: var(--home-ink);
   border-color: rgba(26, 24, 20, 0.12);
 }
-#clientDashboard.home-client .client-session-header__end {
+.home-client .client-session-header__end {
   opacity: 0.55;
 }
-#clientDashboard.home-client .client-session-header__name {
+.home-client .client-session-header__name {
   max-width: min(62vw, 16.5rem);
   font-family: inherit;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
-#clientDashboard.home-client .client-session-header__role {
+.home-client .client-session-header__role {
   color: var(--home-touch, #C45C14);
 }
 
@@ -9367,7 +9371,13 @@ body.launch-notice-open {
   color: var(--home-touch);
 }
 
-#clientDashboard .nav-client-bar {
+#clientDashboard .nav-client-bar,
+#providerDashboard .nav-provider-bar {
   background: #fff;
   border-top: 1px solid rgba(26, 24, 20, 0.06);
+}
+
+.provider-wall-card {
+  padding: 0.35rem 0 1rem;
+  border-bottom: 1px solid rgba(26, 24, 20, 0.08);
 }

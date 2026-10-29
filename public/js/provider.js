@@ -158,62 +158,30 @@
 
     items.forEach(data => {
       const req = data.request || {};
-      const when = formatRequestWhen(req.searchingAt || req.createdAt || req.paidAt);
-      const whenHtml = when
-        ? `<p class="text-[10px] text-zilo-muted mb-1">${t('provider.js.requested_at')}: ${escapeHtml(when)}</p>`
-        : '';
-      const arrival = req.arrivalDisplay
-        || (req.urgencyTierLabel ? {
-          label: req.urgencyTierLabel,
-          urgent: req.urgencyTier === 'immediate' || req.urgencyTier === 'critical' || req.urgencyTier === 'medium',
-          prefix: (req.urgencyTier === 'immediate' || req.urgencyTier === 'critical' || req.urgencyTier === 'medium')
-            ? t('provider.js.urgency')
-            : t('provider.js.arrival')
-        } : null);
-      const urgency = arrival
-        ? `<p class="text-[10px] ${arrival.urgent ? 'text-orange-600' : 'text-zilo-muted'} mb-1">${escapeHtml(arrival.prefix || (arrival.urgent ? t('provider.js.urgency') : t('provider.js.arrival')))}: ${escapeHtml(arrival.label)}</p>`
-        : '';
-      const gift = req.isGift
-        ? `<span class="text-[10px] text-zilo-accent block mb-1">${t('provider.js.gift')} · ${escapeHtml(req.beneficiaryName || t('provider.js.beneficiary_fallback'))}</span>`
-        : '';
-      const notesPreview = truncateText(req.notes, 110);
-      const notesHtml = notesPreview
-        ? `<p class="text-[11px] text-zilo-muted italic mb-2 line-clamp-2">${escapeHtml(notesPreview)}</p>`
-        : '';
+      const gift = Boolean(req.isGift);
       const thumbUrl = req.id && (req.clientPhotoUrl || req.clientBrandPhotoUrl)
         ? `/media/request/${encodeURIComponent(req.id)}/kind/${req.clientPhotoUrl ? 'problem' : 'brand'}`
         : (req.clientPhotoUrl || req.clientBrandPhotoUrl || '');
       const thumbHtml = thumbUrl
-        ? `<img src="${escapeHtml(thumbUrl)}" alt="" class="w-14 h-14 rounded-xl object-cover border border-zilo-border shrink-0" loading="lazy" onerror="this.remove()">`
+        ? `<img src="${escapeHtml(thumbUrl)}" alt="" class="w-12 h-12 rounded-xl object-cover border border-[rgba(26,24,20,0.12)] shrink-0" loading="lazy" onerror="this.remove()">`
         : '';
 
+      const zone = req.zoneLabel || req.communeName || '';
       const card = document.createElement('article');
-      card.className = 'tech-list-card provider-wall-card rounded-2xl zilo-card-premium border border-zilo-accent/15';
+      card.className = 'provider-wall-card';
       card.dataset.requestId = req.id;
       card.innerHTML = `
-        <div class="flex items-start justify-between gap-3 mb-2">
-          <div class="min-w-0 flex-1">
-            <strong class="text-sm block">${escapeHtml(req.customServiceName || req.activityName || data.service?.name || '')}</strong>
-            <span class="text-xs text-zilo-muted block truncate">${escapeHtml(data.client.name)}</span>
-            ${gift}
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <strong class="home-live__title" style="font-size:1.15rem">${escapeHtml(req.customServiceName || req.activityName || data.service?.name || '')}</strong>
+            <p class="home-live__status">${escapeHtml(zone)}${gift ? ' · ' + t('provider.js.gift') : ''}</p>
           </div>
-          <div class="flex items-start gap-2 shrink-0">
-            ${thumbHtml}
-            <span class="zilo-badge zilo-badge-success">${t('provider.js.available')}</span>
-          </div>
+          ${thumbHtml}
         </div>
-        <p class="text-xs text-zilo-muted mb-1 truncate">${escapeHtml(req.zoneLabel || req.communeName || 'Zona disponible')}</p>
-        ${whenHtml}
-        ${urgency}
-        ${req.isDeferredSchedule || ['tomorrow','two_days','scheduled'].includes(String(req.urgencyTier||''))
-          ? `<p class="text-[10px] text-amber-800 font-semibold mb-1">Programado · al tomar se abre el calendario</p>`
-          : ''}
-        ${notesHtml}
-        <p class="text-xs font-semibold text-zilo-success mb-3">${t('provider.js.your_payout')}: ${fmt(req.providerPayout ?? req.estimatedVisit)}</p>
+        <p class="home-refund-line" style="padding:0.35rem 0 0.7rem">${fmt(req.providerPayout ?? req.estimatedVisit)}</p>
         <div class="flex gap-2">
-          <button type="button" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm" data-dismiss="${escapeHtml(req.id)}">${t('provider.js.dismiss_job')}</button>
-          <button type="button" class="flex-1 py-2.5 rounded-xl zilo-btn-ghost !text-sm" data-detail="${escapeHtml(req.id)}">${t('provider.js.view_details')}</button>
-          <button type="button" class="flex-1 py-2.5 rounded-xl zilo-modal-accept !text-sm" data-take="${escapeHtml(req.id)}">${t('provider.js.take_job')}</button>
+          <button type="button" class="flex-1 zilo-btn-ghost !py-2.5 !text-sm" data-detail="${escapeHtml(req.id)}">${t('provider.js.view_details')}</button>
+          <button type="button" class="flex-1 zilo-btn-primary !py-2.5 !text-sm" data-take="${escapeHtml(req.id)}">${t('provider.js.take_job')}</button>
         </div>
       `;
       workWallList.appendChild(card);
@@ -869,7 +837,7 @@
       const indicator = statusDot.closest('.provider-online-bar__indicator');
       if (indicator) indicator.classList.add('is-on');
       statusText.textContent = FandezI18n.t('provider.online');
-      statusSub.textContent = FandezI18n.t('provider.status_online_sub');
+      if (statusSub) statusSub.textContent = FandezI18n.t('provider.dashboard.online_hint');
       FandezNotify.show(data.dispatched > 0 ? FandezI18n.t('js.requests_on_wall', { count: data.dispatched }) : FandezI18n.t('js.online_activated'), 'success');
       startLocationWatch();
       loadWorkWall();
@@ -884,7 +852,7 @@
       const indicator = statusDot.closest('.provider-online-bar__indicator');
       if (indicator) indicator.classList.remove('is-on');
       statusText.textContent = FandezI18n.t('provider.offline');
-      statusSub.textContent = FandezI18n.t('provider.status_offline_sub');
+      if (statusSub) statusSub.textContent = FandezI18n.t('provider.dashboard.offline_hint');
       wallItems.clear();
       renderWorkWall();
       closeModal();

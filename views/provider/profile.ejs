@@ -1,9 +1,9 @@
 <%- include('../partials/head') %>
 
-<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-8 zilo-page-enter" id="providerProfilePage"
+<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-24 zilo-page-enter client-skin" id="providerProfilePage"
   data-provider-id="<%= provider.id %>">
 
-  <%- include('../partials/back-header', { backUrl: '/proveedor', label: 'Perfil profesional', title: 'Mi perfil', showLogout: true }) %>
+  <%- include('../partials/back-header', { backUrl: '/proveedor', title: 'Mi perfil', showLogout: true }) %>
 
   <main class="flex-1 px-5 py-5 space-y-5 pb-10">
     <% 
@@ -28,19 +28,9 @@
       <p class="text-[10px] text-zilo-muted mt-2"><%= vDone %> de <%= vItems.length %> requisitos completados</p>
     </div>
 
-    <a href="/proveedor/contrato" class="block p-4 rounded-2xl zilo-card-premium border border-zilo-accent/20 hover:border-zilo-accent/40 transition">
-      <p class="text-sm font-semibold text-zilo-text"><%= t('provider.profile.contract_cta') %></p>
-      <p class="text-xs text-zilo-muted mt-1"><%= t('provider.profile.contract_hint') %></p>
-    </a>
-
-    <a href="/proveedor/finanzas" class="block p-4 rounded-2xl zilo-card-premium border border-zilo-border hover:border-zilo-accent/30 transition">
-      <p class="text-sm font-semibold text-zilo-text"><%= t('provider.finance.page_title') %></p>
-      <p class="text-xs text-zilo-muted mt-1"><%= t('provider.finance.view_all') %></p>
-    </a>
-
-    <a href="/proveedor/equipo" class="block p-4 rounded-2xl zilo-card-premium border border-zilo-border hover:border-zilo-accent/30 transition">
-      <p class="text-sm font-semibold text-zilo-text"><%= t('provider.equipo.title') %></p>
-      <p class="text-xs text-zilo-muted mt-1"><%= t('provider.equipo.add') %> · servicios · expediente</p>
+    <a href="/proveedor/contrato" class="home-quiet-link">
+      <span><%= t('provider.profile.contract_cta') %></span>
+      <span>Abrir</span>
     </a>
 
     <div class="text-center py-2">
@@ -105,9 +95,8 @@
 
     <%- include('../partials/password-form') %>
 
-    <section class="p-5 rounded-2xl border border-zilo-accent/25 bg-zilo-accent-soft/35 space-y-3">
+    <section class="space-y-2">
       <p class="text-sm font-semibold"><%= t('session.switch.to_client_title') %></p>
-      <p class="text-xs text-zilo-muted"><%= t('session.switch.to_client_body') %></p>
       <%- include('../partials/session-mode-switch', { activeMode: 'provider' }) %>
     </section>
 

@@ -293,26 +293,26 @@ picture {
     forced-color-adjust: none !important;
   }
 
-  #clientDashboard.home-client,
-  #clientDashboard.home-client.min-h-screen,
-  #clientDashboard.home-client main {
+  .home-client,
+  .home-client.min-h-screen,
+  .home-client main {
     background-color: #ffffff !important;
     background-image: none !important;
     color: #1A1814 !important;
   }
-  #clientDashboard.home-client .home-live {
+  .home-client .home-live {
     background-color: transparent !important;
     background-image: none !important;
     color: #1A1814 !important;
   }
-  #clientDashboard.home-client .home-live__title {
+  .home-client .home-live__title {
     color: #1A1814 !important;
   }
-  #clientDashboard.home-client .home-live__cta {
+  .home-client .home-live__cta {
     background-color: #C45C14 !important;
     color: #ffffff !important;
   }
-  #clientDashboard.home-client .task-search--home .task-search__input {
+  .home-client .task-search--home .task-search__input {
     background-color: #ffffff !important;
     background-image: none !important;
     color: #1A1814 !important;
@@ -320,55 +320,55 @@ picture {
 }
 
 /* Home cliente: blanco + naranja, como el inicio público */
-#clientDashboard.home-client,
-#clientDashboard.home-client.min-h-screen {
+.home-client,
+.home-client.min-h-screen {
   background-color: #ffffff !important;
   background-image: none !important;
   color: #1A1814 !important;
 }
-#clientDashboard.home-client .client-session-header {
+.home-client .client-session-header {
   background-color: #ffffff !important;
 }
-#clientDashboard.home-client .home-live {
+.home-client .home-live {
   background-color: transparent !important;
   background-image: none !important;
   color: #1A1814 !important;
 }
-#clientDashboard.home-client .home-svc {
+.home-client .home-svc {
   background-color: #ffffff !important;
   background-image: none !important;
   color: #1A1814 !important;
 }
-#clientDashboard.home-client .home-live__title {
+.home-client .home-live__title {
   color: #1A1814 !important;
 }
-#clientDashboard.home-client .home-live__cta {
+.home-client .home-live__cta {
   background-color: #C45C14 !important;
   color: #ffffff !important;
 }
-#clientDashboard.home-client .home-quiet-link span:last-child {
+.home-client .home-quiet-link span:last-child {
   color: #C45C14 !important;
 }
-#clientDashboard.home-client .home-refund-line {
+.home-client .home-refund-line {
   color: #C45C14 !important;
 }
-#clientDashboard.home-client .task-search--home {
+.home-client .task-search--home {
   background-color: transparent !important;
 }
-#clientDashboard.home-client .client-session-header__avatar {
+.home-client .client-session-header__avatar {
   background-color: #ffffff !important;
   color: #1A1814 !important;
 }
-#clientDashboard.home-client .task-search--home .task-search__input {
+.home-client .task-search--home .task-search__input {
   background-color: #ffffff !important;
   background-image: none !important;
   color: #1A1814 !important;
 }
-#clientDashboard.home-client .task-search--home .task-search__go {
+.home-client .task-search--home .task-search__go {
   background-color: #C45C14 !important;
   color: #ffffff !important;
 }
-#clientDashboard.home-client .nav-client-bar {
+.home-client .nav-client-bar {
   background-color: #ffffff !important;
 }
 
@@ -377,7 +377,7 @@ picture {
 #servicePage.service-track.min-h-screen,
 #servicePage.service-lean,
 #servicePage,
-#clientDashboard.home-client,
+.home-client,
 #historialPage,
 #hogarPage,
 #invitarPage,
@@ -399,7 +399,7 @@ picture {
 }
 .client-skin [class*="bg-zilo-accent/"],
 #servicePage [class*="bg-zilo-accent/"],
-#clientDashboard.home-client [class*="bg-zilo-accent/"] {
+.home-client [class*="bg-zilo-accent/"] {
   background-color: #ffffff !important;
 }
 .client-skin .zilo-card-premium,
@@ -414,6 +414,7 @@ picture {
 .client-skin .app-session-header,
 .client-skin .back-header-compact,
 .client-skin .nav-client-bar,
+.client-skin .nav-provider-bar,
 .client-skin .alert-inbox-summary,
 .client-skin .alert-inbox-card--medium,
 .client-skin .zilo-badge,
@@ -441,6 +442,7 @@ picture {
 }
 .client-skin .text-zilo-accent,
 .client-skin .nav-client-active,
+.client-skin .nav-provider-active,
 .client-skin .text-zilo-success,
 .client-skin .historial-refund__amount,
 .client-skin .historial-refund--open .historial-refund__label,

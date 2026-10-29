@@ -1,24 +1,9 @@
 <%- include('../partials/head') %>
-<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter" id="dossierPage" data-tech-id="<%= tecnico.id %>">
-  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
-    <div class="app-session-header__row">
-      <div class="app-session-header__identity">
-        <a href="/proveedor/equipo" class="zilo-icon-btn" aria-label="Volver">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </a>
-        <div class="app-session-header__meta">
-          <p class="zilo-label mb-0">Expediente técnico</p>
-          <h1><%= tecnico.name %></h1>
-        </div>
-      </div>
-      <div class="app-session-header__end">
-        <%- include('../partials/logout-btn', { withLabel: true }) %>
-      </div>
-    </div>
-  </header>
-  <main class="flex-1 px-5 py-5 pb-16 space-y-4">
-    <section class="p-4 rounded-2xl <%= check.ok ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200' %> border">
-      <strong class="text-sm block"><%= check.ok ? 'Técnico habilitado para trabajar' : 'No puede recibir trabajos todavía' %></strong>
+<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter client-skin" id="dossierPage" data-tech-id="<%= tecnico.id %>">
+  <%- include('../partials/back-header', { backUrl: '/proveedor/equipo', title: tecnico.name, showLogout: true }) %>
+  <main class="flex-1 px-5 py-5 pb-24 space-y-4">
+    <section>
+      <strong class="text-sm block"><%= check.ok ? 'Listo para trabajar' : 'Aún no puede recibir trabajos' %></strong>
       <% if (!check.ok) { %><p class="text-xs mt-1">Falta: <%= check.missing.join(', ') %>.</p><% } %>
     </section>
 

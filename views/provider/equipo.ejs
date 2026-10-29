@@ -1,41 +1,23 @@
 <%- include('../partials/head') %>
 
-<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter">
-  <header class="app-session-header sticky top-0 z-50 bg-zilo-bg/90 backdrop-blur-xl border-b border-zilo-border">
-    <div class="app-session-header__row">
-      <div class="app-session-header__identity">
-        <a href="/proveedor" class="zilo-icon-btn" title="Volver" aria-label="Volver">
-          <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </a>
-        <div class="app-session-header__meta">
-          <p class="session-role-pill session-role-pill--provider"><%= t('session.role.provider') %></p>
-          <h1>Servicios y equipo</h1>
-        </div>
-      </div>
-      <div class="app-session-header__end app-session-header__end--logout">
-        <%- include('../partials/lang-switcher') %>
-        <%- include('../partials/logout-btn', { withLabel: true }) %>
-      </div>
-    </div>
-  </header>
+<div class="max-w-lg mx-auto min-h-screen flex flex-col zilo-page-enter client-skin">
+  <%- include('../partials/back-header', { backUrl: '/proveedor', title: 'Equipo', showLogout: true }) %>
 
-  <main class="flex-1 px-5 py-5 pb-10">
-    <div class="mb-5 p-4 rounded-2xl zilo-card-premium border border-zilo-accent/15">
-      <p class="zilo-label mb-1">Tu equipo</p>
-      <p class="text-2xl font-bold text-zilo-accent"><%= technicians.length %></p>
-      <p class="text-xs text-zilo-muted">técnicos registrados · cada servicio activo necesita un técnico listo (o actívate tú mismo abajo)</p>
-    </div>
+  <main class="flex-1 px-5 py-5 pb-24">
+    <section class="mb-5">
+      <h2 class="home-hero__title"><%= technicians.length %> <%= technicians.length === 1 ? 'técnico' : 'técnicos' %></h2>
+    </section>
 
     <% if (typeof ok !== 'undefined' && ok === 'self') { %>
-      <div class="mb-4 p-3 rounded-xl border border-zilo-success/30 bg-zilo-success/10 text-sm text-zilo-success">Listo: quedaste como técnico con tu cuenta de socio. Sin otro correo ni expediente aparte.</div>
+      <div class="mb-4 text-sm font-medium text-[#C45C14]">Listo: quedaste como técnico con tu cuenta de socio.</div>
     <% } %>
     <% if (typeof ok !== 'undefined' && ok === 'linked') { %>
-      <div class="mb-4 p-3 rounded-xl border border-zilo-success/30 bg-zilo-success/10 text-sm text-zilo-success">
+      <div class="mb-4 text-sm font-medium text-[#C45C14]">
         <%= typeof okDetail === 'string' && okDetail ? okDetail : 'El técnico ya estaba registrado y se enlazó a tu empresa.' %>
       </div>
     <% } %>
     <% if (typeof ok !== 'undefined' && ok === 'invited') { %>
-      <div class="mb-4 p-3 rounded-xl border border-zilo-success/30 bg-zilo-success/10 text-sm text-zilo-success">
+      <div class="mb-4 text-sm font-medium text-[#C45C14]">
         <%= typeof okDetail === 'string' && okDetail ? okDetail : 'Invitación enviada al correo del técnico.' %>
       </div>
     <% } %>
@@ -48,13 +30,12 @@
     <% } %>
 
     <% if (typeof selfOperator === 'undefined' || !selfOperator) { %>
-      <section class="mb-5 zilo-card-premium rounded-2xl p-5 border border-zilo-accent/25 bg-zilo-accent-soft/20">
-        <p class="zilo-label mb-1">¿Vas tú a las visitas?</p>
-        <h2 class="text-sm font-semibold mb-1">Agregarme como técnico con mi cuenta de socio</h2>
-        <p class="text-xs text-zilo-muted mb-3">Mismo correo y tus documentos de socio. No creas otra cuenta ni expediente de técnico aparte.</p>
+      <section class="mb-5">
+        <h2 class="home-section-title">¿Vas tú a las visitas?</h2>
+        <p class="text-sm text-zilo-muted mb-3">Usa tu misma cuenta. No hace falta otro correo.</p>
         <% if (typeof canEnableSelf !== 'undefined' && canEnableSelf) { %>
           <form method="POST" action="/proveedor/equipo/yo-hago-servicio">
-            <button type="submit" class="w-full py-3.5 rounded-xl zilo-btn-primary font-semibold">Agregarme como técnico con mi cuenta de socio</button>
+            <button type="submit" class="w-full py-3.5 rounded-xl zilo-btn-primary font-semibold">Agregarme como técnico</button>
           </form>
           <% if (typeof selfReady !== 'undefined' && !selfReady) { %>
             <p class="text-[11px] text-amber-800 mt-2">
@@ -69,8 +50,8 @@
         <% } %>
       </section>
     <% } else { %>
-      <section class="mb-5 zilo-card-premium rounded-2xl p-5 border border-zilo-success/25">
-        <p class="text-sm text-zilo-success font-medium mb-1">Ya estás en el equipo como técnico (tu cuenta de socio)</p>
+      <section class="mb-5">
+        <p class="text-sm font-medium mb-1">Ya estás en el equipo</p>
         <% if (typeof selfReady !== 'undefined' && selfReady) { %>
           <button type="button" id="btnEnterTerrainTop" class="w-full py-3 rounded-xl zilo-btn-ghost">Ir a mi panel de visitas</button>
           <script>
