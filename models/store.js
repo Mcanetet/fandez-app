@@ -6315,18 +6315,138 @@ function getRequestChat(requestId, user) {
   if (!canAccessRequestChat(request, user)) return { error: 'No autorizado' };
   ensureRequestChat(request);
   const { toServingUrl } = require('../lib/uploads');
-  const messages = request.chatMessages.map((msg) => ({
-    ...msg,
-    photoUrl: msg.photoUrl ? (toServingUrl(msg.photoUrl) || msg.photoUrl) : null
-  }));
+  const messages = request.chatMessages.map((msg) => {
+    if (msg.hiddenAt) {
+      return {
+        ...msg,
+        body: 'Mensaje oculto: no cumple la convivencia de Fandez.',
+        photoUrl: null,
+        hidden: true
+      };
+    }
+    return {
+      ...msg,
+      photoUrl: msg.photoUrl ? (toServingUrl(msg.photoUrl) || msg.photoUrl) : null
+    };
+  });
+  const peerId = chatPeerId(request, user);
   return {
     success: true,
     requestId: request.id,
+    blocked: Boolean(peerId && areUsersBlocked(user.id, peerId)),
     messages,
     peerName: user.role === 'client'
       ? (request.technicianId ? 'Equipo Fandez (socio y técnico)' : 'Socio Fandez')
       : (getUserById(request.clientId)?.name || request.clientName || 'Cliente'),
     youAre: chatRoleLabel(user.role === 'client' ? 'client' : (user.role === 'tecnico' ? 'tecnico' : 'provider'))
+  };
+}
+
+function getBlockedUserIds(user) {
+  if (!user) return [];
+  if (!Array.isArray(user.blockedUserIds)) user.blockedUserIds = [];
+  return user.blockedUserIds;
+}
+
+function areUsersBlocked(userIdA, userIdB) {
+  if (!userIdA || !userIdB || userIdA === userIdB) return false;
+  const a = getUserById(userIdA);
+  const b = getUserById(userIdB);
+  if (!a || !b) return false;
+  return getBlockedUserIds(a).includes(userIdB) || getBlockedUserIds(b).includes(userIdA);
+}
+
+function chatPeerId(request, user) {
+  if (!request || !user) return null;
+  if (user.role === 'client') return request.technicianId || request.providerId || null;
+  return request.clientId || null;
+}
+
+function blockCommunityUser(actorId, targetId, { reasonId = 'ugc_language', requestId = null } = {}) {
+  if (!actorId || !targetId || actorId === targetId) {
+    return { error: 'No puedes bloquearte a ti mismo.' };
+  }
+  const actor = getUserById(actorId);
+  const target = getUserById(targetId);
+  if (!actor || !target) return { error: 'Usuario no encontrado.' };
+  if (target.role === 'admin') return { error: 'No se puede bloquear a Fandez.' };
+  const ids = getBlockedUserIds(actor);
+  if (!ids.includes(targetId)) ids.push(targetId);
+  actor.blockedUserIds = ids;
+  repository.persist(() => repository.saveUser(actor), `bloqueo convivencia ${targetId}`);
+  return { success: true, blockedUserId: targetId, reasonId, requestId };
+}
+
+function hideRequestChatMessage(request, messageId, reporterId, reasonId) {
+  if (!request || !messageId) return null;
+  const msg = (request.chatMessages || []).find((m) => m.id === messageId);
+  if (!msg) return null;
+  msg.hiddenAt = new Date().toISOString();
+  msg.hiddenBy = reporterId;
+  msg.hiddenReason = reasonId || 'community';
+  msg.body = '';
+  msg.photoUrl = null;
+  return msg;
+}
+
+function reportCommunityContent({
+  reporterId,
+  reporterRole,
+  targetUserId,
+  requestId,
+  messageId,
+  reasonId,
+  notes = '',
+  alsoBlock = true
+} = {}) {
+  const conduct = require('../lib/communityConduct');
+  const reason = conduct.getReason(reasonId) || conduct.getReason('ugc_language');
+  const request = requestId ? requests.find((r) => r.id === requestId) : null;
+  if (requestId && !request) return { error: 'Solicitud no encontrada.' };
+  let targetId = targetUserId || null;
+  if (!targetId && request && messageId) {
+    const msg = (request.chatMessages || []).find((m) => m.id === messageId);
+    targetId = msg?.senderId || null;
+  }
+  if (!targetId && request) targetId = chatPeerId(request, { id: reporterId, role: reporterRole });
+
+  const incident = createSafetyIncident({
+    requestId,
+    reporterId,
+    reporterRole,
+    categoryId: reason.safetyId,
+    channel: 'report',
+    notes: [
+      notes,
+      messageId ? `Mensaje: ${messageId}` : '',
+      targetId ? `Usuario reportado: ${targetId}` : ''
+    ].filter(Boolean).join('\n')
+  });
+  if (incident.error) return incident;
+
+  if (request && messageId) {
+    hideRequestChatMessage(request, messageId, reporterId, reason.id);
+    repository.persist(() => repository.saveRequest(request), `ocultar chat ${messageId}`);
+  }
+
+  let blocked = false;
+  if (alsoBlock !== false && targetId) {
+    const block = blockCommunityUser(reporterId, targetId, { reasonId: reason.id, requestId });
+    blocked = !block.error;
+  }
+
+  const peerId = request ? chatPeerId(request, { id: reporterId, role: reporterRole }) : null;
+  const chatBlocked = Boolean(peerId && areUsersBlocked(reporterId, peerId));
+
+  return {
+    success: true,
+    complaint: incident.complaint,
+    blocked,
+    chatBlocked,
+    reasonId: reason.id,
+    message: blocked
+      ? 'Reportamos el contenido y bloqueamos a esa persona. Ya no puede escribirte.'
+      : 'Reportamos el contenido. Fandez lo revisa.'
   };
 }
 
@@ -6338,6 +6458,12 @@ function postRequestChatMessage(requestId, user, body, { photoUrl = null } = {})
   if (!['assigned', 'in_progress', 'completed'].includes(request.status)) {
     return { error: 'El chat no está disponible para este servicio.' };
   }
+  const peerId = chatPeerId(request, user);
+  if (peerId && areUsersBlocked(user.id, peerId)) {
+    return { error: 'No puedes enviar mensajes: hay un bloqueo por la convivencia de Fandez.' };
+  }
+  const scan = require('../lib/communityConduct').scanText(body);
+  if (scan.blocked) return { error: scan.message };
   const senderType = user.role === 'client' ? 'client' : (user.role === 'tecnico' ? 'tecnico' : 'provider');
   const message = appendChatMessage(request, {
     senderType,
@@ -10831,6 +10957,10 @@ module.exports = {
   updateProviderSpecialties,
   updateTechnicianSpecialties,
   setUserActive,
+  areUsersBlocked,
+  blockCommunityUser,
+  reportCommunityContent,
+  getBlockedUserIds,
   getAdminTeamUsers,
   createAdminUser,
   updateAdminUserAccess,

@@ -1097,6 +1097,9 @@
   const chatTitle = document.getElementById('jobChatTitle');
   const chatForm = document.getElementById('jobChatForm');
   const chatInput = document.getElementById('jobChatInput');
+  if (window.FandezJobChat) {
+    FandezJobChat.bindReportActions(chatThread, { endpointPrefix: chatBase, requestId, form: chatForm });
+  }
 
   function escapeHtml(str) {
     return String(str || '')
@@ -1146,7 +1149,8 @@
       </span>`;
     const photo = window.FandezJobChat ? FandezJobChat.renderPhotoBlock(msg, escapeHtml) : '';
     const text = window.FandezJobChat ? FandezJobChat.renderBodyBlock(msg, escapeHtml) : escapeHtml(msg.body || '');
-    return `<div class="${cls}" data-msg-id="${escapeHtml(msg.id)}">${meta}${text}${photo}</div>`;
+    const report = !isMine && window.FandezJobChat ? FandezJobChat.reportButtonHtml(msg, escapeHtml) : '';
+    return `<div class="${cls}" data-msg-id="${escapeHtml(msg.id)}">${meta}${text}${photo}${report}</div>`;
   }
 
   function appendChat(msg) {
@@ -1171,8 +1175,9 @@
           || '<p class="text-xs text-zilo-muted text-center px-4">Coordina llegada, acceso y detalles del servicio.</p>';
         chatThread.scrollTop = chatThread.scrollHeight;
       }
+      if (window.FandezJobChat) FandezJobChat.setComposerBlocked(chatForm, data.blocked);
       socket.emit('register_client', requestId);
-      chatInput?.focus();
+      if (!data.blocked) chatInput?.focus();
     } catch (err) {
       notify(err.message || 'No se pudo abrir el chat', 'error');
       chatModal.classList.add('hidden');

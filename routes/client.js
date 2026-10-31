@@ -10,6 +10,7 @@ const { getPhotoTips } = require('../lib/photoTips');
 const { getServiceOverview } = require('../lib/serviceOverviews');
 const { buildTaskSearchIndex } = require('../lib/taskSearchIndex');
 const { requireRole } = require('../middleware/auth');
+const { attachCommunityRoutes } = require('../lib/attachCommunityRoutes');
 const { requireModule } = require('../middleware/modules');
 const unassignedRequestWatcher = require('../lib/unassignedRequestWatcher');
 const { getRequestTimeouts } = require('../lib/requestTimeouts');
@@ -1364,5 +1365,7 @@ router.get('/solicitud/:id/bitacora', requireRole('client'), (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(result.html);
 });
+
+attachCommunityRoutes(router, requireRole, 'client');
 
 module.exports = router;

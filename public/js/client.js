@@ -3500,7 +3500,10 @@
     const text = window.FandezJobChat
       ? FandezJobChat.renderBodyBlock(msg, escapeChatHtml)
       : escapeChatHtml(msg.body || '');
-    return `<div class="${cls}" data-msg-id="${escapeChatHtml(msg.id)}">${meta}${text}${photo}</div>`;
+    const report = !isMine && window.FandezJobChat
+      ? FandezJobChat.reportButtonHtml(msg, escapeChatHtml)
+      : '';
+    return `<div class="${cls}" data-msg-id="${escapeChatHtml(msg.id)}" data-sender-id="${escapeChatHtml(msg.senderId || '')}">${meta}${text}${photo}${report}</div>`;
   }
 
   function appendJobChatMessage(msg) {
@@ -3538,6 +3541,7 @@
             || '<p class="text-xs text-zilo-muted text-center">Sin mensajes aún. Escribe para coordinar con el socio.</p>';
           thread.scrollTop = thread.scrollHeight;
         }
+        if (window.FandezJobChat) FandezJobChat.setComposerBlocked(form, data.blocked);
       } catch (_) { /* ignore */ }
     };
 
@@ -3545,7 +3549,7 @@
       panel.classList.remove('hidden');
       await loadChat();
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      input?.focus();
+      if (!form?.classList.contains('is-blocked')) input?.focus();
     };
 
     if (!form || form.dataset.bound === '1') {
@@ -3553,6 +3557,9 @@
       return;
     }
     form.dataset.bound = '1';
+    if (window.FandezJobChat) {
+      FandezJobChat.bindReportActions(thread, { endpointPrefix: '/cliente', requestId, form });
+    }
     const photoCtl = window.FandezJobChat ? FandezJobChat.bindPhotoComposer(form) : null;
     form.addEventListener('submit', async (e) => {
       e.preventDefault();

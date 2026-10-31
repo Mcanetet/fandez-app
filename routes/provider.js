@@ -4,6 +4,7 @@ const store = require('../models/store');
 const { emitRequestUpdateToParties } = require('../lib/realtime');
 const { dispatchPendingToProvider, broadcastRequestTaken, buildWorkWallPayload } = require('../lib/dispatch');
 const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
+const { attachCommunityRoutes } = require('../lib/attachCommunityRoutes');
 const { requireModule } = require('../middleware/modules');
 const { saveProviderFile, saveProviderInvoice, saveTechnicianDocumentFile, saveRequestFile, toServingUrl } = require('../lib/uploads');
 const { verifySelfie } = require('../lib/faceVerify');
@@ -1467,5 +1468,7 @@ router.post('/contrato/enviar', requireRole('provider'), requireModule('provider
   });
   res.json(result);
 });
+
+attachCommunityRoutes(router, requireRole, 'provider');
 
 module.exports = router;

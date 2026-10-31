@@ -470,6 +470,11 @@ function rowToUser(row) {
     }
   }
 
+  const blockedIds = parseJson(row.blocked_user_ids, []);
+  user.blockedUserIds = Array.isArray(blockedIds)
+    ? blockedIds.filter((id) => typeof id === 'string' && id)
+    : [];
+
   const { enrichPersonFields } = require('../lib/personName');
   return enrichPersonFields(user);
 }
@@ -520,6 +525,11 @@ function userToRow(user) {
     wall_dismissed: user.role === 'provider'
       ? JSON.stringify(user.wallDismissed && typeof user.wallDismissed === 'object' ? user.wallDismissed : {})
       : null,
+    blocked_user_ids: JSON.stringify(
+      Array.isArray(user.blockedUserIds)
+        ? user.blockedUserIds.filter((id) => typeof id === 'string' && id)
+        : []
+    ),
     active: user.active === false ? 0 : 1,
     email_verified_at: user.emailVerifiedAt || null,
     email_verification_code_hash: user.emailVerificationCodeHash || null,
@@ -714,6 +724,7 @@ async function migrate() {
   await ensureAlandMonitorColumns();
   await ensurePasswordResetColumns();
   await ensureWallDismissedColumn();
+  await ensureBlockedUserIdsColumn();
   await ensureCoverageInterestTable();
   await ensureUserNamePartsColumns();
   await ensureSiiDtesTable();
@@ -778,6 +789,14 @@ async function ensureCoverageInterestTable() {
 async function ensureWallDismissedColumn() {
   try {
     await db.raw('ALTER TABLE users ADD COLUMN wall_dismissed JSON DEFAULT NULL');
+  } catch (err) {
+    if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+  }
+}
+
+async function ensureBlockedUserIdsColumn() {
+  try {
+    await db.raw('ALTER TABLE users ADD COLUMN blocked_user_ids JSON DEFAULT NULL');
   } catch (err) {
     if (err.code !== 'ER_DUP_FIELDNAME') throw err;
   }
@@ -1471,10 +1490,10 @@ async function saveUser(user) {
       zilo_points, credits_clp, referrals_count, services_count,
       used_welcome_promo, used_referral, member_since,
       onboarding_completed, onboarding_completed_at,
-      specialties, rating, reviews_count, online, avatar, bio, reviews, verification, location_share, billing, mfa, admin_access, provider_contract, wall_dismissed, active,
+      specialties, rating, reviews_count, online, avatar, bio, reviews, verification, location_share, billing, mfa, admin_access, provider_contract, wall_dismissed, blocked_user_ids, active,
       email_verified_at, email_verification_code_hash, email_verification_expires_at, email_verification_sent_at,
       password_reset_token_hash, password_reset_expires_at, password_reset_sent_at, client_enabled
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       email = VALUES(email),
       password = VALUES(password),
@@ -1513,6 +1532,7 @@ async function saveUser(user) {
       admin_access = VALUES(admin_access),
       provider_contract = VALUES(provider_contract),
       wall_dismissed = VALUES(wall_dismissed),
+      blocked_user_ids = VALUES(blocked_user_ids),
       active = VALUES(active),
       email_verified_at = VALUES(email_verified_at),
       email_verification_code_hash = VALUES(email_verification_code_hash),
@@ -1527,7 +1547,7 @@ async function saveUser(user) {
       row.zilo_points, row.credits_clp, row.referrals_count, row.services_count,
       row.used_welcome_promo ? 1 : 0, row.used_referral ? 1 : 0, row.member_since,
       row.onboarding_completed ? 1 : 0, row.onboarding_completed_at,
-      row.specialties, row.rating, row.reviews_count, row.online ? 1 : 0, row.avatar, row.bio, row.reviews, row.verification, row.location_share, row.billing, row.mfa, row.admin_access, row.provider_contract, row.wall_dismissed, row.active,
+      row.specialties, row.rating, row.reviews_count, row.online ? 1 : 0, row.avatar, row.bio, row.reviews, row.verification, row.location_share, row.billing, row.mfa, row.admin_access, row.provider_contract, row.wall_dismissed, row.blocked_user_ids, row.active,
       row.email_verified_at, row.email_verification_code_hash, row.email_verification_expires_at, row.email_verification_sent_at,
       row.password_reset_token_hash, row.password_reset_expires_at, row.password_reset_sent_at, row.client_enabled ? 1 : 0
     ]

@@ -72,6 +72,7 @@ ALTER TABLE users ADD COLUMN provider_contract JSON DEFAULT NULL;
 ALTER TABLE users ADD COLUMN client_enabled TINYINT(1) NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN first_name VARCHAR(80) NULL;
 ALTER TABLE users ADD COLUMN last_name VARCHAR(80) NULL;
+ALTER TABLE users ADD COLUMN blocked_user_ids JSON DEFAULT NULL;
 ALTER TABLE users MODIFY COLUMN role ENUM('client', 'provider', 'admin', 'tecnico') NOT NULL;
 
 CREATE TABLE IF NOT EXISTS service_requests (

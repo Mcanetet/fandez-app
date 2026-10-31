@@ -3,6 +3,7 @@ const { dispatchPendingToTechnician, broadcastRequestTaken, buildWorkWallPayload
 const router = express.Router();
 const store = require('../models/store');
 const { requireRole, requireVerifiedEmail } = require('../middleware/auth');
+const { attachCommunityRoutes } = require('../lib/attachCommunityRoutes');
 const { requireModule } = require('../middleware/modules');
 const { saveRequestFile } = require('../lib/uploads');
 const { getTechnicianOnboardingSteps, ATTENTION_CHECKLIST } = require('../lib/onboarding');
@@ -797,5 +798,7 @@ router.post('/trabajo/:requestId/seguridad', requireRole('tecnico'), (req, res) 
     return res.status(500).json({ success: false, error: 'No se pudo registrar la alerta.' });
   }
 });
+
+attachCommunityRoutes(router, requireRole, 'tecnico');
 
 module.exports = router;

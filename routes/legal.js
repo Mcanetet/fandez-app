@@ -64,6 +64,14 @@ router.get('/terminos', (req, res) => {
   });
 });
 
+router.get('/convivencia', (req, res) => {
+  res.render('legal/convivencia', {
+    title: 'Política de convivencia — Fandez',
+    seo: buildPageMeta('conduct', req),
+    company
+  });
+});
+
 router.get('/cookies', (req, res) => {
   res.render('legal/cookies', {
     title: 'Política de Cookies — Fandez',
