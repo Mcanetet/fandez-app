@@ -116,6 +116,10 @@ function clientSignupDestination(form = {}) {
   return '/cliente';
 }
 
+function safePublicNext(raw) {
+  return String(raw || '').trim() === '/legal/mis-datos' ? '/legal/mis-datos' : '';
+}
+
 function getDashboardPath(role) {
   const { getAdminBasePath } = require('../lib/appMode');
   const paths = {
@@ -150,16 +154,23 @@ async function redirectAfterAuth(req, res, user) {
     }
     return res.redirect(`/verificar-email?${qs.toString()}`);
   }
+  const next = safePublicNext(req.body?.next || req.query?.next);
+  if (next) return res.redirect(next);
   return res.redirect(getDashboardPath(user.role));
 }
 
 function loginRenderOptions(req, extra = {}) {
+  const nextPath = extra.nextPath !== undefined
+    ? extra.nextPath
+    : safePublicNext(req.query?.next || req.body?.next);
   return {
     title: 'Iniciar sesión',
     seo: buildPageMeta('login', req),
     demoAccounts: store.getDemoAccounts({ forLogin: true }),
     referralCode: req.session.pendingReferral || null,
-    ...extra
+    nextPath,
+    ...extra,
+    nextPath
   };
 }
 
@@ -173,6 +184,8 @@ router.get('/login', (req, res) => {
     return logoutAndRedirect(req, res, dest);
   }
   if (req.session.user) {
+    const next = safePublicNext(req.query.next);
+    if (next) return res.redirect(next);
     const user = store.getUserById(req.session.user.id);
     if (user && !store.isEmailVerified(user) && user.role !== 'client') {
       return res.redirect('/verificar-email?pending=1');

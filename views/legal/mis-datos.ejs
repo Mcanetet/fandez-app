@@ -1,45 +1,90 @@
 <%- include('../partials/head') %>
 
-<div class="max-w-lg mx-auto min-h-screen flex flex-col pb-10 zilo-page-enter<%= user?.role === 'client' ? ' client-skin' : '' %>" id="<%= user?.role === 'client' ? 'clientLegalPage' : 'legalDatosPage' %>">
-  <%- include('../partials/back-header', { backUrl: user.role === 'provider' ? '/proveedor/perfil' : '/cliente/perfil', label: 'Privacidad', title: 'Mis datos personales' }) %>
+<article class="max-w-2xl mx-auto px-5 py-8 pb-16 legal-page">
+  <a href="/" class="text-sm text-blue-600 hover:underline mb-6 inline-block">← Volver a Fandez</a>
+  <h1 class="text-3xl font-extrabold mb-2">Eliminar cuenta y datos</h1>
+  <p class="text-gray-500 text-sm mb-8">Google Play y Ley 21.719 · última actualización: 31 de octubre de 2026</p>
 
-  <main class="flex-1 px-5 py-5 space-y-5">
-    <div class="p-4 rounded-2xl zilo-card-premium text-sm">
-      <p class="text-zilo-muted leading-relaxed">Gestiona tus consentimientos conforme a la <strong class="text-zilo-text">Ley 21.719</strong>. Los consentimientos obligatorios para usar la plataforma no pueden revocarse sin cerrar tu cuenta.</p>
-      <p class="text-xs text-zilo-muted mt-2">Soporte: <a href="mailto:<%= company.supportEmail %>" class="text-zilo-accent underline"><%= company.supportEmail %></a> · DPD: <a href="mailto:<%= company.dpoEmail %>" class="text-zilo-accent underline"><%= company.dpoEmail %></a> · <a href="/legal/privacidad" class="text-zilo-accent underline">Política completa</a></p>
-    </div>
+  <div class="prose-legal space-y-6 text-sm text-gray-700 leading-relaxed">
+    <% if (typeof deleted !== 'undefined' && deleted) { %>
+    <section class="p-4 rounded-2xl border border-zilo-border bg-white">
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">Cuenta eliminada</h2>
+      <p>Borramos tu cuenta y tus datos personales. Ya no puedes entrar con ese correo.</p>
+    </section>
+    <% } %>
 
-    <section class="space-y-3">
-      <% consents.forEach(function(item) { %>
-        <div class="p-4 rounded-2xl zilo-card-premium" data-consent-type="<%= item.type %>">
-          <div class="flex justify-between items-start gap-3">
-            <div>
-              <p class="text-sm font-semibold"><%= item.label %></p>
-              <p class="text-[11px] text-zilo-muted mt-1 leading-relaxed"><%= item.purpose %></p>
-              <p class="text-[10px] text-zilo-muted mt-1">Base legal: <%= item.legalBasis %> · <%= item.revocable ? 'Revocable' : 'Obligatorio' %></p>
+    <section>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">Cómo borrar tus datos</h2>
+      <ol class="list-decimal list-inside space-y-2">
+        <li>Inicia sesión en Fandez (el mismo correo de la app).</li>
+        <li>En <strong>esta página</strong> pulsa <strong>Eliminar mi cuenta y mis datos</strong>.</li>
+        <li>Escribe <strong>ELIMINAR</strong> y confirma.</li>
+      </ol>
+      <p class="mt-3">También puedes pedirlo por correo a
+        <a href="mailto:<%= company.dpoEmail %>?subject=Eliminar%20cuenta%20Fandez" class="text-blue-600"><%= company.dpoEmail %></a>
+        indicando el correo de tu cuenta. Plazo: 30 días hábiles.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">Qué se borra</h2>
+      <p>Nombre, correo, teléfono, dirección, foto de perfil, facturación y el acceso a la cuenta. Los mensajes o fotos del chat se ocultan o se anonimizan. Conservamos solo lo que la ley tributaria o un reclamo abierto exige, sin tu nombre.</p>
+    </section>
+
+    <% if (user && user.role !== 'admin') { %>
+    <section class="p-4 rounded-2xl border border-[#1A1814] bg-white">
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">Eliminar mi cuenta y mis datos</h2>
+      <p>Sesión: <strong><%= user.email %></strong>. Esta acción no se puede deshacer. Se cierra la sesión al instante.</p>
+      <% if (typeof deleteError !== 'undefined' && deleteError) { %>
+        <p class="mt-2 text-red-700"><%= deleteError %></p>
+      <% } %>
+      <form action="/legal/mis-datos/eliminar" method="POST" class="mt-4 space-y-3">
+        <label class="block text-sm font-semibold text-zilo-text" for="confirmDelete">Escribe ELIMINAR para confirmar</label>
+        <input id="confirmDelete" name="confirm" type="text" autocomplete="off" required
+          class="zilo-input w-full" placeholder="ELIMINAR">
+        <button type="submit" class="zilo-btn-primary w-full">Eliminar mi cuenta y mis datos</button>
+      </form>
+    </section>
+
+    <% if (typeof consents !== 'undefined' && consents && consents.length) { %>
+    <section>
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">Consentimientos</h2>
+      <p class="mb-3">Puedes revocar marketing, cookies analíticas, geolocalización o KYC sin borrar la cuenta.</p>
+      <div class="space-y-3">
+        <% consents.forEach(function(item) { %>
+          <div class="p-4 rounded-2xl border border-zilo-border" data-consent-type="<%= item.type %>">
+            <div class="flex justify-between items-start gap-3">
+              <div>
+                <p class="text-sm font-semibold text-zilo-text"><%= item.label %></p>
+                <p class="text-[11px] text-zilo-muted mt-1 leading-relaxed"><%= item.purpose %></p>
+              </div>
+              <span class="text-xs font-semibold"><%= item.granted ? 'Activo' : 'No' %></span>
             </div>
-            <span class="zilo-badge shrink-0 <%= item.granted ? 'zilo-badge-success' : '' %>"><%= item.granted ? 'Activo' : 'No' %></span>
+            <% if (item.revocable) { %>
+              <div class="mt-3">
+                <% if (item.granted) { %>
+                  <button type="button" class="btn-revoke zilo-btn-ghost !text-xs !py-2" data-type="<%= item.type %>">Revocar</button>
+                <% } else { %>
+                  <button type="button" class="btn-grant zilo-btn-primary !text-xs !py-2" data-type="<%= item.type %>">Activar</button>
+                <% } %>
+              </div>
+            <% } %>
           </div>
-          <% if (item.revocable) { %>
-            <div class="mt-3 flex gap-2">
-              <% if (item.granted) { %>
-                <button type="button" class="btn-revoke zilo-btn-ghost !text-xs !py-2" data-type="<%= item.type %>">Revocar</button>
-              <% } else { %>
-                <button type="button" class="btn-grant zilo-btn-primary !text-xs !py-2" data-type="<%= item.type %>">Activar</button>
-              <% } %>
-            </div>
-          <% } %>
-        </div>
-      <% }); %>
+        <% }); %>
+      </div>
     </section>
-
-    <section class="p-4 rounded-2xl border border-zilo-border text-xs text-zilo-muted space-y-2">
-      <p class="font-semibold text-zilo-text text-sm">Ejercer otros derechos ARCO+</p>
-      <p>Para acceso, rectificación, supresión, portabilidad u oposición, escribe al DPD en <a href="mailto:<%= company.dpoEmail %>" class="text-zilo-accent underline"><%= company.dpoEmail %></a> indicando tu correo registrado (<strong><%= user.email %></strong>) y el derecho que deseas ejercer.</p>
+    <% } %>
+    <% } else if (!deleted) { %>
+    <section class="p-4 rounded-2xl border border-[#1A1814] bg-white">
+      <h2 class="text-lg font-semibold text-zilo-text mb-2">Inicia sesión para eliminar</h2>
+      <p class="mb-4">Sin entrar no podemos saber qué cuenta borrar. El botón de abajo te lleva al login y vuelve a esta página.</p>
+      <a href="/login?next=/legal/mis-datos" class="zilo-btn-primary inline-flex justify-center w-full">Iniciar sesión para eliminar mi cuenta</a>
     </section>
-  </main>
-</div>
+    <% } %>
+  </div>
+</article>
 
+<% if (user && user.role !== 'admin') { %>
 <script>
 (function () {
   async function updateConsent(type, granted) {
@@ -56,18 +101,17 @@
     FandezNotify?.show(granted ? 'Consentimiento activado' : 'Consentimiento revocado', 'success');
     setTimeout(() => location.reload(), 600);
   }
-
   document.querySelectorAll('.btn-revoke').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (!confirm('¿Revocar este consentimiento? Puede limitar funciones relacionadas.')) return;
       updateConsent(btn.dataset.type, false);
     });
   });
-
   document.querySelectorAll('.btn-grant').forEach((btn) => {
     btn.addEventListener('click', () => updateConsent(btn.dataset.type, true));
   });
 })();
 </script>
+<% } %>
 
 <%- include('../partials/footer') %>

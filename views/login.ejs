@@ -30,6 +30,9 @@
       <%- include('partials/site-alert', { alertCompact: true }) %>
 
       <form action="/login" method="POST" class="space-y-4">
+        <% if (typeof nextPath !== 'undefined' && nextPath) { %>
+        <input type="hidden" name="next" value="<%= nextPath %>">
+        <% } %>
         <div>
           <label for="email" class="zilo-label block mb-1.5"><%= t('auth.email') %></label>
           <input type="email" id="email" name="email" required autocomplete="email" placeholder="<%= t('auth.email_placeholder') %>" class="zilo-input">

@@ -143,14 +143,59 @@ router.get('/contrato-comision', (req, res) => {
   res.send(doc.html);
 });
 
-router.get('/mis-datos', requireAuth, (req, res) => {
-  const consents = buildConsentDashboard(req.session.user.id);
+function renderMisDatos(req, res, extra = {}) {
+  const user = req.session.user || null;
+  let consents = [];
+  if (user && user.role !== 'admin') {
+    try {
+      consents = buildConsentDashboard(user.id);
+    } catch (_) {
+      consents = [];
+    }
+  }
   res.render('legal/mis-datos', {
-    title: 'Mis datos personales — Fandez',
+    title: 'Eliminar cuenta y datos — Fandez',
+    seo: buildPageMeta('data_deletion', req),
     company,
-    user: req.session.user,
+    user,
     consents,
-    policyVersion: POLICY_VERSION
+    policyVersion: POLICY_VERSION,
+    deleted: req.query.eliminada === '1',
+    deleteError: null,
+    ...extra
+  });
+}
+
+router.get('/mis-datos', (req, res) => {
+  renderMisDatos(req, res);
+});
+
+router.post('/mis-datos/eliminar', requireAuth, async (req, res) => {
+  const confirm = String(req.body?.confirm || '').trim().toUpperCase();
+  if (confirm !== 'ELIMINAR') {
+    return renderMisDatos(req, res, {
+      deleteError: 'Escribe ELIMINAR (en mayúsculas) para confirmar.'
+    });
+  }
+  if (req.session.user.role === 'admin') {
+    return renderMisDatos(req, res, {
+      deleteError: 'Las cuentas de administración no se eliminan aquí.'
+    });
+  }
+  const result = await store.anonymizeUserAccount(
+    req.session.user.id,
+    {
+      reason: 'solicitud del titular en /legal/mis-datos',
+      actorEmail: req.session.user.email,
+      actorId: req.session.user.id
+    },
+    req
+  );
+  if (result.error) {
+    return renderMisDatos(req, res, { deleteError: result.error });
+  }
+  return req.session.destroy(() => {
+    res.redirect('/legal/mis-datos?eliminada=1');
   });
 });
 

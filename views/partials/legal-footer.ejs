@@ -5,6 +5,7 @@
     <a href="/legal/terminos" class="hover:text-zilo-accent transition"><%= t('footer.terms') %></a>
     <a href="/legal/convivencia" class="hover:text-zilo-accent transition">Convivencia</a>
     <a href="/legal/cookies" class="hover:text-zilo-accent transition"><%= t('footer.cookies') %></a>
+    <a href="/legal/mis-datos" class="hover:text-zilo-accent transition">Eliminar cuenta</a>
     <% if (typeof company !== 'undefined') { %>
       <% var sofiaOpen = typeof user !== 'undefined' && user && user.role === 'client' && typeof mod === 'function' && mod('client_aland'); %>
       <% if (sofiaOpen) { %>
