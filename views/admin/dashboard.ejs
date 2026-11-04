@@ -1347,8 +1347,16 @@ if (typeof hasPerm !== 'function') {
                 </div>
                 <strong class="dte-doc-row__folio">N° <%= doc.folio %></strong>
                 <p class="dte-doc-row__party"><%= doc.receptorName %> · <%= doc.receptorRut %></p>
+                <% if (doc.trackId) { %>
+                  <p class="dte-doc-row__ref">Track <%= doc.trackId %></p>
+                <% } %>
                 <% if (doc.meta && doc.meta.reference && doc.meta.reference.folio) { %>
                   <p class="dte-doc-row__ref">Ref. <%= doc.meta.reference.folio %></p>
+                <% } %>
+                <% if (statusKey === 'rejected' && (doc.errorMessage || (doc.meta && (doc.meta.lastSiiGlosa || doc.meta.lastSiiEstado)))) { %>
+                  <p class="dte-doc-row__ref" style="color:#b91c1c;max-width:36rem">
+                    <%= doc.errorMessage || doc.meta.lastSiiGlosa || ('Estado ' + doc.meta.lastSiiEstado) %>
+                  </p>
                 <% } %>
               </div>
               <div class="dte-doc-row__side">
