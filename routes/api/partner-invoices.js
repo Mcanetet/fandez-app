@@ -84,7 +84,7 @@ router.post('/process', requireRole('provider', 'admin'), async (req, res) => {
       idempotent: Boolean(result.idempotent),
       dryRun: Boolean(result.dryRun),
       document: result.document,
-      sii: siiDte.getStatus()
+      sii: await siiDte.getStatus()
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message || 'Error emitiendo DTE' });

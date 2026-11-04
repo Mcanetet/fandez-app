@@ -1908,7 +1908,7 @@ router.post('/dte/caf', requireRole('admin'), requireAdminPermission('documentos
     const xml = String(req.body?.xml || '');
     const environment = String(req.body?.environment || '');
     const expectedType = req.body?.dteType ? Number(req.body.dteType) : null;
-    const result = sii.saveCafUpload({
+    const result = await sii.saveCafUpload({
       xml,
       environment,
       expectedType: Number.isFinite(expectedType) ? expectedType : null
@@ -1918,6 +1918,12 @@ router.post('/dte/caf', requireRole('admin'), requireAdminPermission('documentos
       `${result.environment} ${result.label} ${result.folioFrom}–${result.folioTo}`,
       req
     );
+    const nextHint = result.nextFolio
+      ? ` Próximo folio: ${result.nextFolio}.`
+      : '';
+    const skipHint = result.syncedLastFolio
+      ? ` Folios hasta ${result.syncedLastFolio} ya usados (no se reutilizan).`
+      : '';
     return res.json({
       success: true,
       environment: result.environment,
@@ -1927,8 +1933,9 @@ router.post('/dte/caf', requireRole('admin'), requireAdminPermission('documentos
       folioTo: result.folioTo,
       authorizedAt: result.authorizedAt,
       file: result.file,
+      nextFolio: result.nextFolio,
       status: result.status,
-      message: `CAF ${result.label} guardado en ${result.environment === 'production' ? 'productivo' : 'prueba'} (folios ${result.folioFrom}–${result.folioTo}).`
+      message: `CAF ${result.label} guardado en ${result.environment === 'production' ? 'productivo' : 'prueba'} (folios ${result.folioFrom}–${result.folioTo}).${nextHint}${skipHint}`
     });
   } catch (err) {
     return res.status(400).json({ success: false, error: err.message || 'No se pudo guardar el CAF.' });
@@ -2290,7 +2297,7 @@ router.post('/dte/manual', requireRole('admin'), requireAdminPermission('documen
       dryRun: Boolean(result.dryRun),
       document: result.document,
       purchaseInvoice,
-      sii: sii.getStatus()
+      sii: await sii.getStatus()
     });
   } catch (err) {
     console.error('[admin/dte/manual]', err.message);

@@ -924,6 +924,21 @@ if (typeof hasPerm !== 'function') {
         <strong class="text-gray-900 block mb-1"><%= t('admin.documentos.caf_title') %></strong>
         <p class="text-gray-600 mb-3"><%= t('admin.documentos.caf_hint') %></p>
         <p class="text-gray-500 mb-4"><%= t('admin.documentos.caf_upload_hint') %> · <%= t('admin.documentos.caf_active_env') %>: <strong><%= siiSt.environment === 'production' ? t('admin.documentos.caf_env_prod') : t('admin.documentos.caf_env_test') %></strong></p>
+        <% if (!(siiSt.cafsByEnv && ((siiSt.cafsByEnv.sandbox || []).some(function(r){ return r && !r.missing; }) || (siiSt.cafsByEnv.production || []).some(function(r){ return r && !r.missing; })))) { %>
+          <p class="text-amber-800 mb-3">Tras un Redeploy hay que <strong>volver a subir el XML del CAF</strong> (el archivo en disco se regenera). El folio 1 ya emitido no se pierde ante el SII: al subir, Fandez lo salta.</p>
+        <% } %>
+        <% const usedFolios = siiSt.usedFolios || []; %>
+        <% if (usedFolios.length) { %>
+          <div class="mb-4 p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <strong class="block text-gray-900 mb-1">Folios ya emitidos en Fandez</strong>
+            <ul class="space-y-1 text-gray-700">
+              <% usedFolios.forEach(function(u) { %>
+                <li><%= u.label || ('TD ' + u.dteType) %>: máx. N° <%= u.maxFolio %> · <%= u.count %> doc(s)<% if (u.samples && u.samples.length) { %> · ej. <%= u.samples.map(function(s){ return s.folio + (s.status ? ' (' + s.status + ')' : ''); }).join(', ') %><% } %></li>
+              <% }); %>
+            </ul>
+            <p class="text-gray-500 mt-2 mb-0">Eso no reemplaza el CAF: sin XML subido en <strong>Prueba</strong> el facturador sigue en dry-run.</p>
+          </div>
+        <% } %>
         <div class="dte-caf-grid">
           <%
             const cafEnvs = [
