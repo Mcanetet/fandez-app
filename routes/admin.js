@@ -2068,6 +2068,23 @@ router.get('/dte/receptor-lookup', requireRole('admin'), requireAdminPermission(
  * Factura 33, Liquidación-Factura 43, Factura de Compra 46 o Nota de Crédito 61.
  */
 /**
+ * Prueba getSeed + getToken contra el SII sin emitir DTE ni gastar folio CAF.
+ */
+router.post('/dte/sii-auth-test', requireRole('admin'), requireAdminPermission('documentos.manage'), async (req, res) => {
+  try {
+    const sii = require('../lib/sii-dte');
+    const result = await sii.probeAuth();
+    if (!result.ok) {
+      return res.status(422).json({ success: false, ...result });
+    }
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[admin] dte/sii-auth-test', err);
+    return res.status(500).json({ success: false, error: err.message || 'Error al probar auth SII' });
+  }
+});
+
+/**
  * Set de pruebas SII: varios DTE en un solo EnvioDTE (referencia SET + CASO).
  * Body: { setId, cases: [{ caseNumber, dteType, receptor, lines|totalClp, reference? }] }
  */

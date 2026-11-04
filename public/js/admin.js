@@ -5040,6 +5040,35 @@
       }
     });
 
+    (function bindSiiAuthTest() {
+      const btn = document.getElementById('siiAuthTestBtn');
+      const msg = document.getElementById('siiAuthTestMsg');
+      if (!btn) return;
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        if (msg) msg.textContent = 'Probando getSeed + getToken (sin gastar folio)…';
+        try {
+          const res = await adminFetch('/dte/sii-auth-test', {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: '{}'
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Auth SII falló');
+          }
+          const okMsg = `Auth OK · ${data.environment} · cert ${data.certSubject || '—'} · token ${data.tokenPreview || 'ok'}`;
+          if (msg) msg.textContent = okMsg;
+          FandezNotify.show(okMsg, 'success');
+        } catch (err) {
+          if (msg) msg.textContent = err.message || 'Error';
+          FandezNotify.show(err.message || 'Error auth SII', 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    })();
+
     (function bindCertSetSubmit() {
       const btn = document.getElementById('certSetSubmit');
       const ta = document.getElementById('certSetJson');

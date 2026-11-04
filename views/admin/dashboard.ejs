@@ -976,8 +976,10 @@ if (typeof hasPerm !== 'function') {
           <div class="dte-issuer__status" title="Estado módulo">
             <span class="dte-issuer__status-dot <%= (siiSt.configured && !siiSt.dryRun) ? 'is-live' : 'is-demo' %>"></span>
             <span><%= siiSt.dryRun || !siiSt.configured ? 'Dry-run' : ('SII ' + (siiSt.environment || 'ok')) %></span>
+            <button type="button" id="siiAuthTestBtn" class="dte-doc-row__btn dte-doc-row__btn--ghost" style="margin-left:0.5rem">Probar auth SII</button>
           </div>
         </header>
+        <p id="siiAuthTestMsg" class="dte-issuer__hint mb-2" aria-live="polite"></p>
 
         <fieldset class="dte-issuer__section">
           <legend class="dte-issuer__legend">1. <%= t('admin.documentos.manual_type') %></legend>
