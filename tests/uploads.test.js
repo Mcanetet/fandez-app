@@ -49,4 +49,27 @@ describe('uploads — URLs y persistencia de fotos de pedidos', () => {
     fs.unlinkSync(publicCopy);
     expect(fs.existsSync(resolveProviderDocPath(url))).toBe(true);
   });
+
+  test('resuelve contrato por clave aunque cambie el timestamp del archivo', () => {
+    const {
+      saveProviderFile,
+      resolveProviderDocumentForUser,
+      stableProviderContractDocUrl
+    } = require('../lib/uploads');
+    const dataUrl = 'data:image/jpeg;base64,' + Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9]).toString('base64');
+    const pid = 'prov-testuploads';
+    const url = saveProviderFile(pid, 'contract-rep_id_front', dataUrl);
+    const provider = {
+      id: pid,
+      role: 'provider',
+      verification: {},
+      providerContract: { documents: { rep_id_front: { url } } }
+    };
+    expect(stableProviderContractDocUrl(pid, 'rep_id_front')).toBe(`/media/provider/${pid}/doc/rep_id_front`);
+    const abs = resolveProviderDocumentForUser(provider, 'rep_id_front');
+    expect(abs).toBeTruthy();
+    expect(fs.existsSync(abs)).toBe(true);
+    const byFile = resolveProviderDocumentForUser(provider, require('path').basename(url));
+    expect(byFile).toBeTruthy();
+  });
 });

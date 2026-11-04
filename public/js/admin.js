@@ -4524,7 +4524,9 @@
       const prev = label ? label.childNodes[0].textContent : '';
       if (label) label.childNodes[0].textContent = 'Subiendo… ';
       try {
-        const xml = await file.text();
+        // CAF del SII = ISO-8859-1. file.text() (UTF-8) rompe tildes (GESTIÓN) y falla.
+        const buf = await file.arrayBuffer();
+        const xml = new TextDecoder('iso-8859-1').decode(buf);
         const res = await adminFetch('/dte/caf', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

@@ -1663,8 +1663,9 @@ if (typeof hasPerm !== 'function') {
                     const aiLabel = { verified: 'IA: verificado', suspicious: 'IA: sospechoso', fake: 'IA: posible falso', unreadable: 'IA: ilegible', pending_manual: 'IA: revisión humana', pending: 'IA: pendiente' }[ai.status] || 'IA: pendiente';
                     const humanLabel = { approved: 'Equipo: aprobado', rejected: 'Equipo: rechazado', needs_info: 'Equipo: corrección', pending: 'Equipo: pendiente' }[human.status] || 'Equipo: pendiente';
                     const docUrl = doc.url || '';
-                    const isPdf = /\.pdf($|\?)/i.test(docUrl);
-                    const isImg = /\.(jpe?g|png|webp)($|\?)/i.test(docUrl) || docUrl.includes('/media/provider/');
+                    const storedHint = String(doc.storedUrl || docUrl || '');
+                    const isPdf = /\.pdf($|\?)/i.test(storedHint) || /\.pdf($|\?)/i.test(docUrl);
+                    const isImg = !isPdf && (/\.(jpe?g|png|webp)($|\?)/i.test(storedHint) || /\.(jpe?g|png|webp)($|\?)/i.test(docUrl) || /\/media\/provider\//.test(docUrl));
                     const rawAiReason = String(ai.reason || '');
                     const aiReasonSafe = /api key|sk-proj|Incorrect API/i.test(rawAiReason)
                       ? 'Revisión automática no disponible. Aprueba o rechaza tú el documento.'

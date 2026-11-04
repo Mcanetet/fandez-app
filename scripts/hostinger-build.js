@@ -5,6 +5,9 @@ const { execSync } = require('child_process');
 const dirs = [
   path.join(__dirname, '../data'),
   path.join(__dirname, '../data/backups'),
+  path.join(__dirname, '../data/uploads'),
+  path.join(__dirname, '../data/uploads/providers'),
+  path.join(__dirname, '../data/uploads/requests'),
   path.join(__dirname, '../public/uploads/providers'),
   path.join(__dirname, '../public/uploads/requests'),
   path.join(__dirname, '../public/uploads/marketing'),

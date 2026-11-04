@@ -3600,9 +3600,13 @@ function listProviderReviewDocuments(providerId) {
   const provider = getUserById(providerId);
   if (!provider) return [];
   ensureProviderFields(provider);
+  const { stableProviderContractDocUrl } = require('../lib/uploads');
   const items = getContractDocumentEntries(provider.providerContract).map((doc) => ({
     ...doc,
-    source: 'contract'
+    source: 'contract',
+    // URL estable por clave: sobrevive a renombres / busca el archivo vigente en disco
+    url: stableProviderContractDocUrl(providerId, doc.key) || toServingUrl(doc.url) || doc.url,
+    storedUrl: doc.url
   }));
   const v = provider.verification || {};
   const kyc = [
@@ -3612,21 +3616,21 @@ function listProviderReviewDocuments(providerId) {
   ];
   kyc.forEach((item) => {
     if (!item.url || item.url === 'demo') return;
+    // Evitar duplicar carnet si ya viene del contrato
+    if (item.key === 'kyc:idFront' && items.some((d) => d.key === 'rep_id_front')) return;
+    if (item.key === 'kyc:idBack' && items.some((d) => d.key === 'rep_id_back')) return;
     items.push({
       key: item.key,
       kind: 'kyc',
       source: 'kyc',
       def: { label: item.label },
-      url: toServingUrl(item.url) || item.url,
+      url: stableProviderContractDocUrl(providerId, item.key) || toServingUrl(item.url) || item.url,
       storedUrl: item.url,
       ai: item.review?.ai || defaultDocumentMeta().ai,
       human: item.review?.human || defaultDocumentMeta().human
     });
   });
-  return items.map((doc) => ({
-    ...doc,
-    url: doc.url && doc.url !== 'demo' ? (toServingUrl(doc.url) || doc.url) : doc.url
-  }));
+  return items;
 }
 
 function submitProviderContract(providerId, { signature, ip, userAgent }) {

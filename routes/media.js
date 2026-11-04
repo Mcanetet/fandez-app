@@ -10,6 +10,7 @@ const {
   stableRequestPhotoUrl,
   stableTechnicianPhotoUrl,
   resolveTechnicianPhotoPath,
+  resolveProviderDocumentForUser,
   REQUEST_UPLOAD_ROOT,
   DATA_REQUEST_ROOT
 } = require('../lib/uploads');
@@ -123,13 +124,28 @@ function loadAuthorizedRequest(req) {
   return { user, requestId, request };
 }
 
-function sendResolvedPhoto(res, abs) {
-  if (!abs || !fs.existsSync(abs)) return res.status(404).end();
+function sendMissingMedia(res, { asHtml = false } = {}) {
+  if (asHtml) {
+    res.status(404).type('html').send(
+      '<!doctype html><meta charset="utf-8"><title>Documento no disponible</title>'
+      + '<body style="font-family:system-ui;padding:2rem;max-width:36rem">'
+      + '<h1 style="font-size:1.25rem">Documento no disponible en el servidor</h1>'
+      + '<p>El archivo ya no está en disco (suele pasar tras un redeploy). '
+      + 'Pide al socio que vuelva a subir el carnet o el documento en su contrato.</p>'
+      + '<p><a href="javascript:history.back()">Volver</a></p></body>'
+    );
+    return;
+  }
+  res.status(404).end();
+}
+
+function sendResolvedPhoto(res, abs, opts = {}) {
+  if (!abs || !fs.existsSync(abs)) return sendMissingMedia(res, opts);
   res.setHeader('Content-Type', mimeFromPath(abs));
   res.setHeader('Cache-Control', 'private, max-age=120');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.sendFile(path.resolve(abs), (err) => {
-    if (err && !res.headersSent) res.status(404).end();
+    if (err && !res.headersSent) sendMissingMedia(res, opts);
   });
 }
 
@@ -279,23 +295,33 @@ function sendProviderDoc(req, res) {
   if (!provider || provider.role !== 'provider') return res.status(404).end();
 
   let abs = resolveProviderDocPath(`/uploads/providers/${providerId}/${file}`);
-  if (!abs) {
-    // Fallback: mapear kind (idFront / idBack / selfie) a URL guardada
-    const kind = file.replace(/\.[^.]+$/, '');
-    const v = provider.verification || {};
-    const byKind = {
-      idFront: v.idCardFront,
-      idBack: v.idCardBack,
-      selfie: v.selfie,
-      logo: provider.branding?.logoUrl
-    };
-    const stored = byKind[kind] || byKind[file];
-    if (stored) abs = resolveProviderDocPath(stored);
-  }
-  return sendResolvedPhoto(res, abs);
+  if (!abs) abs = resolveProviderDocumentForUser(provider, file);
+
+  const wantsHtml = String(req.headers.accept || '').includes('text/html')
+    || /\.pdf$/i.test(file);
+  return sendResolvedPhoto(res, abs, { asHtml: wantsHtml && user.role === 'admin' });
+}
+
+/** Ruta estable por clave de documento (no depende del timestamp del archivo). */
+function sendProviderDocByKey(req, res) {
+  const user = req.session && req.session.user;
+  if (!user) return res.status(401).end();
+
+  const providerId = String(req.params.providerId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const docKey = decodeURIComponent(String(req.params.docKey || '')).replace(/[^a-zA-Z0-9:_-]/g, '');
+  if (!providerId || !docKey) return res.status(400).end();
+  if (!canViewProviderDoc(user, providerId)) return res.status(404).end();
+
+  const provider = store.getUserById?.(providerId);
+  if (!provider || provider.role !== 'provider') return res.status(404).end();
+
+  const abs = resolveProviderDocumentForUser(provider, docKey);
+  const wantsHtml = String(req.headers.accept || '').includes('text/html');
+  return sendResolvedPhoto(res, abs, { asHtml: wantsHtml && user.role === 'admin' });
 }
 
 router.get('/media/provider/:providerId/logo', sendProviderLogo);
+router.get('/media/provider/:providerId/doc/:docKey', sendProviderDocByKey);
 router.get('/uploads/providers/:providerId/:file', sendProviderDoc);
 router.get('/media/provider/:providerId/:file', sendProviderDoc);
 
