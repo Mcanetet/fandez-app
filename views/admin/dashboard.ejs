@@ -1217,8 +1217,8 @@ if (typeof hasPerm !== 'function') {
 
         <fieldset class="dte-issuer__section">
           <legend class="dte-issuer__legend">Set de pruebas (multi-DTE)</legend>
-          <p class="dte-issuer__hint mb-2">Arma todos los casos del PDF del SII en un solo EnvioDTE. JSON con <code>setId</code> y <code>cases[]</code>.</p>
-          <textarea id="certSetJson" class="zilo-input w-full text-sm font-mono" rows="8" placeholder='{"setId":"1221626","cases":[{"caseNumber":1,"dteType":33,"receptor":{"rut":"66.666.666-6","name":"Cliente Set","giro":"Servicios","address":"Santiago","commune":"Santiago","city":"Santiago"},"lines":[{"name":"Item AFECTO","qty":1,"unitNeto":10000}]}]}'></textarea>
+          <p class="dte-issuer__hint mb-2">Arma todos los casos del PDF del SII en un solo EnvioDTE. Debes <strong>pegar</strong> el JSON (el gris del placeholder no cuenta). Usa tu <code>setId</code> real (ej. <code>5142204</code>) e ítems literales del TXT.</p>
+          <textarea id="certSetJson" class="zilo-input w-full text-sm font-mono" rows="8" spellcheck="false">{"setId":"5142204","cases":[{"caseNumber":1,"dteType":33,"receptor":{"rut":"60.803.000-K","name":"SERVICIO DE IMPUESTOS INTERNOS","giro":"SERVICIOS DE LA ADMINISTRACION PUBLICA","address":"TEATINOS 120","commune":"SANTIAGO","city":"SANTIAGO"},"lines":[{"name":"Cajon AFECTO","qty":150,"unitNeto":2440},{"name":"Relleno AFECTO","qty":64,"unitNeto":4038}]}]}</textarea>
           <div class="flex flex-wrap items-center gap-2 mt-2">
             <button type="button" id="certSetSubmit" class="dte-issuer__submit">Enviar set completo al SII</button>
             <span id="certSetMsg" class="dte-issuer__msg text-sm" aria-live="polite"></span>

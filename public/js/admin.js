@@ -5049,11 +5049,28 @@
         btn.disabled = true;
         if (msg) msg.textContent = 'Armando set…';
         let body;
+        const raw = String(ta.value || '')
+          .replace(/^\uFEFF/, '')
+          .replace(/[“”]/g, '"')
+          .replace(/[‘’]/g, "'")
+          .trim();
+        if (!raw) {
+          if (msg) msg.textContent = 'Pega el JSON aquí (el texto gris es solo ejemplo)';
+          FandezNotify.show('Pega el JSON del set en el cuadro (no basta el placeholder)', 'error');
+          btn.disabled = false;
+          return;
+        }
         try {
-          body = JSON.parse(String(ta.value || '').trim());
+          body = JSON.parse(raw);
         } catch (e) {
           if (msg) msg.textContent = 'JSON inválido';
-          FandezNotify.show('JSON del set inválido', 'error');
+          FandezNotify.show('JSON del set inválido: revisa comillas y comas', 'error');
+          btn.disabled = false;
+          return;
+        }
+        if (!body || !body.setId || !Array.isArray(body.cases) || !body.cases.length) {
+          if (msg) msg.textContent = 'Falta setId o cases[]';
+          FandezNotify.show('El JSON debe tener setId y cases[] con al menos un caso', 'error');
           btn.disabled = false;
           return;
         }
