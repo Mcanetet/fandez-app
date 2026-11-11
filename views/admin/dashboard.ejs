@@ -1297,7 +1297,7 @@ if (typeof hasPerm !== 'function') {
             <button type="button" class="dte-chip" data-filter-status="sent">Enviado</button>
             <button type="button" class="dte-chip" data-filter-status="accepted">Aceptado</button>
             <button type="button" class="dte-chip" data-filter-status="rejected">Rechazado</button>
-            <button type="button" class="dte-chip" data-filter-dry="1">Solo dry-run</button>
+            <button type="button" class="dte-chip" data-filter-dry="1">Solo simulación</button>
             <button type="button" class="dte-chip" data-filter-dry="0">Solo reales</button>
           </div>
         </div>
@@ -1331,9 +1331,17 @@ if (typeof hasPerm !== 'function') {
             <% const typeLabel = dt === 61 ? 'NC 61' : (dt === 46 ? 'FC 46' : (dt === 43 ? 'LF 43' : 'FV 33')); %>
             <% const typeWords = dt === 61 ? 'nota credito' : (dt === 46 ? 'factura compra' : (dt === 43 ? 'liquidacion' : 'factura')); %>
             <% const statusKey = String(doc.siiStatus || '').toLowerCase(); %>
+            <% const statusLabelsEs = { pending: 'Pendiente', signed: 'Firmado', sent: 'Enviado', processing: 'En proceso', accepted: 'Aceptado', rejected: 'Rechazado', registered: 'Registrado', demo: 'Demo' }; %>
+            <% const statusLabelEs = statusLabelsEs[statusKey] || (doc.siiStatus || '—'); %>
             <% const dry = !!(doc.meta && doc.meta.dryRun); %>
             <% const when = doc.signedAt || doc.sentAt || doc.createdAt || ''; %>
-            <% const whenLabel = when ? String(when).slice(0, 10) : ''; %>
+            <% let whenLabel = ''; %>
+            <% if (when) {
+              const d = when instanceof Date ? when : new Date(when);
+              whenLabel = Number.isNaN(d.getTime())
+                ? String(when).slice(0, 10)
+                : d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
+            } %>
             <% const searchBlob = [
               String(doc.folio || ''),
               String(doc.receptorName || ''),
@@ -1342,7 +1350,8 @@ if (typeof hasPerm !== 'function') {
               typeLabel,
               typeWords,
               statusKey,
-              dry ? 'dry-run' : 'real',
+              statusLabelEs,
+              dry ? 'dry-run simulacion prueba' : 'real',
               whenLabel,
               doc.trackId || '',
               doc.meta && doc.meta.reference && doc.meta.reference.folio ? ('ref ' + doc.meta.reference.folio) : ''
@@ -1358,8 +1367,8 @@ if (typeof hasPerm !== 'function') {
               <div class="dte-doc-row__main">
                 <div class="dte-doc-row__badges">
                   <span class="dte-badge dte-badge--<%= typeKey %>"><%= typeLabel %></span>
-                  <% if (dry) { %><span class="dte-badge dte-badge--muted">dry-run</span><% } %>
-                  <span class="dte-badge dte-badge--muted"><%= doc.siiStatus || '—' %></span>
+                  <% if (dry) { %><span class="dte-badge dte-badge--muted">Simulación</span><% } %>
+                  <span class="dte-badge dte-badge--muted"><%= statusLabelEs %></span>
                   <% if (whenLabel) { %><span class="dte-badge dte-badge--date"><%= whenLabel %></span><% } %>
                 </div>
                 <strong class="dte-doc-row__folio">N° <%= doc.folio %></strong>

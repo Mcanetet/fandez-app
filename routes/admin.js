@@ -1963,6 +1963,7 @@ router.get('/dte/export.csv', requireRole('admin'), requireAdminPermission('docu
   try {
     const sii = require('../lib/sii-dte');
     const { shortTypeLabel } = require('../lib/sii-dte/dteTypes');
+    const { siiStatusLabel } = require('../lib/sii-dte/statusLabels');
     const from = String(req.query.from || req.query.desde || '').slice(0, 10);
     const to = String(req.query.to || req.query.hasta || '').slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
@@ -2021,7 +2022,7 @@ router.get('/dte/export.csv', requireRole('admin'), requireAdminPermission('docu
         Math.round(Number(doc.neto) || 0),
         Math.round(Number(doc.iva) || 0),
         Math.round(Number(doc.total) || 0),
-        csvEscape(doc.siiStatus || ''),
+        csvEscape(siiStatusLabel(doc.siiStatus)),
         csvEscape(doc.trackId || ''),
         csvEscape(doc.environment || ''),
         dry ? 'si' : 'no',
