@@ -1922,7 +1922,10 @@ router.post('/dte/caf', requireRole('admin'), requireAdminPermission('documentos
       ? ` Próximo folio: ${result.nextFolio}.`
       : '';
     const skipHint = result.syncedLastFolio
-      ? ` Folios hasta ${result.syncedLastFolio} ya usados (no se reutilizan).`
+      ? ` Folios del CAF hasta ${result.syncedLastFolio} ya usados.`
+      : '';
+    const repairHint = result.status?.repaired || (result.syncedLastFolio == null && nextHint)
+      ? ''
       : '';
     return res.json({
       success: true,
@@ -1935,7 +1938,7 @@ router.post('/dte/caf', requireRole('admin'), requireAdminPermission('documentos
       file: result.file,
       nextFolio: result.nextFolio,
       status: result.status,
-      message: `CAF ${result.label} guardado en ${result.environment === 'production' ? 'productivo' : 'prueba'} (folios ${result.folioFrom}–${result.folioTo}).${nextHint}${skipHint}`
+      message: `CAF ${result.label} guardado en ${result.environment === 'production' ? 'productivo' : 'prueba'} (folios ${result.folioFrom}–${result.folioTo}).${nextHint}${skipHint}${repairHint}`
     });
   } catch (err) {
     return res.status(400).json({ success: false, error: err.message || 'No se pudo guardar el CAF.' });
