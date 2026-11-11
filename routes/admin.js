@@ -2113,7 +2113,12 @@ router.post('/dte/certification-set', requireRole('admin'), requireAdminPermissi
     return res.json({ success: true, ...result });
   } catch (err) {
     console.error('[admin] dte/certification-set', err);
-    return res.status(500).json({ success: false, error: err.message || 'Error al armar el set' });
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Error al armar el set',
+      envioXmlUrl: err.envioXmlUrl || null,
+      documents: err.documents || null
+    });
   }
 });
 
